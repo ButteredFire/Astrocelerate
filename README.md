@@ -4,7 +4,9 @@
 <!-- PROJECT LOGO -->
 <br />
 <div align="center">
-    <img src="OpenGLProject/assets/AppLogo.png" alt="Logo">
+    <a href="https://github.com/ButteredFire/Astrocelerate/">
+        <img src="OpenGLProject/assets/AppLogo.png" alt="Logo">
+    </a>
 </div>
 
 # Description
