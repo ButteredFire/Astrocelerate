@@ -130,9 +130,8 @@ unsigned int createShader(ShaderSources sources) {
 
     // Delete shaders as by now they will have been linked into a program
     // and thus they are safe to delete
-    for (auto shader : compiledShaders) {
+    for (auto shader : compiledShaders)
         glDeleteShader(shader);
-    }
 
     return program;
 }

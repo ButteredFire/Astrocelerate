@@ -4,6 +4,7 @@
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include "stb_image.h"
 
 #include <iostream>
 #include <fstream>
@@ -51,13 +52,13 @@ int main(void) {
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f); // Dark teal background
     printAppInfo();
 
+    // TODO: Load image icon
+
     // Enable debug context (Should not be enabled in production)
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
     glEnable(GL_DEBUG_OUTPUT);
     glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS); // Ensure synchronous output and avoid race conditions
     glDebugMessageCallback(openGLDebugCallback, nullptr);
-
-    glEnable(GL_INVALID_ENUM); // Invalid capability enum
 
 
     // Define 2 triangles as an array of vertices
