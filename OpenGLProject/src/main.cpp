@@ -2,6 +2,8 @@
 #include "Shaders.h"
 #include "LoggingUtils.h"
 
+#include "BufferObjects.h"
+
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include "stb_image.h"
@@ -17,7 +19,8 @@
 
 
 struct Vertex2D {
-    float x, y;     // Positions (x, y)
+    float x, y;        // Positions (x, y)
+    float r, g, b, a;  // Color values (RGBA)
 };
 
 
@@ -29,6 +32,12 @@ int main(void) {
         logError(Error::CANNOT_INIT_GLFW, "Cannot initialize library: GLFW.");
         return Error::CANNOT_INIT_GLFW;
     }
+
+    // Force OpenGL version 4.3
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    // Set OpenGL profile
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     // Create a windowed mode window and its OpenGL context
     window = glfwCreateWindow(Window::WINDOW_WIDTH, Window::WINDOW_HEIGHT, Window::WINDOW_NAME, NULL, NULL);
@@ -45,9 +54,8 @@ int main(void) {
         return Error::CANNOT_INIT_GLEW;
     }
 
-    // Make sure GPU supports OpenGL 4.3+
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwSwapInterval(1);
+
 
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f); // Dark teal background
     printAppInfo();
@@ -62,49 +70,57 @@ int main(void) {
 
 
     // Define 2 triangles as an array of vertices
-    Vertex2D vertexPositions[] = {
+    Vertex2D vertexData[] = {
         // triangle 1
         { -0.5f, -0.5f}, // 0
         { 0.5f, 0.5f },  // 1
         { 0.5f, -0.5f }, // 2
         { -0.5f, 0.5f }  // 3
     };
-    //unsigned int numOfTriangles = (sizeof(vertexPositions) / sizeof(Vertex2D)) / 3;
 
-    // Indices for elements in vertexPositions
+    // Indices for elements in vertexData
     unsigned int vertexIndices[] = {
         0, 1, 2, // triangle 1
         0, 1, 3  // triangle 2
     };
 
+    // Create a vertex array object (VAO)
+    unsigned int VAO;
+    glGenVertexArrays(1, &VAO);
+    glBindVertexArray(VAO);
+    
     // Create a vertex buffer object (VBO)
-    unsigned int VBO;
-    glGenBuffers(1, &VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO); // Select (Bind) the created buffer
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertexPositions), vertexPositions, GL_STATIC_DRAW); // Set up buffer data (create a new data store for the VBO)
-    glEnableVertexAttribArray(0); // Enable position attribute: Location 0: (float x, y;)
+        /* Note: Use unique pointer for automatic memory freeing AND make_unique for better memory safety than "new" (keyword).
+        Starting from C++14, std::make_unique is the recommended way to create std::unique_ptr instances. */
+    std::unique_ptr<VertexBuffer> VBO = std::make_unique<VertexBuffer>(vertexData, sizeof(vertexData));
+    
+    // Create an index buffer object (IBO), a.k.a. element buffer object (EBO), hence the GL_ELEMENT_ARRAY_BUFFER
+    std::unique_ptr<IndexBuffer> IBO = std::make_unique<IndexBuffer>(vertexIndices, sizeof(vertexIndices));
+    
 
     /* Set up a vertex attribute pointer (to define the data layout)
-        Note: offsetof(Vertex2D, x) = 0 because the offset is set to the `x` member in the Vertex2D struct, which is at index 0
-          If the vertex contains, for instance, (float r, g, b;), then you must enable color attribute with Location 1: glEnableVertexAttribArray(1)
-          then create a vertex attribute pointer like so: glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void*) offsetof(Vertex2D, r));
+    * glEnableVertexAttribArray(x): Enables the vertex attribute at location = 0 (refer to shader file -> vertex shader)
     */
+    glEnableVertexAttribArray(0);
     const void* offset = (const void*) offsetof(Vertex2D, x);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex2D), offset);
+
+    /* Unbind the VAO, VBO and IBO after uploading their data to the GPU via glBufferData(...)
+    * Reason: Doing so ensures that future buffer-binding operations don't modify the VAO data and VBO-IBO configurations.
+    */
+    glBindVertexArray(0); // VAO
+    VBO->unbind();
+    IBO->unbind();
 
     // Load shaders from file
     ShaderSources shaderSources = parseShaderFile(FilePath::BASIC_SHADERS_DIR);
     unsigned int shader = createShader(shaderSources);
     glUseProgram(shader);
 
-    
-    // Create an index buffer object (IBO)
-    unsigned int IBO;
-    glGenBuffers(1, &IBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(vertexIndices), vertexIndices, GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    // Set up a uniform
+    int uniformLocation = glGetUniformLocation(shader, "u_Color");
+    _ASSERT(uniformLocation != -1);
+    glUniform4f(uniformLocation, 0.0f, 1.0f, 1.0f, 1.0f);
     
 
     // Loop until the user closes the window
@@ -112,7 +128,10 @@ int main(void) {
         // Render here
         glClear(GL_COLOR_BUFFER_BIT);
 
-        //glDrawArrays(GL_TRIANGLES, 0, sizeof(vertexPositions) / sizeof(Vertex2D));
+        glBindVertexArray(VAO);
+        VBO->bind(); // VBO is already bound on initialization. However, with multiple VBOs, the VertexBuffer::bind() function is necessary to switch between them
+        IBO->bind();
+
         glDrawElements(GL_TRIANGLES, sizeof(vertexIndices), GL_UNSIGNED_INT, nullptr);
 
         // Swap front and back buffers
@@ -123,7 +142,7 @@ int main(void) {
     }
 
     glDeleteProgram(shader);
-    glDeleteBuffers(1, &VBO);
+    glDeleteVertexArrays(1, &VAO);
     glfwTerminate();
     return 0;
 }

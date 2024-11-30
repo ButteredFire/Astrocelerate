@@ -149,16 +149,20 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\BufferObjects.cpp" />
     <ClCompile Include="src\LoggingUtils.cpp" />
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\Renderer.cpp" />
     <ClCompile Include="src\Shaders.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\basic.shd" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\BufferObjects.h" />
     <ClInclude Include="src\Constants.h" />
     <ClInclude Include="src\LoggingUtils.h" />
+    <ClInclude Include="src\Renderer.h" />
     <ClInclude Include="src\Shaders.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
