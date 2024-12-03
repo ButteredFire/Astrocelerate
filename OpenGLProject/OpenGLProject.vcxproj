@@ -154,6 +154,7 @@
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Renderer.cpp" />
     <ClCompile Include="src\Shaders.cpp" />
+    <ClCompile Include="src\VertexArrayObject.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\basic.shd" />
@@ -164,6 +165,7 @@
     <ClInclude Include="src\LoggingUtils.h" />
     <ClInclude Include="src\Renderer.h" />
     <ClInclude Include="src\Shaders.h" />
+    <ClInclude Include="src\VertexArrayObject.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

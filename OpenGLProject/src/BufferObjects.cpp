@@ -5,6 +5,7 @@ VertexBuffer::VertexBuffer(const void* data, unsigned int size) {
     glGenBuffers(1, &m_RendererID);
     glBindBuffer(GL_ARRAY_BUFFER, m_RendererID);
     glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
+    bind();
 }
 
 VertexBuffer::~VertexBuffer() {
@@ -24,6 +25,7 @@ IndexBuffer::IndexBuffer(const unsigned int* data, unsigned int count) : m_Count
     glGenBuffers(1, &m_RendererID);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_RendererID);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, count, data, GL_STATIC_DRAW);
+    bind();
 }
 
 IndexBuffer::~IndexBuffer() {
@@ -31,9 +33,9 @@ IndexBuffer::~IndexBuffer() {
 }
 
 void IndexBuffer::bind() const {
-    glBindBuffer(GL_ARRAY_BUFFER, m_RendererID);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_RendererID);
 }
 
 void IndexBuffer::unbind() const {
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
