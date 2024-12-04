@@ -3,20 +3,24 @@
 #ifndef BUFFER_OBJECTS_H
 #define BUFFER_OBJECTS_H
 
+#include "LoggingUtils.h"
+#include "Constants.h"
+
 #include <GL/glew.h>
 #include <stdexcept>
 #include <vector>
 #include <map>
 
 struct Vertex2D {
-	float x, y;        // Positions (x, y)
-	//float r, g, b;  // Color values (RGB)
+	float x, y;         // Positions (x, y)
+	float r, g, b;		// Color values (RGB)
 };
 
 struct VertexBufferElement {
 	unsigned int type;
 	unsigned int count;
 	unsigned int normalized;
+	unsigned int stride;
 	unsigned int offset;
 };
 
@@ -35,52 +39,47 @@ public:
 class VertexBufferLayout {
 private:
 	std::vector<VertexBufferElement> m_BufferElements;
-	unsigned int m_Stride;
 
 public:
-	VertexBufferLayout() : m_Stride(0) {};
+	VertexBufferLayout() {};
 
 	// Handle unsupported type
 	template<typename T>
 	void push(unsigned int count, unsigned int size = sizeof(T), unsigned int offset = sizeof(T)) {
-		static_assert("[RTE]: Unsupported vertex buffer element type.");
+		logError(Error::UNSUPPORTED_VBO_ELEM_TYPE, "Unsupported vertex buffer element type!");
+		static_assert(false);
 	}
 
 	// Template specializations
 	template<>
 	void push<float>(unsigned int count, unsigned int size, unsigned int offset) {
 		m_BufferElements.push_back({
-			GL_FLOAT, count, GL_FALSE, offset	
+			GL_FLOAT, count, GL_FALSE, size, offset
 		});
-		m_Stride += size;
 	}
 
 	template<>
 	void push<unsigned int>(unsigned int count, unsigned int size, unsigned int offset) {
 		m_BufferElements.push_back({
-			GL_UNSIGNED_INT, count, GL_FALSE, offset
+			GL_UNSIGNED_INT, count, GL_FALSE, size, offset
 		});
-		m_Stride += size;
 	}
 
 	template<>
 	void push<unsigned char>(unsigned int count, unsigned int size, unsigned int offset) {
 		m_BufferElements.push_back({
-			GL_UNSIGNED_BYTE, count, GL_TRUE, offset
+			GL_UNSIGNED_BYTE, count, GL_TRUE, size, offset
 		});
-		m_Stride += size;
 	}
 
 	template<>
 	void push<Vertex2D>(unsigned int count, unsigned int size, unsigned int offset) {
 		m_BufferElements.push_back({
-			GL_FLOAT, count, GL_FALSE, offset
+			GL_FLOAT, count, GL_FALSE, size, offset
 		});
-		m_Stride += size;
 	}
 
 	inline std::vector<VertexBufferElement> getVertexBufferElements() const { return m_BufferElements; }
-	inline unsigned int getStride() const { return m_Stride; }
 };
 
 class IndexBuffer {

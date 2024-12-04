@@ -66,32 +66,33 @@ int main(void) {
 
     // Array of 2D vertices
     Vertex2D vertexData[] = {
-        // triangle 1
-        { -0.5f, -0.5f},    // 0
-        { 0.5f, 0.5f},      // 1
-        { 0.5f, -0.5f},     // 2
-        { -0.5f, 0.5f},     // 3
-        {-0.5f, 0.8f},      // 4
-        {0.5f, 0.8f}        // 5
+        { -0.5f, -0.5f,     0.7f, 1.0f, 0.4f},    // 0
+        { 0.5f, 0.5f,       1.0f, 0.5f, 0.4f},      // 1
+        { 0.5f, -0.5f,      0.9f, 0.1f, 0.4f},     // 2
+        { -0.5f, 0.5f,      0.1f, 0.3f, 0.0f},     // 3
+        {-0.5f, 0.8f,       1.0f, 1.0f, 0.6f},      // 4
+        {0.5f, 0.8f,        1.0f, 1.0f, 1.0f}        // 5
     };
 
     // Indices for elements in vertexData
     unsigned int vertexIndices[] = {
-        0, 1, 2,     // triangle 1
-        0, 1, 3,     // triangle 2
-        3, 4, 1,     // triangle 3
-        1, 5, 3      // triangle 4
+        0, 1, 2,     // triangle 1 (bottom-left, top-right, bottom-right)
+        0, 1, 3,     // triangle 2 (bottom-left, top-right, top-left)
+        3, 4, 1,     // triangle 3 (top-left, top-left + (y: 0.3), bottom-left)
+        1, 5, 3      // triangle 4 (bottom-left, top-right + (y: 0.3), top-left)
     };
 
     float testData[] = {
-        -0.5f, -0.5f,
-        0.5f, 0.5f,
-        0.5f, -0.5f,
-        -0.5f, 0.5f,
+         -0.5f, -0.5f,     0.7f, 1.0f, 0.4f,    // 0
+         0.5f, 0.5f,       1.0f, 0.5f, 0.4f,      // 1
+         0.5f, -0.5f,      0.9f, 0.1f, 0.8f,     // 2
+         -0.5f, 0.5f,      0.1f, 0.3f, 0.0f,     // 3
+        -0.5f, 0.8f,       1.0f, 1.0f, 0.6f,      // 4
+        0.5f, 0.8f,        1.0f, 1.0f, 1.0f        // 5
     };
     unsigned int testIndices[] = {
-        0, 1, 2, 3, 4, 5, // triangle 1
-        0, 1, 2, 3, 6, 7  // triangle 2
+        0, 1, 2 + 3, 3 + 3, 4 + 3, 5 + 3, // triangle 1
+        0, 1, 2 + 3, 3 + 3, 6 + 3, 7 + 3  // triangle 2
     };
 
     // Create a vertex array object (VAO)
@@ -112,6 +113,7 @@ int main(void) {
     */
     VertexBufferLayout VBLayout;
     VBLayout.push<Vertex2D>(2, sizeof(Vertex2D), offsetof(Vertex2D, x));
+    VBLayout.push<Vertex2D>(3, sizeof(Vertex2D), offsetof(Vertex2D, r));
     VAO.addBuffer(VBO, VBLayout);
     
     /*glEnableVertexAttribArray(0);
@@ -131,10 +133,13 @@ int main(void) {
     glUseProgram(shader);
 
     // Set up a uniform
-    int uniformLocation = glGetUniformLocation(shader, "u_Color");
-    _ASSERT(uniformLocation != -1);
-    glUniform4f(uniformLocation, 0.0f, 1.0f, 1.0f, 1.0f);
+    //int uniformLocation = glGetUniformLocation(shader, "u_Color");
+    //std::cout << uniformLocation << '\n';
+    //_ASSERT(uniformLocation != -1);
+    //glUniform4f(uniformLocation, 0.0f, 1.0f, 1.0f, 1.0f);
     
+    int objectScale = glGetUniformLocation(shader, "scale");
+    glUniform1f(objectScale, 1.0f);
 
     // Loop until the user closes the window
     while (!glfwWindowShouldClose(window)) {

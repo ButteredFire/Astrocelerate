@@ -49,9 +49,5 @@ void printAppInfo() {
 }
 
 void logError(int errorCode, const std::string& errorMsg, const bool isWarning) {
-    std::cerr << ((isWarning) ? "[WARNING]" : "[ERROR]") << ": (Exit code : " << errorCode << ") " << errorMsg << '\n';
-}
-
-std::string quote(const std::string& str) {
-    return '"' + str + '"';
+    std::cerr << ((isWarning) ? "[WARNING]" : "[ERROR]") << ":\t(Exit code : " << errorCode << ") " << errorMsg << '\n';
 }
