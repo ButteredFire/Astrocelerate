@@ -64,19 +64,23 @@ int main(void) {
     glDebugMessageCallback(openGLDebugCallback, nullptr);
 
 
-    // Define 2 triangles as an array of vertices
+    // Array of 2D vertices
     Vertex2D vertexData[] = {
         // triangle 1
-        { -0.5f, -0.5f}, // 0
-        { 0.5f, 0.5f},  // 1
-        { 0.5f, -0.5f}, // 2
-        { -0.5f, 0.5f}  // 3
+        { -0.5f, -0.5f},    // 0
+        { 0.5f, 0.5f},      // 1
+        { 0.5f, -0.5f},     // 2
+        { -0.5f, 0.5f},     // 3
+        {-0.5f, 0.8f},      // 4
+        {0.5f, 0.8f}        // 5
     };
 
     // Indices for elements in vertexData
     unsigned int vertexIndices[] = {
-        0, 1, 2, // triangle 1
-        0, 1, 3  // triangle 2
+        0, 1, 2,     // triangle 1
+        0, 1, 3,     // triangle 2
+        3, 4, 1,     // triangle 3
+        1, 5, 3      // triangle 4
     };
 
     float testData[] = {
@@ -141,7 +145,7 @@ int main(void) {
         VBO.bind(); // VBO is already bound on initialization. However, with multiple VBOs, the VertexBuffer::bind() function is necessary to switch between them
         IBO.bind();
 
-        glDrawElements(GL_TRIANGLES, sizeof(vertexIndices), GL_UNSIGNED_INT, nullptr);
+        glDrawElements(GL_TRIANGLES, sizeof(vertexIndices) / sizeof(float), GL_UNSIGNED_INT, nullptr);
 
         // Swap front and back buffers
         glfwSwapBuffers(window);
