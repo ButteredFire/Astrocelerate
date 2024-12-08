@@ -11,10 +11,10 @@
 #include <vector>
 #include <map>
 
-struct Vertex2D {
-	float x, y;         // Coordinates (x, y)
-	float r, g, b;		// Color values (RGB)
-	float texX, texY;	// Texture coordinates (x, y)
+struct Vertex3D {
+	float x, y, z;         // Coordinates (x, y, z)
+	float r, g, b;		   // Color values (RGB)
+	float texX, texY;	   // Texture coordinates (x, y)
 };
 
 struct VertexBufferElement {
@@ -75,7 +75,7 @@ public:
 	}
 
 	template<>
-	void push<Vertex2D>(unsigned int location, unsigned int count, unsigned int size, unsigned int offset) {
+	void push<Vertex3D>(unsigned int location, unsigned int count, unsigned int size, unsigned int offset) {
 		m_BufferElements.push_back({
 			location, GL_FLOAT, count, GL_FALSE, size, offset
 		});

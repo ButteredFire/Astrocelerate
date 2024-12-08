@@ -11,6 +11,9 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <stb_image.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include <iostream>
 #include <fstream>
@@ -25,6 +28,9 @@
 int main(void) {
     GLFWwindow* window;
 
+    float windowWidth = Window::DEFAULT_WINDOW_WIDTH;
+    float windowHeight = Window::DEFAULT_WINDOW_HEIGHT;
+
     // Initialize GLFW
     if (!glfwInit()) {
         logError(Error::CANNOT_INIT_GLFW, "Cannot initialize library: GLFW.");
@@ -38,7 +44,7 @@ int main(void) {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     // Create a windowed mode window and its OpenGL context
-    window = glfwCreateWindow(Window::WINDOW_WIDTH, Window::WINDOW_HEIGHT, Window::WINDOW_NAME, NULL, NULL);
+    window = glfwCreateWindow(windowWidth, windowHeight, Window::WINDOW_NAME, NULL, NULL);
     if (!window) {
         logError(Error::CANNOT_INIT_WINDOW, "Cannot initialize window.");
         glfwTerminate();
@@ -80,24 +86,29 @@ int main(void) {
     glDebugMessageCallback(openGLDebugCallback, nullptr);
 
 
-    // Array of 2D vertices
-    Vertex2D vertexData[] = {
-        { -0.5f, -0.5f,     0.7f, 1.0f, 0.4f,   0.0f, 0.0f},          // 0
-        { 0.5f, 0.5f,       1.0f, 0.5f, 0.4f,   1.0f, 1.0f},          // 1
-        { 0.5f, -0.5f,      0.9f, 0.1f, 0.4f,   1.0f, 0.0f},          // 2
-        { -0.5f, 0.5f,      0.1f, 0.3f, 0.0f,   0.0f, 1.0f},          // 3
+    // Array of 3D vertices
+    Vertex3D vertexData[] = {
+        { -0.5f, 0.0f, -0.5f,     0.7f, 1.0f, 0.4f,   0.0f, 1.0f},          // 0: back-left-bottom
+        { 0.5f, 0.0f, -0.5f,      1.0f, 0.5f, 0.4f,   1.0f, 1.0f},          // 1: back-right-bottom
+        { -0.5f, 0.0f, 0.5f,       0.9f, 0.1f, 0.4f,   0.0f, 0.0f},          // 2: front-left-bottom
+        { 0.5f, 0.0f, 0.5f,      0.1f, 0.3f, 0.0f,   1.0f, 0.0f},          // 3: front-right-bottom
+        { 0.0f, 0.8f, 0.0f,       0.1f, 0.3f, 0.0f,   0.5f, 0.5f},          // 4: apex
         //{-0.5f, 0.8f,       1.0f, 1.0f, 0.6f},          // 4
         //{0.5f, 0.8f,        1.0f, 1.0f, 1.0f},          // 5
         //{0.0f, 0.5f,        0.5f, 1.0f, 0.0f}           // 6
     };
 
-    // Indices for elements in vertexData
+    // Indices for elements in vertexData (pyramid)
     unsigned int vertexIndices[] = {
-        0, 1, 2,     // triangle 1 (bottom-left, top-right, bottom-right)
-        0, 1, 3,     // triangle 2 (bottom-left, top-right, top-left)
-        //3, 4, 1,     // triangle 3 (top-left, top-left + (y: 0.3), bottom-left)
-        //1, 5, 3,     // triangle 4 (bottom-left, top-right + (y: 0.3), top-left)
-        //4, 5, 6      // triangle 5 (top-left + (y: 0.3), top-right + (y: 0.3), top-mid)
+        // Pyramid base
+        0, 1, 2,
+        3, 1, 2,
+
+        // Pyramid sides
+        0, 1, 4,
+        1, 3, 4,
+        3, 2, 4,
+        2, 0, 4
     };
 
     /*
@@ -108,7 +119,7 @@ int main(void) {
     (-0.5, -0.5: 0.0, 0.0)		(0.5, -0.5: 1.0, 0.0)
     */
 
-    /*Vertex2D appLogoVertices[] = {
+    /*Vertex3D appLogoVertices[] = {
         {-0.7f, 0.6f,      0.0f, 0.0f, 0.0f,     0.0f, 0.0f},
         {-0.7f, 0.9f,      0.0f, 0.0f, 0.0f,     0.0f, 1.0f},
         {0.7f, 0.6f,      0.0f, 0.0f, 0.0f,     1.0f, 0.0f},
@@ -134,9 +145,9 @@ int main(void) {
 
     // Create a vertex buffer layout and Set up a vertex attribute pointer (to define the data layout)
     VertexBufferLayout VBLayout;
-    VBLayout.push<Vertex2D>(0, 2, sizeof(Vertex2D), offsetof(Vertex2D, x));
-    VBLayout.push<Vertex2D>(1, 3, sizeof(Vertex2D), offsetof(Vertex2D, r));
-    VBLayout.push<Vertex2D>(2, 2, sizeof(Vertex2D), offsetof(Vertex2D, texX));
+    VBLayout.push<Vertex3D>(0, 3, sizeof(Vertex3D), offsetof(Vertex3D, x));
+    VBLayout.push<Vertex3D>(1, 3, sizeof(Vertex3D), offsetof(Vertex3D, r));
+    VBLayout.push<Vertex3D>(2, 2, sizeof(Vertex3D), offsetof(Vertex3D, texX));
     VAO.addBuffer(VBO, VBLayout);
 
     /* Unbind the VAO, VBO and IBO after uploading   their data to the GPU via glBufferData(...)
@@ -154,7 +165,7 @@ int main(void) {
     Renderer renderer;
 
     // Load 2D texture of application logo
-    Texture appLogo("assets/textures/DeveloperTextureOrange512x512.png");
+    Texture appLogo("assets/textures/developer/dev_orange.png");
     appLogo.bind(0);
     shader.bind();
 
@@ -165,34 +176,66 @@ int main(void) {
     float scale = 1.0f;
     glUniform1f(objectScale, scale);
 
-    bool completedCycle = false;
+    //bool completedCycle = false;
+    
+    // Calculate model rotation speed (1/2)
+    float modelRotationDeg = 0.0f;
+    double rotPrevTime = glfwGetTime();
+
+    // Enable depth testing (which tells OpenGL what triangles to render and what triangles to hide based on visibility of each one
+    glEnable(GL_DEPTH_TEST);
 
     // Loop until the user closes the window
     while (!glfwWindowShouldClose(window)) {
         // Render here
-        renderer.clear();
+        renderer.clear(GL_COLOR_BUFFER_BIT);
+        renderer.clear(GL_DEPTH_BUFFER_BIT);
 
         shader.bind();
         VBO.bind(); // VBO is already bound on initialization. However, with multiple VBOs, the VertexBuffer::bind() function is necessary to switch between them
         appLogo.bind(0);
 
-        // Nauseating zooming effect for funsies
-        /*if (scale >= 0.0f) {
-            if (completedCycle) {
-                if (scale == 1.0f) {
-                    completedCycle = false;
-                    scale -= 0.01f;
-                }
-                else scale += 0.01f;
-            }
-            else scale -= 0.01f;
-        }
-        else {
-            completedCycle = true;
-            scale += 0.01f;
-        }
-        glUniform1f(objectScale, scale);*/
+        // Initialize identity matrices and their respective uniforms
+        glm::mat4 model = glm::mat4(1.0f);
+        glm::mat4 cameraPerspective = glm::mat4(1.0f);
+        glm::mat4 projection = glm::mat4(1.0f);
 
+        shader.bind();
+        int modelLocation = glGetUniformLocation(shaderID, "model");
+        int cameraPerspectiveLocation = glGetUniformLocation(shaderID, "cameraPerspective");
+        int projectionLocation = glGetUniformLocation(shaderID, "projection");
+        
+        
+        // Move the scene away from the camera (to create the illusion of distance between the viewpoint and the scene)
+        glm::vec3 distanceFromPOV = glm::vec3(0.0f, -0.5f, -2.0f);
+        cameraPerspective = glm::translate(cameraPerspective, distanceFromPOV);
+
+        // Create perspective
+        float fieldOfView = glm::radians(60.0f);            // FOV (calculated in radians)
+        float aspectRatio = windowWidth / windowHeight;     // Aspect Ratio
+        float zNear = 0.1f;     // Near clipping plane (how close to camera until object is clipped)
+        float zFar = 100.0f;    // Far clipping plane (how far away from camera until object is clipped)
+        projection = glm::perspective(fieldOfView, aspectRatio, zNear, zFar);
+
+        // Rotate model
+            // Calculate model rotation speed (2/2)
+        double rotCurrTime = glfwGetTime();
+        if (rotCurrTime - rotPrevTime >= (1 / 60)) {
+            modelRotationDeg += 0.5f;
+            rotPrevTime = rotCurrTime;
+        }
+            // Set axis to be rotated around (x, y, z). The model's rotational direction is the vector from (0, 0, 0) to (x, y, z).
+        glm::vec3 rotationAxis = glm::vec3(0.0f, 1.0f, 0.0f);
+        model = glm::rotate(model, glm::radians(modelRotationDeg), rotationAxis);
+
+
+        // Assign each matrix's uniform to their respective value
+        // Note: glm::value_ptr(mat) is a pointer to the matrix itself and not its data
+        glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(model));
+        glUniformMatrix4fv(cameraPerspectiveLocation, 1, GL_FALSE, glm::value_ptr(cameraPerspective));
+        glUniformMatrix4fv(projectionLocation, 1, GL_FALSE, glm::value_ptr(projection));
+        
+        //glDrawElements(GL_TRIANGLES, sizeof(vertexIndices) / sizeof(unsigned int), GL_UNSIGNED_INT, nullptr);
         renderer.draw(VAO, IBO, shader);
         // Swap front and back buffers
         glfwSwapBuffers(window);

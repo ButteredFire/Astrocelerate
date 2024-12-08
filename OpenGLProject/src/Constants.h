@@ -16,8 +16,8 @@ namespace Error {
 
 // Window properties
 namespace Window {
-	constexpr int WINDOW_WIDTH = 1000;
-	constexpr int WINDOW_HEIGHT = 800;
+	constexpr int DEFAULT_WINDOW_WIDTH = 950;
+	constexpr int DEFAULT_WINDOW_HEIGHT = 950;
 	constexpr char WINDOW_NAME[] = "OpenGL Test Environment";
 }
 

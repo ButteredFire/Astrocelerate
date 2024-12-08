@@ -1,7 +1,7 @@
 #shader Vertex
 #version 330 core
 
-layout(location = 0) in vec4 vertPos;
+layout(location = 0) in vec3 vertPos;
 layout(location = 1) in vec3 vertColor;
 layout(location = 2) in vec2 vertTexCoords;
 
@@ -10,10 +10,13 @@ out vec2 texCoords;
 
 uniform float scale;
 
+uniform mat4 model;
+uniform mat4 cameraPerspective;
+uniform mat4 projection;
+	
+
 void main() {
-	gl_Position = vec4(
-		vertPos.x * scale, vertPos.y * scale, vertPos.z * scale, 1.0
-	);
+	gl_Position = projection * cameraPerspective * model * vec4(vertPos, 1.0);
 	fragColor = vertColor;
 	texCoords = vertTexCoords;
 };

@@ -9,7 +9,7 @@
 
 class Renderer {
 public:
-	void clear() const;
+	void clear(GLbitfield mask) const;
 	void draw(const VertexArray& VAO, const IndexBuffer& IBO, const Shader& shader) const;
 };
 
