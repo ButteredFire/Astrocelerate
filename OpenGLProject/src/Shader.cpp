@@ -1,4 +1,4 @@
-#include "Shaders.h"
+#include "Shader.h"
 #include "Constants.h"
 #include "LoggingUtils.h"
 #include <GL/glew.h>
@@ -12,7 +12,8 @@
 #include <map>
 
 
-Shader::Shader(const std::string& filePath) : m_FilePath(filePath) {
+Shader::Shader(const std::string& filePath) 
+    : m_FilePath(filePath) {
     m_ShaderSources = parseShaderFile();
     m_ShaderID = createShader(m_ShaderSources);
     bind();

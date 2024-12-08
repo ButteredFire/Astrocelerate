@@ -1,10 +1,12 @@
 #include "Constants.h"
-#include "Shaders.h"
+#include "Shader.h"
 #include "LoggingUtils.h"
 
 #include "BufferObjects.h"
 #include "VertexArrayObject.h"
 #include "Renderer.h"
+
+#include "Texture.h"
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -56,16 +58,20 @@ int main(void) {
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f); // Dark teal background
     printAppInfo();
 
-    // TODO: Load image icon
-    int iconWidth, iconHeight, iconChannels;
-    unsigned char* pixels = stbi_load(FilePath::WINDOW_ICON, &iconWidth, &iconHeight, &iconChannels, 0);
+    // Load image icon
+    const int numOfAppIcons = 1;
+    GLFWimage icons[numOfAppIcons];
+    for (int i = 1; i <= numOfAppIcons; i++) {
+        int iconWidth, iconHeight, iconChannels;
+        std::string filePath = FilePath::WINDOW_ICONS_PREFIX + std::to_string(i) + ".png";
+        unsigned char* pixels = stbi_load(filePath.c_str(), &iconWidth, &iconHeight, &iconChannels, 0);
 
-    GLFWimage icon[1];
-    icon[0].width = iconWidth;
-    icon[0].height = iconHeight;
-    icon[0].pixels = pixels;
-
-    glfwSetWindowIcon(window, 1, icon);
+        icons[i-1].width = iconWidth;
+        icons[i-1].height = iconHeight;
+        icons[i-1].pixels = pixels;
+    }
+    
+    glfwSetWindowIcon(window, numOfAppIcons, icons);
 
     // Enable debug context (Should not be enabled in production)
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
@@ -76,36 +82,42 @@ int main(void) {
 
     // Array of 2D vertices
     Vertex2D vertexData[] = {
-        { -0.5f, -0.5f,     0.7f, 1.0f, 0.4f},          // 0
-        { 0.5f, 0.5f,       1.0f, 0.5f, 0.4f},          // 1
-        { 0.5f, -0.5f,      0.9f, 0.1f, 0.4f},          // 2
-        { -0.5f, 0.5f,      0.1f, 0.3f, 0.0f},          // 3
-        {-0.5f, 0.8f,       1.0f, 1.0f, 0.6f},          // 4
-        {0.5f, 0.8f,        1.0f, 1.0f, 1.0f},          // 5
-        {0.0f, 0.5f,        0.5f, 1.0f, 0.0f}           // 6
+        { -0.5f, -0.5f,     0.7f, 1.0f, 0.4f,   0.0f, 0.0f},          // 0
+        { 0.5f, 0.5f,       1.0f, 0.5f, 0.4f,   1.0f, 1.0f},          // 1
+        { 0.5f, -0.5f,      0.9f, 0.1f, 0.4f,   1.0f, 0.0f},          // 2
+        { -0.5f, 0.5f,      0.1f, 0.3f, 0.0f,   0.0f, 1.0f},          // 3
+        //{-0.5f, 0.8f,       1.0f, 1.0f, 0.6f},          // 4
+        //{0.5f, 0.8f,        1.0f, 1.0f, 1.0f},          // 5
+        //{0.0f, 0.5f,        0.5f, 1.0f, 0.0f}           // 6
     };
 
     // Indices for elements in vertexData
     unsigned int vertexIndices[] = {
         0, 1, 2,     // triangle 1 (bottom-left, top-right, bottom-right)
         0, 1, 3,     // triangle 2 (bottom-left, top-right, top-left)
-        3, 4, 1,     // triangle 3 (top-left, top-left + (y: 0.3), bottom-left)
-        1, 5, 3,     // triangle 4 (bottom-left, top-right + (y: 0.3), top-left)
-        4, 5, 6      // triangle 5 (top-left + (y: 0.3), top-right + (y: 0.3), top-mid)
+        //3, 4, 1,     // triangle 3 (top-left, top-left + (y: 0.3), bottom-left)
+        //1, 5, 3,     // triangle 4 (bottom-left, top-right + (y: 0.3), top-left)
+        //4, 5, 6      // triangle 5 (top-left + (y: 0.3), top-right + (y: 0.3), top-mid)
     };
 
-    float testData[] = {
-         -0.5f, -0.5f,     0.7f, 1.0f, 0.4f,    // 0
-         0.5f, 0.5f,       1.0f, 0.5f, 0.4f,      // 1
-         0.5f, -0.5f,      0.9f, 0.1f, 0.8f,     // 2
-         -0.5f, 0.5f,      0.1f, 0.3f, 0.0f,     // 3
-        -0.5f, 0.8f,       1.0f, 1.0f, 0.6f,      // 4
-        0.5f, 0.8f,        1.0f, 1.0f, 1.0f        // 5
-    };
-    unsigned int testIndices[] = {
-        0, 1, 2 + 3, 3 + 3, 4 + 3, 5 + 3, // triangle 1
-        0, 1, 2 + 3, 3 + 3, 6 + 3, 7 + 3  // triangle 2
-    };
+    /*
+    (-0.5, 0.5: 0.0, 1.0)		(0.5, 0.5: 1.0, 1.0)
+
+                          (0, 0)
+
+    (-0.5, -0.5: 0.0, 0.0)		(0.5, -0.5: 1.0, 0.0)
+    */
+
+    /*Vertex2D appLogoVertices[] = {
+        {-0.7f, 0.6f,      0.0f, 0.0f, 0.0f,     0.0f, 0.0f},
+        {-0.7f, 0.9f,      0.0f, 0.0f, 0.0f,     0.0f, 1.0f},
+        {0.7f, 0.6f,      0.0f, 0.0f, 0.0f,     1.0f, 0.0f},
+        {0.7f, 0.9f,      0.0f, 0.0f, 0.0f,     1.0f, 1.0f},
+    };*/
+
+    // Enable blending
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // Create a vertex array object (VAO)
     VertexArray VAO;
@@ -122,8 +134,9 @@ int main(void) {
 
     // Create a vertex buffer layout and Set up a vertex attribute pointer (to define the data layout)
     VertexBufferLayout VBLayout;
-    VBLayout.push<Vertex2D>(2, sizeof(Vertex2D), offsetof(Vertex2D, x));
-    VBLayout.push<Vertex2D>(3, sizeof(Vertex2D), offsetof(Vertex2D, r));
+    VBLayout.push<Vertex2D>(0, 2, sizeof(Vertex2D), offsetof(Vertex2D, x));
+    VBLayout.push<Vertex2D>(1, 3, sizeof(Vertex2D), offsetof(Vertex2D, r));
+    VBLayout.push<Vertex2D>(2, 2, sizeof(Vertex2D), offsetof(Vertex2D, texX));
     VAO.addBuffer(VBO, VBLayout);
 
     /* Unbind the VAO, VBO and IBO after uploading   their data to the GPU via glBufferData(...)
@@ -140,11 +153,13 @@ int main(void) {
     // Create a renderer
     Renderer renderer;
 
-    // Set up a uniform
-    //int uniformLocation = glGetUniformLocation(shaderID, "u_Color");
-    //std::cout << uniformLocation << '\n';
-    //_ASSERT(uniformLocation != -1);
-    //glUniform4f(uniformLocation, 0.0f, 1.0f, 1.0f, 1.0f);
+    // Load 2D texture of application logo
+    Texture appLogo("assets/textures/DeveloperTextureOrange512x512.png");
+    appLogo.bind(0);
+    shader.bind();
+
+    unsigned int texSlot0 = glGetUniformLocation(shaderID, "tex0");
+    glUniform1i(texSlot0, 0);
     
     int objectScale = glGetUniformLocation(shaderID, "scale");
     float scale = 1.0f;
@@ -159,6 +174,7 @@ int main(void) {
 
         shader.bind();
         VBO.bind(); // VBO is already bound on initialization. However, with multiple VBOs, the VertexBuffer::bind() function is necessary to switch between them
+        appLogo.bind(0);
 
         // Nauseating zooming effect for funsies
         /*if (scale >= 0.0f) {

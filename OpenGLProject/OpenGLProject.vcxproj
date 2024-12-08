@@ -153,8 +153,9 @@
     <ClCompile Include="src\LoggingUtils.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Renderer.cpp" />
-    <ClCompile Include="src\Shaders.cpp" />
-    <ClCompile Include="src\stb_image.cpp" />
+    <ClCompile Include="src\Shader.cpp" />
+    <ClCompile Include="src\stb\stb_image.cpp" />
+    <ClCompile Include="src\Texture.cpp" />
     <ClCompile Include="src\VertexArrayObject.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -165,7 +166,8 @@
     <ClInclude Include="src\Constants.h" />
     <ClInclude Include="src\LoggingUtils.h" />
     <ClInclude Include="src\Renderer.h" />
-    <ClInclude Include="src\Shaders.h" />
+    <ClInclude Include="src\Shader.h" />
+    <ClInclude Include="src\Texture.h" />
     <ClInclude Include="src\VertexArrayObject.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

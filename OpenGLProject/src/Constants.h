@@ -24,7 +24,7 @@ namespace Window {
 
 // File Directories
 namespace FilePath {
-	constexpr char WINDOW_ICON[] = "assets/AppIcon.ico";
+	constexpr char WINDOW_ICONS_PREFIX[] = "assets/app/AppIcon-";
 	constexpr char BASIC_SHADERS_DIR[] = "shaders/basic.shd";
 }
 

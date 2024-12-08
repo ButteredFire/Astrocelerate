@@ -5,7 +5,7 @@
 
 #include "VertexArrayObject.h"
 #include "BufferObjects.h"
-#include "Shaders.h"
+#include "Shader.h"
 
 class Renderer {
 public:

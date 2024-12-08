@@ -3,8 +3,10 @@
 
 layout(location = 0) in vec4 vertPos;
 layout(location = 1) in vec3 vertColor;
+layout(location = 2) in vec2 vertTexCoords;
 
 out vec3 fragColor;
+out vec2 texCoords;
 
 uniform float scale;
 
@@ -13,6 +15,7 @@ void main() {
 		vertPos.x * scale, vertPos.y * scale, vertPos.z * scale, 1.0
 	);
 	fragColor = vertColor;
+	texCoords = vertTexCoords;
 };
 
 
@@ -20,8 +23,13 @@ void main() {
 #version 330 core
 
 in vec3 fragColor;
+in vec2 texCoords;
+
 out vec4 color;
 
+uniform sampler2D tex0;
+
 void main() {
-	color = vec4(fragColor, 1.0);
+	vec4 texColor = texture(tex0, texCoords);
+	color = texColor;
 };

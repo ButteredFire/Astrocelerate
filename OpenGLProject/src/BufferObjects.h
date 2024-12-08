@@ -12,11 +12,13 @@
 #include <map>
 
 struct Vertex2D {
-	float x, y;         // Positions (x, y)
+	float x, y;         // Coordinates (x, y)
 	float r, g, b;		// Color values (RGB)
+	float texX, texY;	// Texture coordinates (x, y)
 };
 
 struct VertexBufferElement {
+	unsigned int location;
 	unsigned int type;
 	unsigned int count;
 	unsigned int normalized;
@@ -45,37 +47,37 @@ public:
 
 	// Handle unsupported type
 	template<typename T>
-	void push(unsigned int count, unsigned int size = sizeof(T), unsigned int offset = sizeof(T)) {
+	void push(unsigned int location, unsigned int count, unsigned int size = sizeof(T), unsigned int offset = sizeof(T)) {
 		logError(Error::UNSUPPORTED_VBO_ELEM_TYPE, "Unsupported vertex buffer element type!");
 		static_assert(false);
 	}
 
 	// Template specializations
 	template<>
-	void push<float>(unsigned int count, unsigned int size, unsigned int offset) {
+	void push<float>(unsigned int location, unsigned int count, unsigned int size, unsigned int offset) {
 		m_BufferElements.push_back({
-			GL_FLOAT, count, GL_FALSE, size, offset
+			location, GL_FLOAT, count, GL_FALSE, size, offset
 		});
 	}
 
 	template<>
-	void push<unsigned int>(unsigned int count, unsigned int size, unsigned int offset) {
+	void push<unsigned int>(unsigned int location, unsigned int count, unsigned int size, unsigned int offset) {
 		m_BufferElements.push_back({
-			GL_UNSIGNED_INT, count, GL_FALSE, size, offset
+			location, GL_UNSIGNED_INT, count, GL_FALSE, size, offset
 		});
 	}
 
 	template<>
-	void push<unsigned char>(unsigned int count, unsigned int size, unsigned int offset) {
+	void push<unsigned char>(unsigned int location, unsigned int count, unsigned int size, unsigned int offset) {
 		m_BufferElements.push_back({
-			GL_UNSIGNED_BYTE, count, GL_TRUE, size, offset
+			location, GL_UNSIGNED_BYTE, count, GL_TRUE, size, offset
 		});
 	}
 
 	template<>
-	void push<Vertex2D>(unsigned int count, unsigned int size, unsigned int offset) {
+	void push<Vertex2D>(unsigned int location, unsigned int count, unsigned int size, unsigned int offset) {
 		m_BufferElements.push_back({
-			GL_FLOAT, count, GL_FALSE, size, offset
+			location, GL_FLOAT, count, GL_FALSE, size, offset
 		});
 	}
 

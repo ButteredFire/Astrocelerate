@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef SHADERS_H
-#define SHADERS_H
+#ifndef SHADER_H
+#define SHADER_H
 
 #include <GL/glew.h>
 
