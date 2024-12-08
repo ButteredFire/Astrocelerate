@@ -1,16 +1,18 @@
 #shader Vertex
 #version 330 core
 
-layout(location = 0) in vec4 position;
-layout(location = 1) in vec3 vertexColor;
+layout(location = 0) in vec4 vertPos;
+layout(location = 1) in vec3 vertColor;
 
 out vec3 fragColor;
 
 uniform float scale;
 
 void main() {
-	gl_Position = position * scale;
-	fragColor = vertexColor;
+	gl_Position = vec4(
+		vertPos.x * scale, vertPos.y * scale, vertPos.z * scale, 1.0
+	);
+	fragColor = vertColor;
 };
 
 

@@ -21,10 +21,14 @@ void VertexBuffer::unbind() const {
 }
 
 // Index buffer object (IBO)
-IndexBuffer::IndexBuffer(const unsigned int* data, unsigned int count) : m_Count(count) {
+IndexBuffer::IndexBuffer(const unsigned int* data, unsigned int count, unsigned int indexType) : m_IndexType(indexType) {
     glGenBuffers(1, &m_RendererID);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_RendererID);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, count, data, GL_STATIC_DRAW);
+
+    /* Note: sizeof(decltype(*data)) is the same as sizeof(decltype(data[0])), which is correct.
+             sizeof(decltype(data)), on the other hand, returns the size of a pointer to the 1st element, which is error-prone. */
+    m_Count = count / sizeof(decltype(*data));
     bind();
 }
 

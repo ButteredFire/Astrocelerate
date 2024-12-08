@@ -12,12 +12,25 @@
 #include <map>
 
 
-std::map<std::string, ShaderProperties> shaderRegistry = {
-    {"Vertex", {0, GL_VERTEX_SHADER}},
-    {"Fragment", {1, GL_FRAGMENT_SHADER}}
-};
+Shader::Shader(const std::string& filePath) : m_FilePath(filePath) {
+    m_ShaderSources = parseShaderFile();
+    m_ShaderID = createShader(m_ShaderSources);
+    bind();
+}
 
-ShaderSources parseShaderFile(const std::string& filePath) {
+Shader::~Shader() {
+    glDeleteProgram(m_ShaderID);
+}
+
+void Shader::bind() const {
+    if (m_ShaderID) glUseProgram(m_ShaderID);
+}
+
+void Shader::unbind() const {
+    glUseProgram(0);
+}
+Shader::m_T_ShaderSources Shader::parseShaderFile() {
+    const std::string& filePath = Shader::m_FilePath;
     // Opens shader file as a stream
     std::ifstream stream(filePath);
     std::string line;
@@ -26,7 +39,7 @@ ShaderSources parseShaderFile(const std::string& filePath) {
         logError(Error::CANNOT_PARSE_SHADER_FILE, "Cannot parse shader file " + quote(filePath) + '!');
     }
 
-    int numOfShaders = shaderRegistry.size();
+    int numOfShaders = m_ShaderRegistry.size();
     std::vector<std::stringstream> ss(numOfShaders);
     unsigned int ssShaderIndex = 0;
 
@@ -39,7 +52,7 @@ ShaderSources parseShaderFile(const std::string& filePath) {
         // If the line contains the keyword "#shader"
         // (a.k.a. if the line containing the keyword "#shader" is not *not* found (not std::string::npos)
         if (line.find("#shader") != std::string::npos) {
-            for (auto map : shaderRegistry) {
+            for (auto& map : m_ShaderRegistry) {
                 // map.second refers to the second element of each map entry, aka std::pair<...>
                 if (line.find(map.first) != std::string::npos) {
                     ssShaderIndex = map.second.stringstreamIndex;
@@ -61,7 +74,7 @@ ShaderSources parseShaderFile(const std::string& filePath) {
 }
 
 
-static unsigned int compileShader(unsigned int shaderType, const std::string& srcCode, ShaderSources& sources) {
+unsigned int Shader::compileShader(unsigned int& shaderType, const std::string& srcCode, Shader::m_T_ShaderSources& sources) {
     unsigned int shader = glCreateShader(shaderType);
     const char* src = srcCode.c_str(); // fun fact: srcCode.c_str(); is equal to &srcCode[0];  (memory address of the first character in srcCode)
     glShaderSource(shader, 1, &src, nullptr);
@@ -79,7 +92,7 @@ static unsigned int compileShader(unsigned int shaderType, const std::string& sr
 
         // Use a lookup to check whether shader name exists in the shader registry (more efficient than simply looping through `sources`)
         auto it = std::find_if(sources.begin(), sources.end(), [&](const auto& shd) {
-            return shaderRegistry[shd.first].glConst == shaderType;
+            return m_ShaderRegistry[shd.first].glConst == shaderType;
         });
         if (it != sources.end()) // if the condition above (return ...;) is true
             logError(Error::CANNOT_COMPILE_SHADER, "Failed to compile " + it->first + " shader!");
@@ -94,19 +107,19 @@ static unsigned int compileShader(unsigned int shaderType, const std::string& sr
 }
 
 
-unsigned int createShader(ShaderSources sources) {
+unsigned int Shader::createShader(Shader::m_T_ShaderSources& sources) {
     unsigned int program = glCreateProgram();
 
     int numOfShaders = sources.size();
     std::vector<unsigned int> compiledShaders;
 
     
-    for (auto shaderSource : sources) {
+    for (auto& shaderSource : sources) {
         std::string name = shaderSource.first;
         std::string src = shaderSource.second;
 
         // Check whether the provided shaders exist in the shader registry
-        if (shaderRegistry.find(name) == shaderRegistry.end())
+        if (m_ShaderRegistry.find(name) == m_ShaderRegistry.end())
             logError(Error::UNKNOWN_SHADER, "Provided shader " +
                 quote(name) + " is not found in shader registry, and so may not be properly compiled.", true);
 
@@ -114,13 +127,13 @@ unsigned int createShader(ShaderSources sources) {
         if (src.empty()) {
             if (name.empty()) {
                 logError(Error::CANNOT_COMPILE_SHADER, "Cannot create an unidentified shader!");
-                return 0; // return x (x >= 0) to return an unusable program ID
+                return 0;
             }
             logError(Error::CANNOT_COMPILE_SHADER, "Cannot identify source code for " + name + " shader!");
             return 1;
         }
 
-        unsigned int shader = compileShader(shaderRegistry[name].glConst, src, sources);
+        unsigned int shader = compileShader(m_ShaderRegistry[name].glConst, src, sources);
         glAttachShader(program, shader);
         compiledShaders.push_back(shader);
     }
@@ -130,7 +143,7 @@ unsigned int createShader(ShaderSources sources) {
 
     // Delete shaders as by now they will have been linked into a program
     // and thus they are safe to delete
-    for (auto shader : compiledShaders)
+    for (auto& shader : compiledShaders)
         glDeleteShader(shader);
 
     return program;

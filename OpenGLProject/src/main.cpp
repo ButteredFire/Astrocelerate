@@ -4,10 +4,11 @@
 
 #include "BufferObjects.h"
 #include "VertexArrayObject.h"
+#include "Renderer.h"
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
-#include "stb_image.h"
+#include <stb_image.h>
 
 #include <iostream>
 #include <fstream>
@@ -56,6 +57,15 @@ int main(void) {
     printAppInfo();
 
     // TODO: Load image icon
+    int iconWidth, iconHeight, iconChannels;
+    unsigned char* pixels = stbi_load(FilePath::WINDOW_ICON, &iconWidth, &iconHeight, &iconChannels, 0);
+
+    GLFWimage icon[1];
+    icon[0].width = iconWidth;
+    icon[0].height = iconHeight;
+    icon[0].pixels = pixels;
+
+    glfwSetWindowIcon(window, 1, icon);
 
     // Enable debug context (Should not be enabled in production)
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
@@ -66,12 +76,13 @@ int main(void) {
 
     // Array of 2D vertices
     Vertex2D vertexData[] = {
-        { -0.5f, -0.5f,     0.7f, 1.0f, 0.4f},    // 0
-        { 0.5f, 0.5f,       1.0f, 0.5f, 0.4f},      // 1
-        { 0.5f, -0.5f,      0.9f, 0.1f, 0.4f},     // 2
-        { -0.5f, 0.5f,      0.1f, 0.3f, 0.0f},     // 3
-        {-0.5f, 0.8f,       1.0f, 1.0f, 0.6f},      // 4
-        {0.5f, 0.8f,        1.0f, 1.0f, 1.0f}        // 5
+        { -0.5f, -0.5f,     0.7f, 1.0f, 0.4f},          // 0
+        { 0.5f, 0.5f,       1.0f, 0.5f, 0.4f},          // 1
+        { 0.5f, -0.5f,      0.9f, 0.1f, 0.4f},          // 2
+        { -0.5f, 0.5f,      0.1f, 0.3f, 0.0f},          // 3
+        {-0.5f, 0.8f,       1.0f, 1.0f, 0.6f},          // 4
+        {0.5f, 0.8f,        1.0f, 1.0f, 1.0f},          // 5
+        {0.0f, 0.5f,        0.5f, 1.0f, 0.0f}           // 6
     };
 
     // Indices for elements in vertexData
@@ -79,7 +90,8 @@ int main(void) {
         0, 1, 2,     // triangle 1 (bottom-left, top-right, bottom-right)
         0, 1, 3,     // triangle 2 (bottom-left, top-right, top-left)
         3, 4, 1,     // triangle 3 (top-left, top-left + (y: 0.3), bottom-left)
-        1, 5, 3      // triangle 4 (bottom-left, top-right + (y: 0.3), top-left)
+        1, 5, 3,     // triangle 4 (bottom-left, top-right + (y: 0.3), top-left)
+        4, 5, 6      // triangle 5 (top-left + (y: 0.3), top-right + (y: 0.3), top-mid)
     };
 
     float testData[] = {
@@ -104,54 +116,68 @@ int main(void) {
 
     
     // Create an index buffer object (IBO), a.k.a. element buffer object (EBO), hence the GL_ELEMENT_ARRAY_BUFFER
-    IndexBuffer IBO(vertexIndices, sizeof(vertexIndices));
+    IndexBuffer IBO(vertexIndices, sizeof(vertexIndices), GL_UNSIGNED_INT);
     //IndexBuffer IBO_1(testIndices, sizeof(testIndices));
 
 
-    /* Create a vertex buffer layout and Set up a vertex attribute pointer (to define the data layout)
-    * glEnableVertexAttribArray(x): Enables the vertex attribute at location = x (refer to shader file . vertex shader)
-    */
+    // Create a vertex buffer layout and Set up a vertex attribute pointer (to define the data layout)
     VertexBufferLayout VBLayout;
     VBLayout.push<Vertex2D>(2, sizeof(Vertex2D), offsetof(Vertex2D, x));
     VBLayout.push<Vertex2D>(3, sizeof(Vertex2D), offsetof(Vertex2D, r));
     VAO.addBuffer(VBO, VBLayout);
-    
-    /*glEnableVertexAttribArray(0);
-    const void* offset = (const void*) offsetof(Vertex2D, x);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex2D), offset);*/
 
     /* Unbind the VAO, VBO and IBO after uploading   their data to the GPU via glBufferData(...)
-    * Reason: Doing so ensures that future buffer-binding operations don't modify the VAO data and VBO-IBO configurations.
+       Reason: Doing so ensures that future buffer-binding operations don't modify the VAO data and VBO-IBO configurations.
     */
     VBO.unbind();
     IBO.unbind();
     VAO.unbind();
 
     // Load shaders from file
-    ShaderSources shaderSources = parseShaderFile(FilePath::BASIC_SHADERS_DIR);
-    unsigned int shader = createShader(shaderSources);
-    glUseProgram(shader);
+    Shader shader(FilePath::BASIC_SHADERS_DIR);
+    unsigned int shaderID = shader.getShaderID();
+
+    // Create a renderer
+    Renderer renderer;
 
     // Set up a uniform
-    //int uniformLocation = glGetUniformLocation(shader, "u_Color");
+    //int uniformLocation = glGetUniformLocation(shaderID, "u_Color");
     //std::cout << uniformLocation << '\n';
     //_ASSERT(uniformLocation != -1);
     //glUniform4f(uniformLocation, 0.0f, 1.0f, 1.0f, 1.0f);
     
-    int objectScale = glGetUniformLocation(shader, "scale");
-    glUniform1f(objectScale, 1.0f);
+    int objectScale = glGetUniformLocation(shaderID, "scale");
+    float scale = 1.0f;
+    glUniform1f(objectScale, scale);
+
+    bool completedCycle = false;
 
     // Loop until the user closes the window
     while (!glfwWindowShouldClose(window)) {
         // Render here
-        glClear(GL_COLOR_BUFFER_BIT);
+        renderer.clear();
 
-        VAO.bind();
+        shader.bind();
         VBO.bind(); // VBO is already bound on initialization. However, with multiple VBOs, the VertexBuffer::bind() function is necessary to switch between them
-        IBO.bind();
 
-        glDrawElements(GL_TRIANGLES, sizeof(vertexIndices) / sizeof(float), GL_UNSIGNED_INT, nullptr);
+        // Nauseating zooming effect for funsies
+        /*if (scale >= 0.0f) {
+            if (completedCycle) {
+                if (scale == 1.0f) {
+                    completedCycle = false;
+                    scale -= 0.01f;
+                }
+                else scale += 0.01f;
+            }
+            else scale -= 0.01f;
+        }
+        else {
+            completedCycle = true;
+            scale += 0.01f;
+        }
+        glUniform1f(objectScale, scale);*/
 
+        renderer.draw(VAO, IBO, shader);
         // Swap front and back buffers
         glfwSwapBuffers(window);
 
@@ -159,7 +185,6 @@ int main(void) {
         glfwPollEvents();
     }
 
-    glDeleteProgram(shader);
     glfwTerminate();
     return 0;
 }
