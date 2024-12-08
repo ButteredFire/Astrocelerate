@@ -5,7 +5,7 @@
 <br />
 <div align="center">
     <a href="https://github.com/ButteredFire/Astrocelerate/">
-        <img src="OpenGLProject/assets/AppLogo.png" alt="Logo">
+        <img src="OpenGLProject/assets/app/AppLogo.png" alt="Logo">
     </a>
 </div>
 
