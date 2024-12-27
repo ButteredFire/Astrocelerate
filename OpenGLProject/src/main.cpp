@@ -1,12 +1,16 @@
+#define GLM_ENABLE_EXPERIMENTAL
+
 #include "Constants.h"
-#include "Shader.h"
-#include "LoggingUtils.h"
+#include "utils/LoggingUtils.h"
 
-#include "BufferObjects.h"
-#include "VertexArrayObject.h"
-#include "Renderer.h"
+#include "buffers/BufferObjects.h"
+#include "buffers/VertexArrayObject.h"
 
-#include "Texture.h"
+#include "rendering/Shader.h"
+#include "rendering/Renderer.h"
+#include "rendering/Texture.h"
+
+#include "objects/Camera.h"
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -28,8 +32,8 @@
 int main(void) {
     GLFWwindow* window;
 
-    float windowWidth = Window::DEFAULT_WINDOW_WIDTH;
-    float windowHeight = Window::DEFAULT_WINDOW_HEIGHT;
+    int windowWidth = Window::DEFAULT_WINDOW_WIDTH;
+    int windowHeight = Window::DEFAULT_WINDOW_HEIGHT;
 
     // Initialize GLFW
     if (!glfwInit()) {
@@ -72,11 +76,11 @@ int main(void) {
         std::string filePath = FilePath::WINDOW_ICONS_PREFIX + std::to_string(i) + ".png";
         unsigned char* pixels = stbi_load(filePath.c_str(), &iconWidth, &iconHeight, &iconChannels, 0);
 
-        icons[i-1].width = iconWidth;
-        icons[i-1].height = iconHeight;
-        icons[i-1].pixels = pixels;
+        icons[i - 1].width = iconWidth;
+        icons[i - 1].height = iconHeight;
+        icons[i - 1].pixels = pixels;
     }
-    
+
     glfwSetWindowIcon(window, numOfAppIcons, icons);
 
     // Enable debug context (Should not be enabled in production)
@@ -111,33 +115,18 @@ int main(void) {
         2, 0, 4
     };
 
-    /*
-    (-0.5, 0.5: 0.0, 1.0)		(0.5, 0.5: 1.0, 1.0)
-
-                          (0, 0)
-
-    (-0.5, -0.5: 0.0, 0.0)		(0.5, -0.5: 1.0, 0.0)
-    */
-
-    /*Vertex3D appLogoVertices[] = {
-        {-0.7f, 0.6f,      0.0f, 0.0f, 0.0f,     0.0f, 0.0f},
-        {-0.7f, 0.9f,      0.0f, 0.0f, 0.0f,     0.0f, 1.0f},
-        {0.7f, 0.6f,      0.0f, 0.0f, 0.0f,     1.0f, 0.0f},
-        {0.7f, 0.9f,      0.0f, 0.0f, 0.0f,     1.0f, 1.0f},
-    };*/
-
     // Enable blending
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // Create a vertex array object (VAO)
     VertexArray VAO;
-    
+
     // Create a vertex buffer object (VBO)
     VertexBuffer VBO(vertexData, sizeof(vertexData));
     //VertexBuffer VBO_1(testData, sizeof(testData));
 
-    
+
     // Create an index buffer object (IBO), a.k.a. element buffer object (EBO), hence the GL_ELEMENT_ARRAY_BUFFER
     IndexBuffer IBO(vertexIndices, sizeof(vertexIndices), GL_UNSIGNED_INT);
     //IndexBuffer IBO_1(testIndices, sizeof(testIndices));
@@ -171,19 +160,15 @@ int main(void) {
 
     unsigned int texSlot0 = glGetUniformLocation(shaderID, "tex0");
     glUniform1i(texSlot0, 0);
-    
-    int objectScale = glGetUniformLocation(shaderID, "scale");
-    float scale = 1.0f;
-    glUniform1f(objectScale, scale);
-
-    //bool completedCycle = false;
-    
-    // Calculate model rotation speed (1/2)
-    float modelRotationDeg = 0.0f;
-    double rotPrevTime = glfwGetTime();
 
     // Enable depth testing (which tells OpenGL what triangles to render and what triangles to hide based on visibility of each one
     glEnable(GL_DEPTH_TEST);
+    glViewport(0, 0, windowWidth, windowHeight);
+
+    // Create camera object
+    Camera camera(windowWidth, windowHeight, glm::vec3(0.0f, 0.0f, -3.0f), shader);
+    camera.configurePerspective(60.0f, 0.1f, 1000.0f, "u_Perspective");
+    camera.configureProjection("u_Projection");
 
     // Loop until the user closes the window
     while (!glfwWindowShouldClose(window)) {
@@ -195,46 +180,9 @@ int main(void) {
         VBO.bind(); // VBO is already bound on initialization. However, with multiple VBOs, the VertexBuffer::bind() function is necessary to switch between them
         appLogo.bind(0);
 
-        // Initialize identity matrices and their respective uniforms
-        glm::mat4 model = glm::mat4(1.0f);
-        glm::mat4 cameraPerspective = glm::mat4(1.0f);
-        glm::mat4 projection = glm::mat4(1.0f);
+        camera.updateInputs(window);
+        camera.updateMatrices();
 
-        shader.bind();
-        int modelLocation = glGetUniformLocation(shaderID, "model");
-        int cameraPerspectiveLocation = glGetUniformLocation(shaderID, "cameraPerspective");
-        int projectionLocation = glGetUniformLocation(shaderID, "projection");
-        
-        
-        // Move the scene away from the camera (to create the illusion of distance between the viewpoint and the scene)
-        glm::vec3 distanceFromPOV = glm::vec3(0.0f, -0.5f, -2.0f);
-        cameraPerspective = glm::translate(cameraPerspective, distanceFromPOV);
-
-        // Create perspective
-        float fieldOfView = glm::radians(60.0f);            // FOV (calculated in radians)
-        float aspectRatio = windowWidth / windowHeight;     // Aspect Ratio
-        float zNear = 0.1f;     // Near clipping plane (how close to camera until object is clipped)
-        float zFar = 100.0f;    // Far clipping plane (how far away from camera until object is clipped)
-        projection = glm::perspective(fieldOfView, aspectRatio, zNear, zFar);
-
-        // Rotate model
-            // Calculate model rotation speed (2/2)
-        double rotCurrTime = glfwGetTime();
-        if (rotCurrTime - rotPrevTime >= (1 / 60)) {
-            modelRotationDeg += 0.5f;
-            rotPrevTime = rotCurrTime;
-        }
-            // Set axis to be rotated around (x, y, z). The model's rotational direction is the vector from (0, 0, 0) to (x, y, z).
-        glm::vec3 rotationAxis = glm::vec3(0.0f, 1.0f, 0.0f);
-        model = glm::rotate(model, glm::radians(modelRotationDeg), rotationAxis);
-
-
-        // Assign each matrix's uniform to their respective value
-        // Note: glm::value_ptr(mat) is a pointer to the matrix itself and not its data
-        glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(model));
-        glUniformMatrix4fv(cameraPerspectiveLocation, 1, GL_FALSE, glm::value_ptr(cameraPerspective));
-        glUniformMatrix4fv(projectionLocation, 1, GL_FALSE, glm::value_ptr(projection));
-        
         //glDrawElements(GL_TRIANGLES, sizeof(vertexIndices) / sizeof(unsigned int), GL_UNSIGNED_INT, nullptr);
         renderer.draw(VAO, IBO, shader);
         // Swap front and back buffers

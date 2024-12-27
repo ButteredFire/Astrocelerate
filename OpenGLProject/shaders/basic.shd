@@ -8,15 +8,13 @@ layout(location = 2) in vec2 vertTexCoords;
 out vec3 fragColor;
 out vec2 texCoords;
 
-uniform float scale;
+uniform float u_Scale;
 
-uniform mat4 model;
-uniform mat4 cameraPerspective;
-uniform mat4 projection;
-	
+uniform mat4 u_Perspective;
+uniform mat4 u_Projection;
 
 void main() {
-	gl_Position = projection * cameraPerspective * model * vec4(vertPos, 1.0);
+	gl_Position = u_Projection * u_Perspective * vec4(vertPos, 1.0);
 	fragColor = vertColor;
 	texCoords = vertTexCoords;
 };

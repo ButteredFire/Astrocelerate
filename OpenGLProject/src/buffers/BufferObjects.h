@@ -3,8 +3,8 @@
 #ifndef BUFFER_OBJECTS_H
 #define BUFFER_OBJECTS_H
 
-#include "LoggingUtils.h"
-#include "Constants.h"
+#include "../utils/LoggingUtils.h"
+#include "../Constants.h"
 
 #include <GL/glew.h>
 #include <stdexcept>

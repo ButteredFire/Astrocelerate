@@ -42,6 +42,8 @@ public:
 	void bind() const;
 	void unbind() const;
 
+	int getUniformLocation(const char* uniformName) const;
+
 	inline unsigned int getShaderID() const { return m_ShaderID; };
 	inline m_T_ShaderSources getShaderSources() const { return m_ShaderSources; };
 };

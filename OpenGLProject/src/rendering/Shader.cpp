@@ -1,6 +1,6 @@
 #include "Shader.h"
-#include "Constants.h"
-#include "LoggingUtils.h"
+#include "../Constants.h"
+#include "../utils/LoggingUtils.h"
 #include <GL/glew.h>
 
 #include <iostream>
@@ -30,6 +30,18 @@ void Shader::bind() const {
 void Shader::unbind() const {
     glUseProgram(0);
 }
+
+
+int Shader::getUniformLocation(const char* uniformName) const {
+    int location =  glGetUniformLocation(m_ShaderID, uniformName);
+    if (location == -1) {
+        logError(Error::UNKNOWN_UNIFORM, "Uniform " + (std::string) quote(uniformName) + " does not exist.", true);
+    }
+
+    return location;
+}
+
+
 Shader::m_T_ShaderSources Shader::parseShaderFile() {
     const std::string& filePath = Shader::m_FilePath;
     // Opens shader file as a stream

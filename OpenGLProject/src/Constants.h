@@ -12,6 +12,7 @@ namespace Error {
 	constexpr int CANNOT_PARSE_SHADER_FILE = -5;
 	constexpr int UNKNOWN_SHADER = -6;
 	constexpr int UNSUPPORTED_VBO_ELEM_TYPE = -7;
+	constexpr int UNKNOWN_UNIFORM = -8;
 }
 
 // Window properties

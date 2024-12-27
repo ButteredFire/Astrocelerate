@@ -1,5 +1,5 @@
 #include "LoggingUtils.h"
-#include "Constants.h"
+#include "../Constants.h"
 #include <GL/glew.h>
 
 #include <iostream>

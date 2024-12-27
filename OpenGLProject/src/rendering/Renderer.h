@@ -3,8 +3,8 @@
 #ifndef RENDERER_H
 #define RENDERER_H
 
-#include "VertexArrayObject.h"
-#include "BufferObjects.h"
+#include "../buffers/VertexArrayObject.h"
+#include "../buffers/BufferObjects.h"
 #include "Shader.h"
 
 class Renderer {
