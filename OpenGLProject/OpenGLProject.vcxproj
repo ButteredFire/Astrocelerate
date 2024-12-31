@@ -167,6 +167,7 @@
     <ClInclude Include="src\buffers\BufferObjects.h" />
     <ClInclude Include="src\Constants.h" />
     <ClInclude Include="src\objects\Camera.h" />
+    <ClInclude Include="src\Termcolor.hpp" />
     <ClInclude Include="src\utils\KeyboardUtils.h" />
     <ClInclude Include="src\utils\LoggingUtils.h" />
     <ClInclude Include="src\rendering\Renderer.h" />

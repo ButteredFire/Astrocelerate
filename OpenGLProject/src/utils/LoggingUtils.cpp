@@ -1,5 +1,6 @@
 #include "LoggingUtils.h"
 #include "../Constants.h"
+#include "../Termcolor.hpp"
 #include <GL/glew.h>
 
 #include <iostream>
@@ -32,15 +33,40 @@ std::map<unsigned int, std::string> debugSeverityLevels = {
 };
 
 void GLAPIENTRY openGLDebugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar * message, const void* userParam) {
-    std::cerr << "[OPENGL DEBUG MESSAGE]: " << message << '\n';
+    switch (severity) {
+    case GL_DEBUG_SEVERITY_HIGH:
+        std::cout << termcolor::red;
+        break;
+    case GL_DEBUG_SEVERITY_MEDIUM:
+        std::cout << termcolor::yellow;
+        break;
+    case GL_DEBUG_SEVERITY_LOW:
+        std::cout << termcolor::blue;
+        break;
+    case GL_DEBUG_SEVERITY_NOTIFICATION:
+        std::cout << termcolor::blue;
+        break;
+
+    default:
+        break;
+    }
     
-    std::cerr << "\t-> Source: " << debugSources[source] << '\n';
-    std::cerr << "\t-> Type: " << debugTypes[type] << '\n';
-    std::cerr << "\t-> Severity: " << debugSeverityLevels[severity] << '\n';
+    std::cout << "[OPENGL DEBUG MESSAGE]: " << message << termcolor::reset << '\n';
+    
+    std::cout << "\t-> Source: " << debugSources[source] << '\n';
+    std::cout << "\t-> Type: " << debugTypes[type] << '\n';
+    std::cout << "\t-> Severity: " << debugSeverityLevels[severity] << '\n';
+    
+    std::cout << '\n';
 }
 
 void printAppInfo() {
-    std::cout << "Application: " << Window::WINDOW_NAME << '\n';
+    std::cout << "Application: " << Window::WINDOW_NAME
+        << "\n\t" << "Version: " << Window::APP_VERSION
+        << '\n';
+
+    std::cout << '\n';
+    
     std::cout << "OpenGL: "
         << "\n\t" << "Version: " << glGetString(GL_VERSION)
         << "\n\t" << "Renderer: " << glGetString(GL_RENDERER)
@@ -49,5 +75,7 @@ void printAppInfo() {
 }
 
 void logError(int errorCode, const std::string& errorMsg, const bool isWarning) {
-    std::cerr << ((isWarning) ? "[WARNING]" : "[ERROR]") << ":\t(Exit code : " << errorCode << ") " << errorMsg << '\n';
+    if (isWarning) std::cout << termcolor::yellow;
+    else std::cout << termcolor::red;
+    std::cout << ((isWarning) ? "[WARNING]" : "[ERROR]") << ":\t(Exit code : " << errorCode << ") " << errorMsg << termcolor::reset << '\n';
 }

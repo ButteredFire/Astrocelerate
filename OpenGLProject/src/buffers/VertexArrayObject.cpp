@@ -29,7 +29,7 @@ void VertexArray::addBuffer(const VertexBuffer& VBO, const VertexBufferLayout& V
 	for (const auto& element : bufferElements) {
 		//const auto& element = bufferElements[i];
 
-		logDebug("Element [" << element.location << "]:\tStride: [local: " << element.stride << "]\tOffset: [element: " << element.offset << "]");
+		//logDebug("Element [" << element.location << "]:\tStride: [local: " << element.stride << "]\tOffset: [element: " << element.offset << "]");
 		glEnableVertexAttribArray(element.location);
 		glVertexAttribPointer(element.location, element.count, element.type, element.normalized, element.stride, (const void*)element.offset);
 	}

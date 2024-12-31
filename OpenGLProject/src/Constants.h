@@ -19,7 +19,8 @@ namespace Error {
 namespace Window {
 	constexpr int DEFAULT_WINDOW_WIDTH = 950;
 	constexpr int DEFAULT_WINDOW_HEIGHT = 950;
-	constexpr char WINDOW_NAME[] = "OpenGL Test Environment";
+	constexpr char WINDOW_NAME[] = "Astrocelerate (Alpha)";
+	constexpr char APP_VERSION[] = "v0.1-alpha";
 }
 
 
