@@ -22,7 +22,7 @@
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{f22dca53-8fc4-40f9-859b-b8a841cbf301}</ProjectGuid>
-    <RootNamespace>OpenGLProject</RootNamespace>
+    <RootNamespace>Astrocelerate</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
     <ProjectName>Astrocelerate_alpha</ProjectName>
   </PropertyGroup>
