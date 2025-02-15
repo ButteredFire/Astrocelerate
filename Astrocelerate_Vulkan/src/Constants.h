@@ -6,6 +6,17 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 
+// Application properties
+namespace APP {
+	constexpr char APP_NAME[] = "Astrocelerate (Alpha)";
+	constexpr char ENGINE_NAME[] = "astrocelerate";
+
+		// Version will be auto-injected via CMake
+	#ifndef APP_VERSION // If APP_VERSION is not defined, default it to "dev-build"
+		#define APP_VERSION "dev-build"
+	#endif
+}
+
 // Error/Exit codes
 namespace ErrorConsts {
 
@@ -15,12 +26,6 @@ namespace ErrorConsts {
 namespace WindowConsts {
 	constexpr int DEFAULT_WINDOW_WIDTH = 600;
 	constexpr int DEFAULT_WINDOW_HEIGHT = 600;
-	constexpr char WINDOW_NAME[] = "Astrocelerate (Alpha)";
-
-	// Version will be auto-injected via CMake
-	#ifndef APP_VERSION // If APP_VERSION is not defined, default it to "dev-build"
-		#define APP_VERSION "dev-build"
-	#endif
 }
 
 

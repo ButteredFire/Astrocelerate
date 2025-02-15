@@ -7,16 +7,18 @@
 
 class Engine {
 public:
-	Engine(GLFWwindow* w);
+	Engine(GLFWwindow *w);
 	~Engine();
 
 	void run();
 
 private:
-	GLFWwindow* window;
+	GLFWwindow *window;
+	VkInstance vkInstance;
 
 	inline bool windowIsValid() const { return window != nullptr; };
 	void initVulkan();
+	void createVulkanInstance();
 	void update();
 	void cleanup();
 };

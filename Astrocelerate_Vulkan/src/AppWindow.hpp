@@ -15,7 +15,7 @@ private:
 	const int HEIGHT;
 	std::string windowName;
 
-	GLFWwindow* window;
+	GLFWwindow *window;
 	
 public:
 	Window(int width, int height, std::string windowName);

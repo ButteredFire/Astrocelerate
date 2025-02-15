@@ -11,7 +11,7 @@
 
 const int WIN_WIDTH = WindowConsts::DEFAULT_WINDOW_WIDTH;
 const int WIN_HEIGHT = WindowConsts::DEFAULT_WINDOW_HEIGHT;
-const std::string WIN_NAME = WindowConsts::WINDOW_NAME;
+const std::string WIN_NAME = APP::APP_NAME;
 
 int main() {
     Window window(WIN_WIDTH, WIN_HEIGHT, WIN_NAME);
