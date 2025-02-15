@@ -12,10 +12,14 @@ endif()
 project ("Astrocelerate_Vulkan")
 
 # Add source to this project's executable.
-add_executable (Astrocelerate_Vulkan "Astrocelerate_Vulkan.cpp" "Astrocelerate_Vulkan.h")
+add_executable (Astrocelerate_Vulkan "src/Application.cpp" "src/Application.h" "src/Constants.h")
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET Astrocelerate_Vulkan PROPERTY CXX_STANDARD 20)
 endif()
+
+# Set application version
+set(APP_VERSION "v0.1-alpha-vulkan")
+add_compile_definitions(APP_VERSION="${APP_VERSION}")
 
 # TODO: Add tests and install targets if needed.
