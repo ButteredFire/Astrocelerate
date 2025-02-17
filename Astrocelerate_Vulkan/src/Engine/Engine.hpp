@@ -4,21 +4,47 @@
 #pragma once
 
 #include "../AppWindow.hpp"
+#include <vector>
+#include <unordered_set>
 
 class Engine {
 public:
 	Engine(GLFWwindow *w);
 	~Engine();
 
+	// Engine
 	void run();
 
+	// Setters
+		//Vulkan
+	void setVulkanValidationLayers(std::vector<const char*> layers);
+	
+	// Getters
+		// Vulkan
+	inline std::vector<const char*> getEnabledVulkanValidationLayers() { return validationLayers; };
+	bool verifyVulkanExtensionValidity(const char** arrayOfExtensions, uint32_t arraySize);
+
 private:
-	GLFWwindow *window;
-	VkInstance vkInstance;
+	// Unclassified
+	GLFWwindow* window;
 
 	inline bool windowIsValid() const { return window != nullptr; };
-	void initVulkan();
-	void createVulkanInstance();
+	
+	// Engine
 	void update();
 	void cleanup();
+	
+	// Vulkan
+	#ifdef NDEBUG
+		const bool enableValidationLayers = false;
+	#else
+		const bool enableValidationLayers = true;
+	#endif
+	VkInstance vulkInst;
+	std::vector<const char*> validationLayers;
+
+	void initVulkan();
+	VkResult createVulkanInstance();
+	std::vector<VkExtensionProperties> getSupportedVulkanExtensions();
+
 };
