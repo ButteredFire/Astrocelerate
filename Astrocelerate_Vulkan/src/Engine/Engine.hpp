@@ -23,6 +23,7 @@ public:
 		// Vulkan
 	inline std::vector<const char*> getEnabledVulkanValidationLayers() { return validationLayers; };
 	bool verifyVulkanExtensionValidity(const char** arrayOfExtensions, uint32_t arraySize);
+	bool verifyVulkanValidationLayers(std::vector<const char*> layers);
 
 private:
 	// Unclassified
@@ -35,6 +36,7 @@ private:
 	void cleanup();
 	
 	// Vulkan
+		// If program is not run in DEBUG mode, disable validation layers. Else, enable them.
 	#ifdef NDEBUG
 		const bool enableValidationLayers = false;
 	#else
@@ -46,5 +48,6 @@ private:
 	void initVulkan();
 	VkResult createVulkanInstance();
 	std::vector<VkExtensionProperties> getSupportedVulkanExtensions();
+	std::vector<VkLayerProperties> getSupportedVulkanValidationLayers();
 
 };

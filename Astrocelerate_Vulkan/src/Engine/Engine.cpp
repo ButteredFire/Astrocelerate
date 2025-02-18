@@ -21,18 +21,22 @@ void Engine::run() {
     cleanup();
 }
 
-/* Sets Vulkan validation layers. */
+/* Sets Vulkan validation layers.
+* @param `layers` A vector containing Vulkan validation layer names to be bound to the current list of enabled validation layers.
+*/
 void Engine::setVulkanValidationLayers(std::vector<const char*> layers) {
-    // TODO: Check validity of each layer
+    if (enableValidationLayers && verifyVulkanValidationLayers(layers) == false) {
+        throw std::runtime_error("Cannot set Vulkan validation layers: Provided layers are either invalid or unsupported!");
+    }
 
     std::copy(layers.begin(), layers.end(), std::back_inserter(validationLayers));
 }
 
-/* Verifies whether a given array of Vulkan extensions is included in the list of supported extensions.
+/* Verifies whether a given array of Vulkan extensions is available or supported.
 * @param `arrayOfExtensions` An array containing the names of Vulkan extensions to be evaluated for validity.
 * @param `arraySize` The size of the array.
 * 
-* @return A boolean value representing whether all provided Vulkan extensions are valid (true), or not (false).
+* @return A boolean value indicating whether all provided Vulkan extensions are valid (true), or not (false).
 */
 bool Engine::verifyVulkanExtensionValidity(const char** arrayOfExtensions, uint32_t arraySize) {
     std::vector<VkExtensionProperties> supportedExtensions = getSupportedVulkanExtensions();
@@ -55,23 +59,46 @@ bool Engine::verifyVulkanExtensionValidity(const char** arrayOfExtensions, uint3
     return allOK;
 }
 
+/* Verifies whether a given vector of Vulkan validation layers is available or supported.
+* @param `layers` A vector containing the names of Vulkan validation layers to be evaluated for validity.
+* 
+* @return A boolean value indicating whether all provided Vulkan validation layers are valid (true), or not (false).
+*/
+bool Engine::verifyVulkanValidationLayers(std::vector<const char*> layers) {
+    std::vector<VkLayerProperties> supportedLayers = getSupportedVulkanValidationLayers();
 
+    std::unordered_set<std::string> layerNames;
+    for (const auto& layer : supportedLayers)
+        layerNames.insert(layer.layerName);
+
+    bool allOK = true;
+    for (const auto& layer : layers) {
+        if (layerNames.count(layer) == 0) {
+            allOK = false;
+            std::cerr << "Vulkan validation layer " << enquoteCOUT(layer) << " is either invalid or unsupported!\n";
+        }
+    }
+
+    return allOK;
+}
 
 /* [MEMBER] Initializes Vulkan. */
 void Engine::initVulkan() {
+    // Sets validation layers
+    setVulkanValidationLayers({
+        "VK_LAYER_KHRONOS_validation"
+    });
+    
     // Creates Vulkan instance
     VkResult initResult = createVulkanInstance();
     if (initResult != VK_SUCCESS) {
         throw std::runtime_error("Failed to create Vulkan instance!");
     }
-
-    // Sets validation layers
-    setVulkanValidationLayers({
-        "VK_LAYER_KHRONOS_validation"
-    });
 }
 
-/* [MEMBER] Creates a Vulkan instance. */
+/*[MEMBER] Creates a Vulkan instance.
+* @return a VkResult value indicating the instance creation status.
+*/
 VkResult Engine::createVulkanInstance() {
     // Creates an application configuration for the driver
     VkApplicationInfo appInfo{}; // INSIGHT: Using braced initialization (alt.: memset) zero-initializes all fields
@@ -100,7 +127,13 @@ VkResult Engine::createVulkanInstance() {
     instanceInfo.ppEnabledExtensionNames = glfwExtensions;
 
         // Configures global validation layers
-    instanceInfo.enabledLayerCount = 0; // Temporary
+    if (enableValidationLayers) {
+        instanceInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+        instanceInfo.ppEnabledLayerNames = validationLayers.data();
+    }
+    else {
+        instanceInfo.enabledLayerCount = 0;
+    }
 
     // Creates a Vulkan instance from the instance information configured above
     // and initializes the member VkInstance variable
@@ -112,13 +145,26 @@ VkResult Engine::createVulkanInstance() {
 * @return A vector that contains supported Vulkan extensions, each of type `VkExtensionProperties`.
 */
 std::vector<VkExtensionProperties> Engine::getSupportedVulkanExtensions() {
-    uint32_t numOfExtensions = 0;
-    vkEnumerateInstanceExtensionProperties(nullptr, &numOfExtensions, nullptr); // First get the no. of supported extensions
+    uint32_t extensionCount = 0;
+    vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr); // First get the no. of supported extensions
 
-    std::vector<VkExtensionProperties> supportedExtensions(numOfExtensions);
-    vkEnumerateInstanceExtensionProperties(nullptr, &numOfExtensions, supportedExtensions.data()); // Then call the function again to fill the vector
-
+    std::vector<VkExtensionProperties> supportedExtensions(extensionCount);
+    vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, supportedExtensions.data()); // Then call the function again to fill the vector
+        // Fun fact: vector.data() == &vector[0] (Hint: 3rd parameter, vkEnumerateInstanceExtensionProperties function)
     return supportedExtensions;
+}
+
+/* [MEMBER] Gets a vector of supported Vulkan validation layers.
+* @return A vector that contains supported Vulkan validation layers, each of type `VkLayerProperties`.
+*/
+std::vector<VkLayerProperties> Engine::getSupportedVulkanValidationLayers() {
+    uint32_t layerCount = 0;
+    vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+
+    std::vector<VkLayerProperties> supportedLayers(layerCount);
+    vkEnumerateInstanceLayerProperties(&layerCount, supportedLayers.data());
+
+    return supportedLayers;
 }
 
 /* [MEMBER] Updates and processes all events */
