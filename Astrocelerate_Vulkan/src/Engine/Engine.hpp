@@ -21,7 +21,7 @@ public:
 	
 	// Getters
 		// Vulkan
-	inline std::vector<const char*> getEnabledVulkanValidationLayers() { return validationLayers; };
+	inline std::vector<const char*> getEnabledVulkanValidationLayers() { return enabledValidationLayers; };
 	bool verifyVulkanExtensionValidity(const char** arrayOfExtensions, uint32_t arraySize);
 	bool verifyVulkanValidationLayers(std::vector<const char*> layers);
 
@@ -43,7 +43,11 @@ private:
 		const bool enableValidationLayers = true;
 	#endif
 	VkInstance vulkInst;
-	std::vector<const char*> validationLayers;
+	std::vector<const char*> enabledValidationLayers;
+	std::vector<VkLayerProperties> supportedLayers;
+	std::unordered_set<std::string> supportedLayerNames;
+	std::vector<VkExtensionProperties> supportedExtensions;
+	std::unordered_set<std::string> supportedExtensionNames;
 
 	void initVulkan();
 	VkResult createVulkanInstance();

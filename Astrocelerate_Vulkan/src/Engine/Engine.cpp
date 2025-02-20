@@ -6,17 +6,38 @@
 
 #define enquoteCOUT(S) '"' << (S) << '"'
 
-Engine::Engine(GLFWwindow *w): window(w), vulkInst(nullptr) {}
-
-Engine::~Engine() {}
-
-/* Starts the engine. */
-void Engine::run() {
+Engine::Engine(GLFWwindow *w): window(w), vulkInst(nullptr) {
     if (!windowIsValid()) {
         throw std::runtime_error("Engine crashed: Invalid window context!");
         return;
     }
+    supportedExtensions = getSupportedVulkanExtensions();
+    supportedLayers = getSupportedVulkanValidationLayers();
+    std::cout << "Supported extensions: " << supportedExtensions.size() << '\n';
+    std::cout << "Supported layers: " << supportedLayers.size() << '\n';
+
+    // Caches supported extension and validation layers for O(1) verification of extensions/layers to be added later.
+    for (const auto& extension : supportedExtensions)
+        supportedExtensionNames.insert(extension.extensionName);
+
+    for (const auto& layer : supportedLayers)
+        supportedLayerNames.insert(layer.layerName);
+
+    /* Rationale behind reserving:
+    * The number of supported layers is constant. Therefore, we can reserve a fixed block of memory for `enabledValidationLayers`
+    * with the size being the number of supported layers to prevent O(n) vector reallocations.
+    */
+    enabledValidationLayers.reserve(supportedLayers.size());
+    
     initVulkan();
+}
+
+Engine::~Engine() {
+    cleanup();
+}
+
+/* Starts the engine. */
+void Engine::run() {
     update();
     cleanup();
 }
@@ -28,8 +49,7 @@ void Engine::setVulkanValidationLayers(std::vector<const char*> layers) {
     if (enableValidationLayers && verifyVulkanValidationLayers(layers) == false) {
         throw std::runtime_error("Cannot set Vulkan validation layers: Provided layers are either invalid or unsupported!");
     }
-
-    std::copy(layers.begin(), layers.end(), std::back_inserter(validationLayers));
+    std::copy(layers.begin(), layers.end(), std::back_inserter(enabledValidationLayers));
 }
 
 /* Verifies whether a given array of Vulkan extensions is available or supported.
@@ -39,17 +59,9 @@ void Engine::setVulkanValidationLayers(std::vector<const char*> layers) {
 * @return A boolean value indicating whether all provided Vulkan extensions are valid (true), or not (false).
 */
 bool Engine::verifyVulkanExtensionValidity(const char** arrayOfExtensions, uint32_t arraySize) {
-    std::vector<VkExtensionProperties> supportedExtensions = getSupportedVulkanExtensions();
-    
-    // Use an unordered set to achieve constant lookup time later
-    std::unordered_set<std::string> supportedExtNames;
-    for (const auto& ext : supportedExtensions)
-        supportedExtNames.insert(ext.extensionName);
-    
     bool allOK = true;
-
     for (uint32_t i = 0; i < arraySize; i++) {
-        if (supportedExtNames.count(arrayOfExtensions[i]) == 0) {
+        if (supportedExtensionNames.count(arrayOfExtensions[i]) == 0) {
             allOK = false;
             std::cerr << "Vulkan extension " << enquoteCOUT(arrayOfExtensions[i]) << " is either invalid or unsupported!\n";
         }
@@ -65,15 +77,9 @@ bool Engine::verifyVulkanExtensionValidity(const char** arrayOfExtensions, uint3
 * @return A boolean value indicating whether all provided Vulkan validation layers are valid (true), or not (false).
 */
 bool Engine::verifyVulkanValidationLayers(std::vector<const char*> layers) {
-    std::vector<VkLayerProperties> supportedLayers = getSupportedVulkanValidationLayers();
-
-    std::unordered_set<std::string> layerNames;
-    for (const auto& layer : supportedLayers)
-        layerNames.insert(layer.layerName);
-
     bool allOK = true;
     for (const auto& layer : layers) {
-        if (layerNames.count(layer) == 0) {
+        if (supportedLayerNames.count(layer) == 0) {
             allOK = false;
             std::cerr << "Vulkan validation layer " << enquoteCOUT(layer) << " is either invalid or unsupported!\n";
         }
@@ -86,7 +92,9 @@ bool Engine::verifyVulkanValidationLayers(std::vector<const char*> layers) {
 void Engine::initVulkan() {
     // Sets validation layers
     setVulkanValidationLayers({
-        "VK_LAYER_KHRONOS_validation"
+        "VK_LAYER_KHRONOS_validation",
+        "VK_LAYER_LUNARG_crash_diagnostic",
+        "VK_LAYER_LUNARG_screenshot"
     });
     
     // Creates Vulkan instance
@@ -128,8 +136,8 @@ VkResult Engine::createVulkanInstance() {
 
         // Configures global validation layers
     if (enableValidationLayers) {
-        instanceInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-        instanceInfo.ppEnabledLayerNames = validationLayers.data();
+        instanceInfo.enabledLayerCount = static_cast<uint32_t>(enabledValidationLayers.size());
+        instanceInfo.ppEnabledLayerNames = enabledValidationLayers.data();
     }
     else {
         instanceInfo.enabledLayerCount = 0;
