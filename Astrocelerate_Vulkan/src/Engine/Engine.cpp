@@ -11,23 +11,6 @@ Engine::Engine(GLFWwindow *w): window(w), vulkInst(nullptr) {
         throw std::runtime_error("Engine crashed: Invalid window context!");
         return;
     }
-    supportedExtensions = getSupportedVulkanExtensions();
-    supportedLayers = getSupportedVulkanValidationLayers();
-    std::cout << "Supported extensions: " << supportedExtensions.size() << '\n';
-    std::cout << "Supported layers: " << supportedLayers.size() << '\n';
-
-    // Caches supported extension and validation layers for O(1) verification of extensions/layers to be added later.
-    for (const auto& extension : supportedExtensions)
-        supportedExtensionNames.insert(extension.extensionName);
-
-    for (const auto& layer : supportedLayers)
-        supportedLayerNames.insert(layer.layerName);
-
-    /* Rationale behind reserving:
-    * The number of supported layers is constant. Therefore, we can reserve a fixed block of memory for `enabledValidationLayers`
-    * with the size being the number of supported layers to prevent O(n) vector reallocations.
-    */
-    enabledValidationLayers.reserve(supportedLayers.size());
     
     initVulkan();
 }
@@ -90,12 +73,33 @@ bool Engine::verifyVulkanValidationLayers(std::vector<const char*> layers) {
 
 /* [MEMBER] Initializes Vulkan. */
 void Engine::initVulkan() {
-    // Sets validation layers
+    // Sets up Vulkan extensions and validation layers
+        // Caches supported extensions and layers
+    supportedExtensions = getSupportedVulkanExtensions();
+    supportedLayers = getSupportedVulkanValidationLayers();
+    std::cout << "Supported extensions: " << supportedExtensions.size() << '\n';
+    std::cout << "Supported layers: " << supportedLayers.size() << '\n';
+
+        // Caches supported extension and validation layers for O(1) verification of extensions/layers to be added later
+    for (const auto& extension : supportedExtensions)
+        supportedExtensionNames.insert(extension.extensionName);
+
+    for (const auto& layer : supportedLayers)
+        supportedLayerNames.insert(layer.layerName);
+
+        /* Rationale behind reserving:
+        * The number of supported layers is constant. Therefore, we can reserve a fixed (maximum) block of memory for `enabledValidationLayers`
+        * with the size being the number of supported layers to prevent O(n) vector reallocations
+        */
+    enabledValidationLayers.reserve(supportedLayers.size());
+
+        // Sets validation layers to be bound to a Vulkan instance
     setVulkanValidationLayers({
         "VK_LAYER_KHRONOS_validation",
         "VK_LAYER_LUNARG_crash_diagnostic",
         "VK_LAYER_LUNARG_screenshot"
     });
+
     
     // Creates Vulkan instance
     VkResult initResult = createVulkanInstance();
