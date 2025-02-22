@@ -1,9 +1,9 @@
 #include "Renderer.hpp"
 
 
-
 Renderer::Renderer(): vulkInst(nullptr) {
     initVulkan();
+    setUpPhysicalDevice();
 }
 
 
@@ -133,12 +133,50 @@ VkResult Renderer::createVulkanInstance() {
     return result;
 }
 
+/* [MEMBER] Configures a VkPhysicalDevice object by binding it to an appropriate GPU that supports needed features.
+*/
+void Renderer::setUpPhysicalDevice() {
+    // Queries available Vulkan-supported GPUs
+    uint32_t physDeviceCount = 0;
+    vkEnumeratePhysicalDevices(vulkInst, &physDeviceCount, nullptr);
+
+    if (physDeviceCount == 0) {
+        throw std::runtime_error("This machine does not have Vulkan-supported GPUs!");
+    }
+
+    VkPhysicalDevice physicalDevice = nullptr;
+    std::vector<VkPhysicalDevice> physicalDevices(physDeviceCount);
+    vkEnumeratePhysicalDevices(vulkInst, &physDeviceCount, physicalDevices.data());
+
+    // Finds a GPU that supports Astrocelerate's features
+    std::vector<PhysicalDeviceScoreProperties> GPUScores = rateGPUSuitability(physicalDevices);
+    PhysicalDeviceScoreProperties bestDevice = *std::max_element(GPUScores.begin(), GPUScores.end(), 
+        [](const auto& s1, const auto& s2) {
+            return (s2.isCompatible && (s1.optionalScore == s2.optionalScore)) || (s2.isCompatible && (s1.optionalScore < s2.optionalScore));
+        }
+    );
+
+    physicalDevice = bestDevice.device;
+    bool isDeviceCompatible = bestDevice.isCompatible;
+    uint32_t physicalDeviceScore = bestDevice.optionalScore;
+
+    std::cout << "\nList of GPUs and their scores:\n";
+    for (auto& score : GPUScores)
+        std::cout << "\t(GPU: " << enquoteCOUT(score.deviceName) << "; Compatible: " << std::boolalpha << score.isCompatible << "; Optional Score: " << score.optionalScore << ")\n";
+
+    std::cout << "\nMost suitable GPU: (GPU: " << enquoteCOUT(bestDevice.deviceName) << "; Compatible: " << std::boolalpha << isDeviceCompatible << "; Optional Score: " << physicalDeviceScore << ")\n";
+
+    if (physicalDevice == nullptr || !isDeviceCompatible) {
+        throw std::runtime_error("Failed to find a GPU that supports Astrocelerate's features!");
+    }
+}
+
 
 /* [MEMBER] Verifies whether a given array of Vulkan extensions is available or supported.
-* @param `arrayOfExtensions` An array containing the names of Vulkan extensions to be evaluated for validity.
-* @param `arraySize` The size of the array.
+* @param arrayOfExtensions: An array containing the names of Vulkan extensions to be evaluated for validity.
+* @param arraySize: The size of the array.
 *
-* @return A boolean value indicating whether all provided Vulkan extensions are valid (true), or not (false).
+* @return True if all specified Vulkan extensions are supported, otherwise False.
 */
 bool Renderer::verifyVulkanExtensionValidity(const char** arrayOfExtensions, uint32_t arraySize) {
     bool allOK = true;
@@ -155,9 +193,9 @@ bool Renderer::verifyVulkanExtensionValidity(const char** arrayOfExtensions, uin
 
 
 /* [MEMBER] Verifies whether a given vector of Vulkan validation layers is available or supported.
-* @param `layers` A vector containing the names of Vulkan validation layers to be evaluated for validity.
+* @param layers: A vector containing the names of Vulkan validation layers to be evaluated for validity.
 *
-* @return A boolean value indicating whether all provided Vulkan validation layers are valid (true), or not (false).
+* @return True if all specified Vulkan validation layers are supported, otherwise False.
 */
 bool Renderer::verifyVulkanValidationLayers(std::vector<const char*> layers) {
     bool allOK = true;
@@ -170,3 +208,64 @@ bool Renderer::verifyVulkanValidationLayers(std::vector<const char*> layers) {
 
     return allOK;
 }
+
+/* [MEMBER]: Grades a list of GPUs according to their suitability for Astrocelerate's features.
+* @param physicalDevices: A vector of GPUs to be evaluated for suitability.
+* 
+* @return A vector containing the final scores of every GPU in the list.
+*/
+std::vector<PhysicalDeviceScoreProperties> Renderer::rateGPUSuitability(std::vector<VkPhysicalDevice> physicalDevices) {
+    std::vector<PhysicalDeviceScoreProperties> GPUScores;
+    // Grade each device
+    for (const VkPhysicalDevice& device : physicalDevices) {
+        // Query basic device properties and optional features (e.g., 64-bit floats for accurate physics computations)
+        VkPhysicalDeviceProperties deviceProperties;
+        VkPhysicalDeviceFeatures deviceFeatures;
+        vkGetPhysicalDeviceProperties(device, &deviceProperties);
+        vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+
+        PhysicalDeviceScoreProperties deviceRating;
+        deviceRating.device = device;
+        deviceRating.deviceName = deviceProperties.deviceName;
+
+        // A "list" of minimum requirements; Variable will collapse to "true" if all are satisfied
+        bool meetsMinimumRequirements = (
+            (deviceFeatures.geometryShader) &&
+            (deviceProperties.apiVersion > VK_API_VERSION_1_0)
+        );
+
+        if (!meetsMinimumRequirements) {
+            deviceRating.isCompatible = false;
+            GPUScores.push_back(deviceRating);
+            continue;
+        }
+
+        std::vector<std::pair<bool, uint32_t>> optionalFeatures = {
+            // Discrete GPUs have a significant performance advantage
+            {deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU, 3},
+
+            // Vulkan 1.2 unifies many extensions and improves stability
+            {deviceProperties.apiVersion >= VK_API_VERSION_1_2, 1}, 
+
+            // Vulkan 1.3 adds dynamic rendering, reducing the need for render passes
+            {deviceProperties.apiVersion >= VK_API_VERSION_1_3, 1}, 
+
+            // 64-bit floats enable accurate physics computations 
+            {deviceFeatures.shaderFloat64, 2},
+
+            // Maximum possible size of textures affects graphics quality
+            {true, deviceProperties.limits.maxImageDimension2D}
+        };
+
+        for (const auto& [hasFeature, weight] : optionalFeatures) {
+            if (hasFeature)
+                deviceRating.optionalScore += weight;
+        }
+
+        // Adds device rating to the list
+        GPUScores.push_back(deviceRating);
+    }
+
+    return GPUScores;
+}
+
