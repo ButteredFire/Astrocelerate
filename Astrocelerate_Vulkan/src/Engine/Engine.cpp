@@ -5,11 +5,14 @@
 
 
 
-Engine::Engine(GLFWwindow *w): window(w) {
-    if (!windowIsValid()) {
+Engine::Engine(GLFWwindow *w, Renderer* rdr): window(w), renderer(rdr) {
+    if (!isPointerValid(window)) {
         throw std::runtime_error("Engine crashed: Invalid window context!");
-        return;
     }
+    if (!isPointerValid(renderer)) {
+        throw std::runtime_error("Engine crashed: Invalid renderer pointer!");
+    }
+
 }
 
 

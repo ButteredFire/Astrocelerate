@@ -151,7 +151,7 @@
   <ItemGroup>
     <ClInclude Include="src\AppWindow.hpp" />
     <ClInclude Include="src\Engine\Engine.hpp" />
-    <ClInclude Include="src\Engine\Renderer.h" />
+    <ClInclude Include="src\Engine\Renderer.hpp" />
     <ClInclude Include="src\IncludesRefs.h" />
     <ClInclude Include="src\LoggingManager.h" />
   </ItemGroup>

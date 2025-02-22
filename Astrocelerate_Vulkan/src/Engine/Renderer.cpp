@@ -1,4 +1,4 @@
-#include "Renderer.h"
+#include "Renderer.hpp"
 
 
 
@@ -40,9 +40,9 @@ void Renderer::setVulkanValidationLayers(std::vector<const char*> layers) {
     }
 
     for (const auto& layer : layers) {
-        if (UTIL_enabledValidationLayers.count(layer) == 0) {
+        if (UTIL_enabledValidationLayerSet.count(layer) == 0) {
             enabledValidationLayers.push_back(layer);
-            UTIL_enabledValidationLayers.insert(layer);
+            UTIL_enabledValidationLayerSet.insert(layer);
         }
     }
 }

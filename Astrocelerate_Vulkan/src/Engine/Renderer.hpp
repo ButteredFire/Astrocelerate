@@ -21,7 +21,7 @@ public:
 	/* Gets a vector of the renderer's currently enabled Vulkan validation layers.
 	* @returns A vector of type `const char*` that contains the names of currently enabled validation layers.
 	*/
-	inline std::vector<const char*> getEnabledVulkanValidationLayers() { return enabledValidationLayers; };
+	inline std::vector<const char*> getEnabledVulkanValidationLayers() const { return enabledValidationLayers; };
 
 	/* Gets a vector of supported Vulkan extensions (may differ from machine to machine).
 	* @return A vector of type `VkExtensionProperties` that contains supported Vulkan extensions.
@@ -49,7 +49,7 @@ private:
 #endif
 	VkInstance vulkInst;
 	std::vector<const char*> enabledValidationLayers;
-	std::unordered_set<const char*> UTIL_enabledValidationLayers; // Purpose: Prevents copying duplicate layers into `enabledValidationLayers`
+	std::unordered_set<const char*> UTIL_enabledValidationLayerSet; // Purpose: Prevents copying duplicate layers into `enabledValidationLayers`
 	std::vector<VkLayerProperties> supportedLayers;
 	std::vector<VkExtensionProperties> supportedExtensions;
 	std::unordered_set<std::string> supportedLayerNames;

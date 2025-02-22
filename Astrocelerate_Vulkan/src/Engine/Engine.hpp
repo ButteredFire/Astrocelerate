@@ -6,14 +6,14 @@
 #include <vector>
 #include <unordered_set>
 
-#include "Renderer.h"
+#include "Renderer.hpp"
 #include "../AppWindow.hpp"
 #include "../Constants.h"
 #include "../LoggingManager.h"
 
 class Engine {
 public:
-	Engine(GLFWwindow *w);
+	Engine(GLFWwindow *w, Renderer *rdr);
 	~Engine();
 
 	// Engine
@@ -21,10 +21,11 @@ public:
 
 private:
 	// Global
-	GLFWwindow* window;
-	Renderer renderer;
+	GLFWwindow *window;
+	Renderer *renderer;
 
-	inline bool windowIsValid() const { return window != nullptr; };
+template<typename T>
+	inline bool isPointerValid(T *ptr) const { return ptr != nullptr; };
 	
 	// Engine
 	void update();

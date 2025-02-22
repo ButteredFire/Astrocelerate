@@ -16,7 +16,8 @@ const std::string WIN_NAME = APP::APP_NAME;
 int main() {
     Window window(WIN_WIDTH, WIN_HEIGHT, WIN_NAME);
     GLFWwindow* windowPtr = window.getGLFWwindowPtr();
-    Engine engine(windowPtr);
+    Renderer renderer;
+    Engine engine(windowPtr, &renderer);
 
     try {
         engine.run();
