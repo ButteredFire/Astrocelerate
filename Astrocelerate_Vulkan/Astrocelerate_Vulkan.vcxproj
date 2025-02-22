@@ -146,11 +146,14 @@
     <ClCompile Include="src\Application.cpp" />
     <ClCompile Include="src\AppWindow.cpp" />
     <ClCompile Include="src\Engine\Engine.cpp" />
+    <ClCompile Include="src\Engine\Renderer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\AppWindow.hpp" />
     <ClInclude Include="src\Engine\Engine.hpp" />
+    <ClInclude Include="src\Engine\Renderer.h" />
     <ClInclude Include="src\IncludesRefs.h" />
+    <ClInclude Include="src\LoggingManager.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="src\Shaders\FragmentShader.glsl" />
