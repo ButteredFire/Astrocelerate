@@ -133,6 +133,7 @@ VkResult Renderer::createVulkanInstance() {
     return result;
 }
 
+
 /* [MEMBER] Configures a VkPhysicalDevice object by binding it to an appropriate GPU that supports needed features.
 */
 void Renderer::setUpPhysicalDevice() {
@@ -148,11 +149,12 @@ void Renderer::setUpPhysicalDevice() {
     std::vector<VkPhysicalDevice> physicalDevices(physDeviceCount);
     vkEnumeratePhysicalDevices(vulkInst, &physDeviceCount, physicalDevices.data());
 
-    // Finds a GPU that supports Astrocelerate's features
+    // Finds the most suitable GPU that supports Astrocelerate's features through GPU scoring
     std::vector<PhysicalDeviceScoreProperties> GPUScores = rateGPUSuitability(physicalDevices);
     PhysicalDeviceScoreProperties bestDevice = *std::max_element(GPUScores.begin(), GPUScores.end(), 
         [](const auto& s1, const auto& s2) {
-            return (s2.isCompatible && (s1.optionalScore == s2.optionalScore)) || (s2.isCompatible && (s1.optionalScore < s2.optionalScore));
+            // If (s1 is incompatible && s2 is compatible) OR (s2 is compatible && s1 score <= s2 score)
+            return (!s1.isCompatible && s2.isCompatible) || (s2.isCompatible && (s1.optionalScore <= s2.optionalScore));
         }
     );
 
@@ -178,7 +180,7 @@ void Renderer::setUpPhysicalDevice() {
 *
 * @return True if all specified Vulkan extensions are supported, otherwise False.
 */
-bool Renderer::verifyVulkanExtensionValidity(const char** arrayOfExtensions, uint32_t arraySize) {
+bool Renderer::verifyVulkanExtensionValidity(const char** arrayOfExtensions, uint32_t& arraySize) {
     bool allOK = true;
     for (uint32_t i = 0; i < arraySize; i++) {
         if (supportedExtensionNames.count(arrayOfExtensions[i]) == 0) {
@@ -197,7 +199,7 @@ bool Renderer::verifyVulkanExtensionValidity(const char** arrayOfExtensions, uin
 *
 * @return True if all specified Vulkan validation layers are supported, otherwise False.
 */
-bool Renderer::verifyVulkanValidationLayers(std::vector<const char*> layers) {
+bool Renderer::verifyVulkanValidationLayers(std::vector<const char*>& layers) {
     bool allOK = true;
     for (const auto& layer : layers) {
         if (supportedLayerNames.count(layer) == 0) {
@@ -209,29 +211,40 @@ bool Renderer::verifyVulkanValidationLayers(std::vector<const char*> layers) {
     return allOK;
 }
 
+
 /* [MEMBER]: Grades a list of GPUs according to their suitability for Astrocelerate's features.
 * @param physicalDevices: A vector of GPUs to be evaluated for suitability.
 * 
-* @return A vector containing the final scores of every GPU in the list.
+* @return A vector containing the final scores of all GPUs in the list.
 */
-std::vector<PhysicalDeviceScoreProperties> Renderer::rateGPUSuitability(std::vector<VkPhysicalDevice> physicalDevices) {
+std::vector<PhysicalDeviceScoreProperties> Renderer::rateGPUSuitability(std::vector<VkPhysicalDevice>& physicalDevices) {
     std::vector<PhysicalDeviceScoreProperties> GPUScores;
-    // Grade each device
-    for (const VkPhysicalDevice& device : physicalDevices) {
-        // Query basic device properties and optional features (e.g., 64-bit floats for accurate physics computations)
+    // Grades each device
+    for (VkPhysicalDevice& device : physicalDevices) {
+        // Queries basic device properties and optional features (e.g., 64-bit floats for accurate physics computations)
         VkPhysicalDeviceProperties deviceProperties;
         VkPhysicalDeviceFeatures deviceFeatures;
         vkGetPhysicalDeviceProperties(device, &deviceProperties);
         vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
 
+        // Creates a device rating profile
         PhysicalDeviceScoreProperties deviceRating;
         deviceRating.device = device;
         deviceRating.deviceName = deviceProperties.deviceName;
 
+        // Creates a list of indices of device-supported queue families for later checking
+        QueueFamilyIndices queueFamilyIndices = getQueueFamilies(device);
+
         // A "list" of minimum requirements; Variable will collapse to "true" if all are satisfied
         bool meetsMinimumRequirements = (
+            // If the GPU supports geometry shaders
             (deviceFeatures.geometryShader) &&
-            (deviceProperties.apiVersion > VK_API_VERSION_1_0)
+
+            // If the GPU has an API version above 1.0
+            (deviceProperties.apiVersion > VK_API_VERSION_1_0) &&
+
+            // If the GPU has a graphics queue family
+            (queueFamilyIndices.graphicsFamily.has_value())
         );
 
         if (!meetsMinimumRequirements) {
@@ -242,7 +255,7 @@ std::vector<PhysicalDeviceScoreProperties> Renderer::rateGPUSuitability(std::vec
 
         std::vector<std::pair<bool, uint32_t>> optionalFeatures = {
             // Discrete GPUs have a significant performance advantage
-            {deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU, 3},
+            {deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU, 3},
 
             // Vulkan 1.2 unifies many extensions and improves stability
             {deviceProperties.apiVersion >= VK_API_VERSION_1_2, 1}, 
@@ -269,3 +282,29 @@ std::vector<PhysicalDeviceScoreProperties> Renderer::rateGPUSuitability(std::vec
     return GPUScores;
 }
 
+
+/* [MEMBER] Queries all GPU-supported queue families. 
+* @param device: The GPU from which to query queue families.
+* 
+* @return A QueueFamilyIndices struct, with each family assigned to their corresponding index.
+*/
+QueueFamilyIndices Renderer::getQueueFamilies(VkPhysicalDevice& device) {
+    QueueFamilyIndices familyIndices;
+
+    uint32_t familyCount = 0;
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &familyCount, nullptr);
+
+    std::vector<VkQueueFamilyProperties> queueFamilies(familyCount);
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &familyCount, queueFamilies.data());
+
+    uint32_t index = 0;
+    for (const auto& family : queueFamilies) {
+        // If graphics queue family supports VK_QUEUE_GRAPHICS_BIT
+        if (family.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+            familyIndices.graphicsFamily = index;
+        }
+        index++;
+    }
+
+    return familyIndices;
+}

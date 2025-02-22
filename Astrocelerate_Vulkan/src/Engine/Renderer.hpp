@@ -4,6 +4,7 @@
 #include <GLFW/glfw3.h>
 
 #include <iostream>
+#include <optional>
 #include <algorithm>
 #include <vector>
 #include <unordered_map>
@@ -18,6 +19,21 @@ typedef struct PhysicalDeviceScoreProperties {
 	bool isCompatible = true;
 	uint32_t optionalScore = 0;
 } PhysicalDeviceScoreProperties;
+
+/* Rationale behind using std::optional<uint32_t> instead of uint32_t:
+* The index of any given queue family is arbitrary, and thus could theoretically be any uint32_t integer. 
+* Therefore, it is impossible to determine whether a queue family exists only using some magic number like 0, NULL, or UINT32_MAX.
+* 
+* The solution is to use std::optional<T>. It is a wrapper that contains no value until you assign something to it.
+* It works because, if a queue family does not exist, their index will actually be non-existent.
+* You can determine if it has a value with std::optional<T>.has_value().
+* 
+* NOTE: Making indices uninitialized variables also doesn't work, because then they will still contain garbage values that
+* could theoretically be valid queue family indices.
+*/
+typedef struct QueueFamilyIndices {
+	std::optional<uint32_t> graphicsFamily;
+} QueueFamilyIndices;
 
 class Renderer {
 public:
@@ -68,8 +84,9 @@ private:
 	VkResult createVulkanInstance();
 	void setUpPhysicalDevice();
 
-	bool verifyVulkanExtensionValidity(const char** arrayOfExtensions, uint32_t arraySize);
-	bool verifyVulkanValidationLayers(std::vector<const char*> layers);
+	bool verifyVulkanExtensionValidity(const char** arrayOfExtensions, uint32_t& arraySize);
+	bool verifyVulkanValidationLayers(std::vector<const char*>& layers);
 	
-	std::vector<PhysicalDeviceScoreProperties> rateGPUSuitability(std::vector<VkPhysicalDevice> physicalDevices);
+	std::vector<PhysicalDeviceScoreProperties> rateGPUSuitability(std::vector<VkPhysicalDevice>& physicalDevices);
+	QueueFamilyIndices getQueueFamilies(VkPhysicalDevice& device);
 };
