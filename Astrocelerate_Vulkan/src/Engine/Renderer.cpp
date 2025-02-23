@@ -5,8 +5,9 @@
 #include "Renderer.hpp"
 
 
-Renderer::Renderer(VkInstance &instance):
-    vulkInst(instance) {
+Renderer::Renderer(VulkanContext &context):
+    vulkInst(context.vulkanInstance), 
+    vkContext(context) {
 
 }
 

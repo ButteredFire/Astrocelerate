@@ -160,6 +160,7 @@
     <ClInclude Include="src\Engine\Renderer.hpp" />
     <ClInclude Include="src\IncludesRefs.h" />
     <ClInclude Include="src\LoggingManager.hpp" />
+    <ClInclude Include="src\VulkanContexts.hpp" />
     <ClInclude Include="src\Vulkan\VkDeviceManager.hpp" />
     <ClInclude Include="src\Vulkan\VkInstanceManager.hpp" />
   </ItemGroup>

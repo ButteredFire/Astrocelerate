@@ -18,7 +18,9 @@
 #include <optional>
 
 // Local
-#include "VkInstanceManager.hpp"
+#include "../LoggingManager.hpp"
+#include "../Constants.h"
+#include "../VulkanContexts.hpp"
 
 
 
@@ -51,6 +53,7 @@ typedef struct QueueFamilyIndices {
 	typedef struct QueueFamily {
 		std::optional <uint32_t> index;
 		uint32_t FLAG;
+		VkQueue deviceQueue;
 	} QueueFamily;
 
 	// Family declarations
@@ -66,11 +69,29 @@ typedef struct QueueFamilyIndices {
 
 class VkDeviceManager {
 public:
-	VkDeviceManager(VkInstance &instance);
+	VkDeviceManager(VulkanContext &context);
 	~VkDeviceManager();
 
-	void createPhysicalDevice();
-	void createLogicalDevice();
+	/* Initializes the device creation process. */
+	void init();
+
+private:
+	VkInstance &vulkInst;
+	VulkanContext &vkContext;
+
+	VkPhysicalDevice GPUPhysicalDevice;
+	VkDevice GPULogicalDevice;
+
+	std::vector<PhysicalDeviceScoreProperties> GPUScores;
+
+	/* Configures a GPU Physical Device by binding it to an appropriate GPU that supports needed features.
+	*/
+	VkPhysicalDevice createPhysicalDevice();
+
+	/* Creates a GPU Logical Device to interface with the Physical Device.
+	*/
+	VkDevice createLogicalDevice();
+
 
 	/* Grades a list of GPUs according to their suitability for Astrocelerate's features.
 	* @param physicalDevices: A vector of GPUs to be evaluated for suitability.
@@ -83,12 +104,4 @@ public:
 	* @return A QueueFamilyIndices struct, with each family assigned to their corresponding index.
 	*/
 	QueueFamilyIndices getQueueFamilies(VkPhysicalDevice& device);
-
-private:
-	VkInstance &vulkInst;
-
-	VkPhysicalDevice GPUPhysicalDevice;
-	VkDevice GPULogicalDevice;
-
-	std::vector<PhysicalDeviceScoreProperties> GPUScores;
 };

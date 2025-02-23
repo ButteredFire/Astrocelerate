@@ -5,22 +5,33 @@
 #include "VkDeviceManager.hpp"
 
 
-VkDeviceManager::VkDeviceManager(VkInstance &instance):
+VkDeviceManager::VkDeviceManager(VulkanContext &context):
     GPUPhysicalDevice(nullptr), GPULogicalDevice(nullptr),
-    vulkInst(instance) {
+    vulkInst(context.vulkanInstance), vkContext(context) {
 
     if (vulkInst == nullptr) {
         throw std::runtime_error("Cannot initialize device manager: Invalid Vulkan instance!");
     }
 }
 
-VkDeviceManager::~VkDeviceManager() {}
+VkDeviceManager::~VkDeviceManager() {
+    vkDestroyDevice(GPULogicalDevice, nullptr);
+}
 
 
 
-/* [MEMBER] Configures a GPU Physical Device by binding it to an appropriate GPU that supports needed features.
-*/
-void VkDeviceManager::createPhysicalDevice() {
+void VkDeviceManager::init() {
+    // Creates a GPU device
+    vkContext.physicalDevice = createPhysicalDevice();
+    vkContext.logicalDevice = createLogicalDevice();
+
+    // Binds queue families to their corresponding queue handles
+    QueueFamilyIndices queueFamilies = getQueueFamilies(GPUPhysicalDevice);
+    vkGetDeviceQueue(GPULogicalDevice, queueFamilies.graphicsFamily.index.value(), 0, &queueFamilies.graphicsFamily.deviceQueue);
+}
+
+
+VkPhysicalDevice VkDeviceManager::createPhysicalDevice() {
     // Queries available Vulkan-supported GPUs
     uint32_t physDeviceCount = 0;
     vkEnumeratePhysicalDevices(vulkInst, &physDeviceCount, nullptr);
@@ -52,20 +63,67 @@ void VkDeviceManager::createPhysicalDevice() {
     }
 
     GPUPhysicalDevice = physicalDevice;
+
+    return GPUPhysicalDevice;
 }
 
 
-/* [MEMBER] Creates a GPU Logical Device to interface with the Physical Device.
-*/
-void VkDeviceManager::createLogicalDevice() {
+VkDevice VkDeviceManager::createLogicalDevice() {
     QueueFamilyIndices queueFamilies = getQueueFamilies(GPUPhysicalDevice);
     // Specifies the queues to be created
     VkDeviceQueueCreateInfo queueInfo{};
+    float queuePriority = 1.0f; // Queues must have a priority in [0.0; 1.0], which influences the scheduling of command buffer execution.
 
     queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
     queueInfo.queueFamilyIndex = queueFamilies.graphicsFamily.index.value();
-    //queueInfo.queueCount = 
+    queueInfo.queueCount = 1;
+    queueInfo.pQueuePriorities = &queuePriority;
 
+    // Specifies the features of the device to be used
+    VkPhysicalDeviceFeatures deviceFeatures{}; // We don't need anything special, so we'll just init all to VK_FALSE for now.
+
+    // Creates the logical device
+    VkDeviceCreateInfo deviceInfo{};
+
+    deviceInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    deviceInfo.pQueueCreateInfos = &queueInfo;
+    deviceInfo.queueCreateInfoCount = queueInfo.queueCount;
+    
+    deviceInfo.pEnabledFeatures = &deviceFeatures;
+
+    /* A note about extensions and validation layers:
+    * Extensions and validation layers can be classified into:
+    * - Vulkan Instance extensions and layers
+    * - Extensions and layers for specific Vulkan objects
+    * 
+    * In this case, when setting extensions and layers for deviceInfo, we're actually setting
+    * device-specific extensions and layers (e.g., VK_KHR_swapchain).
+    * 
+    * Previous implementations of Vulkan made a distinction between instance and device specific validation layers, 
+    * but this is no longer the case.
+    * 
+    * In the case of deviceInfo, it means that the enabledLayerCount and ppEnabledLayerNames fields are ignored by up-to-date implementations. 
+    * However, it is still a good idea to set them anyway to be compatible with older implementations.
+    */
+
+    // Sets device-specific extensions
+    deviceInfo.enabledExtensionCount = 0; // We don't need any for now
+
+    // Sets device-specific validation layers
+    if (enableValidationLayers) {
+        deviceInfo.enabledLayerCount = static_cast<uint32_t> (vkContext.enabledValidationLayers.size());
+        deviceInfo.ppEnabledLayerNames = vkContext.enabledValidationLayers.data();
+    }
+    else {
+        deviceInfo.enabledLayerCount = 0;
+    }
+
+    VkResult result = vkCreateDevice(GPUPhysicalDevice, &deviceInfo, nullptr, &GPULogicalDevice);
+    if (result != VK_SUCCESS) {
+        throw std::runtime_error("Unable to create GPU logical device!");
+    }
+
+    return GPULogicalDevice;
 }
 
 

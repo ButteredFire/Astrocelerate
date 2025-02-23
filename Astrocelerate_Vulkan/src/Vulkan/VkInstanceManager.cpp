@@ -4,13 +4,18 @@
 
 #include "VkInstanceManager.hpp"
 
-VkInstanceManager::VkInstanceManager():
-    vulkInst(nullptr) {}
+VkInstanceManager::VkInstanceManager(VulkanContext &context):
+    vulkInst(nullptr), vkContext(context) {}
 
 VkInstanceManager::~VkInstanceManager() {
     vkDestroyInstance(vulkInst, nullptr);
 }
 
+
+
+void VkInstanceManager::init() {
+    vkContext.vulkanInstance = initVulkan();
+}
 
 
 VkInstance VkInstanceManager::initVulkan() {

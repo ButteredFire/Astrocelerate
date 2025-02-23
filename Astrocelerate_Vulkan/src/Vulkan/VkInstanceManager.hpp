@@ -26,35 +26,11 @@
 
 class VkInstanceManager {
 public:
-	VkInstanceManager();
+	VkInstanceManager(VulkanContext &context);
 	~VkInstanceManager();
 
-	/* Initializes Vulkan.
-	* @return A pointer to a Vulkan instance.
-	*/
-	VkInstance initVulkan();
-
-	/* Creates a Vulkan instance.
-	* @return a VkResult value indicating the instance creation status.
-	*/
-	VkResult createVulkanInstance();
-
-	/* Verifies whether a given array of Vulkan extensions is available or supported.
-	* @param arrayOfExtensions: An array containing the names of Vulkan extensions to be evaluated for validity.
-	* @param arraySize: The size of the array.
-	*
-	* @return True if all specified Vulkan extensions are supported, otherwise False.
-	*/
-	bool verifyVulkanExtensionValidity(const char** arrayOfExtensions, uint32_t& arraySize);
-
-
-	/* Verifies whether a given vector of Vulkan validation layers is available or supported.
-	* @param layers: A vector containing the names of Vulkan validation layers to be evaluated for validity.
-	*
-	* @return True if all specified Vulkan validation layers are supported, otherwise False.
-	*/
-	bool verifyVulkanValidationLayers(std::vector<const char*>& layers);
-
+	/* Initializes the Vulkan instance setup process. */
+	void init();
 
 	/* Gets the renderer's currently enabled Vulkan validation layers.
 	* @return A vector of type `const char*` that contains the names of currently enabled validation layers.
@@ -88,13 +64,8 @@ public:
 	void setVulkanValidationLayers(std::vector<const char*> layers);
 
 private:
-#ifdef NDEBUG
-	const bool enableValidationLayers = false;
-#else
-	const bool enableValidationLayers = true;
-#endif
-
 	VkInstance vulkInst;
+	VulkanContext& vkContext;
 
 	std::vector<const char*> enabledValidationLayers;
 	std::unordered_set<const char*> UTIL_enabledValidationLayerSet; // Purpose: Prevents copying duplicate layers into `enabledValidationLayers`
@@ -102,4 +73,31 @@ private:
 	std::vector<VkExtensionProperties> supportedExtensions;
 	std::unordered_set<std::string> supportedLayerNames;
 	std::unordered_set<std::string> supportedExtensionNames;
+
+
+	/* Initializes Vulkan.
+	* @return A pointer to a Vulkan instance.
+	*/
+	VkInstance initVulkan();
+
+	/* Creates a Vulkan instance.
+	* @return a VkResult value indicating the instance creation status.
+	*/
+	VkResult createVulkanInstance();
+
+	/* Verifies whether a given array of Vulkan extensions is available or supported.
+	* @param arrayOfExtensions: An array containing the names of Vulkan extensions to be evaluated for validity.
+	* @param arraySize: The size of the array.
+	*
+	* @return True if all specified Vulkan extensions are supported, otherwise False.
+	*/
+	bool verifyVulkanExtensionValidity(const char** arrayOfExtensions, uint32_t& arraySize);
+
+
+	/* Verifies whether a given vector of Vulkan validation layers is available or supported.
+	* @param layers: A vector containing the names of Vulkan validation layers to be evaluated for validity.
+	*
+	* @return True if all specified Vulkan validation layers are supported, otherwise False.
+	*/
+	bool verifyVulkanValidationLayers(std::vector<const char*>& layers);
 };

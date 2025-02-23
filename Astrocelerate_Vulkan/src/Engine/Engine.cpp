@@ -5,16 +5,14 @@
 
 
 
-Engine::Engine(GLFWwindow *w, VkInstance& instance):
-    window(w), vulkInst(instance), 
-    deviceManager(instance),
-    renderer(instance) {
+Engine::Engine(GLFWwindow *w, VulkanContext& context):
+    window(w),
+    vkContext(context),
+    renderer(context) {
 
     if (!isPointerValid(window)) {
         throw std::runtime_error("Engine crashed: Invalid window context!");
     }
-
-    deviceManager.createPhysicalDevice();
 }
 
 

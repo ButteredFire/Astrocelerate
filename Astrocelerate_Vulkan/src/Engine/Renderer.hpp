@@ -28,9 +28,10 @@
 
 class Renderer {
 public:
-	Renderer(VkInstance &instance);
+	Renderer(VulkanContext &context);
 	~Renderer();
 
 private:
 	VkInstance &vulkInst;
+	VulkanContext &vkContext;
 };

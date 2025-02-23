@@ -6,6 +6,14 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 
+// If program is not run in DEBUG mode, disable validation layers. Else, enable them.
+#ifdef NDEBUG
+	const bool enableValidationLayers = false;
+#else
+	const bool enableValidationLayers = true;
+#endif
+
+
 // Application properties
 namespace APP {
 	constexpr char APP_NAME[] = "Astrocelerate (Alpha)";
