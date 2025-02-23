@@ -3,7 +3,8 @@
 
 Renderer::Renderer(): vulkInst(nullptr) {
     initVulkan();
-    setUpPhysicalDevice();
+    createPhysicalDevice();
+    createLogicalDevice();
 }
 
 
@@ -134,9 +135,9 @@ VkResult Renderer::createVulkanInstance() {
 }
 
 
-/* [MEMBER] Configures a VkPhysicalDevice object by binding it to an appropriate GPU that supports needed features.
+/* [MEMBER] Configures a GPU Physical Device by binding it to an appropriate GPU that supports needed features.
 */
-void Renderer::setUpPhysicalDevice() {
+void Renderer::createPhysicalDevice() {
     // Queries available Vulkan-supported GPUs
     uint32_t physDeviceCount = 0;
     vkEnumeratePhysicalDevices(vulkInst, &physDeviceCount, nullptr);
@@ -150,13 +151,8 @@ void Renderer::setUpPhysicalDevice() {
     vkEnumeratePhysicalDevices(vulkInst, &physDeviceCount, physicalDevices.data());
 
     // Finds the most suitable GPU that supports Astrocelerate's features through GPU scoring
-    std::vector<PhysicalDeviceScoreProperties> GPUScores = rateGPUSuitability(physicalDevices);
-    PhysicalDeviceScoreProperties bestDevice = *std::max_element(GPUScores.begin(), GPUScores.end(), 
-        [](const auto& s1, const auto& s2) {
-            // If (s1 is incompatible && s2 is compatible) OR (s2 is compatible && s1 score <= s2 score)
-            return (!s1.isCompatible && s2.isCompatible) || (s2.isCompatible && (s1.optionalScore <= s2.optionalScore));
-        }
-    );
+    GPUScores = rateGPUSuitability(physicalDevices);
+    PhysicalDeviceScoreProperties bestDevice = *std::max_element(GPUScores.begin(), GPUScores.end(), ScoreComparator);
 
     physicalDevice = bestDevice.device;
     bool isDeviceCompatible = bestDevice.isCompatible;
@@ -171,6 +167,15 @@ void Renderer::setUpPhysicalDevice() {
     if (physicalDevice == nullptr || !isDeviceCompatible) {
         throw std::runtime_error("Failed to find a GPU that supports Astrocelerate's features!");
     }
+
+    GPUPhysicalDevice = physicalDevice;
+}
+
+
+/* [MEMBER] Creates a GPU Logical Device to interface with the Physical Device.
+*/
+void Renderer::createLogicalDevice() {
+    
 }
 
 
@@ -244,7 +249,7 @@ std::vector<PhysicalDeviceScoreProperties> Renderer::rateGPUSuitability(std::vec
             (deviceProperties.apiVersion > VK_API_VERSION_1_0) &&
 
             // If the GPU has a graphics queue family
-            (queueFamilyIndices.graphicsFamily.has_value())
+            (queueFamilyIndices.graphicsFamily.index.has_value())
         );
 
         if (!meetsMinimumRequirements) {
@@ -289,7 +294,29 @@ std::vector<PhysicalDeviceScoreProperties> Renderer::rateGPUSuitability(std::vec
 * @return A QueueFamilyIndices struct, with each family assigned to their corresponding index.
 */
 QueueFamilyIndices Renderer::getQueueFamilies(VkPhysicalDevice& device) {
+    /* Explanation behind VkQueueFamilyProperties::queueFlags (family.queueFlags below):
+    * Vulkan uses bitfields for queue flags (i.e., queueFlags is a bitfield: a set of flags stored in a single integer).
+    * Vulkan uses bitfields for queue capabilities because a queue family can support multiple operations simultaneously
+    * (e.g., graphics, compute, transfer). Instead of using separate boolean variables, it stores these capabilities in a single integer,
+    * where each bit represents a different queue type.
+    * 
+    * Therefore, to check if a queue family supports an operation, you can just use the bitwise AND between queueFlags and the operation's bit.
+    * If (queueFlags & VK_QUEUE_[OPERATION]_BIT != 0), meaning that that operation flag/bit is TRUE/On, then the queue family supports it.
+    * 
+    * Example: To check whether a queue family supports graphics operations, perform an AND operation between queueFlags and VK_QUEUE_GRAPHICS_BIT:
+    * 
+    * queueFlags (example)  =  01100100 00001010 1000110 11001001
+    * VK_QUEUE_GRAPHICS_BIT =  00000000 00000000 0000000 00000001
+    *                          ----------------------------------
+    * CONDITION RESULTS     =  00000000 00000000 0000000 00000001_2 = 1_10 (1 => True)
+    * 
+    * Of course, the condition result can be any number (not just 0 or 1) because it returns an integer.
+    * 
+    * Essentially, Vulkan allows multiple capabilities to be stored in a single variable while enabling fast bitwise checks.
+    * Ngl, this is a pretty fucking clever approach to efficient memory management!
+    */
     QueueFamilyIndices familyIndices;
+    familyIndices.init();
 
     uint32_t familyCount = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(device, &familyCount, nullptr);
@@ -299,9 +326,9 @@ QueueFamilyIndices Renderer::getQueueFamilies(VkPhysicalDevice& device) {
 
     uint32_t index = 0;
     for (const auto& family : queueFamilies) {
-        // If graphics queue family supports VK_QUEUE_GRAPHICS_BIT
-        if (family.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-            familyIndices.graphicsFamily = index;
+        // If graphics queue family supports graphics operations
+        if (family.queueFlags & familyIndices.graphicsFamily.FLAG) {
+            familyIndices.graphicsFamily.index = index;
         }
         index++;
     }

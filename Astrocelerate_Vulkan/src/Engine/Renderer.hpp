@@ -20,6 +20,11 @@ typedef struct PhysicalDeviceScoreProperties {
 	uint32_t optionalScore = 0;
 } PhysicalDeviceScoreProperties;
 
+inline bool ScoreComparator(const PhysicalDeviceScoreProperties& s1, const PhysicalDeviceScoreProperties& s2) {
+	// If (s1 is incompatible && s2 is compatible) OR (s2 is compatible && s1 score <= s2 score)
+	return (!s1.isCompatible && s2.isCompatible) || (s2.isCompatible && (s1.optionalScore <= s2.optionalScore));
+}
+
 /* Rationale behind using std::optional<uint32_t> instead of uint32_t:
 * The index of any given queue family is arbitrary, and thus could theoretically be any uint32_t integer. 
 * Therefore, it is impossible to determine whether a queue family exists only using some magic number like 0, NULL, or UINT32_MAX.
@@ -31,8 +36,22 @@ typedef struct PhysicalDeviceScoreProperties {
 * NOTE: Making indices uninitialized variables also doesn't work, because then they will still contain garbage values that
 * could theoretically be valid queue family indices.
 */
+typedef struct QueueFamilyIndex {
+	std::optional <uint32_t> index;
+	uint32_t FLAG;
+} QueueFamilyIndex;
+
 typedef struct QueueFamilyIndices {
-	std::optional<uint32_t> graphicsFamily;
+	QueueFamilyIndex graphicsFamily;
+
+	// Binds each family's flag to their corresponding Vulkan flag
+	bool initialized = false;
+	void init() {
+		if (!initialized) {
+			initialized = true;
+			graphicsFamily.FLAG = VK_QUEUE_GRAPHICS_BIT;
+		}
+	}
 } QueueFamilyIndices;
 
 class Renderer {
@@ -73,6 +92,8 @@ private:
 	const bool enableValidationLayers = true;
 #endif
 	VkInstance vulkInst;
+	VkPhysicalDevice GPUPhysicalDevice;
+	VkDevice GPULogicalDevice;
 	std::vector<const char*> enabledValidationLayers;
 	std::unordered_set<const char*> UTIL_enabledValidationLayerSet; // Purpose: Prevents copying duplicate layers into `enabledValidationLayers`
 	std::vector<VkLayerProperties> supportedLayers;
@@ -80,9 +101,12 @@ private:
 	std::unordered_set<std::string> supportedLayerNames;
 	std::unordered_set<std::string> supportedExtensionNames;
 
+	std::vector<PhysicalDeviceScoreProperties> GPUScores;
+
 	void initVulkan();
 	VkResult createVulkanInstance();
-	void setUpPhysicalDevice();
+	void createPhysicalDevice();
+	void createLogicalDevice();
 
 	bool verifyVulkanExtensionValidity(const char** arrayOfExtensions, uint32_t& arraySize);
 	bool verifyVulkanValidationLayers(std::vector<const char*>& layers);
