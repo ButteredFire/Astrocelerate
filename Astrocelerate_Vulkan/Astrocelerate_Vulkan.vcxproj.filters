@@ -27,6 +27,12 @@
     <ClCompile Include="src\Engine\Renderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\Vulkan\VkDeviceManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Vulkan\VkInstanceManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\AppWindow.hpp">
@@ -41,7 +47,13 @@
     <ClInclude Include="src\Engine\Renderer.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\LoggingManager.h">
+    <ClInclude Include="src\LoggingManager.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Vulkan\VkInstanceManager.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Vulkan\VkDeviceManager.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

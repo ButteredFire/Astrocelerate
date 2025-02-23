@@ -16,6 +16,7 @@
 // C++ STLs
 #include <iostream>
 #include <string>
+#include <vector>
 
 // Other
 #include "Constants.h"

@@ -1,18 +1,20 @@
-/* Engine.cpp: Stores definitions for the Engine class.
+/* Engine.cpp - Engine implementation.
 */
 
 #include "Engine.hpp"
 
 
 
-Engine::Engine(GLFWwindow *w, Renderer* rdr): window(w), renderer(rdr) {
+Engine::Engine(GLFWwindow *w, VkInstance& instance):
+    window(w), vulkInst(instance), 
+    deviceManager(instance),
+    renderer(instance) {
+
     if (!isPointerValid(window)) {
         throw std::runtime_error("Engine crashed: Invalid window context!");
     }
-    if (!isPointerValid(renderer)) {
-        throw std::runtime_error("Engine crashed: Invalid renderer pointer!");
-    }
 
+    deviceManager.createPhysicalDevice();
 }
 
 

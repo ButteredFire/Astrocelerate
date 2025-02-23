@@ -1,4 +1,7 @@
-/* Engine.h: Stores declarations for the Engine class and engine-related definitions
+/* Engine.hpp - Core engine logic.
+*
+* Defines the Engine class, responsible for managing the simulation loop, updating
+* game state, and coordinating subsystems such as rendering and device management.
 */
 
 #pragma once
@@ -7,13 +10,17 @@
 #include <unordered_set>
 
 #include "Renderer.hpp"
+#include "../Vulkan/VkInstanceManager.hpp"
+#include "../Vulkan/VkDeviceManager.hpp"
 #include "../AppWindow.hpp"
 #include "../Constants.h"
-#include "../LoggingManager.h"
+#include "../LoggingManager.hpp"
+
+
 
 class Engine {
 public:
-	Engine(GLFWwindow *w, Renderer *rdr);
+	Engine(GLFWwindow *w, VkInstance &instance);
 	~Engine();
 
 	// Engine
@@ -22,10 +29,14 @@ public:
 private:
 	// Global
 	GLFWwindow *window;
-	Renderer *renderer;
+	VkInstance &vulkInst;
+
+	Renderer renderer;
+	VkDeviceManager deviceManager;
+
 
 template<typename T>
-	inline bool isPointerValid(T *ptr) const { return ptr != nullptr; };
+	static inline bool isPointerValid(T *ptr) { return ptr != nullptr; };
 	
 	// Engine
 	void update();

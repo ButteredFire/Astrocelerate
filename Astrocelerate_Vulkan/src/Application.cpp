@@ -9,15 +9,20 @@
 #include <stdexcept>
 #include <cstdlib>
 
+
 const int WIN_WIDTH = WindowConsts::DEFAULT_WINDOW_WIDTH;
 const int WIN_HEIGHT = WindowConsts::DEFAULT_WINDOW_HEIGHT;
 const std::string WIN_NAME = APP::APP_NAME;
 
 int main() {
+    // Creates a window
     Window window(WIN_WIDTH, WIN_HEIGHT, WIN_NAME);
     GLFWwindow *windowPtr = window.getGLFWwindowPtr();
-    Renderer renderer;
-    Engine engine(windowPtr, &renderer);
+
+    // Creates a Vulkan instance
+    VkInstanceManager instanceManager;
+    VkInstance vulkInst = instanceManager.initVulkan();
+    Engine engine(windowPtr, vulkInst);
 
     try {
         engine.run();
