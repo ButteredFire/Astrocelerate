@@ -7,6 +7,13 @@
 
 #pragma once
 
+// Access native platform functions
+#define VK_USE_PLATFORM_WIN32_KHR
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
+#define GLFW_EXPOSE_NATIVE_WIN32
+#include <GLFW/glfw3native.h>
+
 // GLFW & Vulkan
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -66,6 +73,7 @@ public:
 private:
 	VkInstance vulkInst;
 	VulkanContext& vkContext;
+	VkSurfaceKHR windowSurface;
 
 	std::vector<const char*> enabledValidationLayers;
 	std::unordered_set<const char*> UTIL_enabledValidationLayerSet; // Purpose: Prevents copying duplicate layers into `enabledValidationLayers`
@@ -84,6 +92,10 @@ private:
 	* @return a VkResult value indicating the instance creation status.
 	*/
 	VkResult createVulkanInstance();
+
+	/* Creates a Vulkan surface on which to display rendered images.
+	*/
+	void createSurface();
 
 	/* Verifies whether a given array of Vulkan extensions is available or supported.
 	* @param arrayOfExtensions: An array containing the names of Vulkan extensions to be evaluated for validity.

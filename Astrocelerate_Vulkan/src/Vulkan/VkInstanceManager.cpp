@@ -5,7 +5,7 @@
 #include "VkInstanceManager.hpp"
 
 VkInstanceManager::VkInstanceManager(VulkanContext &context):
-    vulkInst(nullptr), vkContext(context) {}
+    vulkInst(nullptr), windowSurface(nullptr), vkContext(context) {}
 
 VkInstanceManager::~VkInstanceManager() {
     vkDestroyInstance(vulkInst, nullptr);
@@ -97,6 +97,14 @@ VkResult VkInstanceManager::createVulkanInstance() {
     // and initializes the member VkInstance variable
     VkResult result = vkCreateInstance(&instanceInfo, nullptr, &vulkInst);
     return result;
+}
+
+
+void VkInstanceManager::createSurface() {
+    VkWin32SurfaceCreateInfoKHR win32SurfaceInfo{};
+    win32SurfaceInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+    win32SurfaceInfo.hwnd = glfwGetWin32Window(vkContext.window);
+    win32SurfaceInfo.hinstance = GetModuleHandle(nullptr);
 }
 
 

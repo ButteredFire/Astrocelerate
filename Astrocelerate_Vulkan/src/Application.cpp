@@ -17,12 +17,13 @@ const std::string WIN_NAME = APP::APP_NAME;
 
 
 int main() {
-    // Creates a window
-    Window window(WIN_WIDTH, WIN_HEIGHT, WIN_NAME);
-    GLFWwindow *windowPtr = window.getGLFWwindowPtr();
-
     // Binds members in the VulkanInstanceContext struct to their corresponding active Vulkan objects
     VulkanContext vkContext{};
+    
+        // Creates a window
+    Window window(WIN_WIDTH, WIN_HEIGHT, WIN_NAME);
+    GLFWwindow *windowPtr = window.getGLFWwindowPtr();
+    vkContext.window = windowPtr;
 
         // Creates an instance manager and initializes instance-related objects
     VkInstanceManager instanceManager(vkContext);
