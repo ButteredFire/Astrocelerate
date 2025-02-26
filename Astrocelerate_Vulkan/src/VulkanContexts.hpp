@@ -5,6 +5,8 @@ typedef struct VulkanContext {
     GLFWwindow *window;
     VkInstance vulkanInstance;
     std::vector<const char*> enabledValidationLayers;
+    
     VkPhysicalDevice physicalDevice;
     VkDevice logicalDevice;
+    VkSurfaceKHR vkSurface;
 } VulkanContext;

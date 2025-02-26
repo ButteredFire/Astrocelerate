@@ -58,7 +58,7 @@ public:
 
 
 	inline VkInstance getInstance() { 
-		if (vulkInst == nullptr) {
+		if (vulkInst == VK_NULL_HANDLE) {
 			throw std::runtime_error("Cannot get Vulkan instance: Vulkan has not been initialized!");
 		}
 		return vulkInst;
@@ -84,9 +84,8 @@ private:
 
 
 	/* Initializes Vulkan.
-	* @return A pointer to a Vulkan instance.
 	*/
-	VkInstance initVulkan();
+	void initVulkan();
 
 	/* Creates a Vulkan instance.
 	* @return a VkResult value indicating the instance creation status.
@@ -95,7 +94,7 @@ private:
 
 	/* Creates a Vulkan surface on which to display rendered images.
 	*/
-	void createSurface();
+	VkResult createSurface();
 
 	/* Verifies whether a given array of Vulkan extensions is available or supported.
 	* @param arrayOfExtensions: An array containing the names of Vulkan extensions to be evaluated for validity.

@@ -5,20 +5,23 @@
 #include "VkInstanceManager.hpp"
 
 VkInstanceManager::VkInstanceManager(VulkanContext &context):
-    vulkInst(nullptr), windowSurface(nullptr), vkContext(context) {}
+    vulkInst(VK_NULL_HANDLE), windowSurface(VK_NULL_HANDLE), vkContext(context) {}
 
 VkInstanceManager::~VkInstanceManager() {
+    vkDestroySurfaceKHR(vulkInst, windowSurface, nullptr);
+
+    // Destroy the instance last (because the destruction of other Vulkan objects depend on it)
     vkDestroyInstance(vulkInst, nullptr);
 }
 
 
 
 void VkInstanceManager::init() {
-    vkContext.vulkanInstance = initVulkan();
+    initVulkan();
 }
 
 
-VkInstance VkInstanceManager::initVulkan() {
+void VkInstanceManager::initVulkan() {
     // Sets up Vulkan extensions and validation layers
         // Caches supported extensions and layers
     supportedExtensions = getSupportedVulkanExtensions();
@@ -52,8 +55,14 @@ VkInstance VkInstanceManager::initVulkan() {
     if (initResult != VK_SUCCESS) {
         throw std::runtime_error("Failed to create Vulkan instance!");
     }
+    vkContext.vulkanInstance = vulkInst;
 
-    return vulkInst;
+    // Creates Vulkan surface
+    VkResult surfaceInitResult = createSurface();
+    if (surfaceInitResult != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create Vulkan window surface!");
+    }
+    vkContext.vkSurface = windowSurface;
 }
 
 
@@ -100,11 +109,14 @@ VkResult VkInstanceManager::createVulkanInstance() {
 }
 
 
-void VkInstanceManager::createSurface() {
-    VkWin32SurfaceCreateInfoKHR win32SurfaceInfo{};
-    win32SurfaceInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-    win32SurfaceInfo.hwnd = glfwGetWin32Window(vkContext.window);
-    win32SurfaceInfo.hinstance = GetModuleHandle(nullptr);
+VkResult VkInstanceManager::createSurface() {
+    /* Using glfwCreateWindowSurface to create a window surface is platform-agnostic.
+    * On the other hand, while the VkSurfaceKHR object is itself platform agnostic, its creation isn't
+    * because it depends on window system details (meaning that the creation structs vary across platforms,
+    * e.g., VkWin32SurfaceCreateInfoKHR for Windows).
+    */
+    VkResult result = glfwCreateWindowSurface(vulkInst, vkContext.window, nullptr, &windowSurface);
+    return result;
 }
 
 

@@ -16,6 +16,7 @@
 #include <string>
 #include <vector>
 #include <optional>
+#include <set>
 
 // Local
 #include "../LoggingManager.hpp"
@@ -25,8 +26,8 @@
 
 
 typedef struct PhysicalDeviceScoreProperties {
-	VkPhysicalDevice device;
-	std::string deviceName;
+	VkPhysicalDevice device = VK_NULL_HANDLE;
+	std::string deviceName = "";
 	bool isCompatible = true;
 	uint32_t optionalScore = 0;
 } PhysicalDeviceScoreProperties;
@@ -52,12 +53,14 @@ typedef struct QueueFamilyIndices {
 	// Structure for each family
 	typedef struct QueueFamily {
 		std::optional <uint32_t> index;
-		uint32_t FLAG;
-		VkQueue deviceQueue;
+		uint32_t FLAG = NULL;
+		VkQueue deviceQueue = VK_NULL_HANDLE;
+		bool supportsPresentation = false;
 	} QueueFamily;
 
 	// Family declarations
 	QueueFamily graphicsFamily;
+	QueueFamily presentationFamily; 
 
 	// Binds each family's flag to their corresponding Vulkan flag
 	bool initialized = false;

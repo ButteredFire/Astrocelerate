@@ -6,11 +6,15 @@
 
 
 VkDeviceManager::VkDeviceManager(VulkanContext &context):
-    GPUPhysicalDevice(nullptr), GPULogicalDevice(nullptr),
+    GPUPhysicalDevice(VK_NULL_HANDLE), GPULogicalDevice(VK_NULL_HANDLE),
     vulkInst(context.vulkanInstance), vkContext(context) {
 
-    if (vulkInst == nullptr) {
+    if (vulkInst == VK_NULL_HANDLE) {
         throw std::runtime_error("Cannot initialize device manager: Invalid Vulkan instance!");
+    }
+
+    if (vkContext.vkSurface == VK_NULL_HANDLE) {
+        throw std::runtime_error("Cannot initialize device manager: Invalid Vulkan window surface!");
     }
 }
 
@@ -154,8 +158,14 @@ std::vector<PhysicalDeviceScoreProperties> VkDeviceManager::rateGPUSuitability(s
             (deviceProperties.apiVersion > VK_API_VERSION_1_0) &&
 
             // If the GPU has a graphics queue family
-            (queueFamilyIndices.graphicsFamily.index.has_value())
-            );
+            (queueFamilyIndices.graphicsFamily.index.has_value()) &&
+
+            // If the GPU has either:
+            // 1. A dedicated presentation queue family
+            // 2. A graphics queue family that also supports presentation
+            (queueFamilyIndices.presentationFamily.index.has_value() ||
+            queueFamilyIndices.graphicsFamily.supportsPresentation)
+        );
 
         if (!meetsMinimumRequirements) {
             deviceRating.isCompatible = false;
@@ -225,11 +235,31 @@ QueueFamilyIndices VkDeviceManager::getQueueFamilies(VkPhysicalDevice& device) {
     vkGetPhysicalDeviceQueueFamilyProperties(device, &familyCount, queueFamilies.data());
 
     uint32_t index = 0;
-    for (const auto& family : queueFamilies) {
-        // If graphics queue family supports graphics operations
-        if (family.queueFlags & familyIndices.graphicsFamily.FLAG) {
+    for (uint32_t index = 0; index < familyCount; index++) {
+        const auto &family = queueFamilies[index];
+
+        // If current family is able to present rendered images to the window surface
+        VkBool32 supportsPresentations = false;
+        vkGetPhysicalDeviceSurfaceSupportKHR(device, index, vkContext.vkSurface, &supportsPresentations);
+        
+        // If current family supports graphics operations
+        bool supportsGraphics = ((family.queueFlags & familyIndices.graphicsFamily.FLAG) != 0);
+
+        if (supportsGraphics) {
             familyIndices.graphicsFamily.index = index;
+
+            // If graphics queue family also supports presentation
+            if (supportsPresentations) {
+                familyIndices.graphicsFamily.supportsPresentation = true;
+            }
         }
+
+        // If there exists a separate presentation family (that is separate from the graphics family)
+        if (!familyIndices.graphicsFamily.supportsPresentation && supportsPresentations) {
+            familyIndices.presentationFamily.index = index;
+        }
+
+
         index++;
     }
 
