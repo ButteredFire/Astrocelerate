@@ -49,6 +49,8 @@ inline bool ScoreComparator(const PhysicalDeviceScoreProperties& s1, const Physi
 * NOTE: Making indices uninitialized variables also doesn't work, because then they will still contain garbage values that
 * could theoretically be valid queue family indices.
 */
+
+// A structure that stores the properties of queue families.
 typedef struct QueueFamilyIndices {
 	// Structure for each family
 	typedef struct QueueFamily {
@@ -66,6 +68,35 @@ typedef struct QueueFamilyIndices {
 	bool initialized = false;
 	void init() {
 		graphicsFamily.FLAG = VK_QUEUE_GRAPHICS_BIT;
+	}
+
+	/* Checks whether a queue family exists (based on whether it has a valid index).
+	* @return True if the queue family exists, otherwise False.
+	*/
+	bool familyExists(QueueFamily family) {
+		return family.index.has_value();
+	}
+
+	/* Gets the list of all queue families in the QueueFamilyIndices struct.
+	* @return A vector that contains all queue families.
+	*/
+	std::vector<QueueFamily*> getAllQueueFamilies() {
+		return {
+			&graphicsFamily,
+			&presentationFamily
+		};
+	}
+
+	/* Gets the list of available queue families (based on whether each family has a valid index).
+	* @return A vector that contains available queue families.
+	*/
+	std::vector<QueueFamily*> getAvailableQueueFamilies() {
+		std::vector<QueueFamily*> available, allFamilies = getAllQueueFamilies();
+		for (auto& family : allFamilies)
+			if (family->index.has_value())
+				available.push_back(family);
+
+		return available;
 	}
 } QueueFamilyIndices;
 

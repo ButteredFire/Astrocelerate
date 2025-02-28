@@ -74,15 +74,32 @@ VkPhysicalDevice VkDeviceManager::createPhysicalDevice() {
 
 VkDevice VkDeviceManager::createLogicalDevice() {
     QueueFamilyIndices queueFamilies = getQueueFamilies(GPUPhysicalDevice);
-    // Specifies the queues to be created
-    VkDeviceQueueCreateInfo queueInfo{};
-    float queuePriority = 1.0f; // Queues must have a priority in [0.0; 1.0], which influences the scheduling of command buffer execution.
 
-    queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    queueInfo.queueFamilyIndex = queueFamilies.graphicsFamily.index.value();
-    queueInfo.queueCount = 1;
-    queueInfo.pQueuePriorities = &queuePriority;
+    if (!queueFamilies.graphicsFamily.index.has_value())
+        throw std::runtime_error("Unable to create logical device : Graphics queue family is non-existent!");
+    if (!queueFamilies.presentationFamily.index.has_value())
+        throw std::runtime_error("Unable to create logical device : Presentation queue family is non-existent!");
 
+    // Queues must have a priority in [0.0; 1.0], which influences the scheduling of command buffer execution.
+    float queuePriority = 1.0f; 
+
+    // Creates a set of all unique queue families that are necessary for the required queues
+    std::vector<VkDeviceQueueCreateInfo> queues;
+    std::set<uint32_t> uniqueQueueFamilies = {
+        queueFamilies.graphicsFamily.index.value(),
+        queueFamilies.presentationFamily.index.value()
+    };
+
+    for (auto& family : uniqueQueueFamilies) {
+        // Specifies the queues to be created
+        VkDeviceQueueCreateInfo queueInfo{};
+
+        queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queueInfo.queueFamilyIndex = family;
+        queueInfo.queueCount = 1;
+        queueInfo.pQueuePriorities = &queuePriority;
+        queues.push_back(queueInfo);
+    }
     // Specifies the features of the device to be used
     VkPhysicalDeviceFeatures deviceFeatures{}; // We don't need anything special, so we'll just init all to VK_FALSE for now.
 
@@ -90,8 +107,8 @@ VkDevice VkDeviceManager::createLogicalDevice() {
     VkDeviceCreateInfo deviceInfo{};
 
     deviceInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    deviceInfo.pQueueCreateInfos = &queueInfo;
-    deviceInfo.queueCreateInfoCount = queueInfo.queueCount;
+    deviceInfo.pQueueCreateInfos = queues.data();
+    deviceInfo.queueCreateInfoCount = static_cast<uint32_t>(queues.size());
     
     deviceInfo.pEnabledFeatures = &deviceFeatures;
 
@@ -125,6 +142,20 @@ VkDevice VkDeviceManager::createLogicalDevice() {
     VkResult result = vkCreateDevice(GPUPhysicalDevice, &deviceInfo, nullptr, &GPULogicalDevice);
     if (result != VK_SUCCESS) {
         throw std::runtime_error("Unable to create GPU logical device!");
+    }
+
+    // Populates each (available) family's device queue
+    std::vector<QueueFamilyIndices::QueueFamily*> availableFamilies = queueFamilies.getAvailableQueueFamilies();
+    for (uint32_t queueIndex = 0; queueIndex < deviceInfo.queueCreateInfoCount; queueIndex++) {
+        // Remember to use `auto&` and not `auto` to prevent modifying a copy instead of the original
+        auto& family = *availableFamilies[queueIndex];
+        vkGetDeviceQueue(GPULogicalDevice, family.index.value(), queueIndex, &family.deviceQueue);
+    }
+
+        // If graphics queue family supports presentation operations (i.e., the presentation queue is not separate),
+        // then set the presentation family's VkQueue to be the same as the graphics family's.
+    if (queueFamilies.graphicsFamily.supportsPresentation) {
+        queueFamilies.presentationFamily.deviceQueue = queueFamilies.graphicsFamily.deviceQueue;
     }
 
     return GPULogicalDevice;
@@ -251,6 +282,7 @@ QueueFamilyIndices VkDeviceManager::getQueueFamilies(VkPhysicalDevice& device) {
             // If graphics queue family also supports presentation
             if (supportsPresentations) {
                 familyIndices.graphicsFamily.supportsPresentation = true;
+                familyIndices.presentationFamily.index = index;
             }
         }
 

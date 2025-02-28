@@ -55,7 +55,6 @@ namespace PhysicsConsts {
 namespace SimulationConsts {
 	constexpr int MAX_SIMULATION_STEPS = 10000;
 	constexpr double TIME_STEP = 0.01;  // seconds
-	constexpr int FPS_DEFAULT = 60;
 }
 
 #endif
