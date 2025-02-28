@@ -29,9 +29,6 @@ void VkDeviceManager::init() {
     vkContext.physicalDevice = createPhysicalDevice();
     vkContext.logicalDevice = createLogicalDevice();
 
-    // Binds queue families to their corresponding queue handles
-    QueueFamilyIndices queueFamilies = getQueueFamilies(GPUPhysicalDevice);
-    vkGetDeviceQueue(GPULogicalDevice, queueFamilies.graphicsFamily.index.value(), 0, &queueFamilies.graphicsFamily.deviceQueue);
 }
 
 
@@ -75,10 +72,11 @@ VkPhysicalDevice VkDeviceManager::createPhysicalDevice() {
 VkDevice VkDeviceManager::createLogicalDevice() {
     QueueFamilyIndices queueFamilies = getQueueFamilies(GPUPhysicalDevice);
 
-    if (!queueFamilies.graphicsFamily.index.has_value())
-        throw std::runtime_error("Unable to create logical device : Graphics queue family is non-existent!");
-    if (!queueFamilies.presentationFamily.index.has_value())
-        throw std::runtime_error("Unable to create logical device : Presentation queue family is non-existent!");
+    // Verifies that all queue families exist before proceeding with device creation
+    std::vector<QueueFamilyIndices::QueueFamily*> allFamilies = queueFamilies.getAllQueueFamilies();
+    for (const auto &family : allFamilies)
+        if (!queueFamilies.familyExists(*family))
+            throw std::runtime_error("Unable to create logical device: Queue family is non-existent!");
 
     // Queues must have a priority in [0.0; 1.0], which influences the scheduling of command buffer execution.
     float queuePriority = 1.0f; 
@@ -145,7 +143,7 @@ VkDevice VkDeviceManager::createLogicalDevice() {
     }
 
     // Populates each (available) family's device queue
-    std::vector<QueueFamilyIndices::QueueFamily*> availableFamilies = queueFamilies.getAvailableQueueFamilies();
+    std::vector<QueueFamilyIndices::QueueFamily*> availableFamilies = queueFamilies.getAvailableQueueFamilies(allFamilies);
     for (uint32_t queueIndex = 0; queueIndex < deviceInfo.queueCreateInfoCount; queueIndex++) {
         // Remember to use `auto&` and not `auto` to prevent modifying a copy instead of the original
         auto& family = *availableFamilies[queueIndex];

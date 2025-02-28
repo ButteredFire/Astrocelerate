@@ -50,7 +50,7 @@ inline bool ScoreComparator(const PhysicalDeviceScoreProperties& s1, const Physi
 * could theoretically be valid queue family indices.
 */
 
-// A structure that stores the properties of queue families.
+// A structure that manages GPU queue families.
 typedef struct QueueFamilyIndices {
 	// Structure for each family
 	typedef struct QueueFamily {
@@ -88,10 +88,14 @@ typedef struct QueueFamilyIndices {
 	}
 
 	/* Gets the list of available queue families (based on whether each family has a valid index).
+	* @param queueFamilies (optional): A vector of queue families to be filtered for available ones.
+	* If queueFamilies is not provided, the function will evaluate all queue families in the QueueFamilyIndices struct for availability.
 	* @return A vector that contains available queue families.
 	*/
-	std::vector<QueueFamily*> getAvailableQueueFamilies() {
-		std::vector<QueueFamily*> available, allFamilies = getAllQueueFamilies();
+	std::vector<QueueFamily*> getAvailableQueueFamilies(std::vector<QueueFamily*> queueFamilies = {}) {
+		std::vector<QueueFamily*> available;
+		const std::vector<QueueFamily*> allFamilies = ( (queueFamilies.size() == 0)? getAllQueueFamilies() : queueFamilies );
+
 		for (auto& family : allFamilies)
 			if (family->index.has_value())
 				available.push_back(family);
