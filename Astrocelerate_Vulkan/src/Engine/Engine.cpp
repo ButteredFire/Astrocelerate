@@ -33,5 +33,6 @@ void Engine::run() {
 void Engine::update() {
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
+        renderer.update();
     }
 }

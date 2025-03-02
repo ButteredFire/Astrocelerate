@@ -2,6 +2,11 @@
 Libraries
 Dependencies
 OpenGLProject
+Astrocelerate_Vulkan/*.sln
+Astrocelerate_Vulkan/*.vcxproj
+Astrocelerate_Vulkan/*.filters
+Astrocelerate_Vulkan/*.user
+Astrocelerate_Vulkan/CMakeSettings.json
 
 
 ## Ignore Visual Studio temporary files, build results, and
@@ -367,3 +372,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/Astrocelerate_Vulkan/Astrocelerate_Vulkan.sln
+/Astrocelerate_Vulkan/Astrocelerate_Vulkan.vcxproj
+/Astrocelerate_Vulkan/Astrocelerate_Vulkan.vcxproj.filters

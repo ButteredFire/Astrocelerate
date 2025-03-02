@@ -87,6 +87,10 @@ VkResult VkInstanceManager::createVulkanInstance() {
     // Configures global extensions 
     uint32_t glfwExtensionCount = 0;
     const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+    std::cout << "Enabled extensions: \n";
+    for (int i = 0; i < glfwExtensionCount; i++) {
+        std::cout << '\t' << glfwExtensions[i] << '\n';
+    }
     if (verifyVulkanExtensionValidity(glfwExtensions, glfwExtensionCount) == false) {
         throw std::runtime_error("GLFW Instance Extensions contain invalid or unsupported extensions!");
     }

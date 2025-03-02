@@ -25,6 +25,8 @@ Renderer::Renderer(VulkanContext &context):
     vkInitInfo.PhysicalDevice = vkContext.physicalDevice;
     vkInitInfo.Device = vkContext.logicalDevice;
     
+    std::cout << "Successful GUI setup.\n";
+    
     /*
     vkInitInfo.QueueFamily = YOUR_QUEUE_FAMILY;
     vkInitInfo.Queue = YOUR_QUEUE;
@@ -48,3 +50,7 @@ Renderer::Renderer(VulkanContext &context):
 Renderer::~Renderer() {
     
 };
+
+void Renderer::update() {
+    
+}

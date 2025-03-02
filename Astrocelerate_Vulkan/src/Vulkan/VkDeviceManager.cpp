@@ -177,7 +177,7 @@ std::vector<PhysicalDeviceScoreProperties> VkDeviceManager::rateGPUSuitability(s
 
         // Creates a list of indices of device-supported queue families for later checking
         QueueFamilyIndices queueFamilyIndices = getQueueFamilies(device);
-
+        
         // A "list" of minimum requirements; Variable will collapse to "true" if all are satisfied
         bool meetsMinimumRequirements = (
             // If the GPU supports geometry shaders

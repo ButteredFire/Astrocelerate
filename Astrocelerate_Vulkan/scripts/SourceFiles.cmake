@@ -1,0 +1,16 @@
+set(SOURCE_FILES
+    "external/imgui/imgui.cpp"
+    "external/imgui/imgui_demo.cpp"
+    "external/imgui/imgui_draw.cpp"
+    "external/imgui/imgui_tables.cpp"
+    "external/imgui/imgui_widgets.cpp"
+    "external/imgui/imgui_impl_vulkan.cpp"
+    "external/imgui/imgui_impl_glfw.cpp"
+    
+	"src/Application.cpp"
+	"src/AppWindow.cpp"
+	"src/Engine/Engine.cpp"
+	"src/Engine/Renderer.cpp"
+	"src/Vulkan/VkDeviceManager.cpp"
+	"src/Vulkan/VkInstanceManager.cpp"
+)

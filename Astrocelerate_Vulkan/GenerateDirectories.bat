@@ -1,0 +1,1 @@
+python "scripts/GenerateDirectories.py" "HeaderDirs.cmake" "SourceFiles.cmake" "src" "external"

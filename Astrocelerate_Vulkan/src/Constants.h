@@ -21,7 +21,7 @@ namespace APP {
 
 		// Version will be auto-injected via CMake
 	#ifndef APP_VERSION // If APP_VERSION is not defined, default it to "dev-build"
-		#define APP_VERSION "dev-build"
+		#define APP_VERSION "unknown"
 	#endif
 }
 
