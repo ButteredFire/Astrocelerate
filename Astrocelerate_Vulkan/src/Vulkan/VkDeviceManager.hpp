@@ -120,11 +120,13 @@ private:
 	VkPhysicalDevice GPUPhysicalDevice;
 	VkDevice GPULogicalDevice;
 
+	std::vector<const char*> requiredDeviceExtensions;
 	std::vector<PhysicalDeviceScoreProperties> GPUScores;
 
 	/* Configures a GPU Physical Device by binding it to an appropriate GPU that supports needed features.
 	*/
 	VkPhysicalDevice createPhysicalDevice();
+
 
 	/* Creates a GPU Logical Device to interface with the Physical Device.
 	*/
@@ -137,9 +139,19 @@ private:
 	*/
 	std::vector<PhysicalDeviceScoreProperties> rateGPUSuitability(std::vector<VkPhysicalDevice>& physicalDevices);
 
+
 	/* Queries all GPU-supported queue families.
 	* @param device: The GPU from which to query queue families.
 	* @return A QueueFamilyIndices struct, with each family assigned to their corresponding index.
 	*/
 	QueueFamilyIndices getQueueFamilies(VkPhysicalDevice& device);
+
+
+	/* Checks whether a GPU supports a list of extensions.
+	* @param device: The GPU to be evaluated for extension support.
+	* @param extensions: A vector containing extensions to be checked.
+	* 
+	* @return True if the GPU supports all extensions in the list of extensions, otherwise False.
+	*/
+	bool checkDeviceExtensionSupport(VkPhysicalDevice& device, std::vector<const char*>& extensions);
 };

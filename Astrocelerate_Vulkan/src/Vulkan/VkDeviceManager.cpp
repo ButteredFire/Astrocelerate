@@ -25,10 +25,15 @@ VkDeviceManager::~VkDeviceManager() {
 
 
 void VkDeviceManager::init() {
+    // Initializes required GPU extensions
+    requiredDeviceExtensions = {
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME
+    };
+
+
     // Creates a GPU device
     vkContext.physicalDevice = createPhysicalDevice();
     vkContext.logicalDevice = createLogicalDevice();
-
 }
 
 
@@ -126,7 +131,8 @@ VkDevice VkDeviceManager::createLogicalDevice() {
     */
 
     // Sets device-specific extensions
-    deviceInfo.enabledExtensionCount = 0; // We don't need any for now
+    deviceInfo.enabledExtensionCount = requiredDeviceExtensions.size();
+    deviceInfo.ppEnabledExtensionNames = requiredDeviceExtensions.data();
 
     // Sets device-specific validation layers
     if (enableValidationLayers) {
@@ -182,6 +188,9 @@ std::vector<PhysicalDeviceScoreProperties> VkDeviceManager::rateGPUSuitability(s
         bool meetsMinimumRequirements = (
             // If the GPU supports geometry shaders
             (deviceFeatures.geometryShader) &&
+
+            // If the GPU supports required device extensions
+            (checkDeviceExtensionSupport(device, requiredDeviceExtensions)) &&
 
             // If the GPU has an API version above 1.0
             (deviceProperties.apiVersion > VK_API_VERSION_1_0) &&
@@ -294,4 +303,32 @@ QueueFamilyIndices VkDeviceManager::getQueueFamilies(VkPhysicalDevice& device) {
     }
 
     return familyIndices;
+}
+
+
+bool VkDeviceManager::checkDeviceExtensionSupport(VkPhysicalDevice& device, std::vector<const char*>& extensions) {
+    uint32_t numOfExtensions = 0;
+    vkEnumerateDeviceExtensionProperties(device, nullptr, &numOfExtensions, nullptr);
+
+    std::vector<VkExtensionProperties> deviceExtensions(numOfExtensions);
+    vkEnumerateDeviceExtensionProperties(device, nullptr, &numOfExtensions, deviceExtensions.data());
+
+    // Searches device extensions to check for existence
+    bool allOK = true;
+    for (const auto& ext : extensions) {
+        bool found = false;
+
+        for (const auto& devExt : deviceExtensions)
+            if (strcmp(devExt.extensionName, ext) == 0) {
+                found = true;
+                break;
+            }
+
+        if (!found) {
+            allOK = false;
+            std::cerr << "Device extension " << enquoteCOUT(ext) << " is not supported!\n";
+        }
+    }
+
+    return allOK;
 }

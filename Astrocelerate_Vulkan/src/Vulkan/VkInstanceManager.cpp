@@ -37,13 +37,14 @@ void VkInstanceManager::initVulkan() {
         supportedLayerNames.insert(layer.layerName);
 
     /* Rationale behind reserving:
-    * The number of supported layers is constant. Therefore, we can reserve a fixed (maximum) block of memory for `enabledValidationLayers`
-    * with the size being the number of supported layers to prevent O(n) vector reallocations
+    * The number of supported extensions/layers is constant. Therefore, we can reserve a fixed (maximum) block of memory
+    * for enabled extensions/layers vectors to prevent O(n) vector reallocations.
     */
+    enabledExtensions.reserve(supportedExtensions.size());
     enabledValidationLayers.reserve(supportedLayers.size());
 
     // Sets validation layers to be bound to a Vulkan instance
-    setVulkanValidationLayers({
+    addVulkanValidationLayers({
         "VK_LAYER_KHRONOS_validation",
         "VK_LAYER_LUNARG_crash_diagnostic",
         "VK_LAYER_LUNARG_screenshot"
@@ -87,15 +88,18 @@ VkResult VkInstanceManager::createVulkanInstance() {
     // Configures global extensions 
     uint32_t glfwExtensionCount = 0;
     const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-    std::cout << "Enabled extensions: \n";
-    for (int i = 0; i < glfwExtensionCount; i++) {
-        std::cout << '\t' << glfwExtensions[i] << '\n';
-    }
-    if (verifyVulkanExtensionValidity(glfwExtensions, glfwExtensionCount) == false) {
+
+        // Copies GLFW extensions into enabledExtensions
+    for (uint32_t i = 0; i < glfwExtensionCount; i++)
+        enabledExtensions.push_back(glfwExtensions[i]);
+
+    if (verifyVulkanExtensions(enabledExtensions) == false) {
+        enabledExtensions.clear();
         throw std::runtime_error("GLFW Instance Extensions contain invalid or unsupported extensions!");
     }
+
     instanceInfo.enabledExtensionCount = glfwExtensionCount;
-    instanceInfo.ppEnabledExtensionNames = glfwExtensions;
+    instanceInfo.ppEnabledExtensionNames = enabledExtensions.data();
 
     // Configures global validation layers
     if (enableValidationLayers) {
@@ -124,12 +128,12 @@ VkResult VkInstanceManager::createSurface() {
 }
 
 
-bool VkInstanceManager::verifyVulkanExtensionValidity(const char** arrayOfExtensions, uint32_t& arraySize) {
+bool VkInstanceManager::verifyVulkanExtensions(std::vector<const char*> extensions) {
     bool allOK = true;
-    for (uint32_t i = 0; i < arraySize; i++) {
-        if (supportedExtensionNames.count(arrayOfExtensions[i]) == 0) {
+    for (const auto& ext : extensions) {
+        if (supportedExtensionNames.count(ext) == 0) {
             allOK = false;
-            std::cerr << "Vulkan extension " << enquoteCOUT(arrayOfExtensions[i]) << " is either invalid or unsupported!\n";
+            std::cerr << "Vulkan extension " << enquoteCOUT(ext) << " is either invalid or unsupported!\n";
         }
 
     }
@@ -173,7 +177,21 @@ std::vector<VkLayerProperties> VkInstanceManager::getSupportedVulkanValidationLa
 }
 
 
-void VkInstanceManager::setVulkanValidationLayers(std::vector<const char*> layers) {
+void VkInstanceManager::addVulkanExtensions(std::vector<const char*> extensions) {
+    if (verifyVulkanExtensions(extensions) == false) {
+        throw std::runtime_error("Cannot set Vulkan extensions: Provided extensions are either invalid or unsupported!");
+    }
+
+    for (const auto& ext : extensions) {
+        if (UTIL_enabledExtensionSet.count(ext) == 0) {
+            enabledExtensions.push_back(ext);
+            UTIL_enabledExtensionSet.insert(ext);
+        }
+    }
+}
+
+
+void VkInstanceManager::addVulkanValidationLayers(std::vector<const char*> layers) {
     if (enableValidationLayers && verifyVulkanValidationLayers(layers) == false) {
         throw std::runtime_error("Cannot set Vulkan validation layers: Provided layers are either invalid or unsupported!");
     }

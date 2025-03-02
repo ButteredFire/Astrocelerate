@@ -58,18 +58,26 @@ public:
 	};
 
 
-	/* Sets Vulkan validation layers.
+	/* Adds Vulkan extensions to the current list of enabled extensions.
+	* @param extensions: A vector containing Vulkan extension names to be bound to the current list of enabled extensions.
+	*/
+	void addVulkanExtensions(std::vector<const char*> extensions);
+
+
+	/* Adds Vulkan validation layers to the current list of enabled validation layers.
 	* @param layers: A vector containing Vulkan validation layer names to be bound to the current list of enabled validation layers.
 	*/
-	void setVulkanValidationLayers(std::vector<const char*> layers);
+	void addVulkanValidationLayers(std::vector<const char*> layers);
 
 private:
 	VkInstance vulkInst;
 	VulkanContext& vkContext;
 	VkSurfaceKHR windowSurface;
 
+	std::vector<const char*> enabledExtensions;
 	std::vector<const char*> enabledValidationLayers;
-	std::unordered_set<const char*> UTIL_enabledValidationLayerSet; // Purpose: Prevents copying duplicate layers into `enabledValidationLayers`
+	std::unordered_set<const char*> UTIL_enabledExtensionSet; // Purpose: Prevents copying extensions
+	std::unordered_set<const char*> UTIL_enabledValidationLayerSet; // Purpose: Prevents copying duplicate layers
 	std::vector<VkLayerProperties> supportedLayers;
 	std::vector<VkExtensionProperties> supportedExtensions;
 	std::unordered_set<std::string> supportedLayerNames;
@@ -90,12 +98,11 @@ private:
 	VkResult createSurface();
 
 	/* Verifies whether a given array of Vulkan extensions is available or supported.
-	* @param arrayOfExtensions: An array containing the names of Vulkan extensions to be evaluated for validity.
-	* @param arraySize: The size of the array.
+	* @param extensions: A vector containing the names of Vulkan extensions to be evaluated for validity.
 	*
 	* @return True if all specified Vulkan extensions are supported, otherwise False.
 	*/
-	bool verifyVulkanExtensionValidity(const char** arrayOfExtensions, uint32_t& arraySize);
+	bool verifyVulkanExtensions(std::vector<const char*> extensions);
 
 
 	/* Verifies whether a given vector of Vulkan validation layers is available or supported.
