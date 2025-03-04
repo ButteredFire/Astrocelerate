@@ -1,52 +1,43 @@
+"""
+This Python script generates paths to headers and source files to be compiled in CMake.
+"""
+
+
 import os
 import sys
 from pathlib import Path
 
-def retrieveFileDirectories(startPath, relStartPath, cmakeHeaderDir, cmakeSourceDir, targetDirs):
-    def parseNewFile(s):
+
+# Name of the script (used for loggging)
+fileName = __file__.replace(str(Path(__file__).parent.parent), "").replace("\\", "/")[1:]
+
+def retrieveFileDirectories(startPath, pyFilePath, targetDirs):
+    def parseNewFile(s) -> str:
+        # Parses a path/file to be written into CMake files.
         return "\n\t" + ('"' + s + '"')
     
-    def pathJoin(a, b, nl=False):
-        string = '"' + (a + "/" + b).replace("\\", "/") + '"'
-        if nl:
-            string = "\n\t" + string
-        return string
+    def pathJoin(a, b, nl=False) -> str:
+        # Creates a CMake-compatible path from two sub-paths.
+        return parseNewFile(os.path.join(a, b).replace("\\", "/"))
 
 
+    # Replaces backslash chars in the start path with forward-slash chars
     startPath = str(startPath).replace("\\", "/") + "/"
-    #print(f"start path: {startPath}")
-    headerDirs = open(cmakeHeaderDir, "w")
-    sourceFiles = open(cmakeSourceDir, "w")
 
-    imguiRoot = "external/imgui"
-    #imguiBackends = "external/imgui/backends"
+    # Opens/Creates CMake files
+    headerDirs = open(os.path.join(pyFilePath, "HeaderDirs.cmake"), "w")
+    sourceFiles = open(os.path.join(pyFilePath, "SourceFiles.cmake"), "w")
+    headerFiles = open(os.path.join(pyFilePath, "HeaderFiles.cmake"), "w")
 
-    # Fill up with Dear Imgui files in ./external/imgui
+    # Initializes content to be written into CMake files
     headerDirsContent = f"""set(HEADER_DIRS"""
-    headerDirsContent += parseNewFile(imguiRoot)
     for tgDir in targetDirs:
         headerDirsContent += parseNewFile(tgDir)
 
-    # {pathJoin(imguiRoot, "imconfig.h")}
-    # {pathJoin(imguiRoot, "imgui.h")}
-    # {pathJoin(imguiRoot, "imgui_internal.h")}
-    # {pathJoin(imguiRoot, "imstb_rectpack.h")}
-    # {pathJoin(imguiRoot, "imstb_textedit.h")}
-    # {pathJoin(imguiRoot, "imstb_truetype.h")}
-    # {pathJoin(imguiRoot, "imgui_impl_vulkan.h")}
-    # {pathJoin(imguiRoot, "imgui_impl_glfw.h")}
+    sourceFilesContent = f"""set(SOURCE_FILES"""
+    headerFilesContent = f"""set(HEADER_FILES"""
 
-    sourceFilesContent = f"""set(SOURCE_FILES
-    {pathJoin(imguiRoot, "imgui.cpp")}
-    {pathJoin(imguiRoot, "imgui_demo.cpp")}
-    {pathJoin(imguiRoot, "imgui_draw.cpp")}
-    {pathJoin(imguiRoot, "imgui_tables.cpp")}
-    {pathJoin(imguiRoot, "imgui_widgets.cpp")}
-    {pathJoin(imguiRoot, "imgui_impl_vulkan.cpp")}
-    {pathJoin(imguiRoot, "imgui_impl_glfw.cpp")}
-    """
-
-
+    # File extensions that are allowed to be written into CMake files
     permissibleSourceExts = ["c", "cpp"]
     permissibleHeaderExts = ["h", "hpp"]
 
@@ -55,24 +46,27 @@ def retrieveFileDirectories(startPath, relStartPath, cmakeHeaderDir, cmakeSource
         targetDirsFullPath.append(os.path.join(startPath, dir))
     
 
+    noOfSourceFiles = noOfHeaderFiles = 0
+    # Traverses each targeted directory from the start path (project root)
     for root, dirs, files in os.walk(startPath):
         for target in targetDirsFullPath:
             if root.startswith(target):
+                # Truncates the start path from the current root to that it becomes a relative path to the project root
                 root = root.replace(startPath, "").replace("\\", "/")
-                # Special case: Dear Imgui files in ./external/imgui
-                if root.startswith(imguiRoot):
-                    #print("why no activate")
-                    continue
+                for file in files:
+                    ext = file.split(".")[-1]
+                    if ext in permissibleSourceExts:
+                        sourceFilesContent += pathJoin(root, file, True)
+                        noOfSourceFiles += 1
 
-                else:
-                    #print(root)
-                    for file in files:
-                        ext = file.split(".")[-1]
-                        if ext in permissibleSourceExts:
-                            sourceFilesContent += pathJoin(root, file, True)
+                    elif ext in permissibleHeaderExts:
+                        headerFilesContent += pathJoin(root, file, True)
+                        noOfHeaderFiles += 1
 
 
+    print(f"[{fileName}] Discovered {noOfSourceFiles} source files and {noOfHeaderFiles} header files. Writing to CMake files...")
 
+    # Close CMake files
     headerDirsContent += "\n)"
     headerDirs.write(headerDirsContent)
     headerDirs.close()
@@ -81,17 +75,25 @@ def retrieveFileDirectories(startPath, relStartPath, cmakeHeaderDir, cmakeSource
     sourceFiles.write(sourceFilesContent)
     sourceFiles.close()
 
+    headerFilesContent += "\n)"
+    headerFiles.write(headerFilesContent)
+    headerFiles.close()
+
 
 def main():
-    # python [FILE] [headerDirs.cmake] [SourceFiles.cmake] [TARGET_SOURCE_AND_HEADER_ROOT_DIRS...]
+    # python [FILE] [TARGET_SOURCE_AND_HEADER_ROOT_DIRS...]
     startDir = "scripts"
-    rootDir = ""
     rootAbsDir = Path(__file__).parent.parent
-    cmakeHeaderDir = os.path.join(startDir, sys.argv[1])
-    cmakeSourceDir = os.path.join(startDir, sys.argv[2])
-    targetDirs = sys.argv[3:]
+    targetDirs = sys.argv[1:]
 
-    retrieveFileDirectories(rootAbsDir, rootDir, cmakeHeaderDir, cmakeSourceDir, targetDirs)
+    # If no target directories are passed in
+    if not targetDirs:
+        print(f"[{fileName}] Error: No target directories provided. Exiting...")
+        sys.exit(1)
+
+    retrieveFileDirectories(rootAbsDir, startDir, targetDirs)
+    sys.exit(0)
+
 
 if __name__ == "__main__":
     main()

@@ -1,6 +1,6 @@
 echo off
 cls
-python "scripts/GenerateDirectories.py" "HeaderDirs.cmake" "SourceFiles.cmake" "src" "external"
+python "scripts/GenerateDirectories.py" "src" "external"
 
 mkdir build
 cd build

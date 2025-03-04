@@ -1,1 +1,3 @@
-python "scripts/GenerateDirectories.py" "HeaderDirs.cmake" "SourceFiles.cmake" "src" "external"
+echo off
+cls
+python "scripts/GenerateDirectories.py" "src" "external"
