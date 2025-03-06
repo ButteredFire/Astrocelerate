@@ -24,7 +24,7 @@ The short term vision of Astrocelerate is to create a Minimum-Viable Product (MV
 # Installation
 > [!WARNING]
 > Astrocelerate has only been tested on Windows, although the application aims to be cross-platform-compatible.
-## Generating executable files
+## Generating executable file
 - Step 1: Run `SetupRelease.bat`. When the script finishes, the `build` folder will be generated.
 - Step 2: Run the executable file in `build/Release`.
 

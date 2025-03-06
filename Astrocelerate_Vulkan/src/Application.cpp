@@ -15,7 +15,6 @@ const int WIN_WIDTH = WindowConsts::DEFAULT_WINDOW_WIDTH;
 const int WIN_HEIGHT = WindowConsts::DEFAULT_WINDOW_HEIGHT;
 const std::string WIN_NAME = APP::APP_NAME;
 
-
 int main() {
     std::cout << "Project " << APP::APP_NAME << ", version " << APP_VERSION << '\n';
 

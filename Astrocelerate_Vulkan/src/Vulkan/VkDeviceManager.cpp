@@ -34,6 +34,9 @@ void VkDeviceManager::init() {
     // Creates a GPU device
     vkContext.physicalDevice = createPhysicalDevice();
     vkContext.logicalDevice = createLogicalDevice();
+
+    // Creates swap-chain
+    createSwapChain();
 }
 
 
@@ -62,7 +65,12 @@ VkPhysicalDevice VkDeviceManager::createPhysicalDevice() {
     for (auto& score : GPUScores)
         std::cout << "\t(GPU: " << enquoteCOUT(score.deviceName) << "; Compatible: " << std::boolalpha << score.isCompatible << "; Optional Score: " << score.optionalScore << ")\n";
 
+
     std::cout << "\nMost suitable GPU: (GPU: " << enquoteCOUT(bestDevice.deviceName) << "; Compatible: " << std::boolalpha << isDeviceCompatible << "; Optional Score: " << physicalDeviceScore << ")\n";
+    if (inDebugMode) {
+        std::cout << "NOTE: Should GPU selection be incorrect, please edit the source code to override the chosen GPU.\n";
+        std::cout << "NOTE: Specifically, set `physicalDevice` in `VkDeviceManager::createPhysicalDevice` to a GPU in the vector `GPUScores`.\n";
+    }
 
     if (physicalDevice == nullptr || !isDeviceCompatible) {
         throw std::runtime_error("Failed to find a GPU that supports Astrocelerate's features!");
@@ -135,7 +143,7 @@ VkDevice VkDeviceManager::createLogicalDevice() {
     deviceInfo.ppEnabledExtensionNames = requiredDeviceExtensions.data();
 
     // Sets device-specific validation layers
-    if (enableValidationLayers) {
+    if (inDebugMode) {
         deviceInfo.enabledLayerCount = static_cast<uint32_t> (vkContext.enabledValidationLayers.size());
         deviceInfo.ppEnabledLayerNames = vkContext.enabledValidationLayers.data();
     }
@@ -166,6 +174,16 @@ VkDevice VkDeviceManager::createLogicalDevice() {
 }
 
 
+void VkDeviceManager::createSwapChain() {
+    SwapChainProperties swapChain = getSwapChainProperties(GPUPhysicalDevice);
+
+    VkExtent2D extent = getBestSwapExtent(swapChain.surfaceCapabilities);
+    VkSurfaceFormatKHR surfaceFormat = getBestSurfaceFormat(swapChain.surfaceFormats);
+    VkPresentModeKHR presentMode = getBestPresentMode(swapChain.presentModes);
+}
+
+
+
 std::vector<PhysicalDeviceScoreProperties> VkDeviceManager::rateGPUSuitability(std::vector<VkPhysicalDevice>& physicalDevices) {
     std::vector<PhysicalDeviceScoreProperties> GPUScores;
     // Grades each device
@@ -183,6 +201,9 @@ std::vector<PhysicalDeviceScoreProperties> VkDeviceManager::rateGPUSuitability(s
 
         // Creates a list of indices of device-supported queue families for later checking
         QueueFamilyIndices queueFamilyIndices = getQueueFamilies(device);
+
+        // Creates the GPU's swap-chain properties
+        SwapChainProperties swapChain = getSwapChainProperties(device);
         
         // A "list" of minimum requirements; Variable will collapse to "true" if all are satisfied
         bool meetsMinimumRequirements = (
@@ -199,10 +220,17 @@ std::vector<PhysicalDeviceScoreProperties> VkDeviceManager::rateGPUSuitability(s
             (queueFamilyIndices.graphicsFamily.index.has_value()) &&
 
             // If the GPU has either:
-            // 1. A dedicated presentation queue family
+            // 1. A dedicated presentation queue family, OR
             // 2. A graphics queue family that also supports presentation
             (queueFamilyIndices.presentationFamily.index.has_value() ||
-            queueFamilyIndices.graphicsFamily.supportsPresentation)
+            queueFamilyIndices.graphicsFamily.supportsPresentation) &&
+
+            // If the GPU's swap-chain:
+            // 1. is compatible with the window surface, AND
+            // 2. supports presentation modes
+            // NOTE: This check must be put before the device extension check
+            // (to ensure that the swap-chain actually exists before checking)
+            (!swapChain.surfaceFormats.empty() && !swapChain.presentModes.empty())
         );
 
         if (!meetsMinimumRequirements) {
@@ -303,6 +331,89 @@ QueueFamilyIndices VkDeviceManager::getQueueFamilies(VkPhysicalDevice& device) {
     }
 
     return familyIndices;
+}
+
+
+SwapChainProperties VkDeviceManager::getSwapChainProperties(VkPhysicalDevice& device) {
+    SwapChainProperties swapChain;
+
+    // Queries swap-chain properties
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, vkContext.vkSurface, &swapChain.surfaceCapabilities);
+
+    // Queries surface formats
+    uint32_t numOfSurfaceFormats = 0;
+    vkGetPhysicalDeviceSurfaceFormatsKHR(device, vkContext.vkSurface, &numOfSurfaceFormats, nullptr);
+
+    swapChain.surfaceFormats.resize(numOfSurfaceFormats);
+    vkGetPhysicalDeviceSurfaceFormatsKHR(device, vkContext.vkSurface, &numOfSurfaceFormats, swapChain.surfaceFormats.data());
+
+    // Queries surface present modes
+    uint32_t numOfPresentModes = 0;
+    vkGetPhysicalDeviceSurfacePresentModesKHR(device, vkContext.vkSurface, &numOfPresentModes, nullptr);
+
+    swapChain.presentModes.resize(numOfPresentModes);
+    vkGetPhysicalDeviceSurfacePresentModesKHR(device, vkContext.vkSurface, &numOfPresentModes, swapChain.presentModes.data());
+
+
+    if (swapChain.surfaceFormats.empty()) {
+        std::cerr << "Warning: GPU does not support any surface formats for the given window surface!" << '\n';
+    }
+    if (swapChain.presentModes.empty()) {
+        std::cerr << "Warning: GPU does not support any presentation modes for the given window surface!" << '\n';
+    }
+
+    return swapChain;
+}
+
+
+VkSurfaceFormatKHR VkDeviceManager::getBestSurfaceFormat(std::vector<VkSurfaceFormatKHR>& formats) {
+    if (formats.empty()) {
+        throw std::runtime_error("Unable to get surface formats from an empty vector!");
+    }
+    
+    for (const auto& format : formats) {
+        if (format.format == VK_FORMAT_R8G8B8A8_SRGB && format.colorSpace == VK_COLORSPACE_SRGB_NONLINEAR_KHR)
+            return format;
+    }
+    
+    return formats[0];
+}
+
+
+VkPresentModeKHR VkDeviceManager::getBestPresentMode(std::vector<VkPresentModeKHR>& modes) {
+    for (const auto& mode : modes) {
+        // MAILBOX_KHR: Triple buffering => Best for performance and smoothness, but requires more GPU memory
+        if (mode == VK_PRESENT_MODE_MAILBOX_KHR)
+            return mode;
+    }
+    // FIFO_KHR (fallback): V-Sync => No screen tearing and predictable frame pacing, but introduces input lag
+    return VK_PRESENT_MODE_FIFO_KHR;
+}
+
+
+VkExtent2D VkDeviceManager::getBestSwapExtent(VkSurfaceCapabilitiesKHR& capabilities) {
+    // If the current extent is not equal to UINT32_MAX (a special value), Vulkan is forcing a specific resolution.
+    // In other words, the resolution of the swap-chain images is equal to the resolution of the window that we're drawing to (in pixels).
+    // Therefore, we must use the current extent as it is.
+    if (capabilities.currentExtent.width != UINT32_MAX) {
+        return capabilities.currentExtent;
+    }
+
+    // Else, it means we can create possible resolutions within the [minImageExtent, maxImageExtent] range.
+    // In this case, the best swap extent is the one whose resolution best matches the window.
+    int width, height;
+    glfwGetFramebufferSize(vkContext.window, &width, &height); // Gets the window resolution in pixels
+
+    // Creates the best swap extent and populate it with the current window resolution
+    VkExtent2D bestExtent{};
+    bestExtent.width = static_cast<uint32_t>(width);
+    bestExtent.height = static_cast<uint32_t>(height);
+
+    // Clamps the width and height within the accepted bounds
+    bestExtent.width = std::clamp(bestExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+    bestExtent.height = std::clamp(bestExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+
+    return bestExtent;
 }
 
 

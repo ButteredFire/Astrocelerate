@@ -38,6 +38,7 @@ include(FetchContent)
     # Add generated file lists
     include("scripts/HeaderDirs.cmake")
     include("scripts/SourceFiles.cmake")
+    include("scripts/HeaderFiles.cmake")
 
 
 # Find packages

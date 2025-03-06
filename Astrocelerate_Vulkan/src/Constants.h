@@ -6,11 +6,11 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 
-// If program is not run in DEBUG mode, disable validation layers. Else, enable them.
+// Initialize inDebugMode
 #ifdef NDEBUG
-	const bool enableValidationLayers = false;
+	const bool inDebugMode = false;
 #else
-	const bool enableValidationLayers = true;
+	const bool inDebugMode = true;
 #endif
 
 
@@ -20,8 +20,8 @@ namespace APP {
 	constexpr char ENGINE_NAME[] = "astrocelerate";
 
 		// Version will be auto-injected via CMake
-	#ifndef APP_VERSION // If APP_VERSION is not defined, default it to "dev-build"
-		#define APP_VERSION "unknown"
+	#ifndef APP_VERSION // If APP_VERSION is not defined, default it to "default-dev-build"
+		#define APP_VERSION "default-dev-build"
 	#endif
 }
 

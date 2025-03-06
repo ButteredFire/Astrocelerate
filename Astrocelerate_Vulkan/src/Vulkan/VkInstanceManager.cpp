@@ -102,7 +102,7 @@ VkResult VkInstanceManager::createVulkanInstance() {
     instanceInfo.ppEnabledExtensionNames = enabledExtensions.data();
 
     // Configures global validation layers
-    if (enableValidationLayers) {
+    if (inDebugMode) {
         instanceInfo.enabledLayerCount = static_cast<uint32_t>(enabledValidationLayers.size());
         instanceInfo.ppEnabledLayerNames = enabledValidationLayers.data();
     }
@@ -192,7 +192,7 @@ void VkInstanceManager::addVulkanExtensions(std::vector<const char*> extensions)
 
 
 void VkInstanceManager::addVulkanValidationLayers(std::vector<const char*> layers) {
-    if (enableValidationLayers && verifyVulkanValidationLayers(layers) == false) {
+    if (inDebugMode && verifyVulkanValidationLayers(layers) == false) {
         throw std::runtime_error("Cannot set Vulkan validation layers: Provided layers are either invalid or unsupported!");
     }
 

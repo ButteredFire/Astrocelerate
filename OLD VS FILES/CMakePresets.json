@@ -1,0 +1,26 @@
+{
+    "version": 3,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 19,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "vs2022-debug",
+            "displayName": "Visual Studio 2022 - Debug",
+            "description": "Use Visual Studio 2022 as the generator in Debug mode",
+            "generator": "Visual Studio 17 2022",
+            "binaryDir": "${sourceDir}/out/build/${presetName}",
+            "installDir": "${sourceDir}/out/install/${presetName}"
+        },
+        {
+            "name": "vs2022-release",
+            "displayName": "Visual Studio 2022 - Release",
+            "description": "Use Visual Studio 2022 as the generator in Release mode",
+            "generator": "Visual Studio 17 2022",
+            "binaryDir": "${sourceDir}/out/build/${presetName}",
+            "installDir": "${sourceDir}/out/install/${presetName}"
+        }
+    ]
+}
