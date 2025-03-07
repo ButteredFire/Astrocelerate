@@ -30,10 +30,10 @@
 #include <imgui/imgui_impl_vulkan.h>
 
 // Local
-#include "../Vulkan/VkInstanceManager.hpp"
-#include "../Vulkan/VkDeviceManager.hpp"
-#include "../Constants.h"
-#include "../LoggingManager.hpp"
+#include <Vulkan/VkInstanceManager.hpp>
+#include <Vulkan/VkDeviceManager.hpp>
+#include <Constants.h>
+#include <LoggingManager.hpp>
 
 
 

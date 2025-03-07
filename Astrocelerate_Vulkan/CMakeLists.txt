@@ -63,7 +63,7 @@ find_package(Vulkan REQUIRED)    # Vulkan SDK
 
 # Organize libraries into variables
 set(PKG_LIBS
-    Vulkan::Vulkan
+    Vulkan::Vulkan Boxer
 )
 
 set(FETCHCONTENT_LIBS
@@ -73,6 +73,10 @@ set(FETCHCONTENT_LIBS
 
 # Make libraries available
 FetchContent_MakeAvailable(${FETCHCONTENT_LIBS})
+
+
+# Add subdirectories
+add_subdirectory("external/boxer")
 
 
 # Add source files to the project's executable

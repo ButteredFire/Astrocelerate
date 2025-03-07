@@ -5,6 +5,7 @@ This Python script generates paths to headers and source files to be compiled in
 
 import os
 import sys
+import platform
 from pathlib import Path
 
 
@@ -12,13 +13,28 @@ from pathlib import Path
 fileName = __file__.replace(str(Path(__file__).parent.parent), "").replace("\\", "/")[1:]
 
 def retrieveFileDirectories(startPath, pyFilePath, targetDirs):
+    def enquote(s) -> str:
+        # Enquotes a string.
+        return '"' + s + '"'
+    
     def parseNewFile(s) -> str:
         # Parses a path/file to be written into CMake files.
-        return "\n\t" + ('"' + s + '"')
+        return "\n\t" + enquote(s)
     
     def pathJoin(a, b, nl=False) -> str:
         # Creates a CMake-compatible path from two sub-paths.
         return parseNewFile(os.path.join(a, b).replace("\\", "/"))
+    
+    def isOSIncompatible(file) -> bool:
+        # Determines whether a file is not compatible with the operating system (based on its name)
+        incompat = ("linux" in file and platform.system() != "Linux") or \
+                ("mac" in file and platform.system() != "Darwin") or \
+                ("win" in file and platform.system() != "Windows")
+        
+        if incompat:
+            print(f"[{fileName}] WARNING: {enquote(file)} is being skipped because it seems to be OS-incompatible.")
+
+        return incompat
 
 
     # Replaces backslash chars in the start path with forward-slash chars
@@ -55,6 +71,11 @@ def retrieveFileDirectories(startPath, pyFilePath, targetDirs):
                 root = root.replace(startPath, "").replace("\\", "/")
                 for file in files:
                     ext = file.split(".")[-1]
+
+                    # Skip platform-specific files based on OS
+                    if isOSIncompatible(file):
+                        continue
+                    
                     if ext in permissibleSourceExts:
                         sourceFilesContent += pathJoin(root, file, True)
                         noOfSourceFiles += 1

@@ -1,4 +1,5 @@
 set(SOURCE_FILES
+	"external/boxer/src/boxer_win.cpp"
 	"external/imgui/imgui.cpp"
 	"external/imgui/imgui_demo.cpp"
 	"external/imgui/imgui_draw.cpp"

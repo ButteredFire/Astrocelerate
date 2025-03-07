@@ -1,4 +1,5 @@
 set(HEADER_FILES
+	"external/boxer/include/boxer/boxer.h"
 	"external/imgui/imconfig.h"
 	"external/imgui/imgui.h"
 	"external/imgui/imgui_impl_glfw.h"

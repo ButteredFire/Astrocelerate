@@ -17,10 +17,10 @@
 #include <vector>
 
 // Local
-#include "VkInstanceManager.hpp"
-#include "../LoggingManager.hpp"
-#include "../Constants.h"
-#include "../VulkanContexts.hpp"
+#include <Vulkan/VkInstanceManager.hpp>
+#include <LoggingManager.hpp>
+#include <Constants.h>
+#include <VulkanContexts.hpp>
 
 
 // A structure that manages properties of a swap chain.

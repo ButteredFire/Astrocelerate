@@ -20,10 +20,10 @@
 #include <set>
 
 // Local
-#include "VkSwapchainManager.hpp"
-#include "../LoggingManager.hpp"
-#include "../Constants.h"
-#include "../VulkanContexts.hpp"
+#include <Vulkan/VkSwapchainManager.hpp>
+#include <LoggingManager.hpp>
+#include <Constants.h>
+#include <VulkanContexts.hpp>
 
 
 
@@ -145,8 +145,6 @@ private:
 
 	VkPhysicalDevice GPUPhysicalDevice;
 	VkDevice GPULogicalDevice;
-
-	VkSwapchainKHR swapChain;
 
 	std::vector<const char*> requiredDeviceExtensions;
 	std::vector<PhysicalDeviceScoreProperties> GPUScores;
