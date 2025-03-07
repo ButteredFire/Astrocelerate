@@ -103,12 +103,28 @@ typedef struct QueueFamilyIndices {
 
 		return available;
 	}
+
+	/* Gets the list of available family indices (based on whether each family has a valid index).
+	* @param queueFamilies (optional): A vector of queue families to be filtered for available ones.
+	* If queueFamilies is not provided, the function will evaluate all queue families in the QueueFamilyIndices struct for availability.
+	* @return A vector that contains the indices of available queue families.
+	*/
+	std::vector<uint32_t> getAvailableIndices(std::vector<QueueFamily*> queueFamilies = {}) {
+		std::vector<uint32_t> available;
+		const std::vector<QueueFamily*> allFamilies = ((queueFamilies.size() == 0) ? getAllQueueFamilies() : queueFamilies);
+
+		for (auto& family : allFamilies)
+			if (family->index.has_value())
+				available.push_back(family->index.value());
+
+		return available;
+	}
 } QueueFamilyIndices;
 
 
 // A structure that manages properties of a swap chain.
 typedef struct SwapChainProperties {
-	VkSurfaceCapabilitiesKHR surfaceCapabilities;
+	VkSurfaceCapabilitiesKHR surfaceCapabilities{};
 	std::vector<VkSurfaceFormatKHR> surfaceFormats;
 	std::vector<VkPresentModeKHR> presentModes;
 } SwapChainProperties;
@@ -130,19 +146,17 @@ private:
 	VkPhysicalDevice GPUPhysicalDevice;
 	VkDevice GPULogicalDevice;
 
+	VkSwapchainKHR swapChain;
+
 	std::vector<const char*> requiredDeviceExtensions;
 	std::vector<PhysicalDeviceScoreProperties> GPUScores;
 
-	/* Configures a GPU Physical Device by binding it to an appropriate GPU that supports needed features.
-	* @return A VkPhysicalDevice object storing the GPU Physical Device.
-	*/
-	VkPhysicalDevice createPhysicalDevice();
+	/* Configures a GPU Physical Device by binding it to an appropriate GPU that supports needed features. */
+	void createPhysicalDevice();
 
 
-	/* Creates a GPU Logical Device to interface with the Physical Device.
-	* @return A VkDevice object storing the GPU Logical Device.
-	*/
-	VkDevice createLogicalDevice();
+	/* Creates a GPU Logical Device to interface with the Physical Device. */
+	void createLogicalDevice();
 
 
 	/* Creates a swap-chain. */

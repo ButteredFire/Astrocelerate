@@ -6,7 +6,7 @@
 
 
 VkDeviceManager::VkDeviceManager(VulkanContext &context):
-    GPUPhysicalDevice(VK_NULL_HANDLE), GPULogicalDevice(VK_NULL_HANDLE),
+    GPUPhysicalDevice(VK_NULL_HANDLE), GPULogicalDevice(VK_NULL_HANDLE), swapChain(VK_NULL_HANDLE),
     vulkInst(context.vulkanInstance), vkContext(context) {
 
     if (vulkInst == VK_NULL_HANDLE) {
@@ -19,6 +19,7 @@ VkDeviceManager::VkDeviceManager(VulkanContext &context):
 }
 
 VkDeviceManager::~VkDeviceManager() {
+    vkDestroySwapchainKHR(GPULogicalDevice, swapChain, nullptr);
     vkDestroyDevice(GPULogicalDevice, nullptr);
 }
 
@@ -32,15 +33,15 @@ void VkDeviceManager::init() {
 
 
     // Creates a GPU device
-    vkContext.physicalDevice = createPhysicalDevice();
-    vkContext.logicalDevice = createLogicalDevice();
+    createPhysicalDevice();
+    createLogicalDevice();
 
     // Creates swap-chain
     createSwapChain();
 }
 
 
-VkPhysicalDevice VkDeviceManager::createPhysicalDevice() {
+void VkDeviceManager::createPhysicalDevice() {
     // Queries available Vulkan-supported GPUs
     uint32_t physDeviceCount = 0;
     vkEnumeratePhysicalDevices(vulkInst, &physDeviceCount, nullptr);
@@ -76,13 +77,11 @@ VkPhysicalDevice VkDeviceManager::createPhysicalDevice() {
         throw std::runtime_error("Failed to find a GPU that supports Astrocelerate's features!");
     }
 
-    GPUPhysicalDevice = physicalDevice;
-
-    return GPUPhysicalDevice;
+    vkContext.physicalDevice = GPUPhysicalDevice = physicalDevice;
 }
 
 
-VkDevice VkDeviceManager::createLogicalDevice() {
+void VkDeviceManager::createLogicalDevice() {
     QueueFamilyIndices queueFamilies = getQueueFamilies(GPUPhysicalDevice);
 
     // Verifies that all queue families exist before proceeding with device creation
@@ -139,7 +138,7 @@ VkDevice VkDeviceManager::createLogicalDevice() {
     */
 
     // Sets device-specific extensions
-    deviceInfo.enabledExtensionCount = requiredDeviceExtensions.size();
+    deviceInfo.enabledExtensionCount = static_cast<uint32_t>(requiredDeviceExtensions.size());
     deviceInfo.ppEnabledExtensionNames = requiredDeviceExtensions.data();
 
     // Sets device-specific validation layers
@@ -165,21 +164,95 @@ VkDevice VkDeviceManager::createLogicalDevice() {
     }
 
         // If graphics queue family supports presentation operations (i.e., the presentation queue is not separate),
-        // then set the presentation family's VkQueue to be the same as the graphics family's.
+        // then set the presentation family's index and VkQueue to be the same as the graphics family's.
     if (queueFamilies.graphicsFamily.supportsPresentation) {
+        queueFamilies.presentationFamily.index = queueFamilies.graphicsFamily.index;
         queueFamilies.presentationFamily.deviceQueue = queueFamilies.graphicsFamily.deviceQueue;
     }
 
-    return GPULogicalDevice;
+    vkContext.logicalDevice = GPULogicalDevice;
 }
 
 
 void VkDeviceManager::createSwapChain() {
-    SwapChainProperties swapChain = getSwapChainProperties(GPUPhysicalDevice);
+    SwapChainProperties swapChainProperties = getSwapChainProperties(GPUPhysicalDevice);
 
-    VkExtent2D extent = getBestSwapExtent(swapChain.surfaceCapabilities);
-    VkSurfaceFormatKHR surfaceFormat = getBestSurfaceFormat(swapChain.surfaceFormats);
-    VkPresentModeKHR presentMode = getBestPresentMode(swapChain.presentModes);
+    VkExtent2D extent = getBestSwapExtent(swapChainProperties.surfaceCapabilities);
+    VkSurfaceFormatKHR surfaceFormat = getBestSurfaceFormat(swapChainProperties.surfaceFormats);
+    VkPresentModeKHR presentMode = getBestPresentMode(swapChainProperties.presentModes);
+
+    // Specifies the number of images to be had in the swap-chain
+    // It is recommended to request at least 1 more image than the minimum
+    uint32_t imageCount = swapChainProperties.surfaceCapabilities.minImageCount + 1;
+
+    // If the swap chain's image count has a maximum value (0 is a special value that means there is no maximum)
+    // and if the desired image count exceeds that maximum,
+    // default the image count to the maximum value.
+    if (swapChainProperties.surfaceCapabilities.maxImageCount > 0 && imageCount > swapChainProperties.surfaceCapabilities.maxImageCount) {
+        imageCount = swapChainProperties.surfaceCapabilities.maxImageCount;
+    }
+
+    // Creates the swap-chain structure
+    VkSwapchainCreateInfoKHR swapChainCreateInfo{};
+    swapChainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+    swapChainCreateInfo.surface = vkContext.vkSurface;
+
+    swapChainCreateInfo.imageExtent = extent;
+    swapChainCreateInfo.imageFormat = surfaceFormat.format;
+    swapChainCreateInfo.imageColorSpace = surfaceFormat.colorSpace;
+    swapChainCreateInfo.presentMode = presentMode;
+    swapChainCreateInfo.clipped = VK_TRUE;
+
+    swapChainCreateInfo.minImageCount = imageCount;
+
+    // imageArrayLayers specifies the number of layers each image consists of. Its value is almost always 1,
+    // unless you're developing a stereoscopic 3D application.
+    swapChainCreateInfo.imageArrayLayers = 1;
+
+    // imageUsage is a bitfield that specifies the type of operations the swap-chain images are used for.
+    // NOTE:
+    // - VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT means that the swap-chain images are used as color attachment. In other words, we will render directly to them.
+    // If you want to render to a separate image first (for post-processing, etc.) before passing it to the swap-chain image via memory operations,
+    // use other bits like VK_IMAGE_USAGE_TRANSFER_DST_BIT.
+    swapChainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+    QueueFamilyIndices families = getQueueFamilies(GPUPhysicalDevice);
+    std::vector<uint32_t> familyIndices = families.getAvailableIndices();
+
+    // If the graphics family supports presentation (i.e., the presentation family is not separate),
+    // set the image sharing mode to exclusive mode. MODE_EXCLUSIVE means that images are owned
+    // by only 1 queue family at a time, and using them from another family requires ownership transference.
+    if (families.graphicsFamily.supportsPresentation) {
+        swapChainCreateInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        swapChainCreateInfo.queueFamilyIndexCount = 0;
+        swapChainCreateInfo.pQueueFamilyIndices = nullptr;
+    }
+
+    // Else (i.e., the graphics family does not support presentation / the graphics and presentation families are separate),
+    // set the image sharing mode to concurrent mode. MODE_CONCURRENT means that images can be used across different families.
+    else {
+        swapChainCreateInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+        swapChainCreateInfo.queueFamilyIndexCount = 2;
+        swapChainCreateInfo.pQueueFamilyIndices = familyIndices.data();
+    }
+
+    // Specifies a transform applied to swap-chain images (e.g., rotation) (in this case, none, i.e., the current transform)
+    swapChainCreateInfo.preTransform = swapChainProperties.surfaceCapabilities.currentTransform;
+
+    // Specifies if the alpha channel should be used for blending with other windows in the window system.
+    // In this case, we will ignore the alpha channel.
+    swapChainCreateInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+
+    // References the old swap-chain (which is null for now)
+    swapChainCreateInfo.oldSwapchain = VK_NULL_HANDLE;
+
+    // Creates a VkSwapchainKHR object
+    VkResult result = vkCreateSwapchainKHR(GPULogicalDevice, &swapChainCreateInfo, nullptr, &swapChain);
+    if (result != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create swap-chain!");
+    }
+    
+    vkContext.swapChain = swapChain;
 }
 
 

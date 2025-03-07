@@ -12,4 +12,6 @@ typedef struct VulkanContext {
     // Devices
     VkPhysicalDevice physicalDevice;
     VkDevice logicalDevice;
+
+    VkSwapchainKHR swapChain;
 } VulkanContext;
