@@ -20,6 +20,7 @@
 #include <set>
 
 // Local
+#include "VkSwapchainManager.hpp"
 #include "../LoggingManager.hpp"
 #include "../Constants.h"
 #include "../VulkanContexts.hpp"
@@ -122,14 +123,6 @@ typedef struct QueueFamilyIndices {
 } QueueFamilyIndices;
 
 
-// A structure that manages properties of a swap chain.
-typedef struct SwapChainProperties {
-	VkSurfaceCapabilitiesKHR surfaceCapabilities{};
-	std::vector<VkSurfaceFormatKHR> surfaceFormats;
-	std::vector<VkPresentModeKHR> presentModes;
-} SwapChainProperties;
-
-
 
 class VkDeviceManager {
 public:
@@ -138,6 +131,13 @@ public:
 
 	/* Initializes the device creation process. */
 	void init();
+
+
+	/* Queries all GPU-supported queue families.
+	* @param device: The GPU from which to query queue families.
+	* @return A QueueFamilyIndices struct, with each family assigned to their corresponding index.
+	*/
+	static QueueFamilyIndices getQueueFamilies(VkPhysicalDevice& device, VkSurfaceKHR& surface);
 
 private:
 	VkInstance &vulkInst;
@@ -159,75 +159,14 @@ private:
 	void createLogicalDevice();
 
 
-	/* Creates a swap-chain. */
-	void createSwapChain();
-
-
 
 	/* Grades a list of GPUs according to their suitability for Astrocelerate's features.
 	* @param physicalDevices: A vector of GPUs to be evaluated for suitability.
 	* @return A vector containing the final scores of all GPUs in the list.
 	*/
 	std::vector<PhysicalDeviceScoreProperties> rateGPUSuitability(std::vector<VkPhysicalDevice>& physicalDevices);
-
-
-	/* Queries all GPU-supported queue families.
-	* @param device: The GPU from which to query queue families.
-	* @return A QueueFamilyIndices struct, with each family assigned to their corresponding index.
-	*/
-	QueueFamilyIndices getQueueFamilies(VkPhysicalDevice& device);
-
-
-	/* Queries the properties of a GPU's swap-chain.
-	* @param device: The GPU from which to query swap-chain properties.
-	* @return A SwapChainProperties struct containing details of the GPU's swap-chain.
-	*/
-	SwapChainProperties getSwapChainProperties(VkPhysicalDevice& device);
-
-
-	/* Gets the surface format that is the most suitable for Astrocelerate.
-	* 
-	* Requirements for the best surface format:
-	* 
-	* - Surface format: VK_VK_FORMAT_B8G8R8A8_SRGB (8-bit RGBA)
-	* 
-	* More specifically, the surface must have RGBA color channels that
-	* are stored in 8-bit unsigned integers each, as well as sGRB encoding.
-	* 
-	* - Color space: VK_COLOR_SPACE_SRGB_NONLINEAR_KHR (sGRB color space)
-	* 
-	* More specifically, the surface must support sRGB color space.
-	* @param formats: A vector containing surface formats of type VkSurfaceFormatKHR to be evaluated.
-	* @return The best surface format in the vector, OR the first format in the vector if none satisfies both requirements.
-	*/
-	VkSurfaceFormatKHR getBestSurfaceFormat(std::vector<VkSurfaceFormatKHR>& formats);
-
-
-	/* Gets the swap-chain presentation mode that is the most suitable for Astrocelerate.
-	* 
-	* Requirement for the best presentation mode: Must support VK_PRESENT_MODE_FIFO_KHR
-	* 
-	* MAILBOX_KHR works like FIFO_KHR, but instead of waiting in a queue,
-	* new frames replace old frames if they are ready (like triple buffering).
-	* This minimizes latency while preventing tearing.
-	* 
-	* However, MAILBOX_KHR consumes more GPU memory, so FIFO_KHR (V-Sync)
-	* is set to be the fallback option, as it is guaranteed to be available on all GPUs.
-	* 
-	* @param modes: A vector containing presentation modes of type VkPresentModeKHR to be evaluated.
-	* @return The best presentation mode in the vector, OR VK_PRESENT_MODE_FIFO_KHR if none satisfies the requirement.
-	*/
-	VkPresentModeKHR getBestPresentMode(std::vector<VkPresentModeKHR>& modes);
-
-
-	/* Gets the best swap extent (resolution of images in the swap-chain).
-	* @param capabilities: A VkSurfaceCapabilitiesKHR struct from which to get the swap extent.
-	* @return The best swap extent within accepted resolution boundaries.
-	*/
-	VkExtent2D getBestSwapExtent(VkSurfaceCapabilitiesKHR& capabilities);
-
-
-
+	
+	
 	/* Checks whether a GPU supports a list of extensions.
 	* @param device: The GPU to be evaluated for extension support.
 	* @param extensions: A vector containing extensions to be checked.

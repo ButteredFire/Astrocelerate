@@ -12,6 +12,7 @@
 #include "Renderer.hpp"
 #include "../Vulkan/VkInstanceManager.hpp"
 #include "../Vulkan/VkDeviceManager.hpp"
+#include "../Vulkan/VkSwapchainManager.hpp"
 #include "../AppWindow.hpp"
 #include "../Constants.h"
 #include "../LoggingManager.hpp"

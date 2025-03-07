@@ -6,7 +6,7 @@
 
 
 VkDeviceManager::VkDeviceManager(VulkanContext &context):
-    GPUPhysicalDevice(VK_NULL_HANDLE), GPULogicalDevice(VK_NULL_HANDLE), swapChain(VK_NULL_HANDLE),
+    GPUPhysicalDevice(VK_NULL_HANDLE), GPULogicalDevice(VK_NULL_HANDLE),
     vulkInst(context.vulkanInstance), vkContext(context) {
 
     if (vulkInst == VK_NULL_HANDLE) {
@@ -18,8 +18,8 @@ VkDeviceManager::VkDeviceManager(VulkanContext &context):
     }
 }
 
+
 VkDeviceManager::~VkDeviceManager() {
-    vkDestroySwapchainKHR(GPULogicalDevice, swapChain, nullptr);
     vkDestroyDevice(GPULogicalDevice, nullptr);
 }
 
@@ -35,9 +35,6 @@ void VkDeviceManager::init() {
     // Creates a GPU device
     createPhysicalDevice();
     createLogicalDevice();
-
-    // Creates swap-chain
-    createSwapChain();
 }
 
 
@@ -62,12 +59,12 @@ void VkDeviceManager::createPhysicalDevice() {
     bool isDeviceCompatible = bestDevice.isCompatible;
     uint32_t physicalDeviceScore = bestDevice.optionalScore;
 
-    std::cout << "\nList of GPUs and their scores:\n";
+    std::cout << "\nFinal GPU evaluation:\n";
     for (auto& score : GPUScores)
         std::cout << "\t(GPU: " << enquoteCOUT(score.deviceName) << "; Compatible: " << std::boolalpha << score.isCompatible << "; Optional Score: " << score.optionalScore << ")\n";
 
 
-    std::cout << "\nMost suitable GPU: (GPU: " << enquoteCOUT(bestDevice.deviceName) << "; Compatible: " << std::boolalpha << isDeviceCompatible << "; Optional Score: " << physicalDeviceScore << ")\n";
+    std::cout << "Most suitable GPU: (GPU: " << enquoteCOUT(bestDevice.deviceName) << "; Compatible: " << std::boolalpha << isDeviceCompatible << "; Optional Score: " << physicalDeviceScore << ")\n\n";
     if (inDebugMode) {
         std::cout << "NOTE: Should GPU selection be incorrect, please edit the source code to override the chosen GPU.\n";
         std::cout << "NOTE: Specifically, set `physicalDevice` in `VkDeviceManager::createPhysicalDevice` to a GPU in the vector `GPUScores`.\n";
@@ -82,7 +79,7 @@ void VkDeviceManager::createPhysicalDevice() {
 
 
 void VkDeviceManager::createLogicalDevice() {
-    QueueFamilyIndices queueFamilies = getQueueFamilies(GPUPhysicalDevice);
+    QueueFamilyIndices queueFamilies = getQueueFamilies(GPUPhysicalDevice, vkContext.vkSurface);
 
     // Verifies that all queue families exist before proceeding with device creation
     std::vector<QueueFamilyIndices::QueueFamily*> allFamilies = queueFamilies.getAllQueueFamilies();
@@ -174,88 +171,6 @@ void VkDeviceManager::createLogicalDevice() {
 }
 
 
-void VkDeviceManager::createSwapChain() {
-    SwapChainProperties swapChainProperties = getSwapChainProperties(GPUPhysicalDevice);
-
-    VkExtent2D extent = getBestSwapExtent(swapChainProperties.surfaceCapabilities);
-    VkSurfaceFormatKHR surfaceFormat = getBestSurfaceFormat(swapChainProperties.surfaceFormats);
-    VkPresentModeKHR presentMode = getBestPresentMode(swapChainProperties.presentModes);
-
-    // Specifies the number of images to be had in the swap-chain
-    // It is recommended to request at least 1 more image than the minimum
-    uint32_t imageCount = swapChainProperties.surfaceCapabilities.minImageCount + 1;
-
-    // If the swap chain's image count has a maximum value (0 is a special value that means there is no maximum)
-    // and if the desired image count exceeds that maximum,
-    // default the image count to the maximum value.
-    if (swapChainProperties.surfaceCapabilities.maxImageCount > 0 && imageCount > swapChainProperties.surfaceCapabilities.maxImageCount) {
-        imageCount = swapChainProperties.surfaceCapabilities.maxImageCount;
-    }
-
-    // Creates the swap-chain structure
-    VkSwapchainCreateInfoKHR swapChainCreateInfo{};
-    swapChainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    swapChainCreateInfo.surface = vkContext.vkSurface;
-
-    swapChainCreateInfo.imageExtent = extent;
-    swapChainCreateInfo.imageFormat = surfaceFormat.format;
-    swapChainCreateInfo.imageColorSpace = surfaceFormat.colorSpace;
-    swapChainCreateInfo.presentMode = presentMode;
-    swapChainCreateInfo.clipped = VK_TRUE;
-
-    swapChainCreateInfo.minImageCount = imageCount;
-
-    // imageArrayLayers specifies the number of layers each image consists of. Its value is almost always 1,
-    // unless you're developing a stereoscopic 3D application.
-    swapChainCreateInfo.imageArrayLayers = 1;
-
-    // imageUsage is a bitfield that specifies the type of operations the swap-chain images are used for.
-    // NOTE:
-    // - VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT means that the swap-chain images are used as color attachment. In other words, we will render directly to them.
-    // If you want to render to a separate image first (for post-processing, etc.) before passing it to the swap-chain image via memory operations,
-    // use other bits like VK_IMAGE_USAGE_TRANSFER_DST_BIT.
-    swapChainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-
-    QueueFamilyIndices families = getQueueFamilies(GPUPhysicalDevice);
-    std::vector<uint32_t> familyIndices = families.getAvailableIndices();
-
-    // If the graphics family supports presentation (i.e., the presentation family is not separate),
-    // set the image sharing mode to exclusive mode. MODE_EXCLUSIVE means that images are owned
-    // by only 1 queue family at a time, and using them from another family requires ownership transference.
-    if (families.graphicsFamily.supportsPresentation) {
-        swapChainCreateInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        swapChainCreateInfo.queueFamilyIndexCount = 0;
-        swapChainCreateInfo.pQueueFamilyIndices = nullptr;
-    }
-
-    // Else (i.e., the graphics family does not support presentation / the graphics and presentation families are separate),
-    // set the image sharing mode to concurrent mode. MODE_CONCURRENT means that images can be used across different families.
-    else {
-        swapChainCreateInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-        swapChainCreateInfo.queueFamilyIndexCount = 2;
-        swapChainCreateInfo.pQueueFamilyIndices = familyIndices.data();
-    }
-
-    // Specifies a transform applied to swap-chain images (e.g., rotation) (in this case, none, i.e., the current transform)
-    swapChainCreateInfo.preTransform = swapChainProperties.surfaceCapabilities.currentTransform;
-
-    // Specifies if the alpha channel should be used for blending with other windows in the window system.
-    // In this case, we will ignore the alpha channel.
-    swapChainCreateInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-
-    // References the old swap-chain (which is null for now)
-    swapChainCreateInfo.oldSwapchain = VK_NULL_HANDLE;
-
-    // Creates a VkSwapchainKHR object
-    VkResult result = vkCreateSwapchainKHR(GPULogicalDevice, &swapChainCreateInfo, nullptr, &swapChain);
-    if (result != VK_SUCCESS) {
-        throw std::runtime_error("Failed to create swap-chain!");
-    }
-    
-    vkContext.swapChain = swapChain;
-}
-
-
 
 std::vector<PhysicalDeviceScoreProperties> VkDeviceManager::rateGPUSuitability(std::vector<VkPhysicalDevice>& physicalDevices) {
     std::vector<PhysicalDeviceScoreProperties> GPUScores;
@@ -273,10 +188,10 @@ std::vector<PhysicalDeviceScoreProperties> VkDeviceManager::rateGPUSuitability(s
         deviceRating.deviceName = deviceProperties.deviceName;
 
         // Creates a list of indices of device-supported queue families for later checking
-        QueueFamilyIndices queueFamilyIndices = getQueueFamilies(device);
+        QueueFamilyIndices queueFamilyIndices = getQueueFamilies(device, vkContext.vkSurface);
 
         // Creates the GPU's swap-chain properties
-        SwapChainProperties swapChain = getSwapChainProperties(device);
+        SwapChainProperties swapChain = VkSwapchainManager::getSwapChainProperties(device, vkContext.vkSurface);
         
         // A "list" of minimum requirements; Variable will collapse to "true" if all are satisfied
         bool meetsMinimumRequirements = (
@@ -342,7 +257,7 @@ std::vector<PhysicalDeviceScoreProperties> VkDeviceManager::rateGPUSuitability(s
 }
 
 
-QueueFamilyIndices VkDeviceManager::getQueueFamilies(VkPhysicalDevice& device) {
+QueueFamilyIndices VkDeviceManager::getQueueFamilies(VkPhysicalDevice& device, VkSurfaceKHR& surface) {
     /* Explanation behind VkQueueFamilyProperties::queueFlags (family.queueFlags below):
     * Vulkan uses bitfields for queue flags (i.e., queueFlags is a bitfield: a set of flags stored in a single integer).
     * Vulkan uses bitfields for queue capabilities because a queue family can support multiple operations simultaneously
@@ -379,7 +294,7 @@ QueueFamilyIndices VkDeviceManager::getQueueFamilies(VkPhysicalDevice& device) {
 
         // If current family is able to present rendered images to the window surface
         VkBool32 supportsPresentations = false;
-        vkGetPhysicalDeviceSurfaceSupportKHR(device, index, vkContext.vkSurface, &supportsPresentations);
+        vkGetPhysicalDeviceSurfaceSupportKHR(device, index, surface, &supportsPresentations);
         
         // If current family supports graphics operations
         bool supportsGraphics = ((family.queueFlags & familyIndices.graphicsFamily.FLAG) != 0);
@@ -404,89 +319,6 @@ QueueFamilyIndices VkDeviceManager::getQueueFamilies(VkPhysicalDevice& device) {
     }
 
     return familyIndices;
-}
-
-
-SwapChainProperties VkDeviceManager::getSwapChainProperties(VkPhysicalDevice& device) {
-    SwapChainProperties swapChain;
-
-    // Queries swap-chain properties
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, vkContext.vkSurface, &swapChain.surfaceCapabilities);
-
-    // Queries surface formats
-    uint32_t numOfSurfaceFormats = 0;
-    vkGetPhysicalDeviceSurfaceFormatsKHR(device, vkContext.vkSurface, &numOfSurfaceFormats, nullptr);
-
-    swapChain.surfaceFormats.resize(numOfSurfaceFormats);
-    vkGetPhysicalDeviceSurfaceFormatsKHR(device, vkContext.vkSurface, &numOfSurfaceFormats, swapChain.surfaceFormats.data());
-
-    // Queries surface present modes
-    uint32_t numOfPresentModes = 0;
-    vkGetPhysicalDeviceSurfacePresentModesKHR(device, vkContext.vkSurface, &numOfPresentModes, nullptr);
-
-    swapChain.presentModes.resize(numOfPresentModes);
-    vkGetPhysicalDeviceSurfacePresentModesKHR(device, vkContext.vkSurface, &numOfPresentModes, swapChain.presentModes.data());
-
-
-    if (swapChain.surfaceFormats.empty()) {
-        std::cerr << "Warning: GPU does not support any surface formats for the given window surface!" << '\n';
-    }
-    if (swapChain.presentModes.empty()) {
-        std::cerr << "Warning: GPU does not support any presentation modes for the given window surface!" << '\n';
-    }
-
-    return swapChain;
-}
-
-
-VkSurfaceFormatKHR VkDeviceManager::getBestSurfaceFormat(std::vector<VkSurfaceFormatKHR>& formats) {
-    if (formats.empty()) {
-        throw std::runtime_error("Unable to get surface formats from an empty vector!");
-    }
-    
-    for (const auto& format : formats) {
-        if (format.format == VK_FORMAT_R8G8B8A8_SRGB && format.colorSpace == VK_COLORSPACE_SRGB_NONLINEAR_KHR)
-            return format;
-    }
-    
-    return formats[0];
-}
-
-
-VkPresentModeKHR VkDeviceManager::getBestPresentMode(std::vector<VkPresentModeKHR>& modes) {
-    for (const auto& mode : modes) {
-        // MAILBOX_KHR: Triple buffering => Best for performance and smoothness, but requires more GPU memory
-        if (mode == VK_PRESENT_MODE_MAILBOX_KHR)
-            return mode;
-    }
-    // FIFO_KHR (fallback): V-Sync => No screen tearing and predictable frame pacing, but introduces input lag
-    return VK_PRESENT_MODE_FIFO_KHR;
-}
-
-
-VkExtent2D VkDeviceManager::getBestSwapExtent(VkSurfaceCapabilitiesKHR& capabilities) {
-    // If the current extent is not equal to UINT32_MAX (a special value), Vulkan is forcing a specific resolution.
-    // In other words, the resolution of the swap-chain images is equal to the resolution of the window that we're drawing to (in pixels).
-    // Therefore, we must use the current extent as it is.
-    if (capabilities.currentExtent.width != UINT32_MAX) {
-        return capabilities.currentExtent;
-    }
-
-    // Else, it means we can create possible resolutions within the [minImageExtent, maxImageExtent] range.
-    // In this case, the best swap extent is the one whose resolution best matches the window.
-    int width, height;
-    glfwGetFramebufferSize(vkContext.window, &width, &height); // Gets the window resolution in pixels
-
-    // Creates the best swap extent and populate it with the current window resolution
-    VkExtent2D bestExtent{};
-    bestExtent.width = static_cast<uint32_t>(width);
-    bestExtent.height = static_cast<uint32_t>(height);
-
-    // Clamps the width and height within the accepted bounds
-    bestExtent.width = std::clamp(bestExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
-    bestExtent.height = std::clamp(bestExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
-
-    return bestExtent;
 }
 
 

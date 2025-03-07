@@ -16,4 +16,5 @@ set(HEADER_FILES
 	"src/Engine/Renderer.hpp"
 	"src/Vulkan/VkDeviceManager.hpp"
 	"src/Vulkan/VkInstanceManager.hpp"
+	"src/Vulkan/VkSwapchainManager.hpp"
 )

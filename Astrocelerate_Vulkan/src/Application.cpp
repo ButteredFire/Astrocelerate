@@ -34,6 +34,10 @@ int main() {
     VkDeviceManager deviceManager(vkContext);
     deviceManager.init();
 
+        // Creates a swap-chain manager for swap-chain operations
+    VkSwapchainManager swapchainManager(vkContext);
+    swapchainManager.init();
+
     if (vkContext.physicalDevice == VK_NULL_HANDLE) {
         std::cerr << "WARNING: Physical device not initialized!\n";
     }
