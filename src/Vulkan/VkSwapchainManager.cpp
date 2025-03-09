@@ -106,8 +106,28 @@ void VkSwapchainManager::createSwapChain() {
         throw std::runtime_error("Failed to create swap-chain!");
     }
 
+    // Saves swap-chain properties
     vkContext.swapChain = swapChain;
+    swapChainImageFormat = surfaceFormat.format;
+    swapChainExtent = extent;
+
+    
+    // Fills swapChainImages with a set of VkImage objects provided after swap-chain creation
+    vkGetSwapchainImagesKHR(vkContext.logicalDevice, vkContext.swapChain, &imageCount, nullptr);
+    swapChainImages.resize(imageCount);
+    vkGetSwapchainImagesKHR(vkContext.logicalDevice, vkContext.swapChain, &imageCount, swapChainImages.data());
 }
+
+
+std::vector<VkImageView> VkSwapchainManager::createImageViews(std::vector<VkImage>& images) {
+    std::vector<VkImageView> imageViews(images.size());
+    for (const auto& image : images) {
+
+    }
+
+    return imageViews;
+}
+
 
 
 SwapChainProperties VkSwapchainManager::getSwapChainProperties(VkPhysicalDevice& device, VkSurfaceKHR& surface) {

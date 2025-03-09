@@ -50,9 +50,28 @@ private:
 	VulkanContext& vkContext;
 
 	VkSwapchainKHR swapChain;
-	
+	std::vector<VkImage> swapChainImages;
+	VkExtent2D swapChainExtent;
+	VkFormat swapChainImageFormat;
+
 	/* Creates a swap-chain. */
 	void createSwapChain();
+
+
+	/* Creates an array of image views, each element corresponding to a VkImage object in the passed-in vector.
+	* 
+	* BACKGROUND:
+	* 
+	* - A VkImage object holds all the raw rendering data in a chunk of memory on the GPU. The data, in its raw, disorganized form, cannot be interpreted and used without some sort of wrapper or parser.
+	* 
+	* - A VkImageView object is a VkImage wrapper that defines how the image should be interpreted (e.g., format, color channels, and mip levels). In Vulkan, raw images cannot be directly accessed in shaders, framebuffers, or render passes without an image view.
+	* 
+	* The "VkImage + VkImageView" concept is conceptually akin to OpenGL's "Vertex Buffer + Vertex Buffer Layout".
+	* 
+	* @param images: A vector of VkImage objects to be processed.
+	* @return A corresponding vector of VkImageView objects.
+	*/
+	std::vector<VkImageView> createImageViews(std::vector<VkImage>& images);
 
 
 
