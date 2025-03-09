@@ -2,7 +2,7 @@
 <br />
 <div align="center">
     <a href="https://github.com/ButteredFire/Astrocelerate/">
-        <img src="Astrocelerate_Vulkan/assets/app/AppLogo.png" alt="Logo">
+        <img src="assets/app/AppLogo.png" alt="Logo">
     </a>
 </div>
 
