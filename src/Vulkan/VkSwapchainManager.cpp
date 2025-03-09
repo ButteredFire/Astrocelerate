@@ -3,8 +3,8 @@
 
 #include "VkSwapchainManager.hpp"
 
-VkSwapchainManager::VkSwapchainManager(VulkanContext& context):
-    swapChain(VK_NULL_HANDLE),
+VkSwapchainManager::VkSwapchainManager(VulkanContext& context) :
+    swapChain(VK_NULL_HANDLE), swapChainExtent(VkExtent2D()), swapChainImageFormat(VkFormat()),
     vkContext(context) {
 
     if (vkContext.physicalDevice == VK_NULL_HANDLE) {
@@ -19,12 +19,22 @@ VkSwapchainManager::VkSwapchainManager(VulkanContext& context):
 }
 
 VkSwapchainManager::~VkSwapchainManager() {
+    // Frees swap-chain memory
     vkDestroySwapchainKHR(vkContext.logicalDevice, swapChain, nullptr);
+
+    // Frees image views memory
+    for (auto& imageView : swapChainImageViews) {
+        vkDestroyImageView(vkContext.logicalDevice, imageView, nullptr);
+    }
 }
 
 
 void VkSwapchainManager::init() {
+    // Initializes swap-chain
     createSwapChain();
+
+    // Parses data for each image
+    swapChainImageViews = createImageViews(swapChainImages);
 }
 
 
@@ -122,7 +132,49 @@ void VkSwapchainManager::createSwapChain() {
 std::vector<VkImageView> VkSwapchainManager::createImageViews(std::vector<VkImage>& images) {
     std::vector<VkImageView> imageViews(images.size());
     for (const auto& image : images) {
+        VkImageViewCreateInfo viewCreateInfo{};
+        viewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        viewCreateInfo.image = image;
 
+        // Specifies how the data is interpreted
+        viewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D; // Treats images as 2D textures
+        viewCreateInfo.format = swapChainImageFormat; // Specifies image format
+
+        /* Defines how the color channels of the image should be interpreted (swizzling).
+        * In essence, swizzling remaps the color channels of the image to how they should be interpreted by the image view.
+        * 
+        * Since we have already chosen an image format in getBestSurfaceFormat(...) as "VK_FORMAT_R8G8B8A8_SRGB" (which stores data in RGBA order), we leave the swizzle mappings as "identity" (i.e., unchanged). This means: Red maps to Red, Green maps to Green, Blue maps to Blue, and Alpha maps to Alpha.
+        * 
+        * In cases where the image format differs from what the shaders or rendering pipeline expect, swizzling can be used to remap the channels. 
+        * For instance, if we want to change our image format to "B8G8R8A8" (BGRA order instead of RGBA), we must swap the Red and Blue channels:
+        * 
+        * componentMapping.r = VK_COMPONENT_SWIZZLE_B; // Red -> Blue (R -> B)
+        * componentMapping.g = VK_COMPONENT_SWIZZLE_IDENTITY; // Green value is the same (RG -> BG)
+        * componentMapping.b = VK_COMPONENT_SWIZZLE_R; // Blue -> Red (RGB -> BGR)
+        * componentMapping.a = VK_COMPONENT_SWIZZLE_IDENTITY; // Green value is the same (RGBA -> BGRA)
+        */
+        VkComponentMapping colorMappingStruct{};
+        colorMappingStruct.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+        colorMappingStruct.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+        colorMappingStruct.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+        colorMappingStruct.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+
+        viewCreateInfo.components = colorMappingStruct;
+
+        // Specifies the image's purpose and which part of it should be accessed
+        viewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT; // Images will be used as color targets
+        viewCreateInfo.subresourceRange.baseMipLevel = 0; // Images will have no mipmapping levels
+        viewCreateInfo.subresourceRange.levelCount = 1;
+        viewCreateInfo.subresourceRange.baseArrayLayer = 0; // Images will have no multiple layers
+        viewCreateInfo.subresourceRange.layerCount = 1;
+
+        VkImageView imageView;
+        VkResult result = vkCreateImageView(vkContext.logicalDevice, &viewCreateInfo, nullptr, &imageView);
+        if (result != VK_SUCCESS) {
+            throw std::runtime_error("Failed to read image data!");
+        }
+
+        imageViews.push_back(imageView);
     }
 
     return imageViews;
