@@ -41,8 +41,18 @@ include(FetchContent)
     include("scripts/HeaderFiles.cmake")
 
 
+# Add source files to the project's executable
+add_executable(Astrocelerate ${SOURCE_FILES} )
+
+
 # Find packages
 find_package(Vulkan REQUIRED)    # Vulkan SDK
+    # Locate glslc.exe
+        find_program(Vulkan_GLSLC_EXECUTABLE NAMES glslc HINTS ${Vulkan_INCLUDE_DIRS}/../bin)
+        if (NOT Vulkan_GLSLC_EXECUTABLE)
+            message(FATAL_ERROR "glslc.exe not found! Ensure Vulkan SDK is installed and added to PATH.")
+        endif()
+        message(STATUS "Vulkan glslc.exe executable is in directory \"${Vulkan_GLSLC_EXECUTABLE}\"")
 
 
 # Install libraries
@@ -75,12 +85,54 @@ set(FETCHCONTENT_LIBS
 FetchContent_MakeAvailable(${FETCHCONTENT_LIBS})
 
 
+# Compile shader files into SPIR-V bytecode with glslc.exe
+    # Set shader directories
+    set(SHADER_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/Shaders")
+    set(SHADER_OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/compiled_shaders")
+
+    # Find all shader files in src/Shaders
+    file(GLOB_RECURSE SHADER_FILES "${SHADER_SOURCE_DIR}/*.glsl.*")
+
+    # Create the output directory for compiled SPIR-V files
+    file(MAKE_DIRECTORY ${SHADER_OUTPUT_DIR})
+
+    # List to hold the generated SPIR-V files
+    set(SPIRV_BINARY_FILES)
+
+    # Compile each shader
+    foreach(SHADER ${SHADER_FILES})
+        # NOTE: `NAME` gets the file name and extension, while `NAME_WE` (presumably "name without extension") gets just the name.
+        get_filename_component(SHADER_NAME ${SHADER} NAME)
+        get_filename_component(SHADER_NAME_WE ${SHADER} NAME_WE)
+
+        set(SPIRV_FILE "${SHADER_NAME_WE}.spv")
+
+        # Add a custom command to compile the shader to SPIR-V bytecode
+        add_custom_command(
+            OUTPUT "${SPIRV_FILE}"
+            COMMAND "${Vulkan_GLSLC_EXECUTABLE}" "${SHADER_SOURCE_DIR}/${SHADER_NAME}" -o "${SHADER_OUTPUT_DIR}/${SPIRV_FILE}"
+            DEPENDS ${SHADER}  # Ensure that the shader file is up to date
+            COMMENT "Compiling \"${SHADER_NAME}\" to SPIR-V bytecode..."
+            VERBATIM
+        )
+        message(STATUS "Running shader compilation command: \"${Vulkan_GLSLC_EXECUTABLE}\" \"${SHADER_SOURCE_DIR}/${SHADER_NAME}\" -o \"${SHADER_OUTPUT_DIR}/${SPIRV_FILE}\"")
+        message(STATUS "Shader \"${SHADER_NAME}\" processed; SPIR-V output is \"${SPIRV_FILE}\"")
+
+        # Append the generated SPIR-V file to the list of outputs
+        list(APPEND SPIRV_BINARY_FILES ${SPIRV_FILE})
+    endforeach()
+
+    # Create a custom build target for shaders
+        # NOTE: The `DEPENDS` argument ensures that CMake knows the custom commands are dependent on the actual shader files, so it will re-run the commands if the shader files are modified.
+    add_custom_target(
+        CompileShaders ALL
+        DEPENDS ${SPIRV_BINARY_FILES} # Target depends on all SPIR-V files
+    )
+    add_dependencies(Astrocelerate CompileShaders)
+
+
 # Add subdirectories
 add_subdirectory("external/boxer")
-
-
-# Add source files to the project's executable
-add_executable(Astrocelerate ${SOURCE_FILES} )
 
 
 # Link libraries
