@@ -87,7 +87,7 @@ FetchContent_MakeAvailable(${FETCHCONTENT_LIBS})
 # Automate compilation of shader files into SPIR-V bytecode with glslc.exe
     # Set shader directories
     set(SHADER_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/Shaders")
-    set(SHADER_OUTPUT_DIR "${SHADER_SOURCE_DIR}/Compiled")
+    set(SHADER_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/compiled_shaders") # Turns out, reading the compiled files from VkPipelineManager with openFile("compiled_shaders/ABCShader.spv") actually attempts to open the file at the starting path CURRENT_BINARY_DIR, not CURRENT_SOURCE_DIR.
 
     # Find all shader files in src/Shaders
     file(GLOB_RECURSE SHADER_FILES "${SHADER_SOURCE_DIR}/*.glsl.*")

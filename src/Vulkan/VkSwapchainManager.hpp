@@ -1,7 +1,7 @@
 /* VkSwapchainManager.hpp - Manages the Vulkan swap-chain.
 * 
 * Handles swap-chain initialization and operations pertaining to
-* swap-chains and swap-chain images.
+* swap-chains, image acquisition, and presentation.
 */
 
 #pragma once

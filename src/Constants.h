@@ -6,6 +6,12 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 
+#include <filesystem>
+#include <string>
+
+// Default working directory
+inline std::string DEFAULT_WORKING_DIR = std::filesystem::current_path().string();
+
 // Initialize inDebugMode
 #ifdef NDEBUG
 	const bool inDebugMode = false;

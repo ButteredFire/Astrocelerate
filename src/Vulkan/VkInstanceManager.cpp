@@ -202,4 +202,6 @@ void VkInstanceManager::addVulkanValidationLayers(std::vector<const char*> layer
             UTIL_enabledValidationLayerSet.insert(layer);
         }
     }
+
+    vkContext.enabledValidationLayers = enabledValidationLayers;
 }

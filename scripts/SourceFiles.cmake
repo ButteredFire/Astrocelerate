@@ -13,5 +13,6 @@ set(SOURCE_FILES
 	"src/Engine/Renderer.cpp"
 	"src/Vulkan/VkDeviceManager.cpp"
 	"src/Vulkan/VkInstanceManager.cpp"
+	"src/Vulkan/VkPipelineManager.cpp"
 	"src/Vulkan/VkSwapchainManager.cpp"
 )
