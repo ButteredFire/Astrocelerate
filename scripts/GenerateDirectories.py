@@ -27,9 +27,9 @@ def retrieveFileDirectories(startPath, pyFilePath, targetDirs):
     
     def isOSIncompatible(file) -> bool:
         # Determines whether a file is not compatible with the operating system (based on its name)
-        incompat = ("linux" in file and platform.system() != "Linux") or \
-                ("mac" in file and platform.system() != "Darwin") or \
-                ("win" in file and platform.system() != "Windows")
+        incompat = ("linux" in file.lower() and platform.system() != "Linux") or \
+                ("mac" in file.lower() and platform.system() != "Darwin") or \
+                ("win" in file.lower() and platform.system() != "Windows")
         
         if incompat:
             print(f"[{fileName}] WARNING: {enquote(file)} is being skipped because it seems to be OS-incompatible.")
