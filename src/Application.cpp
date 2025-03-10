@@ -45,7 +45,6 @@ int main() {
         }
 
         Engine engine(windowPtr, vkContext);
-        std::cout << "TESTING!!\n";
         engine.run();
     }
     catch (const std::exception& e) {

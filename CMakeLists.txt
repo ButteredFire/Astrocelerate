@@ -31,7 +31,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 
-
 # Add dependencies
 include(FetchContent)
 
@@ -85,10 +84,10 @@ set(FETCHCONTENT_LIBS
 FetchContent_MakeAvailable(${FETCHCONTENT_LIBS})
 
 
-# Compile shader files into SPIR-V bytecode with glslc.exe
+# Automate compilation of shader files into SPIR-V bytecode with glslc.exe
     # Set shader directories
     set(SHADER_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/Shaders")
-    set(SHADER_OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/compiled_shaders")
+    set(SHADER_OUTPUT_DIR "${SHADER_SOURCE_DIR}/Compiled")
 
     # Find all shader files in src/Shaders
     file(GLOB_RECURSE SHADER_FILES "${SHADER_SOURCE_DIR}/*.glsl.*")
@@ -115,8 +114,7 @@ FetchContent_MakeAvailable(${FETCHCONTENT_LIBS})
             COMMENT "Compiling \"${SHADER_NAME}\" to SPIR-V bytecode..."
             VERBATIM
         )
-        message(STATUS "Running shader compilation command: \"${Vulkan_GLSLC_EXECUTABLE}\" \"${SHADER_SOURCE_DIR}/${SHADER_NAME}\" -o \"${SHADER_OUTPUT_DIR}/${SPIRV_FILE}\"")
-        message(STATUS "Shader \"${SHADER_NAME}\" processed; SPIR-V output is \"${SPIRV_FILE}\"")
+        message(STATUS "Shader \"${SHADER_NAME}\" processed; generated SPIR-V bytecode file \"${SPIRV_FILE}\"")
 
         # Append the generated SPIR-V file to the list of outputs
         list(APPEND SPIRV_BINARY_FILES ${SPIRV_FILE})

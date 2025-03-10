@@ -27,9 +27,9 @@ def retrieveFileDirectories(startPath, pyFilePath, targetDirs):
     
     def isOSIncompatible(file) -> bool:
         # Determines whether a file is not compatible with the operating system (based on its name)
-        incompat = ("linux" in file and platform.system() != "Linux") or \
-                ("mac" in file and platform.system() != "Darwin") or \
-                ("win" in file and platform.system() != "Windows")
+        incompat = ("linux" in file.lower() and platform.system() != "Linux") or \
+                ("mac" in file.lower() and platform.system() != "Darwin") or \
+                ("win" in file.lower() and platform.system() != "Windows")
         
         if incompat:
             print(f"[{fileName}] WARNING: {enquote(file)} is being skipped because it seems to be OS-incompatible.")
@@ -85,7 +85,7 @@ def retrieveFileDirectories(startPath, pyFilePath, targetDirs):
                         noOfHeaderFiles += 1
 
 
-    print(f"[{fileName}] Discovered {noOfSourceFiles} source files and {noOfHeaderFiles} header files. Writing to CMake files...")
+    print(f"[{fileName}] Discovered {noOfSourceFiles} source files and {noOfHeaderFiles} header files. Writing to CMake files...", flush=True)
 
     # Close CMake files
     headerDirsContent += "\n)"
@@ -109,7 +109,7 @@ def main():
 
     # If no target directories are passed in
     if not targetDirs:
-        print(f"[{fileName}] Error: No target directories provided. Exiting...")
+        print(f"[{fileName}] Error: No target directories provided. Exiting...", flush=True)
         sys.exit(1)
 
     retrieveFileDirectories(rootAbsDir, startDir, targetDirs)
