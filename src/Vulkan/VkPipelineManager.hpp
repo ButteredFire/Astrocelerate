@@ -81,15 +81,28 @@ public:
 private:
 	VulkanContext& vkContext;
 
+	// Shaders
+		// Vertex shader
 	std::vector<char> vertShaderBytecode;
 	VkShaderModule vertShaderModule = VK_NULL_HANDLE;
+	VkPipelineVertexInputStateCreateInfo vertInputState{};
 
+		// Fragment shader
 	std::vector<char> fragShaderBytecode;
 	VkShaderModule fragShaderModule = VK_NULL_HANDLE;
 	std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
 
+	// Dynamic states
 	std::vector<VkDynamicState> dynamicStates;
 	VkPipelineDynamicStateCreateInfo dynamicStateCreateInfo{};
+
+	// Assembly state
+	VkPipelineInputAssemblyStateCreateInfo inputAssemblyCreateInfo{};
+
+
+	/* Creates the graphics pipeline. */
+	void createGraphicsPipeline();
+
 
 	/* Creates the shader stage of the graphics pipeline from compiled SPIR-V shader files. */
 	void initShaderStage();
@@ -100,6 +113,14 @@ private:
 	* Binding dynamic states via a Vk...CreateInfo structure causes the configuration of these values to be ignored and we will be able (and required) to specify the data at drawing time. This results in a more flexible setup.
 	*/
 	void initDynamicStates();
+
+
+	/* Initializes input assembly state.
+	* The input assembly state specifies:
+	* 1. What kind of geometry will be drawn from the vertices (CreateInfo::topology)
+	* 2. Whether primitive restart should be enabled
+	*/
+	void initInputAssemblyState();
 	
 	
 	/* Creates a shader module to pass the code to the pipeline.
