@@ -120,6 +120,7 @@ void VkSwapchainManager::createSwapChain() {
     vkContext.swapChain = swapChain;
     swapChainImageFormat = surfaceFormat.format;
     swapChainExtent = extent;
+    vkContext.swapChainExtent = extent;
 
     
     // Fills swapChainImages with a set of VkImage objects provided after swap-chain creation

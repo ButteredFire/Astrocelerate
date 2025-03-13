@@ -14,4 +14,5 @@ typedef struct VulkanContext {
     VkDevice logicalDevice;
 
     VkSwapchainKHR swapChain;
+    VkExtent2D swapChainExtent;
 } VulkanContext;
