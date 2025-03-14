@@ -12,7 +12,9 @@ GraphicsPipeline::~GraphicsPipeline() {
 	vkDestroyShaderModule(vkContext.logicalDevice, vertShaderModule, nullptr);
 	vkDestroyShaderModule(vkContext.logicalDevice, fragShaderModule, nullptr);
 
+	vkDestroyRenderPass(vkContext.logicalDevice, renderPass, nullptr);
 	vkDestroyPipelineLayout(vkContext.logicalDevice, pipelineLayout, nullptr);
+	vkDestroyPipeline(vkContext.logicalDevice, graphicsPipeline, nullptr);
 }
 
 void GraphicsPipeline::init() {
@@ -36,16 +38,17 @@ void GraphicsPipeline::init() {
 
 	initColorBlendingState();		// Blending state
 
-	initTessellationState();		// Tessellation state (note: tessellation is disabled for now. To enable it, specify the input assembly state's topology as PATCH_LIST, and add the tessellation create info struct to createGraphicsPipeline())
+	initTessellationState();		// Tessellation state
 
 
-	// 2. Load shaders
+	// Load shaders
 	initShaderStage();
 
-
 	// Create the pipeline layout
-	initPipelineLayout();
+	createPipelineLayout();
 
+	// Create the render pass
+	createRenderPass();
 
 	// Create the graphics pipeline
 	//createGraphicsPipeline();
@@ -55,28 +58,119 @@ void GraphicsPipeline::init() {
 
 void GraphicsPipeline::createGraphicsPipeline() {
 	VkGraphicsPipelineCreateInfo pipelineCreateInfo;
-	pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CREATE_INFO_KHR;
-	pipelineCreateInfo.pNext = nullptr;
-	pipelineCreateInfo.basePipelineHandle;
-	pipelineCreateInfo.basePipelineIndex;
-	pipelineCreateInfo.flags;
-	pipelineCreateInfo.layout = pipelineLayout;
+	pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO; // Specify the pipeline as the graphics pipeline
 
+	// Shader stage
+	pipelineCreateInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
+	pipelineCreateInfo.pStages = shaderStages.data();
+
+	// Fixed-function states
 	pipelineCreateInfo.pDynamicState = &dynamicStateCreateInfo;
 	pipelineCreateInfo.pInputAssemblyState = &inputAssemblyCreateInfo;
 	pipelineCreateInfo.pViewportState = &viewportStateCreateInfo;
 	pipelineCreateInfo.pRasterizationState = &rasterizerCreateInfo;
 	pipelineCreateInfo.pMultisampleState = &multisampleStateCreateInfo;
 	pipelineCreateInfo.pDepthStencilState = VK_NULL_HANDLE;
-	pipelineCreateInfo.pColorBlendState = VK_NULL_HANDLE;
+	pipelineCreateInfo.pColorBlendState = &colorBlendCreateInfo;
 	pipelineCreateInfo.pTessellationState = VK_NULL_HANDLE;
 	pipelineCreateInfo.pVertexInputState = &vertInputState;
 
-	pipelineCreateInfo.pStages = shaderStages.data();
+	// Render pass
+	pipelineCreateInfo.renderPass = renderPass;
+	pipelineCreateInfo.subpass = 0; // Index of the subpass
+	/* NOTE:
+	* It is also possible to use other render passes with this pipeline instead of this specific instance, but they have to be compatible with renderPass. The requirements for compatibility are described here: https://docs.vulkan.org/spec/latest/chapters/renderpass.html#renderpass-compatibility
+	*/
 
-	pipelineCreateInfo.renderPass;
-	pipelineCreateInfo.stageCount;
-	pipelineCreateInfo.subpass;
+	// Pipeline properties
+	/* NOTE:
+	* Vulkan allows you to create a new graphics pipeline by deriving from an existing pipeline. 
+	* The idea of pipeline derivatives is that it is less expensive to set up pipelines when they have much functionality in common with an existing pipeline and switching between pipelines from the same parent can also be done quicker. 
+	* 
+	* You can either specify the handle of an existing pipeline with basePipelineHandle or reference another pipeline that is about to be created by index with basePipelineIndex.
+	* These values are only used if the VK_PIPELINE_CREATE_DERIVATIVE_BIT flag is also specified in the flags field of VkGraphicsPipelineCreateInfo.
+	*/
+		// Right now, there is only a single pipeline, so we'll specify the handle and index as null and -1 (an invalid index)
+	//pipelineCreateInfo.flags;
+	pipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
+	pipelineCreateInfo.basePipelineIndex = -1;
+
+	pipelineCreateInfo.layout = pipelineLayout;
+
+	VkResult result = vkCreateGraphicsPipelines(vkContext.logicalDevice, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &graphicsPipeline);
+	if (result != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create graphics pipeline!");
+	}
+
+	vkContext.graphicsPipeline = graphicsPipeline;
+}
+
+
+void GraphicsPipeline::createPipelineLayout() {
+	VkPipelineLayoutCreateInfo createInfo{};
+	createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+	createInfo.setLayoutCount = 0;
+	createInfo.pSetLayouts = nullptr;
+
+	// Push constants are a way of passing dynamic values to shaders
+	createInfo.pushConstantRangeCount = 0;
+	createInfo.pPushConstantRanges = nullptr;
+
+	VkResult result = vkCreatePipelineLayout(vkContext.logicalDevice, &createInfo, nullptr, &pipelineLayout);
+	if (result != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create graphics pipeline layout!");
+	}
+
+	vkContext.pipelineLayout = pipelineLayout;
+}
+
+
+void GraphicsPipeline::createRenderPass() {
+	// Specifies the framebuffer attachment that will be used while rendering
+	VkAttachmentDescription colorAttachment{};
+	colorAttachment.format = vkContext.surfaceFormat.format;		// Swap-chain image format
+	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;				// Use 1 sample since multisampling is not enabled yet
+
+		// loadOp and storeOp specify how the data in the attachment will be dealt with before and after rendering.
+		// loadOp and storeOp apply to color and depth data; stencilLoadOp and stencilStoreOp apply to stencil data.
+	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+		// initialLayout specifies the layout the image will have before the render pass begins;
+		// finalLayout specifies the layout the image will have when the render pass ends
+	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;		// Ignore the image's previous layout (which works because we'll clear the contents of the image when the render pass ends anyway)
+	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;	// Used for presenting a presentable image (i.e., an image processed by the swap-chain) for display
+
+	/* A single render pass can consist of multiple subpasses. Subpasses are subsequent rendering operations that depend on the contents of framebuffers in previous passes, for example a sequence of post-processing effects that are applied one after another. If you group these rendering operations into one render pass, then Vulkan is able to reorder the operations and conserve memory bandwidth for possibly better performance. 
+	* However, we’ll stick to a single subpass for now.
+	*/
+	// Specifies the reference to the attachment
+	VkAttachmentReference colorAttachmentRef{};
+	colorAttachmentRef.attachment = 0;	// The attachment descriptions array currently consists of a single description, so the reference to it is 0 (the index referenced from the fragment shader with `layout(location = 0) ...`)
+	colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; // Specifies that the attachment will function as a color buffer
+
+	
+	// Specifies properties of a subpass
+	VkSubpassDescription subpass{};
+	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS; // Specifies the subpass as being a graphics subpass (for the graphics pipeline)
+	subpass.colorAttachmentCount = 1;
+	subpass.pColorAttachments = &colorAttachmentRef;
+
+	VkRenderPassCreateInfo renderPassCreateInfo{};
+	renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+	renderPassCreateInfo.attachmentCount = 1;
+	renderPassCreateInfo.pAttachments = &colorAttachment;
+	renderPassCreateInfo.subpassCount = 1;
+	renderPassCreateInfo.pSubpasses = &subpass;
+
+	VkResult result = vkCreateRenderPass(vkContext.logicalDevice, &renderPassCreateInfo, nullptr, &renderPass);
+	if (result != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create render pass!");
+	}
+
+	vkContext.renderPass = renderPass;
 }
 
 
@@ -207,10 +301,11 @@ void GraphicsPipeline::initDepthStencilState() {
 void GraphicsPipeline::initColorBlendingState() {
 	// ColorBlendAttachmentState contains the configuration per attached framebuffer
 	colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-	colorBlendAttachment.blendEnable = VK_FALSE;
+	colorBlendAttachment.blendEnable = VK_TRUE;
 
-	colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
-	colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;
+	// Alpha blending implementation (requires blendEnable to be TRUE)
+	colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+	colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
 	colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
 
 	colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
@@ -233,23 +328,6 @@ void GraphicsPipeline::initColorBlendingState() {
 void GraphicsPipeline::initTessellationState() {
 	tessStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO;
 	tessStateCreateInfo.patchControlPoints = 3; // Number of control points per patch (e.g., 3 for triangles)
-}
-
-
-void GraphicsPipeline::initPipelineLayout() {
-	VkPipelineLayoutCreateInfo createInfo{};
-	createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	createInfo.setLayoutCount = 0;
-	createInfo.pSetLayouts = nullptr;
-
-	// Push constants are a way of passing dynamic values to shaders
-	createInfo.pushConstantRangeCount = 0;
-	createInfo.pPushConstantRanges = nullptr;
-
-	VkResult result = vkCreatePipelineLayout(vkContext.logicalDevice, &createInfo, nullptr, &pipelineLayout);
-	if (result != VK_SUCCESS) {
-		throw std::runtime_error("Failed to create graphics pipeline layout!");
-	}
 }
 
 

@@ -53,14 +53,14 @@ inline bool ScoreComparator(const PhysicalDeviceScoreProperties& s1, const Physi
 */
 
 // A structure that manages GPU queue families.
-typedef struct QueueFamilyIndices {
+struct QueueFamilyIndices {
 	// Structure for each family
-	typedef struct QueueFamily {
-		std::optional <uint32_t> index;
+	struct QueueFamily {
+		std::optional<uint32_t> index;
 		uint32_t FLAG = NULL;
 		VkQueue deviceQueue = VK_NULL_HANDLE;
 		bool supportsPresentation = false;
-	} QueueFamily;
+	};
 
 	// Family declarations
 	QueueFamily graphicsFamily;
@@ -120,7 +120,7 @@ typedef struct QueueFamilyIndices {
 
 		return available;
 	}
-} QueueFamilyIndices;
+};
 
 
 
@@ -140,11 +140,11 @@ public:
 	static QueueFamilyIndices getQueueFamilies(VkPhysicalDevice& device, VkSurfaceKHR& surface);
 
 private:
-	VkInstance &vulkInst;
+	VkInstance vulkInst = VK_NULL_HANDLE;
 	VulkanContext &vkContext;
 
-	VkPhysicalDevice GPUPhysicalDevice = VkPhysicalDevice();
-	VkDevice GPULogicalDevice = VkDevice();
+	VkPhysicalDevice GPUPhysicalDevice = VK_NULL_HANDLE;
+	VkDevice GPULogicalDevice = VK_NULL_HANDLE;
 
 	std::vector<const char*> requiredDeviceExtensions;
 	std::vector<PhysicalDeviceScoreProperties> GPUScores;

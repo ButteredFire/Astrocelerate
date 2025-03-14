@@ -81,16 +81,21 @@ public:
 private:
 	VulkanContext& vkContext;
 
+	VkPipeline graphicsPipeline = VK_NULL_HANDLE;
+
 	// Shaders
 		// Vertex shader
 	std::vector<char> vertShaderBytecode;
-	VkShaderModule vertShaderModule = VkShaderModule();
+	VkShaderModule vertShaderModule = VK_NULL_HANDLE;
 	VkPipelineVertexInputStateCreateInfo vertInputState{};
 
-	// Fragment shader
+		// Fragment shader
 	std::vector<char> fragShaderBytecode;
-	VkShaderModule fragShaderModule = VkShaderModule();
+	VkShaderModule fragShaderModule = VK_NULL_HANDLE;
 	std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
+
+	// Render pass
+	VkRenderPass renderPass = VK_NULL_HANDLE;
 
 	// Dynamic states
 	std::vector<VkDynamicState> dynamicStates;
@@ -122,10 +127,20 @@ private:
 	VkPipelineTessellationStateCreateInfo tessStateCreateInfo{};
 
 	// Pipeline layout
-	VkPipelineLayout pipelineLayout = VkPipelineLayout();
+	VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
+
+
 
 	/* Creates the graphics pipeline. */
 	void createGraphicsPipeline();
+
+
+	/* Initializes the pipeline layout. */
+	void createPipelineLayout();
+
+
+	/* Creates a render pass. */
+	void createRenderPass();
 
 
 	/* Creates the shader stage of the graphics pipeline from compiled SPIR-V shader files. */
@@ -174,6 +189,7 @@ private:
 
 	/* Initializes depth stencil testing. 
 	* TODO: FINISH FUNCTION
+	* Depth stencil testing is disabled for now. To enable it, change the framebuffer attachment stencilLoadOp and stencilStoreOp in createRenderPass(), and add the depth stencil state create info struct to createGraphicsPipeline()
 	*/
 	void initDepthStencilState();
 
@@ -184,12 +200,11 @@ private:
 	void initColorBlendingState();
 
 
-	/* Initializes tessellation state. */
+	/* Initializes tessellation state. 
+	* TODO: FINISH FUNCTION
+	* Tessellation is disabled for now. To enable it, specify the input assembly state's topology as PATCH_LIST, change the framebuffer attachment sample count in createRenderPass(), and add the tessellation create info struct to createGraphicsPipeline()
+	*/
 	void initTessellationState();
-
-
-	/* Initializes the pipeline layout. */
-	void initPipelineLayout();
 	
 	
 	/* Creates a shader module to pass the code to the pipeline.

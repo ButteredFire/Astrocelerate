@@ -117,11 +117,10 @@ void VkSwapchainManager::createSwapChain() {
 
     // Saves swap-chain properties
     vkContext.swapChain = swapChain;
-    swapChainImageFormat = surfaceFormat.format;
-    swapChainExtent = extent;
+    // Saves swap-chain properties
+    vkContext.surfaceFormat = surfaceFormat;
     vkContext.swapChainExtent = extent;
 
-    
     // Fills swapChainImages with a set of VkImage objects provided after swap-chain creation
     vkGetSwapchainImagesKHR(vkContext.logicalDevice, vkContext.swapChain, &imageCount, nullptr);
     swapChainImages.resize(imageCount);
@@ -138,7 +137,7 @@ std::vector<VkImageView> VkSwapchainManager::createImageViews(std::vector<VkImag
 
         // Specifies how the data is interpreted
         viewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D; // Treats images as 2D textures
-        viewCreateInfo.format = swapChainImageFormat; // Specifies image format
+        viewCreateInfo.format = vkContext.surfaceFormat.format; // Specifies image format
 
         /* Defines how the color channels of the image should be interpreted (swizzling).
         * In essence, swizzling remaps the color channels of the image to how they should be interpreted by the image view.
