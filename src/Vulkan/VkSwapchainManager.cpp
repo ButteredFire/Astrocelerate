@@ -4,7 +4,6 @@
 #include "VkSwapchainManager.hpp"
 
 VkSwapchainManager::VkSwapchainManager(VulkanContext& context) :
-    swapChain(VK_NULL_HANDLE), swapChainExtent(VkExtent2D()), swapChainImageFormat(VkFormat()),
     vkContext(context) {
 
     if (vkContext.physicalDevice == VK_NULL_HANDLE) {

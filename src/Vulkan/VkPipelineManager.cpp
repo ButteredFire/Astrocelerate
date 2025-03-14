@@ -36,6 +36,8 @@ void GraphicsPipeline::init() {
 
 	initColorBlendingState();		// Blending state
 
+	initTessellationState();		// Tessellation state (note: tessellation is disabled for now. To enable it, specify the input assembly state's topology as PATCH_LIST, and add the tessellation create info struct to createGraphicsPipeline())
+
 
 	// 2. Load shaders
 	initShaderStage();
@@ -133,7 +135,7 @@ void GraphicsPipeline::initDynamicStates() {
 
 void GraphicsPipeline::initInputAssemblyState() {
 	inputAssemblyCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-	inputAssemblyCreateInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+	inputAssemblyCreateInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST; // Use PATCH_LIST instead of TRIANGLE_LIST for tessellation
 	inputAssemblyCreateInfo.primitiveRestartEnable = VK_TRUE;
 }
 
@@ -225,6 +227,12 @@ void GraphicsPipeline::initColorBlendingState() {
 	colorBlendCreateInfo.blendConstants[1] = 0.0f;
 	colorBlendCreateInfo.blendConstants[2] = 0.0f;
 	colorBlendCreateInfo.blendConstants[3] = 0.0f;
+}
+
+
+void GraphicsPipeline::initTessellationState() {
+	tessStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO;
+	tessStateCreateInfo.patchControlPoints = 3; // Number of control points per patch (e.g., 3 for triangles)
 }
 
 

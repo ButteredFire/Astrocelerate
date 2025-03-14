@@ -6,7 +6,6 @@
 
 
 VkDeviceManager::VkDeviceManager(VulkanContext &context):
-    GPUPhysicalDevice(VK_NULL_HANDLE), GPULogicalDevice(VK_NULL_HANDLE),
     vulkInst(context.vulkanInstance), vkContext(context) {
 
     if (vulkInst == VK_NULL_HANDLE) {

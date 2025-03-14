@@ -49,11 +49,11 @@ public:
 private:
 	VulkanContext& vkContext;
 
-	VkSwapchainKHR swapChain;
+	VkSwapchainKHR swapChain = VkSwapchainKHR();
 	std::vector<VkImage> swapChainImages;
 	std::vector<VkImageView> swapChainImageViews;
-	VkExtent2D swapChainExtent;
-	VkFormat swapChainImageFormat;
+	VkExtent2D swapChainExtent = VkExtent2D();
+	VkFormat swapChainImageFormat = VkFormat();
 
 	/* Creates a swap-chain. */
 	void createSwapChain();

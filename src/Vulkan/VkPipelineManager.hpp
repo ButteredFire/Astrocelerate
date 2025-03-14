@@ -84,12 +84,12 @@ private:
 	// Shaders
 		// Vertex shader
 	std::vector<char> vertShaderBytecode;
-	VkShaderModule vertShaderModule = VK_NULL_HANDLE;
+	VkShaderModule vertShaderModule = VkShaderModule();
 	VkPipelineVertexInputStateCreateInfo vertInputState{};
 
 	// Fragment shader
 	std::vector<char> fragShaderBytecode;
-	VkShaderModule fragShaderModule = VK_NULL_HANDLE;
+	VkShaderModule fragShaderModule = VkShaderModule();
 	std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
 
 	// Dynamic states
@@ -118,8 +118,11 @@ private:
 	VkPipelineColorBlendAttachmentState colorBlendAttachment{};
 	VkPipelineColorBlendStateCreateInfo colorBlendCreateInfo{};
 
+	// Tessellation state
+	VkPipelineTessellationStateCreateInfo tessStateCreateInfo{};
+
 	// Pipeline layout
-	VkPipelineLayout pipelineLayout;
+	VkPipelineLayout pipelineLayout = VkPipelineLayout();
 
 	/* Creates the graphics pipeline. */
 	void createGraphicsPipeline();
@@ -179,6 +182,10 @@ private:
 	* After a fragment shader has returned a color, it needs to be combined with the color that is already in the framebuffer. This transformation is known as color blending.
 	*/
 	void initColorBlendingState();
+
+
+	/* Initializes tessellation state. */
+	void initTessellationState();
 
 
 	/* Initializes the pipeline layout. */

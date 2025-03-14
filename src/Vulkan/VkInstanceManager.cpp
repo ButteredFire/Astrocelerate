@@ -5,7 +5,7 @@
 #include "VkInstanceManager.hpp"
 
 VkInstanceManager::VkInstanceManager(VulkanContext &context):
-    vulkInst(VK_NULL_HANDLE), windowSurface(VK_NULL_HANDLE), vkContext(context) {}
+    vkContext(context) {}
 
 VkInstanceManager::~VkInstanceManager() {
     vkDestroySurfaceKHR(vulkInst, windowSurface, nullptr);

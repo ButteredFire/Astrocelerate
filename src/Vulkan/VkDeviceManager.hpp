@@ -143,8 +143,8 @@ private:
 	VkInstance &vulkInst;
 	VulkanContext &vkContext;
 
-	VkPhysicalDevice GPUPhysicalDevice;
-	VkDevice GPULogicalDevice;
+	VkPhysicalDevice GPUPhysicalDevice = VkPhysicalDevice();
+	VkDevice GPULogicalDevice = VkDevice();
 
 	std::vector<const char*> requiredDeviceExtensions;
 	std::vector<PhysicalDeviceScoreProperties> GPUScores;

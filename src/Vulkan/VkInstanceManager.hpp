@@ -71,9 +71,9 @@ public:
 	void addVulkanValidationLayers(std::vector<const char*> layers);
 
 private:
-	VkInstance vulkInst;
+	VkInstance vulkInst = VkInstance();
 	VulkanContext& vkContext;
-	VkSurfaceKHR windowSurface;
+	VkSurfaceKHR windowSurface = VkSurfaceKHR();
 
 	std::vector<const char*> enabledExtensions;
 	std::vector<const char*> enabledValidationLayers;
