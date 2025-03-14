@@ -8,16 +8,20 @@ VkInstanceManager::VkInstanceManager(VulkanContext &context):
     vkContext(context) {}
 
 VkInstanceManager::~VkInstanceManager() {
-    vkDestroySurfaceKHR(vulkInst, windowSurface, nullptr);
-
-    // Destroy the instance last (because the destruction of other Vulkan objects depend on it)
-    vkDestroyInstance(vulkInst, nullptr);
+    cleanup();
 }
-
 
 
 void VkInstanceManager::init() {
     initVulkan();
+}
+
+
+void VkInstanceManager::cleanup() {
+    vkDestroySurfaceKHR(vulkInst, windowSurface, nullptr);
+
+    // Destroy the instance last (because the destruction of other Vulkan objects depend on it)
+    vkDestroyInstance(vulkInst, nullptr);
 }
 
 
@@ -54,6 +58,7 @@ void VkInstanceManager::initVulkan() {
     // Creates Vulkan instance
     VkResult initResult = createVulkanInstance();
     if (initResult != VK_SUCCESS) {
+        cleanup();
         throw std::runtime_error("Failed to create Vulkan instance!");
     }
     vkContext.vulkanInstance = vulkInst;
@@ -61,6 +66,7 @@ void VkInstanceManager::initVulkan() {
     // Creates Vulkan surface
     VkResult surfaceInitResult = createSurface();
     if (surfaceInitResult != VK_SUCCESS) {
+        cleanup();
         throw std::runtime_error("Failed to create Vulkan window surface!");
     }
     vkContext.vkSurface = windowSurface;
@@ -95,6 +101,7 @@ VkResult VkInstanceManager::createVulkanInstance() {
 
     if (verifyVulkanExtensions(enabledExtensions) == false) {
         enabledExtensions.clear();
+        cleanup();
         throw std::runtime_error("GLFW Instance Extensions contain invalid or unsupported extensions!");
     }
 
@@ -179,6 +186,7 @@ std::vector<VkLayerProperties> VkInstanceManager::getSupportedVulkanValidationLa
 
 void VkInstanceManager::addVulkanExtensions(std::vector<const char*> extensions) {
     if (verifyVulkanExtensions(extensions) == false) {
+        cleanup();
         throw std::runtime_error("Cannot set Vulkan extensions: Provided extensions are either invalid or unsupported!");
     }
 
@@ -193,6 +201,7 @@ void VkInstanceManager::addVulkanExtensions(std::vector<const char*> extensions)
 
 void VkInstanceManager::addVulkanValidationLayers(std::vector<const char*> layers) {
     if (inDebugMode && verifyVulkanValidationLayers(layers) == false) {
+        cleanup();
         throw std::runtime_error("Cannot set Vulkan validation layers: Provided layers are either invalid or unsupported!");
     }
 

@@ -37,6 +37,7 @@ public:
 
 	/* Initializes the swap-chain manager. */
 	void init();
+	void cleanup();
 
 
 	/* Queries the properties of a GPU's swap-chain.

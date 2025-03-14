@@ -9,12 +9,7 @@ GraphicsPipeline::GraphicsPipeline(VulkanContext& context):
 }
 
 GraphicsPipeline::~GraphicsPipeline() {
-	vkDestroyShaderModule(vkContext.logicalDevice, vertShaderModule, nullptr);
-	vkDestroyShaderModule(vkContext.logicalDevice, fragShaderModule, nullptr);
-
-	vkDestroyRenderPass(vkContext.logicalDevice, renderPass, nullptr);
-	vkDestroyPipelineLayout(vkContext.logicalDevice, pipelineLayout, nullptr);
-	vkDestroyPipeline(vkContext.logicalDevice, graphicsPipeline, nullptr);
+	cleanup();
 }
 
 void GraphicsPipeline::init() {
@@ -54,6 +49,15 @@ void GraphicsPipeline::init() {
 	//createGraphicsPipeline();
 }
 
+
+void GraphicsPipeline::cleanup() {
+	vkDestroyShaderModule(vkContext.logicalDevice, vertShaderModule, nullptr);
+	vkDestroyShaderModule(vkContext.logicalDevice, fragShaderModule, nullptr);
+
+	vkDestroyRenderPass(vkContext.logicalDevice, renderPass, nullptr);
+	vkDestroyPipelineLayout(vkContext.logicalDevice, pipelineLayout, nullptr);
+	vkDestroyPipeline(vkContext.logicalDevice, graphicsPipeline, nullptr);
+}
 
 
 void GraphicsPipeline::createGraphicsPipeline() {
@@ -99,6 +103,7 @@ void GraphicsPipeline::createGraphicsPipeline() {
 
 	VkResult result = vkCreateGraphicsPipelines(vkContext.logicalDevice, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &graphicsPipeline);
 	if (result != VK_SUCCESS) {
+		cleanup();
 		throw std::runtime_error("Failed to create graphics pipeline!");
 	}
 
@@ -118,6 +123,7 @@ void GraphicsPipeline::createPipelineLayout() {
 
 	VkResult result = vkCreatePipelineLayout(vkContext.logicalDevice, &createInfo, nullptr, &pipelineLayout);
 	if (result != VK_SUCCESS) {
+		cleanup();
 		throw std::runtime_error("Failed to create graphics pipeline layout!");
 	}
 

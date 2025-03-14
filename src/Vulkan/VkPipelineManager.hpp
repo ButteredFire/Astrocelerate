@@ -77,6 +77,7 @@ public:
 	~GraphicsPipeline();
 
 	void init();
+	void cleanup();
 
 private:
 	VulkanContext& vkContext;

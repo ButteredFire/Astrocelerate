@@ -18,13 +18,7 @@ VkSwapchainManager::VkSwapchainManager(VulkanContext& context) :
 }
 
 VkSwapchainManager::~VkSwapchainManager() {
-    // Frees swap-chain memory
-    vkDestroySwapchainKHR(vkContext.logicalDevice, swapChain, nullptr);
-
-    // Frees image views memory
-    for (auto& imageView : swapChainImageViews) {
-        vkDestroyImageView(vkContext.logicalDevice, imageView, nullptr);
-    }
+    cleanup();
 }
 
 
@@ -34,6 +28,17 @@ void VkSwapchainManager::init() {
 
     // Parses data for each image
     swapChainImageViews = createImageViews(swapChainImages);
+}
+
+
+void VkSwapchainManager::cleanup() {
+    // Frees swap-chain memory
+    vkDestroySwapchainKHR(vkContext.logicalDevice, swapChain, nullptr);
+
+    // Frees image views memory
+    for (auto& imageView : swapChainImageViews) {
+        vkDestroyImageView(vkContext.logicalDevice, imageView, nullptr);
+    }
 }
 
 
@@ -112,6 +117,7 @@ void VkSwapchainManager::createSwapChain() {
     // Creates a VkSwapchainKHR object
     VkResult result = vkCreateSwapchainKHR(vkContext.logicalDevice, &swapChainCreateInfo, nullptr, &swapChain);
     if (result != VK_SUCCESS) {
+        cleanup();
         throw std::runtime_error("Failed to create swap-chain!");
     }
 
@@ -170,6 +176,7 @@ std::vector<VkImageView> VkSwapchainManager::createImageViews(std::vector<VkImag
         VkImageView imageView;
         VkResult result = vkCreateImageView(vkContext.logicalDevice, &viewCreateInfo, nullptr, &imageView);
         if (result != VK_SUCCESS) {
+            cleanup();
             throw std::runtime_error("Failed to read image data!");
         }
 
@@ -215,6 +222,7 @@ SwapChainProperties VkSwapchainManager::getSwapChainProperties(VkPhysicalDevice&
 
 VkSurfaceFormatKHR VkSwapchainManager::getBestSurfaceFormat(std::vector<VkSurfaceFormatKHR>& formats) {
     if (formats.empty()) {
+        cleanup();
         throw std::runtime_error("Unable to get surface formats from an empty vector!");
     }
 
