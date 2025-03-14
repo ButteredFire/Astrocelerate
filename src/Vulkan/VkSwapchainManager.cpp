@@ -119,6 +119,7 @@ void VkSwapchainManager::createSwapChain() {
     if (result != VK_SUCCESS) {
         cleanup();
         throw std::runtime_error("Failed to create swap-chain!");
+        cleanup();
     }
 
     // Saves swap-chain properties
@@ -178,6 +179,7 @@ std::vector<VkImageView> VkSwapchainManager::createImageViews(std::vector<VkImag
         if (result != VK_SUCCESS) {
             cleanup();
             throw std::runtime_error("Failed to read image data!");
+            cleanup();
         }
 
         imageViews.push_back(imageView);
@@ -224,6 +226,7 @@ VkSurfaceFormatKHR VkSwapchainManager::getBestSurfaceFormat(std::vector<VkSurfac
     if (formats.empty()) {
         cleanup();
         throw std::runtime_error("Unable to get surface formats from an empty vector!");
+        cleanup();
     }
 
     for (const auto& format : formats) {

@@ -105,6 +105,7 @@ void GraphicsPipeline::createGraphicsPipeline() {
 	if (result != VK_SUCCESS) {
 		cleanup();
 		throw std::runtime_error("Failed to create graphics pipeline!");
+		cleanup();
 	}
 
 	vkContext.graphicsPipeline = graphicsPipeline;
@@ -125,6 +126,7 @@ void GraphicsPipeline::createPipelineLayout() {
 	if (result != VK_SUCCESS) {
 		cleanup();
 		throw std::runtime_error("Failed to create graphics pipeline layout!");
+		cleanup();
 	}
 
 	vkContext.pipelineLayout = pipelineLayout;
