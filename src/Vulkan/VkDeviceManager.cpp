@@ -19,7 +19,7 @@ VkDeviceManager::VkDeviceManager(VulkanContext &context):
 
 
 VkDeviceManager::~VkDeviceManager() {
-    vkDestroyDevice(GPULogicalDevice, nullptr);
+    cleanup();
 }
 
 
@@ -37,6 +37,11 @@ void VkDeviceManager::init() {
 }
 
 
+void VkDeviceManager::cleanup() {
+    vkDestroyDevice(GPULogicalDevice, nullptr);
+}
+
+
 void VkDeviceManager::createPhysicalDevice() {
     // Queries available Vulkan-supported GPUs
     uint32_t physDeviceCount = 0;
@@ -44,6 +49,7 @@ void VkDeviceManager::createPhysicalDevice() {
 
     if (physDeviceCount == 0) {
         throw std::runtime_error("This machine does not have Vulkan-supported GPUs!");
+        cleanup();
     }
 
     VkPhysicalDevice physicalDevice = nullptr;
@@ -71,6 +77,7 @@ void VkDeviceManager::createPhysicalDevice() {
 
     if (physicalDevice == nullptr || !isDeviceCompatible) {
         throw std::runtime_error("Failed to find a GPU that supports Astrocelerate's features!");
+        cleanup();
     }
 
     vkContext.physicalDevice = GPUPhysicalDevice = physicalDevice;
@@ -83,8 +90,10 @@ void VkDeviceManager::createLogicalDevice() {
     // Verifies that all queue families exist before proceeding with device creation
     std::vector<QueueFamilyIndices::QueueFamily*> allFamilies = queueFamilies.getAllQueueFamilies();
     for (const auto &family : allFamilies)
-        if (!queueFamilies.familyExists(*family))
+        if (!queueFamilies.familyExists(*family)) {
             throw std::runtime_error("Unable to create logical device: Queue family is non-existent!");
+            cleanup();
+        }
 
     // Queues must have a priority in [0.0; 1.0], which influences the scheduling of command buffer execution.
     float queuePriority = 1.0f; 
@@ -149,6 +158,7 @@ void VkDeviceManager::createLogicalDevice() {
     VkResult result = vkCreateDevice(GPUPhysicalDevice, &deviceInfo, nullptr, &GPULogicalDevice);
     if (result != VK_SUCCESS) {
         throw std::runtime_error("Unable to create GPU logical device!");
+        cleanup();
     }
 
     // Populates each (available) family's device queue
