@@ -130,6 +130,7 @@ void VkSwapchainManager::createSwapChain() {
     // Fills swapChainImages with a set of VkImage objects provided after swap-chain creation
     vkGetSwapchainImagesKHR(vkContext.logicalDevice, vkContext.swapChain, &imageCount, nullptr);
     swapChainImages.resize(imageCount);
+    vkContext.minImageCount = imageCount;
     vkGetSwapchainImagesKHR(vkContext.logicalDevice, vkContext.swapChain, &imageCount, swapChainImages.data());
 }
 

@@ -9,15 +9,15 @@
 #include <vector>
 #include <unordered_set>
 
-#include <Engine/Renderer.hpp>
+#include <Rendering/Renderer.hpp>
 #include <Vulkan/VkInstanceManager.hpp>
 #include <Vulkan/VkDeviceManager.hpp>
 #include <Vulkan/VkSwapchainManager.hpp>
-#include <Vulkan/VkPipelineManager.hpp>
+#include <Rendering/GraphicsPipeline.hpp>
 #include <AppWindow.hpp>
 #include <Constants.h>
 #include <LoggingManager.hpp>
-#include <VulkanContexts.hpp>
+#include <Vulkan/VulkanContexts.hpp>
 
 
 

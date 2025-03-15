@@ -10,9 +10,10 @@ set(SOURCE_FILES
 	"src/Application.cpp"
 	"src/AppWindow.cpp"
 	"src/Engine/Engine.cpp"
-	"src/Engine/Renderer.cpp"
+	"src/Rendering/GraphicsPipeline.cpp"
+	"src/Rendering/Renderer.cpp"
+	"src/Rendering/RenderPipeline.cpp"
 	"src/Vulkan/VkDeviceManager.cpp"
 	"src/Vulkan/VkInstanceManager.cpp"
-	"src/Vulkan/VkPipelineManager.cpp"
 	"src/Vulkan/VkSwapchainManager.cpp"
 )

@@ -1,7 +1,7 @@
 /* VkPipelineManager.cpp - Vulkan graphics pipeline management implementation.
 */
 
-#include "VkPipelineManager.hpp"
+#include "GraphicsPipeline.hpp"
 
 GraphicsPipeline::GraphicsPipeline(VulkanContext& context):
 	vkContext(context) {
@@ -46,7 +46,7 @@ void GraphicsPipeline::init() {
 	createRenderPass();
 
 	// Create the graphics pipeline
-	//createGraphicsPipeline();
+	createGraphicsPipeline();
 }
 
 
@@ -61,7 +61,7 @@ void GraphicsPipeline::cleanup() {
 
 
 void GraphicsPipeline::createGraphicsPipeline() {
-	VkGraphicsPipelineCreateInfo pipelineCreateInfo;
+	VkGraphicsPipelineCreateInfo pipelineCreateInfo{};
 	pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO; // Specify the pipeline as the graphics pipeline
 
 	// Shader stage
@@ -74,9 +74,9 @@ void GraphicsPipeline::createGraphicsPipeline() {
 	pipelineCreateInfo.pViewportState = &viewportStateCreateInfo;
 	pipelineCreateInfo.pRasterizationState = &rasterizerCreateInfo;
 	pipelineCreateInfo.pMultisampleState = &multisampleStateCreateInfo;
-	pipelineCreateInfo.pDepthStencilState = VK_NULL_HANDLE;
+	pipelineCreateInfo.pDepthStencilState = nullptr;
 	pipelineCreateInfo.pColorBlendState = &colorBlendCreateInfo;
-	pipelineCreateInfo.pTessellationState = VK_NULL_HANDLE;
+	pipelineCreateInfo.pTessellationState = nullptr;
 	pipelineCreateInfo.pVertexInputState = &vertInputState;
 
 	// Render pass
@@ -236,7 +236,7 @@ void GraphicsPipeline::initDynamicStates() {
 void GraphicsPipeline::initInputAssemblyState() {
 	inputAssemblyCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
 	inputAssemblyCreateInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST; // Use PATCH_LIST instead of TRIANGLE_LIST for tessellation
-	inputAssemblyCreateInfo.primitiveRestartEnable = VK_TRUE;
+	inputAssemblyCreateInfo.primitiveRestartEnable = VK_FALSE;
 }
 
 

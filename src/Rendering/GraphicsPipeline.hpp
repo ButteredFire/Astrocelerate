@@ -21,7 +21,7 @@
 #include <Vulkan/VkInstanceManager.hpp>
 #include <LoggingManager.hpp>
 #include <Constants.h>
-#include <VulkanContexts.hpp>
+#include <Vulkan/VulkanContexts.hpp>
 
 
 /* Reads a file in binary mode.
