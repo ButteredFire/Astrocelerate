@@ -27,8 +27,9 @@ Renderer::Renderer(VulkanContext &context):
     
     std::cout << "Renderer initialized.\n";
     
+	QueueFamilyIndices familyIndices = VkDeviceManager::getQueueFamilies(vkContext.physicalDevice, vkContext.vkSurface);
+    vkInitInfo.QueueFamily = familyIndices.graphicsFamily.index.value();
     /*
-    vkInitInfo.QueueFamily = YOUR_QUEUE_FAMILY;
     vkInitInfo.Queue = YOUR_QUEUE;
     vkInitInfo.PipelineCache = YOUR_PIPELINE_CACHE;
     vkInitInfo.DescriptorPool = YOUR_DESCRIPTOR_POOL;

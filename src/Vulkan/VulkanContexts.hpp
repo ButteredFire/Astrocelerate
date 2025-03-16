@@ -1,12 +1,5 @@
 #pragma once
 
-// GLFW & Vulkan
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
-
-// Local
-#include <Vulkan/VkDeviceManager.hpp>
-
 // A structure that manages commonly accessed or global Vulkan objects.
 struct VulkanContext {
     GLFWwindow* window;
@@ -22,12 +15,15 @@ struct VulkanContext {
 
     // Swap-chain
     VkSwapchainKHR swapChain = VK_NULL_HANDLE;
-    uint32_t minImageCount = 0;
+    std::vector<VkImageView> swapChainImageViews;
     VkExtent2D swapChainExtent = VkExtent2D();
     VkSurfaceFormatKHR surfaceFormat = VkSurfaceFormatKHR();
+    uint32_t minImageCount = 0;
 
-    // Pipeline
-    VkPipeline graphicsPipeline = VK_NULL_HANDLE;
-    VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
-    VkRenderPass renderPass = VK_NULL_HANDLE;
+    // Pipelines
+    struct GraphicsPipeline {
+        VkPipeline pipeline = VK_NULL_HANDLE;
+        VkPipelineLayout layout = VK_NULL_HANDLE;
+        VkRenderPass renderPass = VK_NULL_HANDLE;
+    } GraphicsPipeline;
 };

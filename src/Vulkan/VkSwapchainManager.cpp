@@ -27,7 +27,8 @@ void VkSwapchainManager::init() {
     createSwapChain();
 
     // Parses data for each image
-    swapChainImageViews = createImageViews(swapChainImages);
+    createImageViews();
+    vkContext.swapChainImageViews = swapChainImageViews;
 }
 
 
@@ -135,9 +136,13 @@ void VkSwapchainManager::createSwapChain() {
 }
 
 
-std::vector<VkImageView> VkSwapchainManager::createImageViews(std::vector<VkImage>& images) {
-    std::vector<VkImageView> imageViews(images.size());
-    for (const auto& image : images) {
+void VkSwapchainManager::createImageViews() {
+	if (swapChainImages.empty()) {
+		cleanup();
+		throw std::runtime_error("Cannot create image views: No images to process!");
+	}
+
+    for (const auto& image : swapChainImages) {
         VkImageViewCreateInfo viewCreateInfo{};
         viewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
         viewCreateInfo.image = image;
@@ -181,10 +186,8 @@ std::vector<VkImageView> VkSwapchainManager::createImageViews(std::vector<VkImag
             throw std::runtime_error("Failed to read image data!");
         }
 
-        imageViews.push_back(imageView);
+        swapChainImageViews.push_back(imageView);
     }
-
-    return imageViews;
 }
 
 

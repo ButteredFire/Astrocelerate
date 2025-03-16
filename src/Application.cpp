@@ -40,9 +40,13 @@ int main() {
         VkSwapchainManager swapchainManager(vkContext);
         swapchainManager.init();
 
-            // Creates a graphics pipeline manager for graphics pipeline management
+            // Creates a graphics pipeline
         GraphicsPipeline graphicsPipeline(vkContext);
         graphicsPipeline.init();
+
+            // Creates a rendering pipeline 
+        RenderPipeline renderPipeline(vkContext);
+        renderPipeline.init();
 
         if (vkContext.physicalDevice == VK_NULL_HANDLE) {
             std::cerr << "WARNING: Physical device not initialized!\n";

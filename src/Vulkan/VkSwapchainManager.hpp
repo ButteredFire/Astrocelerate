@@ -68,11 +68,8 @@ private:
 	* - A VkImageView object is a VkImage wrapper that defines how the image should be interpreted (e.g., format, color channels, and mip levels). In Vulkan, raw images cannot be directly accessed in shaders, framebuffers, or render passes without an image view.
 	* 
 	* The "VkImage + VkImageView" concept is conceptually akin to OpenGL's "Vertex Buffer + Vertex Buffer Layout".
-	* 
-	* @param images: A vector of VkImage objects to be processed.
-	* @return A corresponding vector of VkImageView objects.
 	*/
-	std::vector<VkImageView> createImageViews(std::vector<VkImage>& images);
+	void createImageViews();
 
 
 

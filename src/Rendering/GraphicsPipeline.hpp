@@ -1,7 +1,6 @@
-/* VkPipelineManager.hpp - Manages pipelines pertaining to graphics (e.g., graphics pipeline, compute pipeline).
+/* GraphicsPipeline.hpp - Manages the graphics pipeline.
 * 
-* Handles multiple graphics pipelines and related operations (e.g., pipeline creation, destruction, caching).
-* Stores pipeline layouts, render passes, and pipeline objects.
+* Handles the graphics pipeline and related operations (e.g., creation, destruction, caching).
 */
 #pragma once
 
@@ -140,7 +139,10 @@ private:
 	void createPipelineLayout();
 
 
-	/* Creates a render pass. */
+	/* Creates a render pass. 
+	* A render pass is a collection of rendering operations that all share/use the same framebuffer of the image to be rendered.
+	* It defines how the rendering commands are organized and executed.
+	*/
 	void createRenderPass();
 
 

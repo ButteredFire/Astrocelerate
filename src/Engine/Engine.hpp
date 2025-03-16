@@ -9,11 +9,14 @@
 #include <vector>
 #include <unordered_set>
 
-#include <Rendering/Renderer.hpp>
 #include <Vulkan/VkInstanceManager.hpp>
 #include <Vulkan/VkDeviceManager.hpp>
 #include <Vulkan/VkSwapchainManager.hpp>
+
+#include <Rendering/Renderer.hpp>
 #include <Rendering/GraphicsPipeline.hpp>
+#include <Rendering/RenderPipeline.hpp>
+
 #include <AppWindow.hpp>
 #include <Constants.h>
 #include <LoggingManager.hpp>

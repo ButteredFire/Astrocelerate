@@ -1,4 +1,4 @@
-/* VkPipelineManager.cpp - Vulkan graphics pipeline management implementation.
+/* GraphicsPipeline.cpp - Vulkan graphics pipeline management implementation.
 */
 
 #include "GraphicsPipeline.hpp"
@@ -107,7 +107,7 @@ void GraphicsPipeline::createGraphicsPipeline() {
 		throw std::runtime_error("Failed to create graphics pipeline!");
 	}
 
-	vkContext.graphicsPipeline = graphicsPipeline;
+	vkContext.GraphicsPipeline.pipeline = graphicsPipeline;
 }
 
 
@@ -127,7 +127,7 @@ void GraphicsPipeline::createPipelineLayout() {
 		throw std::runtime_error("Failed to create graphics pipeline layout!");
 	}
 
-	vkContext.pipelineLayout = pipelineLayout;
+	vkContext.GraphicsPipeline.layout = pipelineLayout;
 }
 
 
@@ -176,7 +176,7 @@ void GraphicsPipeline::createRenderPass() {
 		throw std::runtime_error("Failed to create render pass!");
 	}
 
-	vkContext.renderPass = renderPass;
+	vkContext.GraphicsPipeline.renderPass = renderPass;
 }
 
 
