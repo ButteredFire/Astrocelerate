@@ -12,7 +12,7 @@ Window::Window(int width, int height, std::string windowName)
     // Disables window from being resized post-creation (to support custom window resizing logic)
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-    window = glfwCreateWindow(height, width, windowName.c_str(), nullptr, nullptr);
+    window = glfwCreateWindow(width, height, windowName.c_str(), nullptr, nullptr);
 }
 
 Window::~Window() {

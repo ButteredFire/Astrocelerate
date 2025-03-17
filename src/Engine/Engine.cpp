@@ -5,10 +5,10 @@
 
 
 
-Engine::Engine(GLFWwindow *w, VulkanContext& context):
+Engine::Engine(GLFWwindow *w, VulkanContext& context, Renderer& rendererInstance):
     window(w),
     vkContext(context),
-    renderer(context) {
+    renderer(rendererInstance) {
 
     if (!isPointerValid(window)) {
         throw std::runtime_error("Engine crashed: Invalid window context!");
@@ -35,4 +35,6 @@ void Engine::update() {
         glfwPollEvents();
         renderer.update();
     }
+
+    vkDeviceWaitIdle(vkContext.logicalDevice);
 }

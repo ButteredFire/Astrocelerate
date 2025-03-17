@@ -32,6 +32,7 @@
 // Local
 #include <Vulkan/VkInstanceManager.hpp>
 #include <Vulkan/VkDeviceManager.hpp>
+#include <Rendering/RenderPipeline.hpp>
 #include <Constants.h>
 #include <LoggingManager.hpp>
 
@@ -39,7 +40,7 @@
 
 class Renderer {
 public:
-	Renderer(VulkanContext &context);
+	Renderer(VulkanContext &context, RenderPipeline& renderPipelineInstance);
 	~Renderer();
 
 	/* Updates the rendering. */
@@ -48,4 +49,17 @@ public:
 private:
 	VkInstance &vulkInst;
 	VulkanContext &vkContext;
+
+	RenderPipeline& renderPipeline;
+	uint32_t idx = 1;
+
+	/* Renders a frame. 
+	* At a high level, rendering a frame in Vulkan consists of a common set of steps:
+	*	- Wait for the previous frame to finish
+	*	- Acquire an image from the swap chain
+	*	- Record a command buffer which draws the scene onto that image
+	*	- Submit the recorded command buffer
+	*	- Present the swap chain image
+	*/
+	void drawFrame();
 };

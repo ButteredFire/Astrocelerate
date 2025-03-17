@@ -164,12 +164,32 @@ void GraphicsPipeline::createRenderPass() {
 	subpass.colorAttachmentCount = 1;
 	subpass.pColorAttachments = &colorAttachmentRef;
 
+
+
+	// Subpass dependencies define memory and execution dependencies between subpasses. They are used to synchronize access to attachments in the render passes.
+	VkSubpassDependency dependency{};
+	dependency.srcSubpass = VK_SUBPASS_EXTERNAL; // Specifies the implicit subpass before the render pass
+	dependency.dstSubpass = 0; // Specifies the first subpass
+
+	// Specifies the operations to wait for (and the stages in which they occur)
+		// We must wait for the swap-chain to finish reading the image before it can be accessed. To this end, we can wait on the color attachment output stage.
+	dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependency.srcAccessMask = 0;
+		
+		// The operations that should wait on this are in the color attachment stage and involve the writing of the color attachment. These settings will prevent the transition from happening until it’s actually necessary (and allowed): when we want to start writing colors to it.
+	dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+
+	// Creates render pass
 	VkRenderPassCreateInfo renderPassCreateInfo{};
 	renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
 	renderPassCreateInfo.attachmentCount = 1;
 	renderPassCreateInfo.pAttachments = &colorAttachment;
 	renderPassCreateInfo.subpassCount = 1;
 	renderPassCreateInfo.pSubpasses = &subpass;
+	renderPassCreateInfo.dependencyCount = 1;
+	renderPassCreateInfo.pDependencies = &dependency;
 
 	VkResult result = vkCreateRenderPass(vkContext.logicalDevice, &renderPassCreateInfo, nullptr, &renderPass);
 	if (result != VK_SUCCESS) {

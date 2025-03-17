@@ -38,8 +38,8 @@ namespace ErrorConsts {
 
 // Window properties
 namespace WindowConsts {
-	constexpr int DEFAULT_WINDOW_WIDTH = 600;
-	constexpr int DEFAULT_WINDOW_HEIGHT = 600;
+	constexpr int DEFAULT_WINDOW_WIDTH = 1020;
+	constexpr int DEFAULT_WINDOW_HEIGHT = 800;
 }
 
 

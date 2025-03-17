@@ -26,7 +26,7 @@
 
 class Engine {
 public:
-	Engine(GLFWwindow *w, VulkanContext &context);
+	Engine(GLFWwindow *w, VulkanContext &context, Renderer& rendererInstance);
 	~Engine();
 
 	// Engine
@@ -37,7 +37,7 @@ private:
 	GLFWwindow *window;
 	VulkanContext &vkContext;
 
-	Renderer renderer;
+	Renderer& renderer;
 
 template<typename T>
 	static inline bool isPointerValid(T *ptr) { return ptr != nullptr; };

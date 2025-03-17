@@ -41,13 +41,24 @@ private:
 	VkCommandPool commandPool = VK_NULL_HANDLE;
 	VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
 
+	// Synchronization
+	VkSemaphore imageReadySemaphore = VK_NULL_HANDLE;
+	VkSemaphore renderFinishedSemaphore = VK_NULL_HANDLE;
+	VkFence inFlightFence = VK_NULL_HANDLE;
+
 
 	/* Creates a framebuffer for each image in the swap-chain. */
 	void createFrameBuffers();
 
-	/* Creates the command pools for the render pipeline. */
+	
+	/* Creates the command pools. */
 	void createCommandPools();
 
-	/* Creates the command buffers for the render pipeline. */
+	
+	/* Creates the command buffers. */
 	void createCommandBuffers();
+
+
+	/* Creates synchronization objects. */
+	void createSyncObjects();
 };

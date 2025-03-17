@@ -48,11 +48,14 @@ int main() {
         RenderPipeline renderPipeline(vkContext);
         renderPipeline.init();
 
+            // Creates a renderer
+        Renderer renderer(vkContext, renderPipeline);
+
         if (vkContext.physicalDevice == VK_NULL_HANDLE) {
             std::cerr << "WARNING: Physical device not initialized!\n";
         }
 
-        Engine engine(windowPtr, vkContext);
+        Engine engine(windowPtr, vkContext, renderer);
         engine.run();
     }
     catch (const std::exception& e) {

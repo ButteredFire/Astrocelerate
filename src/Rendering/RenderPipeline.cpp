@@ -15,6 +15,8 @@ RenderPipeline::~RenderPipeline() {
 void RenderPipeline::init() {
 	createFrameBuffers();
 	createCommandPools();
+	createCommandBuffers();
+	createSyncObjects();
 }
 
 
@@ -24,6 +26,10 @@ void RenderPipeline::cleanup() {
 	}
 
 	vkDestroyCommandPool(vkContext.logicalDevice, commandPool, nullptr);
+
+	vkDestroySemaphore(vkContext.logicalDevice, imageReadySemaphore, nullptr);
+	vkDestroySemaphore(vkContext.logicalDevice, renderFinishedSemaphore, nullptr);
+	vkDestroyFence(vkContext.logicalDevice, inFlightFence, nullptr);
 }
 
 
@@ -62,8 +68,7 @@ void RenderPipeline::recordCommandBuffer(VkCommandBuffer& buffer, uint32_t image
 
 		// Defines the clear values to use (we must specify this since the color attachment's load operation is VK_ATTACHMENT_LOAD_OP_CLEAR)
 	VkClearValue clearColor{};
-	VkClearColorValue colorValue = {0.0f, 0.0f, 0.0f, 1.0f}; // (0, 0, 0, 1) -> Black
-	clearColor.color = colorValue;
+	clearColor.color = { 0.0f, 0.0f, 0.0f, 1.0f }; // (0, 0, 0, 1) -> Black;
 	clearColor.depthStencil = VkClearDepthStencilValue(); // Null for now (if depth stencil is implemented, you must also specify the color attachment load and store operations before specifying the clear value here)
 
 	renderPassBeginInfo.clearValueCount = 1;
@@ -85,7 +90,8 @@ void RenderPipeline::recordCommandBuffer(VkCommandBuffer& buffer, uint32_t image
 	// Specify viewport and scissor states (since they're dynamic states)
 		// Viewport
 	VkViewport viewport{};
-	viewport.x = viewport.y = 0.0f;
+	viewport.x = 0.0f;
+	viewport.y = 0.0f;
 	viewport.width = static_cast<float>(vkContext.swapChainExtent.width);
 	viewport.height = static_cast<float>(vkContext.swapChainExtent.height);
 	viewport.minDepth = 0.0f;
@@ -190,5 +196,64 @@ void RenderPipeline::createCommandBuffers() {
 		cleanup();
 		throw std::runtime_error("Failed to allocate command buffers!");
 	}
+
+	vkContext.RenderPipeline.commandBuffer = commandBuffer;
+}
+
+
+void RenderPipeline::createSyncObjects() {
+	/* A note on synchronization:
+	* - Since the GPU executes commands in parallel, and since each step in the frame-rendering process depends on the previous step (and the completion thereof), we must explicitly define an order of operations to prevent these steps from being executed concurrently (which results in unintended/undefined behavior). To that effect, we may use various synchronization primitives:
+	*
+	* - Semaphores: Used to synchronize queue operations within the GPU.
+	* - Fences: Used to synchronize the CPU with the GPU.
+	*
+	* Detailed explanation:
+	*
+	* 1) SEMAPHORES
+		* The semaphore is used to add order between queue operations (which is the work we submit to a queue (e.g., graphics/presentation queue), either in a command buffer or from within a function).
+		* Semaphores are both used to order work either within the same queue or between different queues.
+		*
+		* There are two types of semaphores: binary, and timeline. We will be using binary semaphores.
+			- The binary semaphore has a binary state: signaled OR unsignaled. On initialization, it is unsignaled. The binary semaphore can be used to order operations like this: To order 2 operations `opA` and `opB`, we configure `opA` so that it signals the binary semaphore on completion, and configure `opB` so that it only begins when the binary semaphore is signaled (i.e., `opB` will "wait" for that semaphore). After `opB` begins executing, the binary semaphore is reset to unsignaled to allow for future reuse.
+		*
+	* 2) FENCES
+		* The fence, like the semaphore, is used to synchronize execution, but it is for the CPU (a.k.a., the "host").
+		* We use the fence in cases where the host needs to know when the GPU has finished something.
+		*
+		* The fence, like the binary semaphore, is either in a signaled OR unsignaled state. When we want to execute something (i.e., a command buffer), we attach a fence to it and configure the fence to be signaled on its completion. Then, we must make the host wait for the fence to be signaled (i.e., halt/block any execution on the CPU until the fence is signaled) to guarantee that the work is completed before the host continues.
+		*
+		* In general, it is preferable to not block the host unless necessary. We want to feed the GPU and the host with useful work to do. Waiting on fences to signal is not useful work. Thus we prefer semaphores, or other synchronization primitives not yet covered, to synchronize our work. However, certain operations require the host to wait (e.g., rendering/drawing a frame, to ensure that the CPU waits until the GPU has finished processing the previous frame before starting to process the next one).
+		*
+		* Fences must be reset manually to put them back into the unsignaled state. This is because fences are used to control the execution of the host, and so the host gets to decide when to reset the fence. Contrast this to semaphores which are used to order work on the GPU without the host being involved.
+	*/
+
+	VkSemaphoreCreateInfo semaphoreCreateInfo{};
+	semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+	VkFenceCreateInfo fenceCreateInfo{};
+	fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+
+	// Specifies the fence to be created already in the signal state.
+	// We need to do this, because if the fence is created unsignaled (default), when we call drawFrame() in the Renderer for the first time, `vkWaitForFences` will wait for the fence to be signaled, only to wait indefinitely because the fence can only be signaled after a frame has finished rendering, and we are calling drawFrames() for the first time so there is no frame initially.
+	fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+	VkResult imageSemaphoreCreateResult = vkCreateSemaphore(vkContext.logicalDevice, &semaphoreCreateInfo, nullptr, &imageReadySemaphore);
+	VkResult renderSemaphoreCreateResult = vkCreateSemaphore(vkContext.logicalDevice, &semaphoreCreateInfo, nullptr, &renderFinishedSemaphore);
+	VkResult inFlightFenceCreateResult = vkCreateFence(vkContext.logicalDevice, &fenceCreateInfo, nullptr, &inFlightFence);
+
+	if (imageSemaphoreCreateResult != VK_SUCCESS || renderSemaphoreCreateResult != VK_SUCCESS) {
+		cleanup();
+		throw std::runtime_error("Failed to create semaphores!");
+	}
+
+	if (inFlightFenceCreateResult != VK_SUCCESS) {
+		cleanup();
+		throw std::runtime_error("Failed to create in-flight fence!");
+	}
+
+	vkContext.RenderPipeline.imageReadySemaphore = imageReadySemaphore;
+	vkContext.RenderPipeline.renderFinishedSemaphore = renderFinishedSemaphore;
+	vkContext.RenderPipeline.inFlightFence = inFlightFence;
 }
 

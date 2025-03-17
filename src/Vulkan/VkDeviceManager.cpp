@@ -177,6 +177,7 @@ void VkDeviceManager::createLogicalDevice() {
     }
 
     vkContext.logicalDevice = GPULogicalDevice;
+    vkContext.queueFamilies = queueFamilies;
 }
 
 
