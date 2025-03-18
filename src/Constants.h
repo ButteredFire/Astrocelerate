@@ -43,13 +43,6 @@ namespace WindowConsts {
 }
 
 
-// File Directories
-namespace FilePathConsts {
-	constexpr char WINDOW_ICONS_PREFIX[] = "";
-	constexpr char BASIC_SHADERS_DIR[] = "";
-}
-
-
 // Physics constants
 namespace PhysicsConsts {
 	constexpr double GRAVITATIONAL_CONSTANT = 6.67430e-11;  // m^3 kg^-1 s^-2

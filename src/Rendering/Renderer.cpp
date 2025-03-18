@@ -20,7 +20,23 @@ Renderer::Renderer(VulkanContext &context, RenderPipeline& renderPipelineInstanc
 
     // Setup Platform/Renderer backends
     ImGui_ImplGlfw_InitForVulkan(vkContext.window, true);
+
+
+    // Setup Dear ImGui style
+    ImGui::StyleColorsDark();
+    //ImGui::StyleColorsLight();
+
+
+    // When viewports are enabled, we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
+    ImGuiStyle& style = ImGui::GetStyle();
+    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+    {
+        style.WindowRounding = 0.0f;
+        style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+    }
     
+
+    // Initialization info
     ImGui_ImplVulkan_InitInfo vkInitInfo = {};
     vkInitInfo.Instance = vkContext.vulkanInstance;
     vkInitInfo.PhysicalDevice = vkContext.physicalDevice;
@@ -30,22 +46,21 @@ Renderer::Renderer(VulkanContext &context, RenderPipeline& renderPipelineInstanc
     
 	QueueFamilyIndices familyIndices = VkDeviceManager::getQueueFamilies(vkContext.physicalDevice, vkContext.vkSurface);
     vkInitInfo.QueueFamily = familyIndices.graphicsFamily.index.value();
-    /*
-    vkInitInfo.Queue = YOUR_QUEUE;
-    vkInitInfo.PipelineCache = YOUR_PIPELINE_CACHE;
-    vkInitInfo.DescriptorPool = YOUR_DESCRIPTOR_POOL;
+    vkInitInfo.Queue = familyIndices.graphicsFamily.deviceQueue;
+
+    //vkInitInfo.PipelineCache = YOUR_PIPELINE_CACHE;
+    //vkInitInfo.DescriptorPool = YOUR_DESCRIPTOR_POOL;
     vkInitInfo.Subpass = 0;
     vkInitInfo.MinImageCount = 2;
     vkInitInfo.ImageCount = 2;
     vkInitInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
-    vkInitInfo.Allocator = YOUR_ALLOCATOR;
-    vkInitInfo.CheckVkResultFn = check_vk_result;
-    ImGui_ImplVulkan_Init(&vkInitInfo, wd->RenderPass);
+    vkInitInfo.Allocator = nullptr;
+    //vkInitInfo.CheckVkResultFn = check_vk_result;
+    //ImGui_ImplVulkan_Init(&vkInitInfo, wd->RenderPass);
     // (this gets a bit more complicated, see example app for full reference)
-    ImGui_ImplVulkan_CreateFontsTexture(YOUR_COMMAND_BUFFER);
+    //ImGui_ImplVulkan_CreateFontsTexture(YOUR_COMMAND_BUFFER);
     // (your code submit a queue)
-    ImGui_ImplVulkan_DestroyFontUploadObjects();
-    */
+    //ImGui_ImplVulkan_DestroyFontUploadObjects();
 }
 
 
