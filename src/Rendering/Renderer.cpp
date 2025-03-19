@@ -77,20 +77,20 @@ void Renderer::drawFrame() {
     //std::cout << "\t\tdrawFrame() execution #" << idx++ << "; \n";
     // VK_TRUE: Indicates that the vkWaitForFences should wait for all fences.
     // UINT64_MAX: The maximum time to wait (timeout) (in nanoseconds). UINT64_MAX means to wait indefinitely (i.e., to disable the timeout)
-    VkResult waitResult = vkWaitForFences(vkContext.logicalDevice, 1, &vkContext.RenderPipeline.inFlightFence, VK_TRUE, UINT64_MAX);
+    VkResult waitResult = vkWaitForFences(vkContext.logicalDevice, 1, &vkContext.RenderPipeline.inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
     if (waitResult != VK_SUCCESS) {
         throw std::runtime_error("Failed to wait for in-flight fence!");
     }
 
     // After waiting, reset fence to unsignaled
-    VkResult resetFenceResult = vkResetFences(vkContext.logicalDevice, 1, &vkContext.RenderPipeline.inFlightFence);
+    VkResult resetFenceResult = vkResetFences(vkContext.logicalDevice, 1, &vkContext.RenderPipeline.inFlightFences[currentFrame]);
     if (resetFenceResult != VK_SUCCESS) {
         throw std::runtime_error("Failed to reset fence!");
     }
 
     // Acquires an image from the swap-chain
     uint32_t imageIndex;
-    VkResult imgAcquisitionResult = vkAcquireNextImageKHR(vkContext.logicalDevice, vkContext.swapChain, UINT64_MAX, vkContext.RenderPipeline.imageReadySemaphore, VK_NULL_HANDLE, &imageIndex);
+    VkResult imgAcquisitionResult = vkAcquireNextImageKHR(vkContext.logicalDevice, vkContext.swapChain, UINT64_MAX, vkContext.RenderPipeline.imageReadySemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
     //std::cout << "imageIndex is: " << imageIndex << '\n';
     //std::cout << "\t\timgAcquisitionResult: " << imgAcquisitionResult << '\n';
     if (imgAcquisitionResult != VK_SUCCESS) {
@@ -100,13 +100,13 @@ void Renderer::drawFrame() {
 
     // Records the command buffer
         // Resets the command buffer first to ensure it is able to be recorded
-    VkResult cmdBufResetResult = vkResetCommandBuffer(vkContext.RenderPipeline.commandBuffer, 0);
+    VkResult cmdBufResetResult = vkResetCommandBuffer(vkContext.RenderPipeline.commandBuffers[currentFrame], 0);
     if (cmdBufResetResult != VK_SUCCESS) {
         throw std::runtime_error("Failed to reset command buffer!");
     }
 
         // Records commands
-    renderPipeline.recordCommandBuffer(vkContext.RenderPipeline.commandBuffer, imageIndex);
+    renderPipeline.recordCommandBuffer(vkContext.RenderPipeline.commandBuffers[currentFrame], imageIndex);
 
         // Submits the buffer to the queue
     VkSubmitInfo submitInfo{};
@@ -114,13 +114,13 @@ void Renderer::drawFrame() {
 
             // Specifies the command buffer to be submitted
     submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &vkContext.RenderPipeline.commandBuffer;
+    submitInfo.pCommandBuffers = &vkContext.RenderPipeline.commandBuffers[currentFrame];
 
             /* NOTE:
             * Each stage in waitStages[] corresponds to a semaphore in waitSemaphores[].
             */
     VkSemaphore waitSemaphores[] = {
-        vkContext.RenderPipeline.imageReadySemaphore // Wait for the image to be available (see waitStages[0])
+        vkContext.RenderPipeline.imageReadySemaphores[currentFrame] // Wait for the image to be available (see waitStages[0])
     };
     VkPipelineStageFlags waitStages[] = {
         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT // Wait for the colors to first be written to the image, because (theoretically) our vertex shader could be executed prematurely (before the image is available).
@@ -135,14 +135,14 @@ void Renderer::drawFrame() {
 
             // Specifies which semaphores to signal once the command buffer's execution is finished
     VkSemaphore signalSemaphores[] = {
-        vkContext.RenderPipeline.renderFinishedSemaphore
+        vkContext.RenderPipeline.renderFinishedSemaphores[currentFrame]
     };
     submitInfo.signalSemaphoreCount = (sizeof(signalSemaphores) / sizeof(VkSemaphore));
     submitInfo.pSignalSemaphores = signalSemaphores;
 
 
     VkQueue graphicsQueue = vkContext.queueFamilies.graphicsFamily.deviceQueue;
-    VkResult submitResult = vkQueueSubmit(graphicsQueue, 1, &submitInfo, vkContext.RenderPipeline.inFlightFence);
+    VkResult submitResult = vkQueueSubmit(graphicsQueue, 1, &submitInfo, vkContext.RenderPipeline.inFlightFences[currentFrame]);
     if (submitResult != VK_SUCCESS) {
         throw std::runtime_error("Failed to submit draw command buffer!");
     }
@@ -171,4 +171,7 @@ void Renderer::drawFrame() {
     if (presentResult != VK_SUCCESS) {
         throw std::runtime_error("Failed to present image!");
     }
+
+    // Updates current frame index
+    currentFrame = (currentFrame + 1) % SimulationConsts::MAX_FRAMES_IN_FLIGHT;
 }

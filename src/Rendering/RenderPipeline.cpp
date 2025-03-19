@@ -27,9 +27,13 @@ void RenderPipeline::cleanup() {
 
 	vkDestroyCommandPool(vkContext.logicalDevice, commandPool, nullptr);
 
-	vkDestroySemaphore(vkContext.logicalDevice, imageReadySemaphore, nullptr);
-	vkDestroySemaphore(vkContext.logicalDevice, renderFinishedSemaphore, nullptr);
-	vkDestroyFence(vkContext.logicalDevice, inFlightFence, nullptr);
+	// Synchronization objects
+	for (size_t i = 0; i < SimulationConsts::MAX_FRAMES_IN_FLIGHT; i++) {
+		vkDestroySemaphore(vkContext.logicalDevice, imageReadySemaphores[i], nullptr);
+		vkDestroySemaphore(vkContext.logicalDevice, renderFinishedSemaphores[i], nullptr);
+
+		vkDestroyFence(vkContext.logicalDevice, inFlightFences[i], nullptr);
+	}
 }
 
 
@@ -179,6 +183,8 @@ void RenderPipeline::createCommandPools() {
 
 
 void RenderPipeline::createCommandBuffers() {
+	commandBuffers.resize(SimulationConsts::MAX_FRAMES_IN_FLIGHT);
+
 	VkCommandBufferAllocateInfo bufferAllocInfo{};
 	bufferAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 	bufferAllocInfo.commandPool = commandPool;
@@ -188,16 +194,15 @@ void RenderPipeline::createCommandBuffers() {
 	// BUFFER_LEVEL_SECONDARY: The buffer cannot be submitted directly, but can be called from primary command buffers.
 	bufferAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 
-	// Allocate 1 command buffer
-	bufferAllocInfo.commandBufferCount = 1;
+	bufferAllocInfo.commandBufferCount = static_cast<uint32_t>(commandBuffers.size());
 
-	VkResult result = vkAllocateCommandBuffers(vkContext.logicalDevice, &bufferAllocInfo, &commandBuffer);
+	VkResult result = vkAllocateCommandBuffers(vkContext.logicalDevice, &bufferAllocInfo, commandBuffers.data());
 	if (result != VK_SUCCESS) {
 		cleanup();
 		throw std::runtime_error("Failed to allocate command buffers!");
 	}
 
-	vkContext.RenderPipeline.commandBuffer = commandBuffer;
+	vkContext.RenderPipeline.commandBuffers = commandBuffers;
 }
 
 
@@ -227,6 +232,9 @@ void RenderPipeline::createSyncObjects() {
 		*
 		* Fences must be reset manually to put them back into the unsignaled state. This is because fences are used to control the execution of the host, and so the host gets to decide when to reset the fence. Contrast this to semaphores which are used to order work on the GPU without the host being involved.
 	*/
+	imageReadySemaphores.resize(SimulationConsts::MAX_FRAMES_IN_FLIGHT);
+	renderFinishedSemaphores.resize(SimulationConsts::MAX_FRAMES_IN_FLIGHT);
+	inFlightFences.resize(SimulationConsts::MAX_FRAMES_IN_FLIGHT);
 
 	VkSemaphoreCreateInfo semaphoreCreateInfo{};
 	semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -238,22 +246,24 @@ void RenderPipeline::createSyncObjects() {
 	// We need to do this, because if the fence is created unsignaled (default), when we call drawFrame() in the Renderer for the first time, `vkWaitForFences` will wait for the fence to be signaled, only to wait indefinitely because the fence can only be signaled after a frame has finished rendering, and we are calling drawFrames() for the first time so there is no frame initially.
 	fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-	VkResult imageSemaphoreCreateResult = vkCreateSemaphore(vkContext.logicalDevice, &semaphoreCreateInfo, nullptr, &imageReadySemaphore);
-	VkResult renderSemaphoreCreateResult = vkCreateSemaphore(vkContext.logicalDevice, &semaphoreCreateInfo, nullptr, &renderFinishedSemaphore);
-	VkResult inFlightFenceCreateResult = vkCreateFence(vkContext.logicalDevice, &fenceCreateInfo, nullptr, &inFlightFence);
+	for (size_t i = 0; i < SimulationConsts::MAX_FRAMES_IN_FLIGHT; i++) {
+		VkResult imageSemaphoreCreateResult = vkCreateSemaphore(vkContext.logicalDevice, &semaphoreCreateInfo, nullptr, &imageReadySemaphores[i]);
+		VkResult renderSemaphoreCreateResult = vkCreateSemaphore(vkContext.logicalDevice, &semaphoreCreateInfo, nullptr, &renderFinishedSemaphores[i]);
+		VkResult inFlightFenceCreateResult = vkCreateFence(vkContext.logicalDevice, &fenceCreateInfo, nullptr, &inFlightFences[i]);
 
-	if (imageSemaphoreCreateResult != VK_SUCCESS || renderSemaphoreCreateResult != VK_SUCCESS) {
-		cleanup();
-		throw std::runtime_error("Failed to create semaphores!");
+		if (imageSemaphoreCreateResult != VK_SUCCESS || renderSemaphoreCreateResult != VK_SUCCESS) {
+			cleanup();
+			throw std::runtime_error("Failed to create semaphores for a frame!");
+		}
+
+		if (inFlightFenceCreateResult != VK_SUCCESS) {
+			cleanup();
+			throw std::runtime_error("Failed to create in-flight fence for a frame!");
+		}
 	}
 
-	if (inFlightFenceCreateResult != VK_SUCCESS) {
-		cleanup();
-		throw std::runtime_error("Failed to create in-flight fence!");
-	}
-
-	vkContext.RenderPipeline.imageReadySemaphore = imageReadySemaphore;
-	vkContext.RenderPipeline.renderFinishedSemaphore = renderFinishedSemaphore;
-	vkContext.RenderPipeline.inFlightFence = inFlightFence;
+	vkContext.RenderPipeline.imageReadySemaphores = imageReadySemaphores;
+	vkContext.RenderPipeline.renderFinishedSemaphores = renderFinishedSemaphores;
+	vkContext.RenderPipeline.inFlightFences = inFlightFences;
 }
 

@@ -39,12 +39,12 @@ private:
 	// Command pools manage the memory that is used to store the buffers
 	// Command buffers are allocated from them
 	VkCommandPool commandPool = VK_NULL_HANDLE;
-	VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
+	std::vector<VkCommandBuffer> commandBuffers;
 
 	// Synchronization
-	VkSemaphore imageReadySemaphore = VK_NULL_HANDLE;
-	VkSemaphore renderFinishedSemaphore = VK_NULL_HANDLE;
-	VkFence inFlightFence = VK_NULL_HANDLE;
+	std::vector<VkSemaphore> imageReadySemaphores;
+	std::vector<VkSemaphore> renderFinishedSemaphores;
+	std::vector<VkFence> inFlightFences;
 
 
 	/* Creates a framebuffer for each image in the swap-chain. */

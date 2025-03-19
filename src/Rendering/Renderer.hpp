@@ -51,7 +51,7 @@ private:
 	VulkanContext &vkContext;
 
 	RenderPipeline& renderPipeline;
-	uint32_t idx = 1;
+	uint32_t currentFrame = 0;
 
 	/* Renders a frame. 
 	* At a high level, rendering a frame in Vulkan consists of a common set of steps:

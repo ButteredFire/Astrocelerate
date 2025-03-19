@@ -53,6 +53,7 @@ namespace PhysicsConsts {
 // Simulation settings
 namespace SimulationConsts {
 	constexpr int MAX_SIMULATION_STEPS = 10000;
+	constexpr int MAX_FRAMES_IN_FLIGHT = 2; // How many frames should be processed concurrently
 	constexpr double TIME_STEP = 0.01;  // seconds
 }
 

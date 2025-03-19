@@ -113,12 +113,12 @@ struct VulkanContext {
     } GraphicsPipeline;
 
     struct RenderPipeline {
-        VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
+        std::vector<VkCommandBuffer> commandBuffers;
 
         // Synchronization
-        VkSemaphore imageReadySemaphore = VK_NULL_HANDLE;
-        VkSemaphore renderFinishedSemaphore = VK_NULL_HANDLE;
-        VkFence inFlightFence = VK_NULL_HANDLE;
+		std::vector<VkSemaphore> imageReadySemaphores;
+		std::vector<VkSemaphore> renderFinishedSemaphores;
+		std::vector<VkFence> inFlightFences;
     } RenderPipeline;
 
 };
