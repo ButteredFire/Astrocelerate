@@ -5,8 +5,9 @@
 #include "Renderer.hpp"
 
 
-Renderer::Renderer(VulkanContext &context, RenderPipeline& renderPipelineInstance):
+Renderer::Renderer(VulkanContext &context, VkSwapchainManager& swapchainMgrInstance, RenderPipeline& renderPipelineInstance):
     vulkInst(context.vulkanInstance),
+    swapchainMgr(swapchainMgrInstance),
     renderPipeline(renderPipelineInstance),
     vkContext(context) {
 
@@ -91,11 +92,19 @@ void Renderer::drawFrame() {
     // Acquires an image from the swap-chain
     uint32_t imageIndex;
     VkResult imgAcquisitionResult = vkAcquireNextImageKHR(vkContext.logicalDevice, vkContext.swapChain, UINT64_MAX, vkContext.RenderPipeline.imageReadySemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
-    //std::cout << "imageIndex is: " << imageIndex << '\n';
-    //std::cout << "\t\timgAcquisitionResult: " << imgAcquisitionResult << '\n';
     if (imgAcquisitionResult != VK_SUCCESS) {
-        throw std::runtime_error("Failed to acquire an image from the swap-chain! The current image index in this frame is: " + imageIndex);
+        if (imgAcquisitionResult == VK_ERROR_OUT_OF_DATE_KHR || imgAcquisitionResult == VK_SUBOPTIMAL_KHR) {
+            swapchainMgr.recreateSwapchain(renderPipeline);
+            return;
+        }
+
+        else {
+            throw std::runtime_error("Failed to acquire an image from the swap-chain! The current image index in this frame is: " + imageIndex);
+        }
     }
+
+    // Only reset the fence when we're submitting work
+    vkResetFences(vkContext.logicalDevice, 1, &vkContext.RenderPipeline.inFlightFences[currentFrame]);
 
 
     // Records the command buffer
@@ -169,7 +178,13 @@ void Renderer::drawFrame() {
 
     VkResult presentResult = vkQueuePresentKHR(graphicsQueue, &presentationInfo);
     if (presentResult != VK_SUCCESS) {
-        throw std::runtime_error("Failed to present image!");
+        if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR) {
+            swapchainMgr.recreateSwapchain(renderPipeline);
+            return;
+        }
+        else {
+            throw std::runtime_error("Failed to present swap-chain image!");
+        }
     }
 
     // Updates current frame index

@@ -23,6 +23,7 @@ VkSwapchainManager::~VkSwapchainManager() {
 
 
 void VkSwapchainManager::init() {
+    /* WARNING: The init() method is also called by recreateSwapchain */
     // Initializes swap-chain
     createSwapChain();
 
@@ -33,13 +34,36 @@ void VkSwapchainManager::init() {
 
 
 void VkSwapchainManager::cleanup() {
-    // Frees swap-chain memory
-    vkDestroySwapchainKHR(vkContext.logicalDevice, swapChain, nullptr);
-
     // Frees image views memory
     for (auto& imageView : swapChainImageViews) {
         vkDestroyImageView(vkContext.logicalDevice, imageView, nullptr);
     }
+
+    // Frees swap-chain memory
+    vkDestroySwapchainKHR(vkContext.logicalDevice, swapChain, nullptr);
+}
+
+
+void VkSwapchainManager::recreateSwapchain(RenderPipeline& renderPipeline) {
+    // If the window is minimized (i.e., (width, height) = (0, 0), pause the window until it is in the foreground again
+    int width = 0, height = 0;
+    glfwGetFramebufferSize(vkContext.window, &width, &height);
+    while (width == 0 || height == 0) {
+        glfwGetFramebufferSize(vkContext.window, &width, &height);
+        glfwWaitEvents();
+    }
+
+    // Recreates swap-chain
+    vkDeviceWaitIdle(vkContext.logicalDevice);
+
+        // Cleans up outdated swap-chain objects
+    for (const auto& buffer : renderPipeline.getImageFrameBuffers()) {
+        vkDestroyFramebuffer(vkContext.logicalDevice, buffer, nullptr);
+    }
+    cleanup();
+
+    init();
+    renderPipeline.createFrameBuffers();
 }
 
 
@@ -142,10 +166,12 @@ void VkSwapchainManager::createImageViews() {
 		throw std::runtime_error("Cannot create image views: No images to process!");
 	}
 
-    for (const auto& image : swapChainImages) {
+    swapChainImageViews.resize(swapChainImages.size());
+
+    for (size_t i = 0; i < swapChainImages.size(); i++) {
         VkImageViewCreateInfo viewCreateInfo{};
         viewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        viewCreateInfo.image = image;
+        viewCreateInfo.image = swapChainImages[i];
 
         // Specifies how the data is interpreted
         viewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D; // Treats images as 2D textures
@@ -186,7 +212,7 @@ void VkSwapchainManager::createImageViews() {
             throw std::runtime_error("Failed to read image data!");
         }
 
-        swapChainImageViews.push_back(imageView);
+        swapChainImageViews[i] = imageView;
     }
 }
 

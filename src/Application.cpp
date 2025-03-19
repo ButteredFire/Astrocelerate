@@ -49,7 +49,7 @@ int main() {
         renderPipeline.init();
 
             // Creates a renderer
-        Renderer renderer(vkContext, renderPipeline);
+        Renderer renderer(vkContext, swapchainManager, renderPipeline);
 
         if (vkContext.physicalDevice == VK_NULL_HANDLE) {
             std::cerr << "WARNING: Physical device not initialized!\n";

@@ -134,7 +134,7 @@ void RenderPipeline::recordCommandBuffer(VkCommandBuffer& buffer, uint32_t image
 void RenderPipeline::createFrameBuffers() {
 	imageFrameBuffers.resize(vkContext.swapChainImageViews.size());
 
-	for (uint32_t i = 0; i < vkContext.swapChainImageViews.size(); i++) {
+	for (size_t i = 0; i < imageFrameBuffers.size(); i++) {
 		if (vkContext.swapChainImageViews[i] == VK_NULL_HANDLE) {
 			cleanup();
 			throw std::runtime_error("Cannot read null image view!");

@@ -6,6 +6,10 @@
 
 #pragma once
 
+// Forward-declares RenderPipeline (see recreateSwapchain()) so that the compiler knows about the RenderPipeline class before it is used.
+// This is necessary because VkSwapchainManager is initialized before RenderPipeline.
+class RenderPipeline;
+
 // GLFW & Vulkan
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -18,6 +22,7 @@
 
 // Local
 #include <Vulkan/VkInstanceManager.hpp>
+#include <Rendering/RenderPipeline.hpp>
 #include <LoggingManager.hpp>
 #include <Constants.h>
 #include <Vulkan/VulkanContexts.hpp>
@@ -38,6 +43,11 @@ public:
 	/* Initializes the swap-chain manager. */
 	void init();
 	void cleanup();
+
+	/* Recreates the swap-chain. 
+	* @param renderPipeline: A RenderPipeline instance (since recreating the swap-chain also necessitates recreating the framebuffers).
+	*/
+	void recreateSwapchain(RenderPipeline& renderPipeline);
 
 
 	/* Queries the properties of a GPU's swap-chain.
