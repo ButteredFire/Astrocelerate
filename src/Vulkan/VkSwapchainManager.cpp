@@ -242,10 +242,10 @@ SwapChainProperties VkSwapchainManager::getSwapChainProperties(VkPhysicalDevice&
 
 
     if (swapChain.surfaceFormats.empty()) {
-        std::cerr << "Warning: GPU does not support any surface formats for the given window surface!" << '\n';
+        Log::print(Log::WARNING, __FUNCTION__, "GPU does not support any surface formats for the given window surface!");
     }
     if (swapChain.presentModes.empty()) {
-        std::cerr << "Warning: GPU does not support any presentation modes for the given window surface!" << '\n';
+        Log::print(Log::WARNING, __FUNCTION__, "GPU does not support any presentation modes for the given window surface!");
     }
 
     return swapChain;

@@ -31,9 +31,10 @@ namespace APP {
 	#endif
 }
 
-// Error/Exit codes
-namespace ErrorConsts {
-
+// Compiled shader file paths
+namespace ShaderConsts {
+	constexpr char VERTEX[] = "compiled_shaders/VertexShader.spv";
+	constexpr char FRAGMENT[] = "compiled_shaders/FragmentShader.spv";
 }
 
 // Window properties

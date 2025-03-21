@@ -212,12 +212,12 @@ void GraphicsPipeline::createRenderPass() {
 void GraphicsPipeline::initShaderStage() {
 	// Loads shader bytecode onto buffers
 		// Vertex shader
-	vertShaderBytecode = readFile("compiled_shaders/VertexShader.spv");
+	vertShaderBytecode = readFile(ShaderConsts::VERTEX);
 	Log::print(Log::INFO, __FUNCTION__, ("Loaded vertex shader! SPIR-V bytecode file size is " + std::to_string(vertShaderBytecode.size()) + " (bytes)."));
 	vertShaderModule = createShaderModule(vertShaderBytecode);
 
 		// Fragment shader
-	fragShaderBytecode = readFile("compiled_shaders/FragmentShader.spv");
+	fragShaderBytecode = readFile(ShaderConsts::FRAGMENT);
 	Log::print(Log::INFO, __FUNCTION__, ("Loaded fragment shader! SPIR-V bytecode file size is " + std::to_string(fragShaderBytecode.size()) + " (bytes)."));
 	fragShaderModule = createShaderModule(fragShaderBytecode);
 
