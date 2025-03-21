@@ -51,15 +51,11 @@ int main() {
             // Creates a renderer
         Renderer renderer(vkContext, swapchainManager, renderPipeline);
 
-        if (vkContext.physicalDevice == VK_NULL_HANDLE) {
-            std::cerr << "WARNING: Physical device not initialized!\n";
-        }
-
         Engine engine(windowPtr, vkContext, renderer);
         engine.run();
     }
     catch (const Log::runtimeException& e) {
-        Log::print(Log::ERROR, e.origin(), (e.what() + '\n'));
+        Log::print(Log::ERROR, e.origin(), e.what());
         boxer::show(e.what(), ("Exception raised from " + std::string(e.origin())).c_str(), boxer::Style::Error, boxer::Buttons::Quit);
         return EXIT_FAILURE;
     }

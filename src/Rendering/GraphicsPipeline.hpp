@@ -18,9 +18,10 @@
 
 // Local
 #include <Vulkan/VkInstanceManager.hpp>
+#include <Vulkan/VulkanContexts.hpp>
+#include <Shaders/VertexBuffer.hpp>
 #include <LoggingManager.hpp>
 #include <Constants.h>
-#include <Vulkan/VulkanContexts.hpp>
 
 
 /* Reads a file in binary mode.

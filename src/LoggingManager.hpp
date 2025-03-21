@@ -21,7 +21,7 @@ namespace Log {
 	* @param message: The message to be logged.
 	* @param newline (default: true): A boolean determining whether the message ends with a newline character (true), or not (false).
 	*/
-	static void print(MsgType type, const char* caller, std::string message, bool newline = true) {
+	static void print(MsgType type, const char* caller, const std::string& message, bool newline = true) {
 		std::string msgType = "Unknown message type";
 		switch (type) {
 		case INFO:

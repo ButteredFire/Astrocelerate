@@ -165,7 +165,7 @@ void VkSwapchainManager::createSwapChain() {
 void VkSwapchainManager::createImageViews() {
 	if (swapChainImages.empty()) {
 		cleanup();
-		throw Log::runtimeException(__FUNCTION__, "Cannot create image views: No images to process!");
+		throw Log::runtimeException(__FUNCTION__, "Cannot create image views: Swap-chain contains no images to process!");
 	}
 
     swapChainImageViews.resize(swapChainImages.size());

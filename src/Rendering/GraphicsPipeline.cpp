@@ -227,7 +227,7 @@ void GraphicsPipeline::initShaderStage() {
 	vertStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	vertStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT; // Used to identify the create info's shader as the Vertex shader
 	vertStageInfo.module = vertShaderModule;
-	vertStageInfo.pName = "main"; // pName specifies the function to invoke, known as the entrypoint. This means that it is possible to combine multiple fragment shaders into a single shader module and use different entry points to differentiate between their behaviors. In this case we’ll stick to the standard `main`, however.
+	vertStageInfo.pName = "main"; // pName specifies the function to invoke, known as the entry point. This means that it is possible to combine multiple fragment shaders into a single shader module and use different entry points to differentiate between their behaviors. In this case we’ll stick to the standard `main`, however.
 
 		// Fragment shader
 	VkPipelineShaderStageCreateInfo fragStageInfo{};
@@ -246,11 +246,15 @@ void GraphicsPipeline::initShaderStage() {
 	// Specifies the format of the vertex data to be passed to the vertex buffer.
 	vertInputState.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 	// Describes binding, i.e., spacing between the data and whether the data is per-vertex or per-instance
-	vertInputState.vertexBindingDescriptionCount = 0;
-	vertInputState.pVertexBindingDescriptions = nullptr;
-	// Describes attribute descriptions, i.e., type of the attributes passed to the vertex shader, which binding to load them from (and at which offset)
-	vertInputState.vertexAttributeDescriptionCount = 0;
-	vertInputState.pVertexAttributeDescriptions = nullptr;
+		// Gets vertex input binding and attribute descriptions
+	VkVertexInputBindingDescription bindingDescription = Vertex::getBindingDescription();
+	auto attributeDescriptions = Vertex::getAttributeDescription();
+
+	vertInputState.vertexBindingDescriptionCount = 1;
+	vertInputState.pVertexBindingDescriptions = &bindingDescription;
+
+	vertInputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
+	vertInputState.pVertexAttributeDescriptions = attributeDescriptions.data();
 }
 
 
