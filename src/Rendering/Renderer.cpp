@@ -75,18 +75,22 @@ void Renderer::update() {
 
 
 void Renderer::drawFrame() {
-    //std::cout << "\t\tdrawFrame() execution #" << idx++ << "; \n";
+    /* How a frame is drawn:
+    * 1. Wait for the previous frame to finish rendering (i.e., waiting for its fence)
+    * 2. After waiting, acquire a new image from the swap-chain for rendering
+    * 3. If drawFrame does not end prematurely because the swap-chain is either outdated or suboptimal, then it means we are ready to start rendering the image. Only in that case do we reset the fence to ensure that only fences of images that are guaranteed to be processed are reset.
+    * 4. Reset/Clear the current frame's command buffer
+    * 5. Record the commands from the image
+    * 6. Submit the filled-in command buffer to a queue for processing
+    * 7. Send the processed data back to the swap-chain to render the image
+    * 8. Update the current frame index so that the next drawFrame call will process the next image in the swap-chain
+    */
+    std::cout << "Current frame: " << currentFrame << "/" << SimulationConsts::MAX_FRAMES_IN_FLIGHT << '\n';
     // VK_TRUE: Indicates that the vkWaitForFences should wait for all fences.
     // UINT64_MAX: The maximum time to wait (timeout) (in nanoseconds). UINT64_MAX means to wait indefinitely (i.e., to disable the timeout)
     VkResult waitResult = vkWaitForFences(vkContext.logicalDevice, 1, &vkContext.RenderPipeline.inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
     if (waitResult != VK_SUCCESS) {
         throw std::runtime_error("Failed to wait for in-flight fence!");
-    }
-
-    // After waiting, reset fence to unsignaled
-    VkResult resetFenceResult = vkResetFences(vkContext.logicalDevice, 1, &vkContext.RenderPipeline.inFlightFences[currentFrame]);
-    if (resetFenceResult != VK_SUCCESS) {
-        throw std::runtime_error("Failed to reset fence!");
     }
 
     // Acquires an image from the swap-chain
@@ -99,12 +103,17 @@ void Renderer::drawFrame() {
         }
 
         else {
-            throw std::runtime_error("Failed to acquire an image from the swap-chain! The current image index in this frame is: " + imageIndex);
+            throw std::runtime_error("Failed to acquire an image from the swap-chain!\nThe current image index in this frame is: " + imageIndex);
         }
     }
 
     // Only reset the fence when we're submitting work
-    vkResetFences(vkContext.logicalDevice, 1, &vkContext.RenderPipeline.inFlightFences[currentFrame]);
+
+    // After waiting, reset fence to unsignaled
+    VkResult resetFenceResult = vkResetFences(vkContext.logicalDevice, 1, &vkContext.RenderPipeline.inFlightFences[currentFrame]);
+    if (resetFenceResult != VK_SUCCESS) {
+        throw std::runtime_error("Failed to reset fence!");
+    }
 
 
     // Records the command buffer
@@ -157,15 +166,15 @@ void Renderer::drawFrame() {
     }
 
     // To finally draw the frame, we submit the result back to the swap-chain to have it eventually show up on screen
-    // Configures presentation
+        // Configures presentation
     VkPresentInfoKHR presentationInfo{};
     presentationInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 
-    // Since we want to wait for the command buffer to finish execution, we take the semaphores which will be signalled and wait for them (i.e., we use signalSemaphores).
+        // Since we want to wait for the command buffer to finish execution, we take the semaphores which will be signalled and wait for them (i.e., we use signalSemaphores).
     presentationInfo.waitSemaphoreCount = (sizeof(signalSemaphores) / sizeof(VkSemaphore));
     presentationInfo.pWaitSemaphores = signalSemaphores;
 
-    // Specifies the swap-chains to present images to, and the image index for each swap-chain (this will almost always be a single one)
+        // Specifies the swap-chains to present images to, and the image index for each swap-chain (this will almost always be a single one)
     VkSwapchainKHR swapChains[] = {
         vkContext.swapChain
     };
@@ -173,7 +182,7 @@ void Renderer::drawFrame() {
     presentationInfo.pSwapchains = swapChains;
     presentationInfo.pImageIndices = &imageIndex;
 
-    // Specifies an array of VkResult values to check if presentation was successful for every single swap-chain. We leave pResults as nullptr for now, since we currently have just 1 swap-chain (whose result is the return value of the vkQueuePresentKHR function)
+        // Specifies an array of VkResult values to check if presentation was successful for every single swap-chain. We leave pResults as nullptr for now, since we currently have just 1 swap-chain (whose result is the return value of the vkQueuePresentKHR function)
     presentationInfo.pResults = nullptr;
 
     VkResult presentResult = vkQueuePresentKHR(graphicsQueue, &presentationInfo);
