@@ -122,3 +122,6 @@ struct VulkanContext {
     } RenderPipeline;
 
 };
+
+/* Checks whether a Vulkan object is valid/non-null. */
+template<typename T> bool vkIsValid(T vulkanObject) { return (vulkanObject != T()); }

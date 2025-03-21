@@ -41,7 +41,7 @@ static inline std::vector<char> readFile(const std::string& fileName, const std:
 
 	// If file cannot open
 	if (!file.is_open()) {
-		throw std::runtime_error("Failed to open file " + enquote(fileName) + "!"
+		throw Log::runtimeException(__FUNCTION__, "Failed to open file " + enquote(fileName) + "!"
 			+ "\n" + "The file may not be in the directory " + enquote(workingDirectory) + '.'
 			+ "\n" + "To change the working directory, please specify the full path to the file."
 		);

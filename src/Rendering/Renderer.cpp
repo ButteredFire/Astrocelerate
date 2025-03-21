@@ -85,7 +85,6 @@ void Renderer::drawFrame() {
     * 7. Send the processed data back to the swap-chain to render the image
     * 8. Update the current frame index so that the next drawFrame call will process the next image in the swap-chain
     */
-    std::cout << "Current frame: " << currentFrame << "/" << SimulationConsts::MAX_FRAMES_IN_FLIGHT << '\n';
     // VK_TRUE: Indicates that the vkWaitForFences should wait for all fences.
     // UINT64_MAX: The maximum time to wait (timeout) (in nanoseconds). UINT64_MAX means to wait indefinitely (i.e., to disable the timeout)
     VkResult waitResult = vkWaitForFences(vkContext.logicalDevice, 1, &vkContext.RenderPipeline.inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);

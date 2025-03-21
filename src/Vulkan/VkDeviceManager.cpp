@@ -9,11 +9,11 @@ VkDeviceManager::VkDeviceManager(VulkanContext &context):
     vulkInst(context.vulkanInstance), vkContext(context) {
 
     if (vulkInst == VK_NULL_HANDLE) {
-        throw std::runtime_error("Cannot initialize device manager: Invalid Vulkan instance!");
+        throw Log::runtimeException(__FUNCTION__, "Cannot initialize device manager: Invalid Vulkan instance!");
     }
 
     if (vkContext.vkSurface == VK_NULL_HANDLE) {
-        throw std::runtime_error("Cannot initialize device manager: Invalid Vulkan window surface!");
+        throw Log::runtimeException(__FUNCTION__, "Cannot initialize device manager: Invalid Vulkan window surface!");
     }
 }
 
@@ -38,7 +38,8 @@ void VkDeviceManager::init() {
 
 
 void VkDeviceManager::cleanup() {
-    vkDestroyDevice(GPULogicalDevice, nullptr);
+    if (vkIsValid(GPULogicalDevice))
+        vkDestroyDevice(GPULogicalDevice, nullptr);
 }
 
 
@@ -49,7 +50,7 @@ void VkDeviceManager::createPhysicalDevice() {
 
     if (physDeviceCount == 0) {
         cleanup();
-        throw std::runtime_error("This machine does not have Vulkan-supported GPUs!");
+        throw Log::runtimeException(__FUNCTION__, "This machine does not have Vulkan-supported GPUs!");
     }
 
     VkPhysicalDevice physicalDevice = nullptr;
@@ -64,20 +65,16 @@ void VkDeviceManager::createPhysicalDevice() {
     bool isDeviceCompatible = bestDevice.isCompatible;
     uint32_t physicalDeviceScore = bestDevice.optionalScore;
 
-    std::cout << "\nFinal GPU evaluation:\n";
-    for (auto& score : GPUScores)
-        std::cout << "\t(GPU: " << enquoteCOUT(score.deviceName) << "; Compatible: " << std::boolalpha << score.isCompatible << "; Optional Score: " << score.optionalScore << ")\n";
+    //std::cout << "\nFinal GPU evaluation:\n";
+    //for (auto& score : GPUScores)
+    //    std::cout << "\t(GPU: " << enquoteCOUT(score.deviceName) << "; Compatible: " << std::boolalpha << score.isCompatible << "; Optional Score: " << score.optionalScore << ")\n";
 
-
-    std::cout << "Most suitable GPU: (GPU: " << enquoteCOUT(bestDevice.deviceName) << "; Compatible: " << std::boolalpha << isDeviceCompatible << "; Optional Score: " << physicalDeviceScore << ")\n\n";
-    if (inDebugMode) {
-        std::cout << "NOTE: Should GPU selection be incorrect, please edit the source code to override the chosen GPU.\n";
-        std::cout << "NOTE: Specifically, set `physicalDevice` in `VkDeviceManager::createPhysicalDevice` to a GPU in the vector `GPUScores`.\n";
-    }
+    Log::print(Log::INFO, __FUNCTION__, ("Selected GPU " + enquote(bestDevice.deviceName)));
+    //std::cout << "Most suitable GPU: (GPU: " << enquoteCOUT(bestDevice.deviceName) << "; Compatible: " << std::boolalpha << isDeviceCompatible << "; Optional Score: " << physicalDeviceScore << ")\n\n";
 
     if (physicalDevice == nullptr || !isDeviceCompatible) {
         cleanup();
-        throw std::runtime_error("Failed to find a GPU that supports Astrocelerate's features!");
+        throw Log::runtimeException(__FUNCTION__, "Failed to find a GPU that supports Astrocelerate's features!");
     }
 
     vkContext.physicalDevice = GPUPhysicalDevice = physicalDevice;
@@ -92,7 +89,7 @@ void VkDeviceManager::createLogicalDevice() {
     for (const auto &family : allFamilies)
         if (!queueFamilies.familyExists(*family)) {
             cleanup();
-            throw std::runtime_error("Unable to create logical device: Queue family is non-existent!");
+            throw Log::runtimeException(__FUNCTION__, "Unable to create logical device: Queue family is non-existent!");
         }
 
     // Queues must have a priority in [0.0; 1.0], which influences the scheduling of command buffer execution.
@@ -158,7 +155,7 @@ void VkDeviceManager::createLogicalDevice() {
     VkResult result = vkCreateDevice(GPUPhysicalDevice, &deviceInfo, nullptr, &GPULogicalDevice);
     if (result != VK_SUCCESS) {
         cleanup();
-        throw std::runtime_error("Unable to create GPU logical device!");
+        throw Log::runtimeException(__FUNCTION__, "Unable to create GPU logical device!");
     }
 
     // Populates each (available) family's device queue

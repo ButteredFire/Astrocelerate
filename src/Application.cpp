@@ -58,9 +58,9 @@ int main() {
         Engine engine(windowPtr, vkContext, renderer);
         engine.run();
     }
-    catch (const std::exception& e) {
-        std::cerr << "EXCEPTION: " << e.what() << '\n';
-        boxer::show(e.what(), "EXCEPTION", boxer::Style::Error, boxer::Buttons::Quit);
+    catch (const Log::runtimeException& e) {
+        Log::print(Log::ERROR, e.origin(), (e.what() + '\n'));
+        boxer::show(e.what(), ("Exception raised from " + std::string(e.origin())).c_str(), boxer::Style::Error, boxer::Buttons::Quit);
         return EXIT_FAILURE;
     }
     return EXIT_SUCCESS;

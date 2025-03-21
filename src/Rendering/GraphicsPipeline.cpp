@@ -51,12 +51,20 @@ void GraphicsPipeline::init() {
 
 
 void GraphicsPipeline::cleanup() {
-	vkDestroyShaderModule(vkContext.logicalDevice, vertShaderModule, nullptr);
-	vkDestroyShaderModule(vkContext.logicalDevice, fragShaderModule, nullptr);
+	if (vkIsValid(vertShaderModule))
+		vkDestroyShaderModule(vkContext.logicalDevice, vertShaderModule, nullptr);
+	
+	if (vkIsValid(fragShaderModule))
+		vkDestroyShaderModule(vkContext.logicalDevice, fragShaderModule, nullptr);
 
-	vkDestroyRenderPass(vkContext.logicalDevice, renderPass, nullptr);
-	vkDestroyPipelineLayout(vkContext.logicalDevice, pipelineLayout, nullptr);
-	vkDestroyPipeline(vkContext.logicalDevice, graphicsPipeline, nullptr);
+	if (vkIsValid(renderPass))
+		vkDestroyRenderPass(vkContext.logicalDevice, renderPass, nullptr);
+	
+	if (vkIsValid(pipelineLayout))
+		vkDestroyPipelineLayout(vkContext.logicalDevice, pipelineLayout, nullptr);
+	
+	if (vkIsValid(graphicsPipeline))
+		vkDestroyPipeline(vkContext.logicalDevice, graphicsPipeline, nullptr);
 }
 
 
@@ -104,7 +112,7 @@ void GraphicsPipeline::createGraphicsPipeline() {
 	VkResult result = vkCreateGraphicsPipelines(vkContext.logicalDevice, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &graphicsPipeline);
 	if (result != VK_SUCCESS) {
 		cleanup();
-		throw std::runtime_error("Failed to create graphics pipeline!");
+		throw Log::runtimeException(__FUNCTION__, "Failed to create graphics pipeline!");
 	}
 
 	vkContext.GraphicsPipeline.pipeline = graphicsPipeline;
@@ -124,7 +132,7 @@ void GraphicsPipeline::createPipelineLayout() {
 	VkResult result = vkCreatePipelineLayout(vkContext.logicalDevice, &createInfo, nullptr, &pipelineLayout);
 	if (result != VK_SUCCESS) {
 		cleanup();
-		throw std::runtime_error("Failed to create graphics pipeline layout!");
+		throw Log::runtimeException(__FUNCTION__, "Failed to create graphics pipeline layout!");
 	}
 
 	vkContext.GraphicsPipeline.layout = pipelineLayout;
@@ -193,7 +201,7 @@ void GraphicsPipeline::createRenderPass() {
 
 	VkResult result = vkCreateRenderPass(vkContext.logicalDevice, &renderPassCreateInfo, nullptr, &renderPass);
 	if (result != VK_SUCCESS) {
-		throw std::runtime_error("Failed to create render pass!");
+		throw Log::runtimeException(__FUNCTION__, "Failed to create render pass!");
 	}
 
 	vkContext.GraphicsPipeline.renderPass = renderPass;
@@ -205,12 +213,12 @@ void GraphicsPipeline::initShaderStage() {
 	// Loads shader bytecode onto buffers
 		// Vertex shader
 	vertShaderBytecode = readFile("compiled_shaders/VertexShader.spv");
-	std::cout << "Loaded vertex shader! SPIR-V bytecode file size is " << vertShaderBytecode.size() << " (bytes).\n";
+	Log::print(Log::INFO, __FUNCTION__, ("Loaded vertex shader! SPIR-V bytecode file size is " + std::to_string(vertShaderBytecode.size()) + " (bytes)."));
 	vertShaderModule = createShaderModule(vertShaderBytecode);
 
 		// Fragment shader
 	fragShaderBytecode = readFile("compiled_shaders/FragmentShader.spv");
-	std::cout << "Loaded fragment shader! SPIR-V bytecode file size is " << fragShaderBytecode.size() << " (bytes).\n";
+	Log::print(Log::INFO, __FUNCTION__, ("Loaded fragment shader! SPIR-V bytecode file size is " + std::to_string(fragShaderBytecode.size()) + " (bytes)."));
 	fragShaderModule = createShaderModule(fragShaderBytecode);
 
 	// Creates shader stages
@@ -366,7 +374,7 @@ VkShaderModule GraphicsPipeline::createShaderModule(const std::vector<char>& byt
 	VkShaderModule shaderModule;
 	VkResult result = vkCreateShaderModule(vkContext.logicalDevice, &moduleCreateInfo, nullptr, &shaderModule);
 	if (result != VK_SUCCESS) {
-		throw std::runtime_error("Failed to create shader module!");
+		throw Log::runtimeException(__FUNCTION__, "Failed to create shader module!");
 	}
 
 	return shaderModule;

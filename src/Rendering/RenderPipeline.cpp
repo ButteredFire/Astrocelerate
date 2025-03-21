@@ -22,17 +22,22 @@ void RenderPipeline::init() {
 
 void RenderPipeline::cleanup() {
 	for (const auto& buffer : imageFrameBuffers) {
-		vkDestroyFramebuffer(vkContext.logicalDevice, buffer, nullptr);
+		if (vkIsValid(buffer))
+			vkDestroyFramebuffer(vkContext.logicalDevice, buffer, nullptr);
 	}
 
 	vkDestroyCommandPool(vkContext.logicalDevice, commandPool, nullptr);
 
 	// Synchronization objects
 	for (size_t i = 0; i < SimulationConsts::MAX_FRAMES_IN_FLIGHT; i++) {
-		vkDestroySemaphore(vkContext.logicalDevice, imageReadySemaphores[i], nullptr);
-		vkDestroySemaphore(vkContext.logicalDevice, renderFinishedSemaphores[i], nullptr);
+		if (vkIsValid(imageReadySemaphores[i]))
+			vkDestroySemaphore(vkContext.logicalDevice, imageReadySemaphores[i], nullptr);
+		
+		if (vkIsValid(renderFinishedSemaphores[i]))
+			vkDestroySemaphore(vkContext.logicalDevice, renderFinishedSemaphores[i], nullptr);
 
-		vkDestroyFence(vkContext.logicalDevice, inFlightFences[i], nullptr);
+		if (vkIsValid(inFlightFences[i]))
+			vkDestroyFence(vkContext.logicalDevice, inFlightFences[i], nullptr);
 	}
 }
 
@@ -57,7 +62,7 @@ void RenderPipeline::recordCommandBuffer(VkCommandBuffer& buffer, uint32_t image
 	VkResult beginCmdBufferResult = vkBeginCommandBuffer(buffer, &bufferBeginInfo);
 	if (beginCmdBufferResult != VK_SUCCESS) {
 		cleanup();
-		throw std::runtime_error("Failed to start recording command buffer!");
+		throw Log::runtimeException(__FUNCTION__, "Failed to start recording command buffer!");
 	}
 
 	// Starts a render pass to start recording the drawing commands
@@ -125,7 +130,7 @@ void RenderPipeline::recordCommandBuffer(VkCommandBuffer& buffer, uint32_t image
 	VkResult endCmdBufferResult = vkEndCommandBuffer(buffer);
 	if (endCmdBufferResult != VK_SUCCESS) {
 		cleanup();
-		throw std::runtime_error("Failed to record command buffer!");
+		throw Log::runtimeException(__FUNCTION__, "Failed to record command buffer!");
 	}
 }
 
@@ -137,7 +142,7 @@ void RenderPipeline::createFrameBuffers() {
 	for (size_t i = 0; i < imageFrameBuffers.size(); i++) {
 		if (vkContext.swapChainImageViews[i] == VK_NULL_HANDLE) {
 			cleanup();
-			throw std::runtime_error("Cannot read null image view!");
+			throw Log::runtimeException(__FUNCTION__, "Cannot read null image view!");
 		}
 
 		VkImageView attachments[] = {
@@ -156,7 +161,7 @@ void RenderPipeline::createFrameBuffers() {
 		VkResult result = vkCreateFramebuffer(vkContext.logicalDevice, &bufferCreateInfo, nullptr, &imageFrameBuffers[i]);
 		if (result != VK_SUCCESS) {
 			cleanup();
-			throw std::runtime_error("Failed to create frame buffer!");
+			throw Log::runtimeException(__FUNCTION__, "Failed to create frame buffer!");
 		}
 	}
 }
@@ -177,7 +182,7 @@ void RenderPipeline::createCommandPools() {
 	VkResult result = vkCreateCommandPool(vkContext.logicalDevice, &poolCreateInfo, nullptr, &commandPool);
 	if (result != VK_SUCCESS) {
 		cleanup();
-		throw std::runtime_error("Failed to create command pool!");
+		throw Log::runtimeException(__FUNCTION__, "Failed to create command pool!");
 	}
 }
 
@@ -199,7 +204,7 @@ void RenderPipeline::createCommandBuffers() {
 	VkResult result = vkAllocateCommandBuffers(vkContext.logicalDevice, &bufferAllocInfo, commandBuffers.data());
 	if (result != VK_SUCCESS) {
 		cleanup();
-		throw std::runtime_error("Failed to allocate command buffers!");
+		throw Log::runtimeException(__FUNCTION__, "Failed to allocate command buffers!");
 	}
 
 	vkContext.RenderPipeline.commandBuffers = commandBuffers;
@@ -253,12 +258,12 @@ void RenderPipeline::createSyncObjects() {
 
 		if (imageSemaphoreCreateResult != VK_SUCCESS || renderSemaphoreCreateResult != VK_SUCCESS) {
 			cleanup();
-			throw std::runtime_error("Failed to create semaphores for a frame!");
+			throw Log::runtimeException(__FUNCTION__, "Failed to create semaphores for a frame!");
 		}
 
 		if (inFlightFenceCreateResult != VK_SUCCESS) {
 			cleanup();
-			throw std::runtime_error("Failed to create in-flight fence for a frame!");
+			throw Log::runtimeException(__FUNCTION__, "Failed to create in-flight fence for a frame!");
 		}
 	}
 
