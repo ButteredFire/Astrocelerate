@@ -3,7 +3,9 @@
 VertexBuffer::VertexBuffer(VulkanContext& context):
 	vkContext(context) {}
 
-VertexBuffer::~VertexBuffer() {}
+VertexBuffer::~VertexBuffer() {
+	cleanup();
+}
 
 
 void VertexBuffer::init() {
@@ -48,7 +50,7 @@ std::array<VkVertexInputAttributeDescription, 2> VertexBuffer::getAttributeDescr
 	// Attribute: Position
 	attribDescriptions[0].binding = 0;
 	attribDescriptions[0].location = 0;
-	attribDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT; // R32G32 because `position` is a vec2. If it were a vec3, its format would be R32G32B32_SFLOAT or similar
+	attribDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT; // R32G32 because `position` is a vec2. If it were a vec3, its format would need to have 3 channels, e.g., R32G32B32_SFLOAT
 	attribDescriptions[0].offset = offsetof(Vertex, position);
 
 	// Attribute: Color

@@ -24,6 +24,64 @@
 #include <Constants.h>
 
 
+inline VkResult createDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
+	auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+	if (func != nullptr) {
+		return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
+	}
+	else {
+		return VK_ERROR_EXTENSION_NOT_PRESENT;
+	}
+}
+
+
+inline void destroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator) {
+	auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
+	if (func != nullptr) {
+		func(instance, debugMessenger, pAllocator);
+	}
+}
+
+
+inline static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) {
+	/* Message severity levels:
+	* VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT: Diagnostic message
+	*
+	* VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT: Informational message like the creation of a resource
+	* 
+	* VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT: Message about behavior that is not necessarily an error, but very likely a bug in your application
+	* 
+	* VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT: Message about behavior that is invalid and may cause crashes
+	*/
+
+	Log::MsgType severity;
+	switch (messageSeverity) {
+	case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
+		severity = Log::VERBOSE;
+		break;
+
+	case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
+		severity = Log::INFO;
+		break;
+
+	case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+		severity = Log::WARNING;
+		break;
+
+	case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+		severity = Log::ERROR;
+		break;
+
+	default:
+		severity = Log::INFO;
+		break;
+	}
+
+	Log::print(severity, "Validation Layer", std::string(pCallbackData->pMessage));
+
+	return VK_FALSE;
+}
+
 
 class VkInstanceManager {
 public:
@@ -76,6 +134,8 @@ private:
 	VulkanContext& vkContext;
 	VkSurfaceKHR windowSurface = VK_NULL_HANDLE;
 
+	VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
+
 	std::vector<const char*> enabledExtensions;
 	std::vector<const char*> enabledValidationLayers;
 	std::unordered_set<const char*> UTIL_enabledExtensionSet; // Purpose: Prevents copying extensions
@@ -90,14 +150,17 @@ private:
 	*/
 	void initVulkan();
 
-	/* Creates a Vulkan instance.
-	* @return a VkResult value indicating the instance creation status.
-	*/
-	VkResult createVulkanInstance();
 
-	/* Creates a Vulkan surface on which to display rendered images.
-	*/
-	VkResult createSurface();
+	void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
+
+
+	void createDebugMessenger();
+
+	/* Creates a Vulkan instance. */
+	void createVulkanInstance();
+
+	/* Creates a Vulkan surface on which to display rendered images. */
+	void createSurface();
 
 	/* Verifies whether a given array of Vulkan extensions is available or supported.
 	* @param extensions: A vector containing the names of Vulkan extensions to be evaluated for validity.

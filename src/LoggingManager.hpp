@@ -10,6 +10,7 @@
 
 namespace Log {
 	enum MsgType {
+		VERBOSE,
 		INFO,
 		WARNING,
 		ERROR
@@ -24,6 +25,10 @@ namespace Log {
 	static void print(MsgType type, const char* caller, const std::string& message, bool newline = true) {
 		std::string msgType = "Unknown message type";
 		switch (type) {
+		case VERBOSE:
+			msgType = "VERBOSE";
+			break;
+
 		case INFO:
 			msgType = "INFO";
 			break;
@@ -43,6 +48,7 @@ namespace Log {
 	}
 
 
+	/* Custom RTE exception class that allows for origin specification. */
 	class RuntimeException : public std::exception {
 	public:
 		RuntimeException(const std::string& functionName, const std::string& message) : funcName(functionName), exceptionMessage(message) {}

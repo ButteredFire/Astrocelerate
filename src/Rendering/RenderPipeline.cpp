@@ -28,7 +28,11 @@ void RenderPipeline::cleanup() {
 			vkDestroyFramebuffer(vkContext.logicalDevice, buffer, nullptr);
 	}
 
-	vkDestroyCommandPool(vkContext.logicalDevice, commandPool, nullptr);
+	if (!commandBuffers.empty())
+		vkFreeCommandBuffers(vkContext.logicalDevice, commandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
+
+	if (vkIsValid(commandPool))
+		vkDestroyCommandPool(vkContext.logicalDevice, commandPool, nullptr);
 
 	// Synchronization objects
 	for (size_t i = 0; i < SimulationConsts::MAX_FRAMES_IN_FLIGHT; i++) {

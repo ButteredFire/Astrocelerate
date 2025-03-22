@@ -36,7 +36,7 @@ public:
     void cleanup();
 
     /* Gets the vertex buffer. */
-    inline const VkBuffer getBuffer() const { return vertexBuffer; }
+    inline const VkBuffer& getBuffer() const { return vertexBuffer; }
 
     /* Gets the vertex data. */
     inline const std::vector<Vertex> getVertexData() const { return vertices; }

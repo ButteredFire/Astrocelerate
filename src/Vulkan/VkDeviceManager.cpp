@@ -74,7 +74,7 @@ void VkDeviceManager::createPhysicalDevice() {
 
     if (physicalDevice == nullptr || !isDeviceCompatible) {
         cleanup();
-        throw Log::RuntimeException(__FUNCTION__, "Failed to find a GPU that supports Astrocelerate's features!");
+        throw Log::RuntimeException(__FUNCTION__, "Failed to find a GPU that supports required features!");
     }
 
     vkContext.physicalDevice = GPUPhysicalDevice = physicalDevice;

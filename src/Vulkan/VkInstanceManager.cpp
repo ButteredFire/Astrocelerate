@@ -14,10 +14,16 @@ VkInstanceManager::~VkInstanceManager() {
 
 void VkInstanceManager::init() {
     initVulkan();
+    createVulkanInstance();
+    createDebugMessenger();
+    createSurface();
 }
 
 
 void VkInstanceManager::cleanup() {
+    if (inDebugMode)
+        destroyDebugUtilsMessengerEXT(vulkInst, debugMessenger, nullptr);
+
     if (vkIsValid(windowSurface))
         vkDestroySurfaceKHR(vulkInst, windowSurface, nullptr);
 
@@ -52,30 +58,33 @@ void VkInstanceManager::initVulkan() {
     // Sets validation layers to be bound to a Vulkan instance
     addVulkanValidationLayers({
         "VK_LAYER_KHRONOS_validation",
-        "VK_LAYER_LUNARG_crash_diagnostic",
         "VK_LAYER_LUNARG_screenshot"
     });
+}
 
-
-    // Creates Vulkan instance
-    VkResult initResult = createVulkanInstance();
-    if (initResult != VK_SUCCESS) {
-        cleanup();
-        throw Log::RuntimeException(__FUNCTION__, "Failed to create Vulkan instance!");
-    }
-    vkContext.vulkanInstance = vulkInst;
-
-    // Creates Vulkan surface
-    VkResult surfaceInitResult = createSurface();
-    if (surfaceInitResult != VK_SUCCESS) {
-        cleanup();
-        throw Log::RuntimeException(__FUNCTION__, "Failed to create Vulkan window surface!");
-    }
-    vkContext.vkSurface = windowSurface;
+void VkInstanceManager::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo) {
+    createInfo = {};
+    createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+    createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+    createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+    createInfo.pfnUserCallback = debugCallback;
 }
 
 
-VkResult VkInstanceManager::createVulkanInstance() {
+void VkInstanceManager::createDebugMessenger() {
+    if (!inDebugMode) return;
+
+    VkDebugUtilsMessengerCreateInfoEXT createInfo;
+    populateDebugMessengerCreateInfo(createInfo);
+
+    VkResult result = createDebugUtilsMessengerEXT(vulkInst, &createInfo, nullptr, &debugMessenger);
+    if (result != VK_SUCCESS) {
+        throw Log::RuntimeException(__FUNCTION__, "Failed to create debug messenger!");
+    }
+}
+
+
+void VkInstanceManager::createVulkanInstance() {
     // Specifies an application configuration for the driver
     VkApplicationInfo appInfo{}; // INSIGHT: Using braced initialization (alt.: memset) zero-initializes all fields
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO; // Specifies structure type
@@ -90,7 +99,6 @@ VkResult VkInstanceManager::createVulkanInstance() {
     // Specifies which global extensions and validation layers are to be used
     VkInstanceCreateInfo instanceInfo{};
     instanceInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-
     instanceInfo.pApplicationInfo = &appInfo;
 
     // Configures global extensions 
@@ -101,39 +109,57 @@ VkResult VkInstanceManager::createVulkanInstance() {
     for (uint32_t i = 0; i < glfwExtensionCount; i++)
         enabledExtensions.push_back(glfwExtensions[i]);
 
+    if (inDebugMode)
+        enabledExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+
     if (verifyVulkanExtensions(enabledExtensions) == false) {
         enabledExtensions.clear();
         cleanup();
         throw Log::RuntimeException(__FUNCTION__, "GLFW Instance Extensions contain invalid or unsupported extensions!");
     }
 
-    instanceInfo.enabledExtensionCount = glfwExtensionCount;
+    instanceInfo.enabledExtensionCount = static_cast<uint32_t>(enabledExtensions.size());
     instanceInfo.ppEnabledExtensionNames = enabledExtensions.data();
 
     // Configures global validation layers
+    VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
     if (inDebugMode) {
         instanceInfo.enabledLayerCount = static_cast<uint32_t>(enabledValidationLayers.size());
         instanceInfo.ppEnabledLayerNames = enabledValidationLayers.data();
+
+        populateDebugMessengerCreateInfo(debugCreateInfo);
+        instanceInfo.pNext = reinterpret_cast<VkDebugUtilsMessengerCreateInfoEXT*>(&debugCreateInfo);
     }
     else {
         instanceInfo.enabledLayerCount = 0;
+        instanceInfo.pNext = nullptr;
     }
 
     // Creates a Vulkan instance from the instance information configured above
     // and initializes the member VkInstance variable
     VkResult result = vkCreateInstance(&instanceInfo, nullptr, &vulkInst);
-    return result;
+    if (result != VK_SUCCESS) {
+        cleanup();
+        throw Log::RuntimeException(__FUNCTION__, "Failed to create Vulkan instance!");
+    }
+
+    vkContext.vulkanInstance = vulkInst;
 }
 
 
-VkResult VkInstanceManager::createSurface() {
+void VkInstanceManager::createSurface() {
     /* Using glfwCreateWindowSurface to create a window surface is platform-agnostic.
     * On the other hand, while the VkSurfaceKHR object is itself platform agnostic, its creation isn't
     * because it depends on window system details (meaning that the creation structs vary across platforms,
     * e.g., VkWin32SurfaceCreateInfoKHR for Windows).
     */
     VkResult result = glfwCreateWindowSurface(vulkInst, vkContext.window, nullptr, &windowSurface);
-    return result;
+    if (result != VK_SUCCESS) {
+        cleanup();
+        throw Log::RuntimeException(__FUNCTION__, "Failed to create Vulkan window surface!");
+    }
+
+    vkContext.vkSurface = windowSurface;
 }
 
 
