@@ -43,9 +43,9 @@ namespace Log {
 	}
 
 
-	class runtimeException : public std::exception {
+	class RuntimeException : public std::exception {
 	public:
-		runtimeException(const std::string& functionName, const std::string& message) : funcName(functionName), exceptionMessage(message) {}
+		RuntimeException(const std::string& functionName, const std::string& message) : funcName(functionName), exceptionMessage(message) {}
 
 		/* Gets the name of the origin from which the exception was raised. 
 		* @return The name of the origin.
@@ -62,7 +62,7 @@ namespace Log {
 		}
 	
 	private:
-		std::string funcName;
+		std::string funcName = "unknown origin";
 		std::string exceptionMessage;
 	};
 }

@@ -17,10 +17,12 @@
 #include <Rendering/GraphicsPipeline.hpp>
 #include <Rendering/RenderPipeline.hpp>
 
+#include <Shaders/VertexBuffer.hpp>
+
 #include <AppWindow.hpp>
 #include <Constants.h>
 #include <LoggingManager.hpp>
-#include <Vulkan/VulkanContexts.hpp>
+#include <ApplicationContext.hpp>
 
 
 

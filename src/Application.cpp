@@ -4,7 +4,7 @@
 #include <AppWindow.hpp>
 #include <Engine/Engine.hpp>
 #include <Constants.h>
-#include <Vulkan/VulkanContexts.hpp>
+#include <ApplicationContext.hpp>
 
 #include <iostream>
 #include <stdexcept>
@@ -44,8 +44,12 @@ int main() {
         GraphicsPipeline graphicsPipeline(vkContext);
         graphicsPipeline.init();
 
-            // Creates a rendering pipeline 
-        RenderPipeline renderPipeline(vkContext);
+            // Creates a vertex buffer
+        VertexBuffer vertexBuffer(vkContext);
+        vertexBuffer.init();
+
+            // Creates a rendering pipeline
+        RenderPipeline renderPipeline(vkContext, vertexBuffer);
         renderPipeline.init();
 
             // Creates a renderer
@@ -54,7 +58,7 @@ int main() {
         Engine engine(windowPtr, vkContext, renderer);
         engine.run();
     }
-    catch (const Log::runtimeException& e) {
+    catch (const Log::RuntimeException& e) {
         Log::print(Log::ERROR, e.origin(), e.what());
         boxer::show(e.what(), ("Exception raised from " + std::string(e.origin())).c_str(), boxer::Style::Error, boxer::Buttons::Quit);
         return EXIT_FAILURE;

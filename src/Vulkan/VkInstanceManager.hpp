@@ -20,7 +20,7 @@
 // Local
 #include <Vulkan/VkDeviceManager.hpp>
 #include <LoggingManager.hpp>
-#include <Vulkan/VulkanContexts.hpp>
+#include <ApplicationContext.hpp>
 #include <Constants.h>
 
 

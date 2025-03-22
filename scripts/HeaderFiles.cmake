@@ -8,6 +8,7 @@ set(HEADER_FILES
 	"external/imgui/imstb_rectpack.h"
 	"external/imgui/imstb_textedit.h"
 	"external/imgui/imstb_truetype.h"
+	"src/ApplicationContext.hpp"
 	"src/AppWindow.hpp"
 	"src/Constants.h"
 	"src/IncludesRefs.h"
@@ -20,5 +21,4 @@ set(HEADER_FILES
 	"src/Vulkan/VkDeviceManager.hpp"
 	"src/Vulkan/VkInstanceManager.hpp"
 	"src/Vulkan/VkSwapchainManager.hpp"
-	"src/Vulkan/VulkanContexts.hpp"
 )

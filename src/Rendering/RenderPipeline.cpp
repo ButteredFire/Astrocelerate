@@ -4,8 +4,9 @@
 #include "RenderPipeline.hpp"
 
 
-RenderPipeline::RenderPipeline(VulkanContext& context) :
-	vkContext(context) {}
+RenderPipeline::RenderPipeline(VulkanContext& context, VertexBuffer& vertBuf) :
+	vkContext(context),
+	vertexBuffer(vertBuf) {}
 
 RenderPipeline::~RenderPipeline() {
 	cleanup();
@@ -15,6 +16,7 @@ RenderPipeline::~RenderPipeline() {
 void RenderPipeline::init() {
 	createFrameBuffers();
 	createCommandPools();
+	vertexBuffer.init();
 	createCommandBuffers();
 	createSyncObjects();
 }
@@ -62,7 +64,7 @@ void RenderPipeline::recordCommandBuffer(VkCommandBuffer& buffer, uint32_t image
 	VkResult beginCmdBufferResult = vkBeginCommandBuffer(buffer, &bufferBeginInfo);
 	if (beginCmdBufferResult != VK_SUCCESS) {
 		cleanup();
-		throw Log::runtimeException(__FUNCTION__, "Failed to start recording command buffer!");
+		throw Log::RuntimeException(__FUNCTION__, "Failed to start recording command buffer!");
 	}
 
 	// Starts a render pass to start recording the drawing commands
@@ -121,7 +123,16 @@ void RenderPipeline::recordCommandBuffer(VkCommandBuffer& buffer, uint32_t image
 	* firstVertex: The index of the first vertex to draw. It is used as an offset into the vertex buffer, and defines the lowest value of gl_VertexIndex.
 	* firstInstance: The instance ID of the first instance to draw. It is used as an offset for instanced rendering, and defines the lowest value of gl_InstanceIndex.
 	*/
-	vkCmdDraw(buffer, 3, 1, 0, 0);
+	VkBuffer vertexBuffers[] = {
+		vertexBuffer.getBuffer()
+	};
+	VkDeviceSize offsets[] = {
+		0
+	};
+	vkCmdBindVertexBuffers(buffer, 0, 1, vertexBuffers, offsets);
+
+	std::vector<Vertex> vertexData = vertexBuffer.getVertexData();
+	vkCmdDraw(buffer, static_cast<uint32_t>(vertexData.size()), 1, 0, 0);
 
 	// End the render pass
 	vkCmdEndRenderPass(buffer);
@@ -130,7 +141,7 @@ void RenderPipeline::recordCommandBuffer(VkCommandBuffer& buffer, uint32_t image
 	VkResult endCmdBufferResult = vkEndCommandBuffer(buffer);
 	if (endCmdBufferResult != VK_SUCCESS) {
 		cleanup();
-		throw Log::runtimeException(__FUNCTION__, "Failed to record command buffer!");
+		throw Log::RuntimeException(__FUNCTION__, "Failed to record command buffer!");
 	}
 }
 
@@ -142,7 +153,7 @@ void RenderPipeline::createFrameBuffers() {
 	for (size_t i = 0; i < imageFrameBuffers.size(); i++) {
 		if (vkContext.swapChainImageViews[i] == VK_NULL_HANDLE) {
 			cleanup();
-			throw Log::runtimeException(__FUNCTION__, "Cannot read null image view!");
+			throw Log::RuntimeException(__FUNCTION__, "Cannot read null image view!");
 		}
 
 		VkImageView attachments[] = {
@@ -161,7 +172,7 @@ void RenderPipeline::createFrameBuffers() {
 		VkResult result = vkCreateFramebuffer(vkContext.logicalDevice, &bufferCreateInfo, nullptr, &imageFrameBuffers[i]);
 		if (result != VK_SUCCESS) {
 			cleanup();
-			throw Log::runtimeException(__FUNCTION__, "Failed to create frame buffer!");
+			throw Log::RuntimeException(__FUNCTION__, "Failed to create frame buffer!");
 		}
 	}
 }
@@ -182,7 +193,7 @@ void RenderPipeline::createCommandPools() {
 	VkResult result = vkCreateCommandPool(vkContext.logicalDevice, &poolCreateInfo, nullptr, &commandPool);
 	if (result != VK_SUCCESS) {
 		cleanup();
-		throw Log::runtimeException(__FUNCTION__, "Failed to create command pool!");
+		throw Log::RuntimeException(__FUNCTION__, "Failed to create command pool!");
 	}
 }
 
@@ -204,7 +215,7 @@ void RenderPipeline::createCommandBuffers() {
 	VkResult result = vkAllocateCommandBuffers(vkContext.logicalDevice, &bufferAllocInfo, commandBuffers.data());
 	if (result != VK_SUCCESS) {
 		cleanup();
-		throw Log::runtimeException(__FUNCTION__, "Failed to allocate command buffers!");
+		throw Log::RuntimeException(__FUNCTION__, "Failed to allocate command buffers!");
 	}
 
 	vkContext.RenderPipeline.commandBuffers = commandBuffers;
@@ -258,12 +269,12 @@ void RenderPipeline::createSyncObjects() {
 
 		if (imageSemaphoreCreateResult != VK_SUCCESS || renderSemaphoreCreateResult != VK_SUCCESS) {
 			cleanup();
-			throw Log::runtimeException(__FUNCTION__, "Failed to create semaphores for a frame!");
+			throw Log::RuntimeException(__FUNCTION__, "Failed to create semaphores for a frame!");
 		}
 
 		if (inFlightFenceCreateResult != VK_SUCCESS) {
 			cleanup();
-			throw Log::runtimeException(__FUNCTION__, "Failed to create in-flight fence for a frame!");
+			throw Log::RuntimeException(__FUNCTION__, "Failed to create in-flight fence for a frame!");
 		}
 	}
 

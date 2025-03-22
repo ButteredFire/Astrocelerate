@@ -23,7 +23,7 @@
 #include <Vulkan/VkSwapchainManager.hpp>
 #include <LoggingManager.hpp>
 #include <Constants.h>
-#include <Vulkan/VulkanContexts.hpp>
+#include <ApplicationContext.hpp>
 
 
 

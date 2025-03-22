@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 
 /* Rationale behind using std::optional<uint32_t> instead of uint32_t:
 * The index of any given queue family is arbitrary, and thus could theoretically be any uint32_t integer.
@@ -84,7 +85,7 @@ struct QueueFamilyIndices {
 };
 
 
-// A structure that manages commonly accessed or global Vulkan objects.
+// A structure that stores commonly accessed or global Vulkan objects.
 struct VulkanContext {
     GLFWwindow* window;
 

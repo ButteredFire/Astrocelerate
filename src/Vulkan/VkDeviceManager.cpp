@@ -9,11 +9,11 @@ VkDeviceManager::VkDeviceManager(VulkanContext &context):
     vulkInst(context.vulkanInstance), vkContext(context) {
 
     if (vulkInst == VK_NULL_HANDLE) {
-        throw Log::runtimeException(__FUNCTION__, "Cannot initialize device manager: Invalid Vulkan instance!");
+        throw Log::RuntimeException(__FUNCTION__, "Cannot initialize device manager: Invalid Vulkan instance!");
     }
 
     if (vkContext.vkSurface == VK_NULL_HANDLE) {
-        throw Log::runtimeException(__FUNCTION__, "Cannot initialize device manager: Invalid Vulkan window surface!");
+        throw Log::RuntimeException(__FUNCTION__, "Cannot initialize device manager: Invalid Vulkan window surface!");
     }
 }
 
@@ -50,7 +50,7 @@ void VkDeviceManager::createPhysicalDevice() {
 
     if (physDeviceCount == 0) {
         cleanup();
-        throw Log::runtimeException(__FUNCTION__, "This machine does not have Vulkan-supported GPUs!");
+        throw Log::RuntimeException(__FUNCTION__, "This machine does not have Vulkan-supported GPUs!");
     }
 
     VkPhysicalDevice physicalDevice = nullptr;
@@ -74,7 +74,7 @@ void VkDeviceManager::createPhysicalDevice() {
 
     if (physicalDevice == nullptr || !isDeviceCompatible) {
         cleanup();
-        throw Log::runtimeException(__FUNCTION__, "Failed to find a GPU that supports Astrocelerate's features!");
+        throw Log::RuntimeException(__FUNCTION__, "Failed to find a GPU that supports Astrocelerate's features!");
     }
 
     vkContext.physicalDevice = GPUPhysicalDevice = physicalDevice;
@@ -89,7 +89,7 @@ void VkDeviceManager::createLogicalDevice() {
     for (const auto &family : allFamilies)
         if (!queueFamilies.familyExists(*family)) {
             cleanup();
-            throw Log::runtimeException(__FUNCTION__, "Unable to create logical device: Queue family is non-existent!");
+            throw Log::RuntimeException(__FUNCTION__, "Unable to create logical device: Queue family is non-existent!");
         }
 
     // Queues must have a priority in [0.0; 1.0], which influences the scheduling of command buffer execution.
@@ -155,7 +155,7 @@ void VkDeviceManager::createLogicalDevice() {
     VkResult result = vkCreateDevice(GPUPhysicalDevice, &deviceInfo, nullptr, &GPULogicalDevice);
     if (result != VK_SUCCESS) {
         cleanup();
-        throw Log::runtimeException(__FUNCTION__, "Unable to create GPU logical device!");
+        throw Log::RuntimeException(__FUNCTION__, "Unable to create GPU logical device!");
     }
 
     // Populates each (available) family's device queue

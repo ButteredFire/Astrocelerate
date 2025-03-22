@@ -25,7 +25,7 @@ class RenderPipeline;
 #include <Rendering/RenderPipeline.hpp>
 #include <LoggingManager.hpp>
 #include <Constants.h>
-#include <Vulkan/VulkanContexts.hpp>
+#include <ApplicationContext.hpp>
 
 
 // A structure that manages properties of a swap chain.

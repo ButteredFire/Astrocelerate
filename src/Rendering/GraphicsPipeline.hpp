@@ -18,7 +18,7 @@
 
 // Local
 #include <Vulkan/VkInstanceManager.hpp>
-#include <Vulkan/VulkanContexts.hpp>
+#include <ApplicationContext.hpp>
 #include <Shaders/VertexBuffer.hpp>
 #include <LoggingManager.hpp>
 #include <Constants.h>
@@ -42,7 +42,7 @@ static inline std::vector<char> readFile(const std::string& fileName, const std:
 
 	// If file cannot open
 	if (!file.is_open()) {
-		throw Log::runtimeException(__FUNCTION__, "Failed to open file " + enquote(fileName) + "!"
+		throw Log::RuntimeException(__FUNCTION__, "Failed to open file " + enquote(fileName) + "!"
 			+ "\n" + "The file may not be in the directory " + enquote(workingDirectory) + '.'
 			+ "\n" + "To change the working directory, please specify the full path to the file."
 		);
@@ -88,7 +88,10 @@ private:
 		// Vertex shader
 	std::vector<char> vertShaderBytecode;
 	VkShaderModule vertShaderModule = VK_NULL_HANDLE;
+	
 	VkPipelineVertexInputStateCreateInfo vertInputState{};
+	VkVertexInputBindingDescription vertBindingDescription = VkVertexInputBindingDescription();
+	std::array<VkVertexInputAttributeDescription, 2> vertAttribDescriptions{};
 
 		// Fragment shader
 	std::vector<char> fragShaderBytecode;

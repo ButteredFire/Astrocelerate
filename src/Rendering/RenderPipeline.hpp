@@ -15,15 +15,16 @@
 #include <vector>
 
 // Local
-#include <Vulkan/VulkanContexts.hpp>
+#include <ApplicationContext.hpp>
 #include <Vulkan/VkDeviceManager.hpp>
+#include <Shaders/VertexBuffer.hpp>
 #include <LoggingManager.hpp>
 #include <Constants.h>
 
 
 class RenderPipeline {
 public:
-	RenderPipeline(VulkanContext& context);
+	RenderPipeline(VulkanContext& context, VertexBuffer& vertBuf);
 	~RenderPipeline();
 
 	void init();
@@ -44,6 +45,8 @@ public:
 
 private:
 	VulkanContext& vkContext;
+	VertexBuffer& vertexBuffer;
+
 	std::vector<VkFramebuffer> imageFrameBuffers;
 
 	// Command pools manage the memory that is used to store the buffers
