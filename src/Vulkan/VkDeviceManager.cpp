@@ -38,6 +38,8 @@ void VkDeviceManager::init() {
 
 
 void VkDeviceManager::cleanup() {
+    Log::print(Log::INFO, __FUNCTION__, "Cleaning up...");
+
     if (vkIsValid(GPULogicalDevice))
         vkDestroyDevice(GPULogicalDevice, nullptr);
 }

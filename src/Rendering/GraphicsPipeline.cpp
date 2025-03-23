@@ -50,6 +50,8 @@ void GraphicsPipeline::init() {
 
 
 void GraphicsPipeline::cleanup() {
+	Log::print(Log::INFO, __FUNCTION__, "Cleaning up...");
+
 	if (vkIsValid(vertShaderModule))
 		vkDestroyShaderModule(vkContext.logicalDevice, vertShaderModule, nullptr);
 	

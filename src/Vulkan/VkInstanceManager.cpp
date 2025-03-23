@@ -21,6 +21,8 @@ void VkInstanceManager::init() {
 
 
 void VkInstanceManager::cleanup() {
+    Log::print(Log::INFO, __FUNCTION__, "Cleaning up...");
+
     if (inDebugMode)
         destroyDebugUtilsMessengerEXT(vulkInst, debugMessenger, nullptr);
 
@@ -58,7 +60,8 @@ void VkInstanceManager::initVulkan() {
     // Sets validation layers to be bound to a Vulkan instance
     addVulkanValidationLayers({
         "VK_LAYER_KHRONOS_validation",
-        "VK_LAYER_LUNARG_screenshot"
+        "VK_LAYER_LUNARG_screenshot",
+        "VK_LAYER_LUNARG_api_dump"
     });
 }
 
@@ -220,6 +223,7 @@ void VkInstanceManager::addVulkanExtensions(std::vector<const char*> extensions)
 
     for (const auto& ext : extensions) {
         if (UTIL_enabledExtensionSet.count(ext) == 0) {
+            Log::print(Log::INFO, __FUNCTION__, ("Extension " + enquote(ext) + " verified. Enabling..."));
             enabledExtensions.push_back(ext);
             UTIL_enabledExtensionSet.insert(ext);
         }
@@ -235,6 +239,7 @@ void VkInstanceManager::addVulkanValidationLayers(std::vector<const char*> layer
 
     for (const auto& layer : layers) {
         if (UTIL_enabledValidationLayerSet.count(layer) == 0) {
+            Log::print(Log::INFO, __FUNCTION__, ("Validation layer " + enquote(layer) + " verified. Enabling..."));
             enabledValidationLayers.push_back(layer);
             UTIL_enabledValidationLayerSet.insert(layer);
         }

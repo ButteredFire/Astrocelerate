@@ -16,6 +16,8 @@ void VertexBuffer::init() {
 
 
 void VertexBuffer::cleanup() {
+	Log::print(Log::INFO, __FUNCTION__, "Cleaning up...");
+
 	if (vkIsValid(vertexBuffer))
 		vkDestroyBuffer(vkContext.logicalDevice, vertexBuffer, nullptr);
 

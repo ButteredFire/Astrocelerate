@@ -23,6 +23,8 @@ void RenderPipeline::init() {
 
 
 void RenderPipeline::cleanup() {
+	Log::print(Log::INFO, __FUNCTION__, "Cleaning up...");
+
 	for (const auto& buffer : imageFrameBuffers) {
 		if (vkIsValid(buffer))
 			vkDestroyFramebuffer(vkContext.logicalDevice, buffer, nullptr);

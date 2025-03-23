@@ -34,6 +34,8 @@ void VkSwapchainManager::init() {
 
 
 void VkSwapchainManager::cleanup() {
+    Log::print(Log::INFO, __FUNCTION__, "Cleaning up...");
+
     // Frees image views memory
     for (const auto& imageView : swapChainImageViews) {
         if (vkIsValid(imageView))
