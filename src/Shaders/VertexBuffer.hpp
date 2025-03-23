@@ -30,7 +30,7 @@ struct Vertex {
 
 class VertexBuffer {
 public:
-    VertexBuffer(VulkanContext& context);
+    VertexBuffer(VulkanContext& context, bool autoCleanup = true);
     ~VertexBuffer();
 
     void init();
@@ -50,6 +50,7 @@ public:
     static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions();
 
 private:
+    bool cleanOnDestruction = true;
     VulkanContext& vkContext;
     
     VkBufferCreateInfo bufCreateInfo{};

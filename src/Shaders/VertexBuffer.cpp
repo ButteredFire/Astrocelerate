@@ -1,10 +1,14 @@
 #include "VertexBuffer.hpp"
 
-VertexBuffer::VertexBuffer(VulkanContext& context):
-	vkContext(context) {}
+VertexBuffer::VertexBuffer(VulkanContext& context, bool autoCleanup):
+	vkContext(context), cleanOnDestruction(autoCleanup) {
+
+	Log::print(Log::INFO, __FUNCTION__, "Initializing...");
+}
 
 VertexBuffer::~VertexBuffer() {
-	cleanup();
+	if (cleanOnDestruction)
+		cleanup();
 }
 
 

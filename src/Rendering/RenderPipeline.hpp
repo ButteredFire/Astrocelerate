@@ -26,7 +26,7 @@ class VertexBuffer;
 
 class RenderPipeline {
 public:
-	RenderPipeline(VulkanContext& context, VertexBuffer& vertBuf);
+	RenderPipeline(VulkanContext& context, VertexBuffer& vertBuf, bool autoCleanup = true);
 	~RenderPipeline();
 
 	void init();
@@ -54,6 +54,7 @@ public:
 	void allocCommandBuffers(VkCommandPool& commandPool, std::vector<VkCommandBuffer>& commandBuffers);
 
 private:
+	bool cleanOnDestruction = true;
 	VulkanContext& vkContext;
 	VertexBuffer& vertexBuffer;
 

@@ -85,7 +85,7 @@ inline static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSe
 
 class VkInstanceManager {
 public:
-	VkInstanceManager(VulkanContext &context);
+	VkInstanceManager(VulkanContext &context, bool autoCleanup = true);
 	~VkInstanceManager();
 
 	/* Initializes the Vulkan instance setup process. */
@@ -130,6 +130,7 @@ public:
 	void addVulkanValidationLayers(std::vector<const char*> layers);
 
 private:
+	bool cleanOnDestruction = true;
 	VkInstance vulkInst = VK_NULL_HANDLE;
 	VulkanContext& vkContext;
 	VkSurfaceKHR windowSurface = VK_NULL_HANDLE;

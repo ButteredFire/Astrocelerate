@@ -4,11 +4,15 @@
 
 #include "VkInstanceManager.hpp"
 
-VkInstanceManager::VkInstanceManager(VulkanContext &context):
-    vkContext(context) {}
+VkInstanceManager::VkInstanceManager(VulkanContext &context, bool autoCleanup):
+    vkContext(context), cleanOnDestruction(autoCleanup) {
+
+    Log::print(Log::INFO, __FUNCTION__, "Initializing...");
+}
 
 VkInstanceManager::~VkInstanceManager() {
-    cleanup();
+    if (cleanOnDestruction)
+        cleanup();
 }
 
 
@@ -23,7 +27,7 @@ void VkInstanceManager::init() {
 void VkInstanceManager::cleanup() {
     Log::print(Log::INFO, __FUNCTION__, "Cleaning up...");
 
-    if (inDebugMode)
+    if (inDebugMode && vkIsValid(debugMessenger))
         destroyDebugUtilsMessengerEXT(vulkInst, debugMessenger, nullptr);
 
     if (vkIsValid(windowSurface))

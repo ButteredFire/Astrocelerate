@@ -5,8 +5,10 @@
 #include "VkDeviceManager.hpp"
 
 
-VkDeviceManager::VkDeviceManager(VulkanContext &context):
-    vulkInst(context.vulkanInstance), vkContext(context) {
+VkDeviceManager::VkDeviceManager(VulkanContext &context, bool autoCleanup):
+    vulkInst(context.vulkanInstance), vkContext(context), cleanOnDestruction(autoCleanup) {
+
+    Log::print(Log::INFO, __FUNCTION__, "Initializing...");
 
     if (vulkInst == VK_NULL_HANDLE) {
         throw Log::RuntimeException(__FUNCTION__, "Cannot initialize device manager: Invalid Vulkan instance!");
@@ -19,7 +21,8 @@ VkDeviceManager::VkDeviceManager(VulkanContext &context):
 
 
 VkDeviceManager::~VkDeviceManager() {
-    cleanup();
+    if (cleanOnDestruction)
+        cleanup();
 }
 
 

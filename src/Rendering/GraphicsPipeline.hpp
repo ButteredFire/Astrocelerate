@@ -73,13 +73,14 @@ static inline std::vector<char> readFile(const std::string& fileName, const std:
 
 class GraphicsPipeline {
 public:
-	GraphicsPipeline(VulkanContext& context);
+	GraphicsPipeline(VulkanContext& context, bool autoCleanup = true);
 	~GraphicsPipeline();
 
 	void init();
 	void cleanup();
 
 private:
+	bool cleanOnDestruction = true;
 	VulkanContext& vkContext;
 
 	VkPipeline graphicsPipeline = VK_NULL_HANDLE;

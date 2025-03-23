@@ -3,13 +3,16 @@
 
 #include "GraphicsPipeline.hpp"
 
-GraphicsPipeline::GraphicsPipeline(VulkanContext& context):
-	vkContext(context) {
+GraphicsPipeline::GraphicsPipeline(VulkanContext& context, bool autoCleanup):
+	vkContext(context),
+	cleanOnDestruction(autoCleanup) {
 
+	Log::print(Log::INFO, __FUNCTION__, "Initializing...");
 }
 
 GraphicsPipeline::~GraphicsPipeline() {
-	cleanup();
+	if (cleanOnDestruction)
+		cleanup();
 }
 
 void GraphicsPipeline::init() {

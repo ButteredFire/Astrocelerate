@@ -4,12 +4,17 @@
 #include "RenderPipeline.hpp"
 
 
-RenderPipeline::RenderPipeline(VulkanContext& context, VertexBuffer& vertBuf) :
+RenderPipeline::RenderPipeline(VulkanContext& context, VertexBuffer& vertBuf, bool autoCleanup) :
 	vkContext(context),
-	vertexBuffer(vertBuf) {}
+	vertexBuffer(vertBuf),
+	cleanOnDestruction(autoCleanup) {
+
+	Log::print(Log::INFO, __FUNCTION__, "Initializing...");
+}
 
 RenderPipeline::~RenderPipeline() {
-	cleanup();
+	if (cleanOnDestruction)
+		cleanup();
 }
 
 
