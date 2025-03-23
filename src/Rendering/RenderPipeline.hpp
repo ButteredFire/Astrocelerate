@@ -4,7 +4,7 @@
 #pragma once
 
 // Forward declaration
-class VertexBuffer;
+class BufferManager;
 
 // GLFW & Vulkan
 #define GLFW_INCLUDE_VULKAN
@@ -19,20 +19,23 @@ class VertexBuffer;
 
 // Local
 #include <ApplicationContext.hpp>
-#include <Shaders/VertexBuffer.hpp>
+#include <Shaders/BufferManager.hpp>
 #include <LoggingManager.hpp>
 #include <Constants.h>
 
 
 class RenderPipeline {
 public:
-	RenderPipeline(VulkanContext& context, VertexBuffer& vertBuf, bool autoCleanup = true);
+	RenderPipeline(VulkanContext& context, BufferManager& vertBuf, bool autoCleanup = true);
 	~RenderPipeline();
 
 	void init();
 	void cleanup();
 
-	/* Writes a command into a command buffer. */
+	/* Writes a command into a command buffer.
+	* @param buffer: The buffer to be recorded into.
+	* @param imageIndex: The index of the swap-chain image from which commands are recorded.
+	*/
 	void recordCommandBuffer(VkCommandBuffer& buffer, uint32_t imageIndex);
 
 
@@ -46,8 +49,12 @@ public:
 	inline std::vector<VkFramebuffer> getImageFrameBuffers() const { return imageFrameBuffers; };
 
 	
-	/* Creates a command pool. */
-	VkCommandPool createCommandPool(uint32_t queueFamilyIndex);
+	/* Creates a command pool.
+	* @param device: The logical device.
+	* @param queueFamilyIndex: The index of the queue family for which the command pool is to be created.
+	* @param flags (Default: VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT): The command pool flags.
+	*/
+	static VkCommandPool createCommandPool(VkDevice device, uint32_t queueFamilyIndex, VkCommandPoolCreateFlags flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
 
 
 	/* Allocates a command buffer vector. */
@@ -56,7 +63,7 @@ public:
 private:
 	bool cleanOnDestruction = true;
 	VulkanContext& vkContext;
-	VertexBuffer& vertexBuffer;
+	BufferManager& vertexBuffer;
 
 	std::vector<VkFramebuffer> imageFrameBuffers;
 

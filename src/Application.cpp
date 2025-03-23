@@ -44,12 +44,12 @@ int main() {
         GraphicsPipeline graphicsPipeline(vkContext);
         graphicsPipeline.init();
 
-            // Creates a vertex buffer
-        VertexBuffer vertexBuffer(vkContext);
-        vertexBuffer.init();
+            // Creates a buffer manager
+        BufferManager bufferManager(vkContext);
+        bufferManager.init();
 
             // Creates a rendering pipeline
-        RenderPipeline renderPipeline(vkContext, vertexBuffer);
+        RenderPipeline renderPipeline(vkContext, bufferManager);
         renderPipeline.init();
 
             // Creates a renderer

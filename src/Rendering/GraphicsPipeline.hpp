@@ -19,7 +19,7 @@
 // Local
 #include <Vulkan/VkInstanceManager.hpp>
 #include <ApplicationContext.hpp>
-#include <Shaders/VertexBuffer.hpp>
+#include <Shaders/BufferManager.hpp>
 #include <LoggingManager.hpp>
 #include <Constants.h>
 
@@ -58,7 +58,7 @@ static inline std::vector<char> readFile(const std::string& fileName, const std:
 
 	// If file is incomplete/not read successfully
 	if (!file) {
-		throw std::runtime_error("Failed to read file " + enquote(fileName) + "!");
+		throw Log::RuntimeException(__FUNCTION__, "Failed to read file " + enquote(fileName) + "!");
 	}
 
 	file.close();

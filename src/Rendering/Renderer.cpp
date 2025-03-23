@@ -45,8 +45,6 @@ Renderer::Renderer(VulkanContext &context, VkSwapchainManager& swapchainMgrInsta
     vkInitInfo.PhysicalDevice = vkContext.physicalDevice;
     vkInitInfo.Device = vkContext.logicalDevice;
     
-    std::cout << "Renderer initialized.\n";
-    
 	QueueFamilyIndices familyIndices = VkDeviceManager::getQueueFamilies(vkContext.physicalDevice, vkContext.vkSurface);
     vkInitInfo.QueueFamily = familyIndices.graphicsFamily.index.value();
     vkInitInfo.Queue = familyIndices.graphicsFamily.deviceQueue;
@@ -87,11 +85,12 @@ void Renderer::drawFrame() {
     * 7. Send the processed data back to the swap-chain to render the image
     * 8. Update the current frame index so that the next drawFrame call will process the next image in the swap-chain
     */
+
     // VK_TRUE: Indicates that the vkWaitForFences should wait for all fences.
     // UINT64_MAX: The maximum time to wait (timeout) (in nanoseconds). UINT64_MAX means to wait indefinitely (i.e., to disable the timeout)
     VkResult waitResult = vkWaitForFences(vkContext.logicalDevice, 1, &vkContext.RenderPipeline.inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
     if (waitResult != VK_SUCCESS) {
-        throw std::runtime_error("Failed to wait for in-flight fence!");
+        throw Log::RuntimeException(__FUNCTION__, "Failed to wait for in-flight fence!");
     }
 
     // Acquires an image from the swap-chain
@@ -104,7 +103,7 @@ void Renderer::drawFrame() {
         }
 
         else {
-            throw std::runtime_error("Failed to acquire an image from the swap-chain!\nThe current image index in this frame is: " + imageIndex);
+            throw Log::RuntimeException(__FUNCTION__, "Failed to acquire an image from the swap-chain!\nThe current image index in this frame is: " + std::to_string(imageIndex));
         }
     }
 
@@ -113,7 +112,7 @@ void Renderer::drawFrame() {
     // After waiting, reset fence to unsignaled
     VkResult resetFenceResult = vkResetFences(vkContext.logicalDevice, 1, &vkContext.RenderPipeline.inFlightFences[currentFrame]);
     if (resetFenceResult != VK_SUCCESS) {
-        throw std::runtime_error("Failed to reset fence!");
+        throw Log::RuntimeException(__FUNCTION__, "Failed to reset fence!");
     }
 
 
@@ -121,7 +120,7 @@ void Renderer::drawFrame() {
         // Resets the command buffer first to ensure it is able to be recorded
     VkResult cmdBufResetResult = vkResetCommandBuffer(vkContext.RenderPipeline.graphicsCmdBuffers[currentFrame], 0);
     if (cmdBufResetResult != VK_SUCCESS) {
-        throw std::runtime_error("Failed to reset command buffer!");
+        throw Log::RuntimeException(__FUNCTION__, "Failed to reset command buffer!");
     }
 
         // Records commands
@@ -162,7 +161,7 @@ void Renderer::drawFrame() {
     VkQueue graphicsQueue = vkContext.queueFamilies.graphicsFamily.deviceQueue;
     VkResult submitResult = vkQueueSubmit(graphicsQueue, 1, &submitInfo, vkContext.RenderPipeline.inFlightFences[currentFrame]);
     if (submitResult != VK_SUCCESS) {
-        throw std::runtime_error("Failed to submit draw command buffer!");
+        throw Log::RuntimeException(__FUNCTION__, "Failed to submit draw command buffer!");
     }
 
     // To finally draw the frame, we submit the result back to the swap-chain to have it eventually show up on screen

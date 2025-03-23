@@ -13,7 +13,7 @@ Engine::Engine(GLFWwindow *w, VulkanContext& context, Renderer& rendererInstance
     Log::print(Log::INFO, __FUNCTION__, "Initializing...");
 
     if (!isPointerValid(window)) {
-        throw std::runtime_error("Engine crashed: Invalid window context!");
+        throw Log::RuntimeException(__FUNCTION__, "Engine crashed: Invalid window context!");
     }
 }
 

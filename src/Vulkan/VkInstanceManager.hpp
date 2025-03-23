@@ -112,7 +112,7 @@ public:
 
 	inline VkInstance getInstance() { 
 		if (vulkInst == VK_NULL_HANDLE) {
-			throw std::runtime_error("Cannot get Vulkan instance: Vulkan has not been initialized!");
+			throw Log::RuntimeException(__FUNCTION__, "Cannot get Vulkan instance: Vulkan has not been initialized!");
 		}
 		return vulkInst;
 	};

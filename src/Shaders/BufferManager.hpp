@@ -1,4 +1,4 @@
-/* VertexBuffer.hpp - Manages the vertex buffer.
+/* BufferManager.hpp - Manages the vertex buffer.
 */
 #pragma once
 
@@ -28,16 +28,35 @@ struct Vertex {
 
 
 
-class VertexBuffer {
+class BufferManager {
 public:
-    VertexBuffer(VulkanContext& context, bool autoCleanup = true);
-    ~VertexBuffer();
+    BufferManager(VulkanContext& context, bool autoCleanup = true);
+    ~BufferManager();
 
     void init();
     void cleanup();
 
+
+    /* Creates a buffer.
+    * @param deviceSize: The size of the buffer (in bytes).
+    * @param usageFlags: Flags specifying how the buffer will be used.
+    * @param properties: Desired properties of the buffer's memory to be allocated.
+    * @param &buffer: The buffer to be created.
+    * @param &bufferMemory: The buffer's memory to be allocated.
+    */
+    void createBuffer(VkDeviceSize deviceSize, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
+
+
+    /* Copies the contents from a source buffer to a destination buffer.
+    * @param srcBuffer: The source buffer that stores the contents to be transferred.
+    * @param dstBuffer: The destination buffer to receive the contents from the source buffer.
+    * @param deviceSize: The size of either the source or destination buffer (in bytes).
+    */
+    void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize deviceSize);
+
+
     /* Gets the vertex buffer. */
-    inline const VkBuffer& getBuffer() const { return vertexBuffer; }
+    inline const VkBuffer& getVertexBuffer() const { return vertexBuffer; }
 
     /* Gets the vertex data. */
     inline const std::vector<Vertex> getVertexData() const { return vertices; }
@@ -53,7 +72,7 @@ private:
     bool cleanOnDestruction = true;
     VulkanContext& vkContext;
     
-    VkBufferCreateInfo bufCreateInfo{};
+    
     VkBuffer vertexBuffer = VK_NULL_HANDLE;
     VkDeviceMemory vertexBufferMemory = VK_NULL_HANDLE;
 
@@ -64,16 +83,9 @@ private:
     };
 
 
-    /* Creates a vertex buffer. */
-    void createVertexBuffer();
-
-
-    /* Allocates memory for the buffer. */
-    void allocBufferMemory();
-
-
     /* Populates the vertex buffer with vertex data. */
     void loadVertexBuffer();
+
 
     /* Finds the memory type suitable for buffer and application requirements.
     *

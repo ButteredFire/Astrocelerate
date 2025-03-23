@@ -17,7 +17,7 @@ set(HEADER_FILES
 	"src/Rendering/GraphicsPipeline.hpp"
 	"src/Rendering/Renderer.hpp"
 	"src/Rendering/RenderPipeline.hpp"
-	"src/Shaders/VertexBuffer.hpp"
+	"src/Shaders/BufferManager.hpp"
 	"src/Vulkan/VkDeviceManager.hpp"
 	"src/Vulkan/VkInstanceManager.hpp"
 	"src/Vulkan/VkSwapchainManager.hpp"

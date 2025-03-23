@@ -4,7 +4,7 @@
 #include "RenderPipeline.hpp"
 
 
-RenderPipeline::RenderPipeline(VulkanContext& context, VertexBuffer& vertBuf, bool autoCleanup) :
+RenderPipeline::RenderPipeline(VulkanContext& context, BufferManager& vertBuf, bool autoCleanup) :
 	vkContext(context),
 	vertexBuffer(vertBuf),
 	cleanOnDestruction(autoCleanup) {
@@ -22,8 +22,8 @@ void RenderPipeline::init() {
 	createFrameBuffers();
 
 	QueueFamilyIndices familyIndices = VkDeviceManager::getQueueFamilies(vkContext.physicalDevice, vkContext.vkSurface);
-	graphicsCmdPool = createCommandPool(familyIndices.graphicsFamily.index.value());
-	transferCmdPool = createCommandPool(familyIndices.transferFamily.index.value());
+	graphicsCmdPool = createCommandPool(vkContext.logicalDevice, familyIndices.graphicsFamily.index.value());
+	transferCmdPool = createCommandPool(vkContext.logicalDevice, familyIndices.transferFamily.index.value());
 
 	allocCommandBuffers(graphicsCmdPool, graphicsCmdBuffers);
 	vkContext.RenderPipeline.graphicsCmdBuffers = graphicsCmdBuffers;
@@ -155,7 +155,7 @@ void RenderPipeline::recordCommandBuffer(VkCommandBuffer& buffer, uint32_t image
 	* firstInstance: The instance ID of the first instance to draw. It is used as an offset for instanced rendering, and defines the lowest value of gl_InstanceIndex.
 	*/
 	VkBuffer vertexBuffers[] = {
-		vertexBuffer.getBuffer()
+		vertexBuffer.getVertexBuffer()
 	};
 	VkDeviceSize offsets[] = {
 		0
@@ -209,19 +209,18 @@ void RenderPipeline::createFrameBuffers() {
 }
 
 
-VkCommandPool RenderPipeline::createCommandPool(uint32_t queueFamilyIndex) {
+VkCommandPool RenderPipeline::createCommandPool(VkDevice device, uint32_t queueFamilyIndex, VkCommandPoolCreateFlags flags) {
 	VkCommandPoolCreateInfo poolCreateInfo{};
 	poolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-	poolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT; // Allows command buffers to be re-recorded individually
+	poolCreateInfo.flags = flags; // Allows command buffers to be re-recorded individually
 
 	// Command buffers are executed by submitting them on a device queue.
 	// Each command pool can only allocate command buffers that are submitted on a single type of queue.
 	poolCreateInfo.queueFamilyIndex = queueFamilyIndex;
 
 	VkCommandPool commandPool;
-	VkResult result = vkCreateCommandPool(vkContext.logicalDevice, &poolCreateInfo, nullptr, &commandPool);
+	VkResult result = vkCreateCommandPool(device, &poolCreateInfo, nullptr, &commandPool);
 	if (result != VK_SUCCESS) {
-		cleanup();
 		throw Log::RuntimeException(__FUNCTION__, "Failed to create command pool!");
 	}
 

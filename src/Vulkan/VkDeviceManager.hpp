@@ -64,6 +64,8 @@ private:
 	VkPhysicalDevice GPUPhysicalDevice = VK_NULL_HANDLE;
 	VkDevice GPULogicalDevice = VK_NULL_HANDLE;
 
+	QueueFamilyIndices queueFamilyIndices = QueueFamilyIndices();
+
 	std::vector<const char*> requiredDeviceExtensions;
 	std::vector<PhysicalDeviceScoreProperties> GPUScores;
 
