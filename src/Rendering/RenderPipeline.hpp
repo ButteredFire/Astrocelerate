@@ -3,6 +3,9 @@
 
 #pragma once
 
+// Forward declaration
+class VertexBuffer;
+
 // GLFW & Vulkan
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -16,7 +19,6 @@
 
 // Local
 #include <ApplicationContext.hpp>
-#include <Vulkan/VkDeviceManager.hpp>
 #include <Shaders/VertexBuffer.hpp>
 #include <LoggingManager.hpp>
 #include <Constants.h>
@@ -43,6 +45,14 @@ public:
 	*/
 	inline std::vector<VkFramebuffer> getImageFrameBuffers() const { return imageFrameBuffers; };
 
+	
+	/* Creates a command pool. */
+	VkCommandPool createCommandPool(uint32_t queueFamilyIndex);
+
+
+	/* Allocates a command buffer vector. */
+	void allocCommandBuffers(VkCommandPool& commandPool, std::vector<VkCommandBuffer>& commandBuffers);
+
 private:
 	VulkanContext& vkContext;
 	VertexBuffer& vertexBuffer;
@@ -51,22 +61,16 @@ private:
 
 	// Command pools manage the memory that is used to store the buffers
 	// Command buffers are allocated from them
-	VkCommandPool commandPool = VK_NULL_HANDLE;
-	std::vector<VkCommandBuffer> commandBuffers;
+	VkCommandPool graphicsCmdPool = VK_NULL_HANDLE;
+	std::vector<VkCommandBuffer> graphicsCmdBuffers;
+
+	VkCommandPool transferCmdPool = VK_NULL_HANDLE;
+	std::vector<VkCommandBuffer> transferCmdBuffers;
 
 	// Synchronization
 	std::vector<VkSemaphore> imageReadySemaphores;
 	std::vector<VkSemaphore> renderFinishedSemaphores;
 	std::vector<VkFence> inFlightFences;
-
-	
-	/* Creates the command pools. */
-	void createCommandPools();
-
-	
-	/* Creates the command buffers. */
-	void createCommandBuffers();
-
 
 	/* Creates synchronization objects. */
 	void createSyncObjects();

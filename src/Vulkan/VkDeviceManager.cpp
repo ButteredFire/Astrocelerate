@@ -91,7 +91,7 @@ void VkDeviceManager::createLogicalDevice() {
     for (const auto &family : allFamilies)
         if (!queueFamilies.familyExists(*family)) {
             cleanup();
-            throw Log::RuntimeException(__FUNCTION__, "Unable to create logical device: Queue family is non-existent!");
+            throw Log::RuntimeException(__FUNCTION__, "Unable to create logical device: " + (family->deviceName) + " is non-existent!");
         }
 
     // Queues must have a priority in [0.0; 1.0], which influences the scheduling of command buffer execution.
@@ -101,7 +101,8 @@ void VkDeviceManager::createLogicalDevice() {
     std::vector<VkDeviceQueueCreateInfo> queues;
     std::set<uint32_t> uniqueQueueFamilies = {
         queueFamilies.graphicsFamily.index.value(),
-        queueFamilies.presentationFamily.index.value()
+        queueFamilies.presentationFamily.index.value(),
+        queueFamilies.transferFamily.index.value()
     };
 
     for (auto& family : uniqueQueueFamilies) {
@@ -110,7 +111,7 @@ void VkDeviceManager::createLogicalDevice() {
 
         queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
         queueInfo.queueFamilyIndex = family;
-        queueInfo.queueCount = 1;
+        queueInfo.queueCount = 1; // Creates only 1 queue per queue family
         queueInfo.pQueuePriorities = &queuePriority;
         queues.push_back(queueInfo);
     }
@@ -162,11 +163,8 @@ void VkDeviceManager::createLogicalDevice() {
 
     // Populates each (available) family's device queue
     std::vector<QueueFamilyIndices::QueueFamily*> availableFamilies = queueFamilies.getAvailableQueueFamilies(allFamilies);
-    for (uint32_t queueIndex = 0; queueIndex < deviceInfo.queueCreateInfoCount; queueIndex++) {
-        // Remember to use `auto&` and not `auto` to prevent modifying a copy instead of the original
-        auto& family = *availableFamilies[queueIndex];
-        vkGetDeviceQueue(GPULogicalDevice, family.index.value(), queueIndex, &family.deviceQueue);
-    }
+    for (auto& family : availableFamilies)
+        vkGetDeviceQueue(GPULogicalDevice, family->index.value(), 0, &family->deviceQueue);
 
         // If graphics queue family supports presentation operations (i.e., the presentation queue is not separate),
         // then set the presentation family's index and VkQueue to be the same as the graphics family's.
@@ -308,6 +306,10 @@ QueueFamilyIndices VkDeviceManager::getQueueFamilies(VkPhysicalDevice& device, V
         // If current family supports graphics operations
         bool supportsGraphics = ((family.queueFlags & familyIndices.graphicsFamily.FLAG) != 0);
 
+        // If current family is a transfer queue family
+        // NOTE: A graphics queue family also implicitly suppports transfer operations, but we are looking for a dedicated transfer queue family.
+        bool isTransferFamily = (((family.queueFlags & familyIndices.transferFamily.FLAG) != 0) && (!supportsGraphics));
+
         if (supportsGraphics) {
             familyIndices.graphicsFamily.index = index;
 
@@ -316,6 +318,10 @@ QueueFamilyIndices VkDeviceManager::getQueueFamilies(VkPhysicalDevice& device, V
                 familyIndices.graphicsFamily.supportsPresentation = true;
                 familyIndices.presentationFamily.index = index;
             }
+        }
+
+        if (isTransferFamily) {
+            familyIndices.transferFamily.index = index;
         }
 
         // If there exists a separate presentation family (that is separate from the graphics family)

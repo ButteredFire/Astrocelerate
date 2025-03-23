@@ -1,6 +1,7 @@
 #pragma once
 
 #include <optional>
+#include <LoggingManager.hpp>
 
 /* Rationale behind using std::optional<uint32_t> instead of uint32_t:
 * The index of any given queue family is arbitrary, and thus could theoretically be any uint32_t integer.
@@ -21,17 +22,23 @@ struct QueueFamilyIndices {
 		std::optional<uint32_t> index;
 		uint32_t FLAG = NULL;
 		VkQueue deviceQueue = VK_NULL_HANDLE;
+		std::string deviceName = "";
 		bool supportsPresentation = false;
 	};
 
 	// Family declarations
 	QueueFamily graphicsFamily;
 	QueueFamily presentationFamily;
+	QueueFamily transferFamily;
 
-	// Binds each family's flag to their corresponding Vulkan flag
-	bool initialized = false;
+	/* Binds each family's flag to their corresponding Vulkan flag */
 	void init() {
+		graphicsFamily.deviceName = "Graphics queue family";
+		presentationFamily.deviceName = "Presentation queue family";
+		transferFamily.deviceName = "Transfer queue family";
+
 		graphicsFamily.FLAG = VK_QUEUE_GRAPHICS_BIT;
+		transferFamily.FLAG = VK_QUEUE_TRANSFER_BIT;
 	}
 
 	/* Checks whether a queue family exists (based on whether it has a valid index).
@@ -47,7 +54,8 @@ struct QueueFamilyIndices {
 	std::vector<QueueFamily*> getAllQueueFamilies() {
 		return {
 			&graphicsFamily,
-			&presentationFamily
+			&presentationFamily,
+			&transferFamily
 		};
 	}
 
@@ -114,7 +122,8 @@ struct VulkanContext {
     } GraphicsPipeline;
 
     struct RenderPipeline {
-        std::vector<VkCommandBuffer> commandBuffers;
+        std::vector<VkCommandBuffer> graphicsCmdBuffers;
+		std::vector<VkCommandBuffer> transferCmdBuffers;
 
         // Synchronization
 		std::vector<VkSemaphore> imageReadySemaphores;

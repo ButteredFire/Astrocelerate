@@ -15,6 +15,7 @@
 #include <array>
 
 // Other
+#include <Vulkan/VkDeviceManager.hpp>
 #include <ApplicationContext.hpp>
 #include <LoggingManager.hpp>
 

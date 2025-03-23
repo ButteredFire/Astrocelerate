@@ -116,22 +116,38 @@ void VkSwapchainManager::createSwapChain() {
     QueueFamilyIndices families = VkDeviceManager::getQueueFamilies(vkContext.physicalDevice, vkContext.vkSurface);
     std::vector<uint32_t> familyIndices = families.getAvailableIndices();
 
+    // Gets a vector of unique family indices
+    std::set<uint32_t> uniqueFamilyIndicesSet;
+    for (const auto& family : familyIndices)
+        uniqueFamilyIndicesSet.insert(family);
+
+
+    std::vector<uint32_t> uniqueFamilyIndices;
+    uniqueFamilyIndices.reserve(uniqueFamilyIndicesSet.size());
+
+    for (const auto& family : uniqueFamilyIndicesSet)
+        uniqueFamilyIndices.push_back(family);
+
+    swapChainCreateInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+    swapChainCreateInfo.queueFamilyIndexCount = static_cast<uint32_t>(uniqueFamilyIndices.size());
+    swapChainCreateInfo.pQueueFamilyIndices = uniqueFamilyIndices.data();
+
     // If the graphics family supports presentation (i.e., the presentation family is not separate),
     // set the image sharing mode to exclusive mode. MODE_EXCLUSIVE means that images are owned
     // by only 1 queue family at a time, and using them from another family requires ownership transference.
-    if (families.graphicsFamily.supportsPresentation) {
+    /*if (families.graphicsFamily.supportsPresentation) {
         swapChainCreateInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
         swapChainCreateInfo.queueFamilyIndexCount = 0;
         swapChainCreateInfo.pQueueFamilyIndices = nullptr;
-    }
+    }*/
 
     // Else (i.e., the graphics family does not support presentation / the graphics and presentation families are separate),
     // set the image sharing mode to concurrent mode. MODE_CONCURRENT means that images can be used across different families.
-    else {
+    /*else {
         swapChainCreateInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
         swapChainCreateInfo.queueFamilyIndexCount = 2;
         swapChainCreateInfo.pQueueFamilyIndices = familyIndices.data();
-    }
+    }*/
 
     // Specifies a transform applied to swap-chain images (e.g., rotation) (in this case, none, i.e., the current transform)
     swapChainCreateInfo.preTransform = swapChainProperties.surfaceCapabilities.currentTransform;

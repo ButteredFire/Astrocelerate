@@ -15,9 +15,18 @@ RenderPipeline::~RenderPipeline() {
 
 void RenderPipeline::init() {
 	createFrameBuffers();
-	createCommandPools();
+
+	QueueFamilyIndices familyIndices = VkDeviceManager::getQueueFamilies(vkContext.physicalDevice, vkContext.vkSurface);
+	graphicsCmdPool = createCommandPool(familyIndices.graphicsFamily.index.value());
+	transferCmdPool = createCommandPool(familyIndices.transferFamily.index.value());
+
+	allocCommandBuffers(graphicsCmdPool, graphicsCmdBuffers);
+	vkContext.RenderPipeline.graphicsCmdBuffers = graphicsCmdBuffers;
+
+	allocCommandBuffers(transferCmdPool, transferCmdBuffers);
+	vkContext.RenderPipeline.transferCmdBuffers = transferCmdBuffers;
+
 	vertexBuffer.init();
-	createCommandBuffers();
 	createSyncObjects();
 }
 
@@ -30,11 +39,22 @@ void RenderPipeline::cleanup() {
 			vkDestroyFramebuffer(vkContext.logicalDevice, buffer, nullptr);
 	}
 
-	if (!commandBuffers.empty())
-		vkFreeCommandBuffers(vkContext.logicalDevice, commandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
+	// Command buffers
+	if (!graphicsCmdBuffers.empty())
+		vkFreeCommandBuffers(vkContext.logicalDevice, graphicsCmdPool, static_cast<uint32_t>(graphicsCmdBuffers.size()), graphicsCmdBuffers.data());
 
-	if (vkIsValid(commandPool))
-		vkDestroyCommandPool(vkContext.logicalDevice, commandPool, nullptr);
+
+	if (!transferCmdBuffers.empty())
+		vkFreeCommandBuffers(vkContext.logicalDevice, transferCmdPool, static_cast<uint32_t>(transferCmdBuffers.size()), transferCmdBuffers.data());
+
+
+	// Command pools
+	if (vkIsValid(graphicsCmdPool))
+		vkDestroyCommandPool(vkContext.logicalDevice, graphicsCmdPool, nullptr);
+
+	if (vkIsValid(transferCmdPool))
+		vkDestroyCommandPool(vkContext.logicalDevice, transferCmdPool, nullptr);
+
 
 	// Synchronization objects
 	for (size_t i = 0; i < SimulationConsts::MAX_FRAMES_IN_FLIGHT; i++) {
@@ -184,27 +204,27 @@ void RenderPipeline::createFrameBuffers() {
 }
 
 
-void RenderPipeline::createCommandPools() {
-	QueueFamilyIndices familyIndices = VkDeviceManager::getQueueFamilies(vkContext.physicalDevice, vkContext.vkSurface);
-
+VkCommandPool RenderPipeline::createCommandPool(uint32_t queueFamilyIndex) {
 	VkCommandPoolCreateInfo poolCreateInfo{};
 	poolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 	poolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT; // Allows command buffers to be re-recorded individually
 
 	// Command buffers are executed by submitting them on a device queue.
 	// Each command pool can only allocate command buffers that are submitted on a single type of queue.
-	// We're going to record commands for drawing, which is why we've chosen the graphics queue family.
-	poolCreateInfo.queueFamilyIndex = familyIndices.graphicsFamily.index.value();
+	poolCreateInfo.queueFamilyIndex = queueFamilyIndex;
 
+	VkCommandPool commandPool;
 	VkResult result = vkCreateCommandPool(vkContext.logicalDevice, &poolCreateInfo, nullptr, &commandPool);
 	if (result != VK_SUCCESS) {
 		cleanup();
 		throw Log::RuntimeException(__FUNCTION__, "Failed to create command pool!");
 	}
+
+	return commandPool;
 }
 
 
-void RenderPipeline::createCommandBuffers() {
+void RenderPipeline::allocCommandBuffers(VkCommandPool& commandPool, std::vector<VkCommandBuffer>& commandBuffers) {
 	commandBuffers.resize(SimulationConsts::MAX_FRAMES_IN_FLIGHT);
 
 	VkCommandBufferAllocateInfo bufferAllocInfo{};
@@ -223,8 +243,6 @@ void RenderPipeline::createCommandBuffers() {
 		cleanup();
 		throw Log::RuntimeException(__FUNCTION__, "Failed to allocate command buffers!");
 	}
-
-	vkContext.RenderPipeline.commandBuffers = commandBuffers;
 }
 
 

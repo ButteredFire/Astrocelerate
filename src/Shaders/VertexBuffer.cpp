@@ -77,8 +77,15 @@ void VertexBuffer::createVertexBuffer() {
 	bufCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 
 	// Buffers can either be owned by a specific queue family or be shared between multiple queue families.
-	// The vertex buffer is only owned by the graphics queue family, so we set the sharing mode to EXCLUSIVE.
-	bufCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	bufCreateInfo.sharingMode = VK_SHARING_MODE_CONCURRENT;
+
+	QueueFamilyIndices familyIndices = VkDeviceManager::getQueueFamilies(vkContext.physicalDevice, vkContext.vkSurface);
+	uint32_t queueFamilyIndices[] = {
+		familyIndices.graphicsFamily.index.value(),
+		familyIndices.transferFamily.index.value()
+	};
+	bufCreateInfo.queueFamilyIndexCount = 2;
+	bufCreateInfo.pQueueFamilyIndices = queueFamilyIndices;
 
 	// Configures sparse buffer memory (which is irrelevant right now, so we'll leave it at the default value of 0)
 	bufCreateInfo.flags = 0;

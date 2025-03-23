@@ -117,13 +117,13 @@ void Renderer::drawFrame() {
 
     // Records the command buffer
         // Resets the command buffer first to ensure it is able to be recorded
-    VkResult cmdBufResetResult = vkResetCommandBuffer(vkContext.RenderPipeline.commandBuffers[currentFrame], 0);
+    VkResult cmdBufResetResult = vkResetCommandBuffer(vkContext.RenderPipeline.graphicsCmdBuffers[currentFrame], 0);
     if (cmdBufResetResult != VK_SUCCESS) {
         throw std::runtime_error("Failed to reset command buffer!");
     }
 
         // Records commands
-    renderPipeline.recordCommandBuffer(vkContext.RenderPipeline.commandBuffers[currentFrame], imageIndex);
+    renderPipeline.recordCommandBuffer(vkContext.RenderPipeline.graphicsCmdBuffers[currentFrame], imageIndex);
 
         // Submits the buffer to the queue
     VkSubmitInfo submitInfo{};
@@ -131,7 +131,7 @@ void Renderer::drawFrame() {
 
             // Specifies the command buffer to be submitted
     submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &vkContext.RenderPipeline.commandBuffers[currentFrame];
+    submitInfo.pCommandBuffers = &vkContext.RenderPipeline.graphicsCmdBuffers[currentFrame];
 
             /* NOTE:
             * Each stage in waitStages[] corresponds to a semaphore in waitSemaphores[].
@@ -156,7 +156,6 @@ void Renderer::drawFrame() {
     };
     submitInfo.signalSemaphoreCount = (sizeof(signalSemaphores) / sizeof(VkSemaphore));
     submitInfo.pSignalSemaphores = signalSemaphores;
-
 
     VkQueue graphicsQueue = vkContext.queueFamilies.graphicsFamily.deviceQueue;
     VkResult submitResult = vkQueueSubmit(graphicsQueue, 1, &submitInfo, vkContext.RenderPipeline.inFlightFences[currentFrame]);
@@ -191,7 +190,7 @@ void Renderer::drawFrame() {
             return;
         }
         else {
-            throw std::runtime_error("Failed to present swap-chain image!");
+            throw Log::RuntimeException(__FUNCTION__, "Failed to present swap-chain image!");
         }
     }
 
