@@ -1,7 +1,40 @@
 #pragma once
 
-#include <optional>
 #include <LoggingManager.hpp>
+#include <optional>
+#include <variant>
+
+
+using VulkanHandles = std::variant<
+	VkDebugUtilsMessengerEXT,
+	VkInstance,
+	VkPhysicalDevice,   // Usually not destroyed explicitly, but listed for completeness
+	VkDevice,
+	VkQueue,            // Generally managed by Vulkan and not destroyed manually
+	VkCommandPool,
+	VkCommandBuffer,
+	VkBuffer,
+	VkBufferView,
+	VkImage,
+	VkImageView,
+	VkFramebuffer,
+	VkRenderPass,
+	VkShaderModule,
+	VkPipeline,
+	VkPipelineLayout,
+	VkDescriptorSetLayout,
+	VkDescriptorPool,
+	VkDescriptorSet,    // Generally managed by `VkDescriptorPool`
+	VkSampler,
+	VkFence,
+	VkSemaphore,
+	VkEvent,
+	VkQueryPool,
+	VkSwapchainKHR,     // Requires `VK_KHR_swapchain` extension
+	VkSurfaceKHR,       // Requires `VK_KHR_surface`
+	VkDeviceMemory
+>;
+
 
 /* Rationale behind using std::optional<uint32_t> instead of uint32_t:
 * The index of any given queue family is arbitrary, and thus could theoretically be any uint32_t integer.
@@ -132,6 +165,7 @@ struct VulkanContext {
     } RenderPipeline;
 
 };
+
 
 /* Checks whether a Vulkan object is valid/non-null. */
 template<typename T> bool vkIsValid(T vulkanObject) { return (vulkanObject != T()); }

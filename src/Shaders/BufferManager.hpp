@@ -18,6 +18,7 @@
 #include <Vulkan/VkDeviceManager.hpp>
 #include <ApplicationContext.hpp>
 #include <LoggingManager.hpp>
+#include <MemoryManager.hpp>
 
 
 // A structure defining a vertex.
@@ -30,7 +31,7 @@ struct Vertex {
 
 class BufferManager {
 public:
-    BufferManager(VulkanContext& context, bool autoCleanup = true);
+    BufferManager(VulkanContext& context, MemoryManager& memMgr, bool autoCleanup = true);
     ~BufferManager();
 
     void init();
@@ -71,7 +72,7 @@ public:
 private:
     bool cleanOnDestruction = true;
     VulkanContext& vkContext;
-    
+    MemoryManager& memoryManager;
     
     VkBuffer vertexBuffer = VK_NULL_HANDLE;
     VkDeviceMemory vertexBufferMemory = VK_NULL_HANDLE;

@@ -4,12 +4,13 @@
 #include "RenderPipeline.hpp"
 
 
-RenderPipeline::RenderPipeline(VulkanContext& context, BufferManager& vertBuf, bool autoCleanup) :
+RenderPipeline::RenderPipeline(VulkanContext& context, MemoryManager& memMgr, BufferManager& vertBuf, bool autoCleanup) :
 	vkContext(context),
+	memoryManager(memMgr),
 	vertexBuffer(vertBuf),
 	cleanOnDestruction(autoCleanup) {
 
-	Log::print(Log::INFO, __FUNCTION__, "Initializing...");
+	Log::print(Log::T_INFO, __FUNCTION__, "Initializing...");
 }
 
 RenderPipeline::~RenderPipeline() {
@@ -22,8 +23,8 @@ void RenderPipeline::init() {
 	createFrameBuffers();
 
 	QueueFamilyIndices familyIndices = VkDeviceManager::getQueueFamilies(vkContext.physicalDevice, vkContext.vkSurface);
-	graphicsCmdPool = createCommandPool(vkContext.logicalDevice, familyIndices.graphicsFamily.index.value());
-	transferCmdPool = createCommandPool(vkContext.logicalDevice, familyIndices.transferFamily.index.value());
+	graphicsCmdPool = createCommandPool(vkContext, memoryManager, vkContext.logicalDevice, familyIndices.graphicsFamily.index.value());
+	transferCmdPool = createCommandPool(vkContext, memoryManager, vkContext.logicalDevice, familyIndices.transferFamily.index.value());
 
 	allocCommandBuffers(graphicsCmdPool, graphicsCmdBuffers);
 	vkContext.RenderPipeline.graphicsCmdBuffers = graphicsCmdBuffers;
@@ -37,7 +38,7 @@ void RenderPipeline::init() {
 
 
 void RenderPipeline::cleanup() {
-	Log::print(Log::INFO, __FUNCTION__, "Cleaning up...");
+	Log::print(Log::T_INFO, __FUNCTION__, "Cleaning up...");
 
 	for (const auto& buffer : imageFrameBuffers) {
 		if (vkIsValid(buffer))
@@ -205,11 +206,21 @@ void RenderPipeline::createFrameBuffers() {
 			cleanup();
 			throw Log::RuntimeException(__FUNCTION__, "Failed to create frame buffer!");
 		}
+
+		VkFramebuffer framebuffer = imageFrameBuffers[i];
+
+		CleanupTask task{};
+		task.caller = __FUNCTION__;
+		task.mainObjectName = VARIABLE_NAME(framebuffer);
+		task.vkObjects = { vkContext.logicalDevice, framebuffer };
+		task.cleanupFunc = [this, framebuffer]() { vkDestroyFramebuffer(vkContext.logicalDevice, framebuffer, nullptr); };
+
+		memoryManager.createCleanupTask(task);
 	}
 }
 
 
-VkCommandPool RenderPipeline::createCommandPool(VkDevice device, uint32_t queueFamilyIndex, VkCommandPoolCreateFlags flags) {
+VkCommandPool RenderPipeline::createCommandPool(VulkanContext& vkContext, MemoryManager& memMgr, VkDevice device, uint32_t queueFamilyIndex, VkCommandPoolCreateFlags flags) {
 	VkCommandPoolCreateInfo poolCreateInfo{};
 	poolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 	poolCreateInfo.flags = flags; // Allows command buffers to be re-recorded individually
@@ -223,6 +234,14 @@ VkCommandPool RenderPipeline::createCommandPool(VkDevice device, uint32_t queueF
 	if (result != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, "Failed to create command pool!");
 	}
+
+	CleanupTask task{};
+	task.caller = __FUNCTION__;
+	task.mainObjectName = VARIABLE_NAME(commandPool);
+	task.vkObjects = { vkContext.logicalDevice, commandPool };
+	task.cleanupFunc = [vkContext, commandPool]() { vkDestroyCommandPool(vkContext.logicalDevice, commandPool, nullptr); };
+
+	memMgr.createCleanupTask(task);
 
 	return commandPool;
 }
@@ -247,6 +266,14 @@ void RenderPipeline::allocCommandBuffers(VkCommandPool& commandPool, std::vector
 		cleanup();
 		throw Log::RuntimeException(__FUNCTION__, "Failed to allocate command buffers!");
 	}
+
+	CleanupTask task{};
+	task.caller = __FUNCTION__;
+	task.mainObjectName = VARIABLE_NAME(commandBuffers);
+	task.vkObjects = { vkContext.logicalDevice, commandPool };
+	task.cleanupFunc = [this, commandPool, commandBuffers]() { vkFreeCommandBuffers(vkContext.logicalDevice, commandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data()); };
+	
+	memoryManager.createCleanupTask(task);
 }
 
 
@@ -304,6 +331,29 @@ void RenderPipeline::createSyncObjects() {
 			cleanup();
 			throw Log::RuntimeException(__FUNCTION__, "Failed to create in-flight fence for a frame!");
 		}
+
+		VkSemaphore imageReadySemaphore = imageReadySemaphores[i];
+		VkSemaphore renderFinishedSemaphore = renderFinishedSemaphores[i];
+		VkFence inFlightFence = inFlightFences[i];
+
+		CleanupTask imgSemaphoreTask{}, renderSemaphoreTask{}, fenceTask{};
+		imgSemaphoreTask.caller = renderSemaphoreTask.caller = fenceTask.caller = __FUNCTION__;
+
+		imgSemaphoreTask.mainObjectName = VARIABLE_NAME(imageReadySemaphore);
+		renderSemaphoreTask.mainObjectName = VARIABLE_NAME(renderFinishedSemaphore);
+		fenceTask.mainObjectName = VARIABLE_NAME(inFlightFence);
+
+		imgSemaphoreTask.vkObjects = { imageReadySemaphore };
+		renderSemaphoreTask.vkObjects = { renderFinishedSemaphore };
+		fenceTask.vkObjects = { inFlightFence };
+
+		imgSemaphoreTask.cleanupFunc = [this, imageReadySemaphore]() { vkDestroySemaphore(vkContext.logicalDevice, imageReadySemaphore, nullptr); };
+		renderSemaphoreTask.cleanupFunc = [this, renderFinishedSemaphore]() { vkDestroySemaphore(vkContext.logicalDevice, renderFinishedSemaphore, nullptr); };
+		fenceTask.cleanupFunc = [this, inFlightFence]() { vkDestroyFence(vkContext.logicalDevice, inFlightFence, nullptr); };
+
+		memoryManager.createCleanupTask(imgSemaphoreTask);
+		memoryManager.createCleanupTask(renderSemaphoreTask);
+		memoryManager.createCleanupTask(fenceTask);
 	}
 
 	vkContext.RenderPipeline.imageReadySemaphores = imageReadySemaphores;

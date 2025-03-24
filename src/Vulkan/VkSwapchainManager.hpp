@@ -24,6 +24,7 @@ class RenderPipeline;
 #include <Vulkan/VkInstanceManager.hpp>
 #include <Rendering/RenderPipeline.hpp>
 #include <LoggingManager.hpp>
+#include <MemoryManager.hpp>
 #include <Constants.h>
 #include <ApplicationContext.hpp>
 
@@ -37,7 +38,7 @@ typedef struct SwapChainProperties {
 
 class VkSwapchainManager {
 public:
-	VkSwapchainManager(VulkanContext& context, bool autoCleanup = true);
+	VkSwapchainManager(VulkanContext& context, MemoryManager& memMgr, bool autoCleanup = true);
 	~VkSwapchainManager();
 
 	/* Initializes the swap-chain manager. */
@@ -60,6 +61,7 @@ public:
 private:
 	bool cleanOnDestruction = true;
 	VulkanContext& vkContext;
+	MemoryManager& memoryManager;
 
 	VkSwapchainKHR swapChain = VK_NULL_HANDLE;
 	std::vector<VkImage> swapChainImages;

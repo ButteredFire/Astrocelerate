@@ -1,9 +1,9 @@
 #include "BufferManager.hpp"
 
-BufferManager::BufferManager(VulkanContext& context, bool autoCleanup):
-	vkContext(context), cleanOnDestruction(autoCleanup) {
+BufferManager::BufferManager(VulkanContext& context, MemoryManager& memMgr, bool autoCleanup):
+	vkContext(context), memoryManager(memMgr), cleanOnDestruction(autoCleanup) {
 
-	Log::print(Log::INFO, __FUNCTION__, "Initializing...");
+	Log::print(Log::T_INFO, __FUNCTION__, "Initializing...");
 }
 
 BufferManager::~BufferManager() {
@@ -18,7 +18,7 @@ void BufferManager::init() {
 
 
 void BufferManager::cleanup() {
-	Log::print(Log::INFO, __FUNCTION__, "Cleaning up...");
+	Log::print(Log::T_INFO, __FUNCTION__, "Cleaning up...");
 
 	if (vkIsValid(vertexBuffer))
 		vkDestroyBuffer(vkContext.logicalDevice, vertexBuffer, nullptr);
@@ -106,6 +106,14 @@ void BufferManager::createBuffer(VkDeviceSize deviceSize, VkBufferUsageFlags usa
 	}
 
 
+	CleanupTask bufTask{};
+	bufTask.caller = __FUNCTION__;
+	bufTask.mainObjectName = VARIABLE_NAME(buffer);
+	bufTask.vkObjects = { vkContext.logicalDevice, buffer };
+	bufTask.cleanupFunc = [this, buffer]() { vkDestroyBuffer(vkContext.logicalDevice, buffer, nullptr); };
+
+	memoryManager.createCleanupTask(bufTask);
+
 	// Allocates memory for the buffer
 	
 		// Queries the buffer's memory requirements
@@ -123,6 +131,15 @@ void BufferManager::createBuffer(VkDeviceSize deviceSize, VkBufferUsageFlags usa
 		cleanup();
 		throw Log::RuntimeException(__FUNCTION__, "Failed to allocate memory for the buffer!");
 	}
+
+
+	CleanupTask memTask{};
+	memTask.caller = __FUNCTION__;
+	memTask.mainObjectName = VARIABLE_NAME(bufferMemory);
+	memTask.vkObjects = { vkContext.logicalDevice, bufferMemory };
+	memTask.cleanupFunc = [this, bufferMemory]() { vkFreeMemory(vkContext.logicalDevice, bufferMemory, nullptr); };
+
+	memoryManager.createCleanupTask(memTask);
 
 		// Binds the buffer memory to the newly allocated memory
 			/* Memory offset is essentially the "distance" between the starting point of the allocated memory block and that of the buffer.
@@ -142,12 +159,12 @@ void BufferManager::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceS
 	// Uses the transfer queue by default, but if it does not exist, switch to the graphics queue
 	QueueFamilyIndices::QueueFamily queueFamily = familyIndices.transferFamily;
 	if (queueFamily.deviceQueue == VK_NULL_HANDLE || !queueFamily.index.has_value()) {
-		Log::print(Log::WARNING, __FUNCTION__, "Transfer queue family is not valid. Switching to graphics queue family...");
+		Log::print(Log::T_WARNING, __FUNCTION__, "Transfer queue family is not valid. Switching to graphics queue family...");
 		queueFamily = familyIndices.graphicsFamily;
 	}
 
 
-	VkCommandPool commandPool = RenderPipeline::createCommandPool(vkContext.logicalDevice, queueFamily.index.value(), VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
+	VkCommandPool commandPool = RenderPipeline::createCommandPool(vkContext, memoryManager, vkContext.logicalDevice, queueFamily.index.value(), VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
 
 	VkCommandBufferAllocateInfo bufAllocInfo{};
 	bufAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -205,8 +222,8 @@ void BufferManager::loadVertexBuffer() {
 
 
 	// Creates a staging buffer
-	VkBuffer stagingBuffer;
-	VkDeviceMemory stagingBufMemory;
+	VkBuffer stagingBuffer = VK_NULL_HANDLE; // Explicitly set to VK_NULL_HANDLE to that, when it is destroyed, the buffer handle will be reset to VK_NULL_HANDLE. This prevents errors from the memory manager when the buffer's cleanup task is executed.
+	VkDeviceMemory stagingBufMemory = VK_NULL_HANDLE;
 
 	VkDeviceSize bufferSize = (sizeof(vertices[0]) * vertices.size());
 	VkBufferUsageFlags stagingBufUsage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;

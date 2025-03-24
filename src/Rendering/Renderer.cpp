@@ -11,7 +11,7 @@ Renderer::Renderer(VulkanContext &context, VkSwapchainManager& swapchainMgrInsta
     renderPipeline(renderPipelineInstance),
     vkContext(context) {
 
-    Log::print(Log::INFO, __FUNCTION__, "Initializing...");
+    Log::print(Log::T_INFO, __FUNCTION__, "Initializing...");
 
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();

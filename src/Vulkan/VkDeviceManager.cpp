@@ -5,10 +5,10 @@
 #include "VkDeviceManager.hpp"
 
 
-VkDeviceManager::VkDeviceManager(VulkanContext &context, bool autoCleanup):
-    vulkInst(context.vulkanInstance), vkContext(context), cleanOnDestruction(autoCleanup) {
+VkDeviceManager::VkDeviceManager(VulkanContext &context, MemoryManager& memMgr, bool autoCleanup):
+    vulkInst(context.vulkanInstance), vkContext(context), memoryManager(memMgr), cleanOnDestruction(autoCleanup) {
 
-    Log::print(Log::INFO, __FUNCTION__, "Initializing...");
+    Log::print(Log::T_INFO, __FUNCTION__, "Initializing...");
 
     if (vulkInst == VK_NULL_HANDLE) {
         throw Log::RuntimeException(__FUNCTION__, "Cannot initialize device manager: Invalid Vulkan instance!");
@@ -41,7 +41,7 @@ void VkDeviceManager::init() {
 
 
 void VkDeviceManager::cleanup() {
-    Log::print(Log::INFO, __FUNCTION__, "Cleaning up...");
+    Log::print(Log::T_INFO, __FUNCTION__, "Cleaning up...");
 
     if (vkIsValid(GPULogicalDevice))
         vkDestroyDevice(GPULogicalDevice, nullptr);
@@ -74,7 +74,7 @@ void VkDeviceManager::createPhysicalDevice() {
     //for (auto& score : GPUScores)
     //    std::cout << "\t(GPU: " << enquoteCOUT(score.deviceName) << "; Compatible: " << std::boolalpha << score.isCompatible << "; Optional Score: " << score.optionalScore << ")\n";
 
-    Log::print(Log::INFO, __FUNCTION__, ("Selected GPU " + enquote(bestDevice.deviceName)));
+    Log::print(Log::T_INFO, __FUNCTION__, ("Selected GPU " + enquote(bestDevice.deviceName)));
     //std::cout << "Most suitable GPU: (GPU: " << enquoteCOUT(bestDevice.deviceName) << "; Compatible: " << std::boolalpha << isDeviceCompatible << "; Optional Score: " << physicalDeviceScore << ")\n\n";
 
     if (physicalDevice == nullptr || !isDeviceCompatible) {
@@ -178,6 +178,15 @@ void VkDeviceManager::createLogicalDevice() {
 
     vkContext.logicalDevice = GPULogicalDevice;
     vkContext.queueFamilies = queueFamilies;
+
+
+    CleanupTask task;
+    task.caller = __FUNCTION__;
+    task.mainObjectName = VARIABLE_NAME(GPULogicalDevice);
+    task.vkObjects = { GPULogicalDevice };
+    task.cleanupFunc = [&]() { vkDestroyDevice(GPULogicalDevice, nullptr); };
+
+    memoryManager.createCleanupTask(task);
 }
 
 
@@ -360,7 +369,7 @@ bool VkDeviceManager::checkDeviceExtensionSupport(VkPhysicalDevice& device, std:
 
         if (!found) {
             allOK = false;
-            Log::print(Log::ERROR, __FUNCTION__, "Device extension " + enquote(ext) + " is not supported!");
+            Log::print(Log::T_ERROR, __FUNCTION__, "Device extension " + enquote(ext) + " is not supported!");
         }
     }
 

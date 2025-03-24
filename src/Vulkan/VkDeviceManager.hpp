@@ -22,6 +22,7 @@
 // Local
 #include <Vulkan/VkSwapchainManager.hpp>
 #include <LoggingManager.hpp>
+#include <MemoryManager.hpp>
 #include <Constants.h>
 #include <ApplicationContext.hpp>
 
@@ -42,7 +43,7 @@ inline bool ScoreComparator(const PhysicalDeviceScoreProperties& s1, const Physi
 
 class VkDeviceManager {
 public:
-	VkDeviceManager(VulkanContext &context, bool autoCleanup = true);
+	VkDeviceManager(VulkanContext& context, MemoryManager& memMgr, bool autoCleanup = true);
 	~VkDeviceManager();
 
 	/* Initializes the device creation process. */
@@ -59,7 +60,8 @@ public:
 private:
 	bool cleanOnDestruction = true;
 	VkInstance vulkInst = VK_NULL_HANDLE;
-	VulkanContext &vkContext;
+	VulkanContext& vkContext;
+	MemoryManager& memoryManager;
 
 	VkPhysicalDevice GPUPhysicalDevice = VK_NULL_HANDLE;
 	VkDevice GPULogicalDevice = VK_NULL_HANDLE;

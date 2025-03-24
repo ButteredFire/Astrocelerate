@@ -20,6 +20,7 @@
 // Local
 #include <Vulkan/VkDeviceManager.hpp>
 #include <LoggingManager.hpp>
+#include <MemoryManager.hpp>
 #include <ApplicationContext.hpp>
 #include <Constants.h>
 
@@ -57,23 +58,23 @@ inline static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSe
 	Log::MsgType severity;
 	switch (messageSeverity) {
 	case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
-		severity = Log::VERBOSE;
+		severity = Log::T_VERBOSE;
 		break;
 
 	case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
-		severity = Log::INFO;
+		severity = Log::T_INFO;
 		break;
 
 	case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
-		severity = Log::WARNING;
+		severity = Log::T_WARNING;
 		break;
 
 	case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
-		severity = Log::ERROR;
+		severity = Log::T_ERROR;
 		break;
 
 	default:
-		severity = Log::INFO;
+		severity = Log::T_INFO;
 		break;
 	}
 
@@ -85,7 +86,7 @@ inline static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSe
 
 class VkInstanceManager {
 public:
-	VkInstanceManager(VulkanContext &context, bool autoCleanup = true);
+	VkInstanceManager(VulkanContext &context, MemoryManager& memMgr, bool autoCleanup = true);
 	~VkInstanceManager();
 
 	/* Initializes the Vulkan instance setup process. */
@@ -133,6 +134,7 @@ private:
 	bool cleanOnDestruction = true;
 	VkInstance vulkInst = VK_NULL_HANDLE;
 	VulkanContext& vkContext;
+	MemoryManager& memoryManager;
 	VkSurfaceKHR windowSurface = VK_NULL_HANDLE;
 
 	VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;

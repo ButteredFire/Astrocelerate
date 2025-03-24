@@ -9,6 +9,7 @@ set(SOURCE_FILES
 	"external/imgui/imgui_widgets.cpp"
 	"src/Application.cpp"
 	"src/AppWindow.cpp"
+	"src/MemoryManager.cpp"
 	"src/Engine/Engine.cpp"
 	"src/Rendering/GraphicsPipeline.cpp"
 	"src/Rendering/Renderer.cpp"

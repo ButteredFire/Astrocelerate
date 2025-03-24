@@ -3,10 +3,10 @@
 
 #include "VkSwapchainManager.hpp"
 
-VkSwapchainManager::VkSwapchainManager(VulkanContext& context, bool autoCleanup) :
-    vkContext(context), cleanOnDestruction(autoCleanup) {
+VkSwapchainManager::VkSwapchainManager(VulkanContext& context, MemoryManager& memMgr, bool autoCleanup) :
+    vkContext(context), memoryManager(memMgr), cleanOnDestruction(autoCleanup) {
 
-    Log::print(Log::INFO, __FUNCTION__, "Initializing...");
+    Log::print(Log::T_INFO, __FUNCTION__, "Initializing...");
 
     if (vkContext.physicalDevice == VK_NULL_HANDLE) {
         throw Log::RuntimeException(__FUNCTION__, "Cannot initialize swap-chain manager: The GPU's physical device handle is null!");
@@ -37,7 +37,7 @@ void VkSwapchainManager::init() {
 
 
 void VkSwapchainManager::cleanup() {
-    Log::print(Log::INFO, __FUNCTION__, "Cleaning up...");
+    Log::print(Log::T_INFO, __FUNCTION__, "Cleaning up...");
 
     // Frees image views memory
     for (const auto& imageView : swapChainImageViews) {
@@ -164,6 +164,15 @@ void VkSwapchainManager::createSwapChain() {
     swapChainImages.resize(imageCount);
     vkContext.minImageCount = imageCount;
     vkGetSwapchainImagesKHR(vkContext.logicalDevice, vkContext.swapChain, &imageCount, swapChainImages.data());
+
+
+    CleanupTask task;
+    task.caller = __FUNCTION__;
+    task.mainObjectName = VARIABLE_NAME(swapChain);
+    task.vkObjects = { swapChain };
+    task.cleanupFunc = [&]() { vkDestroySwapchainKHR(vkContext.logicalDevice, swapChain, nullptr); };
+
+    memoryManager.createCleanupTask(task);
 }
 
 
@@ -212,14 +221,23 @@ void VkSwapchainManager::createImageViews() {
         viewCreateInfo.subresourceRange.baseArrayLayer = 0; // Images will have no multiple layers
         viewCreateInfo.subresourceRange.layerCount = 1;
 
-        VkImageView imageView;
-        VkResult result = vkCreateImageView(vkContext.logicalDevice, &viewCreateInfo, nullptr, &imageView);
+        //VkImageView imageView;
+        VkResult result = vkCreateImageView(vkContext.logicalDevice, &viewCreateInfo, nullptr, &swapChainImageViews[i]);
         if (result != VK_SUCCESS) {
             cleanup();
             throw Log::RuntimeException(__FUNCTION__, "Failed to read image data!");
         }
 
-        swapChainImageViews[i] = imageView;
+        //swapChainImageViews[i] = imageView;
+        VkImageView imageView = swapChainImageViews[i];
+
+        CleanupTask task{};
+        task.caller = __FUNCTION__;
+        task.mainObjectName = VARIABLE_NAME(imageView);
+        task.vkObjects = { vkContext.logicalDevice, imageView };
+        task.cleanupFunc = [this, imageView]() { vkDestroyImageView(vkContext.logicalDevice, imageView, nullptr); };
+
+        memoryManager.createCleanupTask(task);
     }
 }
 
@@ -247,10 +265,10 @@ SwapChainProperties VkSwapchainManager::getSwapChainProperties(VkPhysicalDevice&
 
 
     if (swapChain.surfaceFormats.empty()) {
-        Log::print(Log::WARNING, __FUNCTION__, "GPU does not support any surface formats for the given window surface!");
+        Log::print(Log::T_WARNING, __FUNCTION__, "GPU does not support any surface formats for the given window surface!");
     }
     if (swapChain.presentModes.empty()) {
-        Log::print(Log::WARNING, __FUNCTION__, "GPU does not support any presentation modes for the given window surface!");
+        Log::print(Log::T_WARNING, __FUNCTION__, "GPU does not support any presentation modes for the given window surface!");
     }
 
     return swapChain;

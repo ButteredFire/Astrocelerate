@@ -3,11 +3,12 @@
 
 #include "GraphicsPipeline.hpp"
 
-GraphicsPipeline::GraphicsPipeline(VulkanContext& context, bool autoCleanup):
+GraphicsPipeline::GraphicsPipeline(VulkanContext& context, MemoryManager& memMgr, bool autoCleanup):
 	vkContext(context),
+	memoryManager(memMgr),
 	cleanOnDestruction(autoCleanup) {
 
-	Log::print(Log::INFO, __FUNCTION__, "Initializing...");
+	Log::print(Log::T_INFO, __FUNCTION__, "Initializing...");
 }
 
 GraphicsPipeline::~GraphicsPipeline() {
@@ -53,7 +54,7 @@ void GraphicsPipeline::init() {
 
 
 void GraphicsPipeline::cleanup() {
-	Log::print(Log::INFO, __FUNCTION__, "Cleaning up...");
+	Log::print(Log::T_INFO, __FUNCTION__, "Cleaning up...");
 
 	if (vkIsValid(vertShaderModule))
 		vkDestroyShaderModule(vkContext.logicalDevice, vertShaderModule, nullptr);
@@ -120,6 +121,15 @@ void GraphicsPipeline::createGraphicsPipeline() {
 	}
 
 	vkContext.GraphicsPipeline.pipeline = graphicsPipeline;
+
+
+	CleanupTask task{};
+	task.caller = __FUNCTION__;
+	task.mainObjectName = VARIABLE_NAME(graphicsPipeline);
+	task.vkObjects = { vkContext.logicalDevice, graphicsPipeline };
+	task.cleanupFunc = [&]() { vkDestroyPipeline(vkContext.logicalDevice, graphicsPipeline, nullptr); };
+
+	memoryManager.createCleanupTask(task);
 }
 
 
@@ -140,6 +150,15 @@ void GraphicsPipeline::createPipelineLayout() {
 	}
 
 	vkContext.GraphicsPipeline.layout = pipelineLayout;
+	
+
+	CleanupTask task{};
+	task.caller = __FUNCTION__;
+	task.mainObjectName = VARIABLE_NAME(pipelineLayout);
+	task.vkObjects = { vkContext.logicalDevice, pipelineLayout };
+	task.cleanupFunc = [&]() { vkDestroyPipelineLayout(vkContext.logicalDevice, pipelineLayout, nullptr); };
+
+	memoryManager.createCleanupTask(task);
 }
 
 
@@ -209,6 +228,14 @@ void GraphicsPipeline::createRenderPass() {
 	}
 
 	vkContext.GraphicsPipeline.renderPass = renderPass;
+
+	CleanupTask task{};
+	task.caller = __FUNCTION__;
+	task.mainObjectName = VARIABLE_NAME(renderPass);
+	task.vkObjects = { vkContext.logicalDevice, renderPass };
+	task.cleanupFunc = [&]() { vkDestroyRenderPass(vkContext.logicalDevice, renderPass, nullptr); };
+
+	memoryManager.createCleanupTask(task);
 }
 
 
@@ -217,12 +244,12 @@ void GraphicsPipeline::initShaderStage() {
 	// Loads shader bytecode onto buffers
 		// Vertex shader
 	vertShaderBytecode = readFile(ShaderConsts::VERTEX);
-	Log::print(Log::INFO, __FUNCTION__, ("Loaded vertex shader! SPIR-V bytecode file size is " + std::to_string(vertShaderBytecode.size()) + " (bytes)."));
+	Log::print(Log::T_INFO, __FUNCTION__, ("Loaded vertex shader! SPIR-V bytecode file size is " + std::to_string(vertShaderBytecode.size()) + " (bytes)."));
 	vertShaderModule = createShaderModule(vertShaderBytecode);
 
 		// Fragment shader
 	fragShaderBytecode = readFile(ShaderConsts::FRAGMENT);
-	Log::print(Log::INFO, __FUNCTION__, ("Loaded fragment shader! SPIR-V bytecode file size is " + std::to_string(fragShaderBytecode.size()) + " (bytes)."));
+	Log::print(Log::T_INFO, __FUNCTION__, ("Loaded fragment shader! SPIR-V bytecode file size is " + std::to_string(fragShaderBytecode.size()) + " (bytes)."));
 	fragShaderModule = createShaderModule(fragShaderBytecode);
 
 	// Creates shader stages
@@ -259,6 +286,22 @@ void GraphicsPipeline::initShaderStage() {
 
 	vertInputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertAttribDescriptions.size());
 	vertInputState.pVertexAttributeDescriptions = vertAttribDescriptions.data();
+
+
+	CleanupTask vertCleanupTask{}, fragCleanupTask{};
+	vertCleanupTask.caller = fragCleanupTask.caller = __FUNCTION__;
+
+	vertCleanupTask.mainObjectName = VARIABLE_NAME(vertShaderModule);
+	fragCleanupTask.mainObjectName = VARIABLE_NAME(fragShaderModule);
+
+	vertCleanupTask.vkObjects = { vkContext.logicalDevice, vertShaderModule };
+	fragCleanupTask.vkObjects = { vkContext.logicalDevice, fragShaderModule };
+
+	vertCleanupTask.cleanupFunc = [&]() { vkDestroyShaderModule(vkContext.logicalDevice, vertShaderModule, nullptr); };
+	fragCleanupTask.cleanupFunc = [&]() { vkDestroyShaderModule(vkContext.logicalDevice, fragShaderModule, nullptr); };
+
+	memoryManager.createCleanupTask(vertCleanupTask);
+	memoryManager.createCleanupTask(fragCleanupTask);
 }
 
 

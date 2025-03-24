@@ -3,6 +3,7 @@
 #include <iostream>
 #include <string>
 #include <exception>
+#include <termcolor/termcolor.hpp>
 
 #define enquote(S) std::string(std::string("\"") + S + std::string("\""))
 #define enquoteCOUT(S) '"' << (S) << '"'
@@ -10,10 +11,10 @@
 
 namespace Log {
 	enum MsgType {
-		VERBOSE,
-		INFO,
-		WARNING,
-		ERROR
+		T_VERBOSE,
+		T_INFO,
+		T_WARNING,
+		T_ERROR
 	};
 
 	/* Logs a message. 
@@ -25,26 +26,30 @@ namespace Log {
 	static void print(MsgType type, const char* caller, const std::string& message, bool newline = true) {
 		std::string msgType = "Unknown message type";
 		switch (type) {
-		case VERBOSE:
+		case T_VERBOSE:
 			msgType = "VERBOSE";
+			std::cout << termcolor::bright_cyan;
 			break;
 
-		case INFO:
+		case T_INFO:
 			msgType = "INFO";
+			std::cout << termcolor::white;
 			break;
 
-		case WARNING:
+		case T_WARNING:
 			msgType = "WARNING";
+			std::cout << termcolor::yellow;
 			break;
 
-		case ERROR:
+		case T_ERROR:
 			msgType = "ERROR";
+			std::cout << termcolor::red;
 			break;
 
 		default: break;
 		}
 
-		std::cout << "[" << msgType << " @ " << caller << "]: " << message << ((newline) ? "\n" : "");
+		std::cout << "[" << msgType << " @ " << caller << "]: " << message << ((newline) ? "\n" : "") << termcolor::reset;
 	}
 
 
