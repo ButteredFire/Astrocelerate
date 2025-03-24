@@ -58,10 +58,10 @@ int main() {
         renderPipeline.init();
 
             // Creates a renderer
-        //Renderer renderer(vkContext, swapchainManager, renderPipeline);
+        Renderer renderer(vkContext, swapchainManager, renderPipeline);
 
-        //Engine engine(windowPtr, vkContext, renderer);
-        //engine.run();
+        Engine engine(windowPtr, vkContext, renderer);
+        engine.run();
     }
     catch (const Log::RuntimeException& e) {
         Log::print(Log::T_ERROR, e.origin(), e.what());

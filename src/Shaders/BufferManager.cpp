@@ -222,8 +222,8 @@ void BufferManager::loadVertexBuffer() {
 
 
 	// Creates a staging buffer
-	VkBuffer stagingBuffer = VK_NULL_HANDLE; // Explicitly set to VK_NULL_HANDLE to that, when it is destroyed, the buffer handle will be reset to VK_NULL_HANDLE. This prevents errors from the memory manager when the buffer's cleanup task is executed.
-	VkDeviceMemory stagingBufMemory = VK_NULL_HANDLE;
+	VkBuffer stagingBuffer;
+	VkDeviceMemory stagingBufMemory;
 
 	VkDeviceSize bufferSize = (sizeof(vertices[0]) * vertices.size());
 	VkBufferUsageFlags stagingBufUsage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
@@ -254,8 +254,10 @@ void BufferManager::loadVertexBuffer() {
 	// Copies the contents from the staging buffer to the vertex buffer
 	copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
 
-	vkDestroyBuffer(vkContext.logicalDevice, stagingBuffer, nullptr);
-	vkFreeMemory(vkContext.logicalDevice, stagingBufMemory, nullptr);
+	//vkDestroyBuffer(vkContext.logicalDevice, stagingBuffer, nullptr);
+	//vkFreeMemory(vkContext.logicalDevice, stagingBufMemory, nullptr);
+	memoryManager.executeCleanupTask({ vkContext.logicalDevice, stagingBuffer });
+	memoryManager.executeCleanupTask({ vkContext.logicalDevice, stagingBufMemory });
 }
 
 

@@ -32,7 +32,7 @@ void RenderPipeline::init() {
 	allocCommandBuffers(transferCmdPool, transferCmdBuffers);
 	vkContext.RenderPipeline.transferCmdBuffers = transferCmdBuffers;
 
-	vertexBuffer.init();
+	//vertexBuffer.init();
 	createSyncObjects();
 }
 

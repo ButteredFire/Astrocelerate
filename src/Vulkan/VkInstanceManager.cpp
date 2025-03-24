@@ -92,7 +92,7 @@ void VkInstanceManager::createDebugMessenger() {
     CleanupTask task{};
     task.caller = __FUNCTION__;
     task.mainObjectName = VARIABLE_NAME(debugMessenger);
-    task.vkObjects = { debugMessenger };
+    task.vkObjects = { vulkInst, debugMessenger };
     task.cleanupFunc = [&]() { destroyDebugUtilsMessengerEXT(vulkInst, debugMessenger, nullptr); };
     task.cleanupConditions = { inDebugMode };
 
