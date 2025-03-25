@@ -160,7 +160,6 @@ void VkDeviceManager::createLogicalDevice() {
 
     VkResult result = vkCreateDevice(GPUPhysicalDevice, &deviceInfo, nullptr, &GPULogicalDevice);
     if (result != VK_SUCCESS) {
-        cleanup();
         throw Log::RuntimeException(__FUNCTION__, "Unable to create GPU logical device!");
     }
 
@@ -180,7 +179,7 @@ void VkDeviceManager::createLogicalDevice() {
     vkContext.queueFamilies = queueFamilies;
 
 
-    CleanupTask task;
+    CleanupTask task{};
     task.caller = __FUNCTION__;
     task.mainObjectName = VARIABLE_NAME(GPULogicalDevice);
     task.vkObjects = { GPULogicalDevice };

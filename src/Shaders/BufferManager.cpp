@@ -101,7 +101,6 @@ void BufferManager::createBuffer(VkDeviceSize deviceSize, VkBufferUsageFlags usa
 
 	VkResult bufCreateResult = vkCreateBuffer(vkContext.logicalDevice, &bufCreateInfo, nullptr, &buffer);
 	if (bufCreateResult != VK_SUCCESS) {
-		cleanup();
 		throw Log::RuntimeException(__FUNCTION__, "Failed to create buffer!");
 	}
 
@@ -128,7 +127,6 @@ void BufferManager::createBuffer(VkDeviceSize deviceSize, VkBufferUsageFlags usa
 
 	VkResult memAllocResult = vkAllocateMemory(vkContext.logicalDevice, &allocInfo, nullptr, &bufferMemory);
 	if (memAllocResult != VK_SUCCESS) {
-		cleanup();
 		throw Log::RuntimeException(__FUNCTION__, "Failed to allocate memory for the buffer!");
 	}
 

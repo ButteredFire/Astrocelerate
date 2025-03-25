@@ -155,13 +155,12 @@ void VkInstanceManager::createVulkanInstance() {
     // and initializes the member VkInstance variable
     VkResult result = vkCreateInstance(&instanceInfo, nullptr, &vulkInst);
     if (result != VK_SUCCESS) {
-        cleanup();
         throw Log::RuntimeException(__FUNCTION__, "Failed to create Vulkan instance!");
     }
 
     vkContext.vulkanInstance = vulkInst;
 
-    CleanupTask task;
+    CleanupTask task{};
     task.caller = __FUNCTION__;
     task.mainObjectName = VARIABLE_NAME(vulkInst);
     task.vkObjects = { vulkInst };
@@ -179,16 +178,15 @@ void VkInstanceManager::createSurface() {
     */
     VkResult result = glfwCreateWindowSurface(vulkInst, vkContext.window, nullptr, &windowSurface);
     if (result != VK_SUCCESS) {
-        cleanup();
         throw Log::RuntimeException(__FUNCTION__, "Failed to create Vulkan window surface!");
     }
 
     vkContext.vkSurface = windowSurface;
 
-    CleanupTask task;
+    CleanupTask task{};
     task.caller = __FUNCTION__;
     task.mainObjectName = VARIABLE_NAME(windowSurface);
-    task.vkObjects = { windowSurface };
+    task.vkObjects = { vulkInst, windowSurface };
     task.cleanupFunc = [&]() { vkDestroySurfaceKHR(vulkInst, windowSurface, nullptr); };
 
     memoryManager.createCleanupTask(task);

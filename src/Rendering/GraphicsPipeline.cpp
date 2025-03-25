@@ -116,7 +116,6 @@ void GraphicsPipeline::createGraphicsPipeline() {
 
 	VkResult result = vkCreateGraphicsPipelines(vkContext.logicalDevice, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &graphicsPipeline);
 	if (result != VK_SUCCESS) {
-		cleanup();
 		throw Log::RuntimeException(__FUNCTION__, "Failed to create graphics pipeline!");
 	}
 
@@ -145,7 +144,6 @@ void GraphicsPipeline::createPipelineLayout() {
 
 	VkResult result = vkCreatePipelineLayout(vkContext.logicalDevice, &createInfo, nullptr, &pipelineLayout);
 	if (result != VK_SUCCESS) {
-		cleanup();
 		throw Log::RuntimeException(__FUNCTION__, "Failed to create graphics pipeline layout!");
 	}
 

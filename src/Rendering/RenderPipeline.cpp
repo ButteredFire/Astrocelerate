@@ -95,7 +95,6 @@ void RenderPipeline::recordCommandBuffer(VkCommandBuffer& buffer, uint32_t image
 	// NOTE: vkBeginCommandBuffer will implicitly reset the framebuffer if it has already been recorded before
 	VkResult beginCmdBufferResult = vkBeginCommandBuffer(buffer, &bufferBeginInfo);
 	if (beginCmdBufferResult != VK_SUCCESS) {
-		cleanup();
 		throw Log::RuntimeException(__FUNCTION__, "Failed to start recording command buffer!");
 	}
 
@@ -172,7 +171,6 @@ void RenderPipeline::recordCommandBuffer(VkCommandBuffer& buffer, uint32_t image
 	// Stop recording the command buffer
 	VkResult endCmdBufferResult = vkEndCommandBuffer(buffer);
 	if (endCmdBufferResult != VK_SUCCESS) {
-		cleanup();
 		throw Log::RuntimeException(__FUNCTION__, "Failed to record command buffer!");
 	}
 }
@@ -203,7 +201,6 @@ void RenderPipeline::createFrameBuffers() {
 
 		VkResult result = vkCreateFramebuffer(vkContext.logicalDevice, &bufferCreateInfo, nullptr, &imageFrameBuffers[i]);
 		if (result != VK_SUCCESS) {
-			cleanup();
 			throw Log::RuntimeException(__FUNCTION__, "Failed to create frame buffer!");
 		}
 
@@ -263,7 +260,6 @@ void RenderPipeline::allocCommandBuffers(VkCommandPool& commandPool, std::vector
 
 	VkResult result = vkAllocateCommandBuffers(vkContext.logicalDevice, &bufferAllocInfo, commandBuffers.data());
 	if (result != VK_SUCCESS) {
-		cleanup();
 		throw Log::RuntimeException(__FUNCTION__, "Failed to allocate command buffers!");
 	}
 
@@ -323,12 +319,10 @@ void RenderPipeline::createSyncObjects() {
 		VkResult inFlightFenceCreateResult = vkCreateFence(vkContext.logicalDevice, &fenceCreateInfo, nullptr, &inFlightFences[i]);
 
 		if (imageSemaphoreCreateResult != VK_SUCCESS || renderSemaphoreCreateResult != VK_SUCCESS) {
-			cleanup();
 			throw Log::RuntimeException(__FUNCTION__, "Failed to create semaphores for a frame!");
 		}
 
 		if (inFlightFenceCreateResult != VK_SUCCESS) {
-			cleanup();
 			throw Log::RuntimeException(__FUNCTION__, "Failed to create in-flight fence for a frame!");
 		}
 
@@ -343,9 +337,9 @@ void RenderPipeline::createSyncObjects() {
 		renderSemaphoreTask.mainObjectName = VARIABLE_NAME(renderFinishedSemaphore);
 		fenceTask.mainObjectName = VARIABLE_NAME(inFlightFence);
 
-		imgSemaphoreTask.vkObjects = { imageReadySemaphore };
-		renderSemaphoreTask.vkObjects = { renderFinishedSemaphore };
-		fenceTask.vkObjects = { inFlightFence };
+		imgSemaphoreTask.vkObjects = { vkContext.logicalDevice, imageReadySemaphore };
+		renderSemaphoreTask.vkObjects = { vkContext.logicalDevice, renderFinishedSemaphore };
+		fenceTask.vkObjects = { vkContext.logicalDevice, inFlightFence };
 
 		imgSemaphoreTask.cleanupFunc = [this, imageReadySemaphore]() { vkDestroySemaphore(vkContext.logicalDevice, imageReadySemaphore, nullptr); };
 		renderSemaphoreTask.cleanupFunc = [this, renderFinishedSemaphore]() { vkDestroySemaphore(vkContext.logicalDevice, renderFinishedSemaphore, nullptr); };

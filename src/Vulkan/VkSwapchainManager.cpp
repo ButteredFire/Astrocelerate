@@ -149,7 +149,6 @@ void VkSwapchainManager::createSwapChain() {
     // Creates a VkSwapchainKHR object
     VkResult result = vkCreateSwapchainKHR(vkContext.logicalDevice, &swapChainCreateInfo, nullptr, &swapChain);
     if (result != VK_SUCCESS) {
-        cleanup();
         throw Log::RuntimeException(__FUNCTION__, "Failed to create swap-chain!");
     }
 
@@ -224,7 +223,6 @@ void VkSwapchainManager::createImageViews() {
         //VkImageView imageView;
         VkResult result = vkCreateImageView(vkContext.logicalDevice, &viewCreateInfo, nullptr, &swapChainImageViews[i]);
         if (result != VK_SUCCESS) {
-            cleanup();
             throw Log::RuntimeException(__FUNCTION__, "Failed to read image data!");
         }
 
