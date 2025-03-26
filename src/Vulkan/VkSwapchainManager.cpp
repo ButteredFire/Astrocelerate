@@ -70,9 +70,7 @@ void VkSwapchainManager::recreateSwapchain(RenderPipeline& renderPipeline) {
     vkDeviceWaitIdle(vkContext.logicalDevice);
 
         // Cleans up outdated swap-chain objects
-    for (const auto& buffer : renderPipeline.getImageFrameBuffers()) {
-        vkDestroyFramebuffer(vkContext.logicalDevice, buffer, nullptr);
-    }
+    renderPipeline.destroyFrameBuffers(); // Call this before destroying image views as framebuffers depend on them
     cleanup();
 
     init();

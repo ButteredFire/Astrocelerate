@@ -44,6 +44,10 @@ public:
 	void createFrameBuffers();
 
 
+	/* Destroys each swap-chain image's framebuffer. This should only be called when the swap-chain is recreated. */
+	void destroyFrameBuffers();
+
+
 	/* Gets a list of image framebuffers.
 	* @return A vector of type VkFrameBuffer containing a framebuffer for every swap-chain image.
 	*/
@@ -66,8 +70,10 @@ public:
 private:
 	bool cleanOnDestruction = true;
 	VulkanContext& vkContext;
-	MemoryManager& memoryManager;
 	BufferManager& vertexBuffer;
+
+	MemoryManager& memoryManager;
+	std::vector<uint32_t> framebufTaskIDs; // Stores framebuffer cleanup task IDs (used exclusively in the swap-chain recreation process)
 
 	std::vector<VkFramebuffer> imageFrameBuffers;
 

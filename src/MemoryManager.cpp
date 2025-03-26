@@ -63,7 +63,7 @@ CleanupTask& MemoryManager::modifyCleanupTask(uint32_t taskID) {
 bool MemoryManager::executeCleanupTask(uint32_t taskID) {
 	try {
 		CleanupTask& task = cleanupStack[idToIdxLookup.at(taskID)];
-		return executeTask(task);
+		return executeTask(task, taskID);
 	}
 	catch (const std::exception& e) {
 		throw Log::RuntimeException(__FUNCTION__, "Task ID " + enquote(std::to_string(taskID)) + " is invalid!\nOriginal exception message: " + std::string(e.what()));
@@ -73,19 +73,23 @@ bool MemoryManager::executeCleanupTask(uint32_t taskID) {
 
 void MemoryManager::processCleanupStack() {
 	size_t stackSize = cleanupStack.size();
+
+	cleanStack();
+
 	std::string plural = (stackSize != 1)? "s" : "";
 	Log::print(Log::T_INFO, __FUNCTION__, "Executing " + std::to_string(stackSize) + " task" + plural + " in the cleanup stack...");
 
 	while (!cleanupStack.empty()) {
-		CleanupTask task = cleanupStack[cleanupStack.size() - 1];
-		executeTask(task);
+		uint32_t id = (cleanupStack.size() - 1);
+		CleanupTask task = cleanupStack[id];
+		executeTask(task, id);
 
 		cleanupStack.pop_back();
 	}
 }
 
 
-bool MemoryManager::executeTask(CleanupTask& task) {
+bool MemoryManager::executeTask(CleanupTask& task, uint32_t taskID) {
 	std::string objectName = enquote(task.caller + " -> " + task.mainObjectName);
 
 	if (!task.validTask) {
@@ -119,7 +123,36 @@ bool MemoryManager::executeTask(CleanupTask& task) {
 	// Executes the task and invalidates it to prevent future executions
 	task.cleanupFunc();
 	task.validTask = false;
+	invalidTasks++;
+
+	if (invalidTasks >= MAX_INVALID_TASKS)
+		cleanStack();
+
 
 	Log::print(Log::T_INFO, __FUNCTION__, "Executed cleanup task for object " + objectName + ".");
 	return true;
+}
+
+
+void MemoryManager::cleanStack() {
+	size_t displacement = 0, invalidTaskCount = 0;
+	size_t oldSize = cleanupStack.size();
+	for (size_t i = 0; i < oldSize; i++) {
+		if (!cleanupStack[i].validTask) {
+			displacement++;
+			invalidTaskCount++;
+		}
+		else {
+			idToIdxLookup[i] -= displacement;
+			cleanupStack[i - displacement] = cleanupStack[i];
+		}
+	}
+
+	nextID = (oldSize - invalidTaskCount);
+
+	for (size_t i = (oldSize - invalidTaskCount); i < oldSize; i++) {
+		cleanupStack.erase(cleanupStack.begin() + (oldSize - invalidTaskCount));
+	}
+
+	invalidTasks = 0;
 }

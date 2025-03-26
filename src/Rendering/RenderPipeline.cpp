@@ -212,8 +212,17 @@ void RenderPipeline::createFrameBuffers() {
 		task.vkObjects = { vkContext.logicalDevice, framebuffer };
 		task.cleanupFunc = [this, framebuffer]() { vkDestroyFramebuffer(vkContext.logicalDevice, framebuffer, nullptr); };
 
-		memoryManager.createCleanupTask(task);
+		uint32_t framebufferTaskID = memoryManager.createCleanupTask(task);
+		framebufTaskIDs.push_back(framebufferTaskID);
 	}
+}
+
+
+void RenderPipeline::destroyFrameBuffers() {
+	for (const auto& taskID : framebufTaskIDs) {
+		memoryManager.executeCleanupTask(taskID);
+	}
+	framebufTaskIDs.clear();
 }
 
 
