@@ -1,11 +1,16 @@
 #pragma once
 
+
+// VMA
+#include <vk_mem_alloc.h>
+
 #include <LoggingManager.hpp>
 #include <optional>
 #include <variant>
 
 
 using VulkanHandles = std::variant<
+	VmaAllocator,
 	VkDebugUtilsMessengerEXT,
 	VkInstance,
 	VkPhysicalDevice,   // Usually not destroyed explicitly, but listed for completeness
@@ -129,6 +134,7 @@ struct QueueFamilyIndices {
 // A structure that stores commonly accessed or global Vulkan objects.
 struct VulkanContext {
     GLFWwindow* window;
+	VmaAllocator vmAllocator = VK_NULL_HANDLE;
 
     // Instance creation
     VkInstance vulkanInstance = VK_NULL_HANDLE;

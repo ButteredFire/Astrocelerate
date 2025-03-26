@@ -106,11 +106,12 @@ void VkInstanceManager::createVulkanInstance() {
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO; // Specifies structure type
 
     appInfo.pApplicationName = APP::APP_NAME;
-    appInfo.pEngineName = APP::ENGINE_NAME;
+    appInfo.applicationVersion = VK_MAKE_VERSION(0, 1, 0); // Major, minor, patch
+    
+    //appInfo.pEngineName = APP::ENGINE_NAME;
+    //appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
 
-    appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.apiVersion = VK_API_VERSION_1_0;
+    appInfo.apiVersion = VULKAN_VERSION;
 
     // Specifies which global extensions and validation layers are to be used
     VkInstanceCreateInfo instanceInfo{};

@@ -37,6 +37,9 @@ void VkDeviceManager::init() {
     // Creates a GPU device
     createPhysicalDevice();
     createLogicalDevice();
+
+    // Creates a VMA
+    vmaAllocator = memoryManager.createVMAllocator(vkContext.vulkanInstance, GPUPhysicalDevice, GPULogicalDevice);
 }
 
 
@@ -187,7 +190,6 @@ void VkDeviceManager::createLogicalDevice() {
 
     memoryManager.createCleanupTask(task);
 }
-
 
 
 std::vector<PhysicalDeviceScoreProperties> VkDeviceManager::rateGPUSuitability(std::vector<VkPhysicalDevice>& physicalDevices) {

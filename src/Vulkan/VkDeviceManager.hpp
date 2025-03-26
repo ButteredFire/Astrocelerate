@@ -11,6 +11,12 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
+#include <Constants.h>
+
+	// VMA
+#include <vk_mem_alloc.h>
+
+
 // C++ STLs
 #include <algorithm>
 #include <iostream>
@@ -23,7 +29,6 @@
 #include <Vulkan/VkSwapchainManager.hpp>
 #include <LoggingManager.hpp>
 #include <MemoryManager.hpp>
-#include <Constants.h>
 #include <ApplicationContext.hpp>
 
 
@@ -63,6 +68,8 @@ private:
 	VulkanContext& vkContext;
 	MemoryManager& memoryManager;
 
+	VmaAllocator vmaAllocator = VK_NULL_HANDLE;
+
 	VkPhysicalDevice GPUPhysicalDevice = VK_NULL_HANDLE;
 	VkDevice GPULogicalDevice = VK_NULL_HANDLE;
 
@@ -77,7 +84,6 @@ private:
 
 	/* Creates a GPU Logical Device to interface with the Physical Device. */
 	void createLogicalDevice();
-
 
 
 	/* Grades a list of GPUs according to their suitability for Astrocelerate's features.

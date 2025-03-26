@@ -10,6 +10,7 @@ set(SOURCE_FILES
 	"src/Application.cpp"
 	"src/AppWindow.cpp"
 	"src/MemoryManager.cpp"
+	"src/vma_impl.cpp"
 	"src/Engine/Engine.cpp"
 	"src/Rendering/GraphicsPipeline.cpp"
 	"src/Rendering/Renderer.cpp"

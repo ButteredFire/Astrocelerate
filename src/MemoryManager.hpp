@@ -13,6 +13,7 @@
 #include <LoggingManager.hpp>
 
 
+// A structure specifying the properties of a cleanup task
 struct CleanupTask {
 	bool validTask = true;								// A special boolean specifying whether this task is executable or not
 	std::string caller = "Unknown caller";				// The caller from which the task was pushed to the cleanup stack (used for logging)
@@ -23,14 +24,34 @@ struct CleanupTask {
 };
 
 
+// A structure specifying the properties of a memory block
+struct MemoryBlock {
+	VkDeviceMemory memory;			// The handle to the device memory object
+	VkDeviceSize size;				// The size of the memory block (in bytes)
+	VkDeviceSize currentOffset;		// The offset between the start of the actual memory block and the start of the usable sub-block
+};
+
+
 class MemoryManager {
 public:
 	MemoryManager();
 	~MemoryManager();
 
 
-	/* Pushes a cleanup task to be executed on program exit to the cleanup stack (technically a deque, but almost always used like a stack). */
-	void createCleanupTask(CleanupTask task);
+	/* Creates the Vulkan Memory Allocator. The VMA object is automatically added to the application context, and its cleanup task created.
+	* @param instance: The Vulkan instance.
+	* @param physicalDevice: The selected physical device.
+	* @param device: The selected logical device.
+	* @return The VmaAllocator handle.
+	*/
+	VmaAllocator createVMAllocator(VkInstance& instance, VkPhysicalDevice& physicalDevice, VkDevice& device);
+
+
+	/* Pushes a cleanup task to be executed on program exit to the cleanup stack (technically a deque, but almost always used like a stack).
+	* @param task: The cleanup task.
+	* @param lowestPriority (Default: False): A boolean determining whether the task should be executed last in the queue (True), or not (False). By default, the task will be pushed to the back of the cleanup queue and, if it is the last task in the queue, be executed first on program exit.
+	*/
+	void createCleanupTask(CleanupTask task, bool lowestPriority = false);
 
 
 	/* Executes a cleanup task from anywhere in the cleanup stack. This can be computationally costly and/or dangerous!
@@ -41,9 +62,10 @@ public:
 
 
 	/* Executes all cleanup tasks in the cleanup stack. */
-	void executeStack();
+	void processCleanupStack();
 
 private:
+	VmaAllocator vmaAllocator = VK_NULL_HANDLE;
 	std::deque<CleanupTask> cleanupStack;
 
 	/* Executes a cleanup task.

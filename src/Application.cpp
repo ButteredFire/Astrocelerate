@@ -66,12 +66,12 @@ int main() {
     catch (const Log::RuntimeException& e) {
         Log::print(Log::T_ERROR, e.origin(), e.what());
 
-        memoryManager.executeStack();
+        memoryManager.processCleanupStack();
 
         boxer::show(e.what(), ("Exception raised from " + std::string(e.origin())).c_str(), boxer::Style::Error, boxer::Buttons::Quit);
         return EXIT_FAILURE;
     }
 
-    memoryManager.executeStack();
+    memoryManager.processCleanupStack();
     return EXIT_SUCCESS;
 }

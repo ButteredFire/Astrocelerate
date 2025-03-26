@@ -9,6 +9,10 @@ project(Astrocelerate)
     set(APP_VERSION "v0.1-alpha")
     add_compile_definitions(APP_VERSION="${APP_VERSION}")
 
+    # Specify VMA version
+    set(VMA_VERSION 1000000)
+    add_compile_definitions(VMA_VULKAN_VERSION=VMA_VERSION) # 1.0.0  (Form: ABBBCCC -> A = major, BBB = minor, CCC = patch); The VMA version must match that of the Vulkan version, i.e., VULKAN_VERSION
+
 
 # Enable Hot Reload for MSVC compilers (Edit & Continue).
     # Note: Since CMake versions 3.20+ always support POLICY CMP0141, there's no need to check if that policy exists.
@@ -69,6 +73,13 @@ find_package(Vulkan REQUIRED)    # Vulkan SDK
         GIT_TAG master
     )
 
+    # VMA
+    FetchContent_Declare(
+        VulkanMemoryAllocator
+        GIT_REPOSITORY https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git
+        GIT_TAG master
+    )
+
 
 # Organize libraries into variables
 set(PKG_LIBS
@@ -76,7 +87,7 @@ set(PKG_LIBS
 )
 
 set(FETCHCONTENT_LIBS
-    glfw glm
+    glfw glm VulkanMemoryAllocator
 )
 
 
@@ -143,4 +154,5 @@ target_include_directories(Astrocelerate PRIVATE
     ${glm_SOURCE_DIR} 
     ${GLFW_SOURCE_DIR}/include
     ${imgui_SOURCE_DIR}
+    ${VulkanMemoryAllocator_SOURCE_DIR}/include
 )

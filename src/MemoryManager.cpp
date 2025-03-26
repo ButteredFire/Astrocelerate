@@ -4,9 +4,38 @@ MemoryManager::MemoryManager() {}
 
 MemoryManager::~MemoryManager() {}
 
-void MemoryManager::createCleanupTask(CleanupTask task) {
+
+VmaAllocator MemoryManager::createVMAllocator(VkInstance& instance, VkPhysicalDevice& physicalDevice, VkDevice& device) {
+	VmaAllocatorCreateInfo allocatorCreateInfo = {};
+	allocatorCreateInfo.physicalDevice = physicalDevice;
+	allocatorCreateInfo.device = device;
+	allocatorCreateInfo.instance = instance;
+	allocatorCreateInfo.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT; // If using buffer device addresses (optional)
+
+
+	VkResult result = vmaCreateAllocator(&allocatorCreateInfo, &vmaAllocator);
+	if (result != VK_SUCCESS) {
+		throw Log::RuntimeException(__FUNCTION__, "Failed to create Vulkan Memory Allocator!");
+	}
+
+	// Sets the VMA to be destroyed last
+	CleanupTask task{};
+	task.caller = __FUNCTION__;
+	task.mainObjectName = VARIABLE_NAME(vmaAllocator);
+	task.vkObjects = { vmaAllocator };
+	task.cleanupFunc = [this]() { vmaDestroyAllocator(vmaAllocator); };
+
+	createCleanupTask(task, true);
+
+	return vmaAllocator;
+}
+
+void MemoryManager::createCleanupTask(CleanupTask task, bool lowestPriority) {
 	Log::print(Log::T_INFO, task.caller.c_str(), "Pushed object " + enquote(task.mainObjectName) + " to cleanup stack.");
-	cleanupStack.push_back(task);
+	if (lowestPriority)
+		cleanupStack.push_front(task);
+	else
+		cleanupStack.push_back(task);
 }
 
 
@@ -29,7 +58,7 @@ bool MemoryManager::executeCleanupTask(std::vector<VulkanHandles> vkObjects) {
 	return execSuccess;
 }
 
-void MemoryManager::executeStack() {
+void MemoryManager::processCleanupStack() {
 	size_t stackSize = cleanupStack.size();
 	std::string plural = (stackSize != 1)? "s" : "";
 	Log::print(Log::T_INFO, __FUNCTION__, "Executing cleanup task for " + std::to_string(stackSize) + " object" + plural + " in the cleanup stack...");
