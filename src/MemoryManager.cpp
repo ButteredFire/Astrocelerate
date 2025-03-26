@@ -150,9 +150,8 @@ void MemoryManager::cleanStack() {
 
 	nextID = (oldSize - invalidTaskCount);
 
-	for (size_t i = (oldSize - invalidTaskCount); i < oldSize; i++) {
-		cleanupStack.erase(cleanupStack.begin() + (oldSize - invalidTaskCount));
-	}
+	// Resizing down `invalidTaskCount` elements effectively discards tasks whose indices are greater than (size - invalidTaskCount)
+	cleanupStack.resize(nextID);
 
 	invalidTasks = 0;
 }
