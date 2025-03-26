@@ -68,7 +68,7 @@ std::array<VkVertexInputAttributeDescription, 2> BufferManager::getAttributeDesc
 }
 
 
-void BufferManager::createBuffer(VkDeviceSize deviceSize, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
+std::pair<uint32_t, uint32_t> BufferManager::createBuffer(VkDeviceSize deviceSize, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
 	/* A note on buffer memory allocation:
 	* It should be noted that in a real world application, you’re not supposed to actually call vkAllocateMemory for every individual buffer. The maximum number of simultaneous memory allocations is limited by the maxMemoryAllocationCount physical device limit, which may be as low as 4096 even on high end hardware like an NVIDIA GTX 1080. The right way to allocate memory for a large number of objects at the same time is to create a custom allocator that splits up a single allocation among many different objects by using the offset parameters that we’ve seen in many functions.
 	*/
@@ -111,7 +111,7 @@ void BufferManager::createBuffer(VkDeviceSize deviceSize, VkBufferUsageFlags usa
 	bufTask.vkObjects = { vkContext.logicalDevice, buffer };
 	bufTask.cleanupFunc = [this, buffer]() { vkDestroyBuffer(vkContext.logicalDevice, buffer, nullptr); };
 
-	memoryManager.createCleanupTask(bufTask);
+	uint32_t bufferTaskID = memoryManager.createCleanupTask(bufTask);
 
 	// Allocates memory for the buffer
 	
@@ -137,7 +137,7 @@ void BufferManager::createBuffer(VkDeviceSize deviceSize, VkBufferUsageFlags usa
 	memTask.vkObjects = { vkContext.logicalDevice, bufferMemory };
 	memTask.cleanupFunc = [this, bufferMemory]() { vkFreeMemory(vkContext.logicalDevice, bufferMemory, nullptr); };
 
-	memoryManager.createCleanupTask(memTask);
+	uint32_t memTaskID = memoryManager.createCleanupTask(memTask);
 
 		// Binds the buffer memory to the newly allocated memory
 			/* Memory offset is essentially the "distance" between the starting point of the allocated memory block and that of the buffer.
@@ -147,6 +147,9 @@ void BufferManager::createBuffer(VkDeviceSize deviceSize, VkBufferUsageFlags usa
 			* However, if we have multiple buffers that share the same memory allocation, we must set the offset betwen the memory allocation and each buffer. Note that a valid non-zero offset must be divisible by `memoryRequirements.alignment`.
 			*/
 	vkBindBufferMemory(vkContext.logicalDevice, buffer, bufferMemory, 0);
+
+
+	return {bufferTaskID, memTaskID};
 }
 
 
@@ -228,7 +231,7 @@ void BufferManager::loadVertexBuffer() {
 		// HOST_COHERENT_BIT ensures that the contents of the mapped buffer memory are coherent/matching with those of the allocated memory
 	VkMemoryPropertyFlags stagingBufPropertyFlags = (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-	createBuffer(bufferSize, stagingBufUsage, stagingBufPropertyFlags, stagingBuffer, stagingBufMemory);
+	auto stagingTaskIDs = createBuffer(bufferSize, stagingBufUsage, stagingBufPropertyFlags, stagingBuffer, stagingBufMemory);
 
 
 	// Maps the buffer memory into CPU-accessible memory so that we can write data to it
@@ -252,10 +255,8 @@ void BufferManager::loadVertexBuffer() {
 	// Copies the contents from the staging buffer to the vertex buffer
 	copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
 
-	//vkDestroyBuffer(vkContext.logicalDevice, stagingBuffer, nullptr);
-	//vkFreeMemory(vkContext.logicalDevice, stagingBufMemory, nullptr);
-	memoryManager.executeCleanupTask({ vkContext.logicalDevice, stagingBuffer });
-	memoryManager.executeCleanupTask({ vkContext.logicalDevice, stagingBufMemory });
+	memoryManager.executeCleanupTask(stagingTaskIDs.first);
+	memoryManager.executeCleanupTask(stagingTaskIDs.second);
 }
 
 

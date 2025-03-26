@@ -61,7 +61,9 @@ public:
 private:
 	bool cleanOnDestruction = true;
 	VulkanContext& vkContext;
+
 	MemoryManager& memoryManager;
+	std::vector<uint32_t> cleanupTaskIDs;
 
 	VkSwapchainKHR swapChain = VK_NULL_HANDLE;
 	std::vector<VkImage> swapChainImages;

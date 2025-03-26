@@ -39,15 +39,20 @@ void VkSwapchainManager::init() {
 void VkSwapchainManager::cleanup() {
     Log::print(Log::T_INFO, __FUNCTION__, "Cleaning up...");
 
-    // Frees image views memory
-    for (const auto& imageView : swapChainImageViews) {
-        if (vkIsValid(imageView))
-            vkDestroyImageView(vkContext.logicalDevice, imageView, nullptr);
+    for (const auto& taskID : cleanupTaskIDs) {
+        memoryManager.executeCleanupTask(taskID);
     }
+    cleanupTaskIDs.clear();
 
-    // Frees swap-chain memory
-    if (vkIsValid(swapChain))
-        vkDestroySwapchainKHR(vkContext.logicalDevice, swapChain, nullptr);
+    //// Frees image views memory
+    //for (const auto& imageView : swapChainImageViews) {
+    //    if (vkIsValid(imageView))
+    //        vkDestroyImageView(vkContext.logicalDevice, imageView, nullptr);
+    //}
+
+    //// Frees swap-chain memory
+    //if (vkIsValid(swapChain))
+    //    vkDestroySwapchainKHR(vkContext.logicalDevice, swapChain, nullptr);
 }
 
 
@@ -61,6 +66,7 @@ void VkSwapchainManager::recreateSwapchain(RenderPipeline& renderPipeline) {
     }
 
     // Recreates swap-chain
+        // Waits for the host to be idle
     vkDeviceWaitIdle(vkContext.logicalDevice);
 
         // Cleans up outdated swap-chain objects
@@ -171,7 +177,8 @@ void VkSwapchainManager::createSwapChain() {
     task.vkObjects = { swapChain };
     task.cleanupFunc = [&]() { vkDestroySwapchainKHR(vkContext.logicalDevice, swapChain, nullptr); };
 
-    memoryManager.createCleanupTask(task);
+    uint32_t swapChainTaskID = memoryManager.createCleanupTask(task);
+    cleanupTaskIDs.push_back(swapChainTaskID);
 }
 
 
@@ -181,6 +188,7 @@ void VkSwapchainManager::createImageViews() {
 		throw Log::RuntimeException(__FUNCTION__, "Cannot create image views: Swap-chain contains no images to process!");
 	}
 
+    swapChainImageViews.clear();
     swapChainImageViews.resize(swapChainImages.size());
 
     for (size_t i = 0; i < swapChainImages.size(); i++) {
@@ -226,7 +234,6 @@ void VkSwapchainManager::createImageViews() {
             throw Log::RuntimeException(__FUNCTION__, "Failed to read image data!");
         }
 
-        //swapChainImageViews[i] = imageView;
         VkImageView imageView = swapChainImageViews[i];
 
         CleanupTask task{};
@@ -235,7 +242,8 @@ void VkSwapchainManager::createImageViews() {
         task.vkObjects = { vkContext.logicalDevice, imageView };
         task.cleanupFunc = [this, imageView]() { vkDestroyImageView(vkContext.logicalDevice, imageView, nullptr); };
 
-        memoryManager.createCleanupTask(task);
+        uint32_t imageViewTaskID = memoryManager.createCleanupTask(task);
+        cleanupTaskIDs.push_back(imageViewTaskID);
     }
 }
 

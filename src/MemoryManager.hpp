@@ -49,16 +49,23 @@ public:
 
 	/* Pushes a cleanup task to be executed on program exit to the cleanup stack (technically a deque, but almost always used like a stack).
 	* @param task: The cleanup task.
-	* @param lowestPriority (Default: False): A boolean determining whether the task should be executed last in the queue (True), or not (False). By default, the task will be pushed to the back of the cleanup queue and, if it is the last task in the queue, be executed first on program exit.
+	* @return The cleanup task's ID.
 	*/
-	void createCleanupTask(CleanupTask task, bool lowestPriority = false);
+	uint32_t createCleanupTask(CleanupTask task);
 
 
-	/* Executes a cleanup task from anywhere in the cleanup stack. This can be computationally costly and/or dangerous!
-	* @param vkObjects: The data of the cleanup task's vkObjects member when the task was created. vkObjects is used as a key to look up the cleanup task to be executed. In theory, every task's vkObjects vector is unique, but may still cause undefined behavior.
+	/* Modifies an existing cleanup task. 
+	* @param taskID: The task's ID.
+	* @return A reference to the cleanup task (allowing for method chaining).
+	*/
+	CleanupTask& modifyCleanupTask(uint32_t taskID);
+
+
+	/* Executes a cleanup task from anywhere in the cleanup stack. This can be dangerous if the main object of the cleanup task to be executed is still being referenced by other objects or tasks.
+	* @param taskID: The task's ID.
 	* @return True if the execution was successful, otherwise False.
 	*/
-	bool executeCleanupTask(std::vector<VulkanHandles> vkObjects);
+	bool executeCleanupTask(uint32_t taskID);
 
 
 	/* Executes all cleanup tasks in the cleanup stack. */
@@ -67,6 +74,8 @@ public:
 private:
 	VmaAllocator vmaAllocator = VK_NULL_HANDLE;
 	std::deque<CleanupTask> cleanupStack;
+	std::unordered_map<uint32_t, size_t> idToIdxLookup;  // A hashmap that maps a cleanuo task's ID to its index in the cleanup stack
+	uint32_t nextID;  // A counter for generating unique cleanup task IDs
 
 	/* Executes a cleanup task.
 	* @param task: The task to be executed.

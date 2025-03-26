@@ -27,7 +27,6 @@ int main() {
     MemoryManager memoryManager;
 
     try {
-    
             // Creates a window
         Window window(WIN_WIDTH, WIN_HEIGHT, WIN_NAME);
         GLFWwindow *windowPtr = window.getGLFWwindowPtr();
