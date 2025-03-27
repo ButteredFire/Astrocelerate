@@ -24,7 +24,7 @@ int main() {
     VulkanContext vkContext{};
 
     // Creates a memory manager
-    MemoryManager memoryManager;
+    MemoryManager memoryManager(vkContext);
 
     try {
             // Creates a window

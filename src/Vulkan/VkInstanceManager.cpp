@@ -126,8 +126,9 @@ void VkInstanceManager::createVulkanInstance() {
     for (uint32_t i = 0; i < glfwExtensionCount; i++)
         enabledExtensions.push_back(glfwExtensions[i]);
 
+        // Sets up additional extensions
     if (inDebugMode)
-        enabledExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+        addVulkanExtensions({ VK_EXT_DEBUG_UTILS_EXTENSION_NAME });
 
     if (verifyVulkanExtensions(enabledExtensions) == false) {
         enabledExtensions.clear();

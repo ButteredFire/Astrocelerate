@@ -34,7 +34,7 @@ struct MemoryBlock {
 
 class MemoryManager {
 public:
-	MemoryManager();
+	MemoryManager(VulkanContext& context);
 	~MemoryManager();
 
 
@@ -73,13 +73,15 @@ public:
 
 private:
 	VmaAllocator vmaAllocator = VK_NULL_HANDLE;
+	VulkanContext& vkContext;
+
 	std::deque<CleanupTask> cleanupStack;
 
 	std::unordered_map<uint32_t, size_t> idToIdxLookup;  // A hashmap that maps a cleanup task's ID to its index in the cleanup stack
 	uint32_t nextID;  // A counter for generating unique cleanup task IDs
 
 	// Defines the maximum number of invalid tasks (if invalidTasks exceeds the maximum, we can perform a cleanup on the cleanup stack itself, i.e., remove invalid tasks from the stack and update the ID-to-Index hashmap accordingly)
-	const uint32_t MAX_INVALID_TASKS = 10;
+	const uint32_t MAX_INVALID_TASKS = 20;
 	uint32_t invalidTasks = 0;
 
 
@@ -92,5 +94,5 @@ private:
 
 
 	/* Garbage-collects the cleanup stack. */
-	void cleanStack();
+	void optimizeStack();
 };

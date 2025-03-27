@@ -39,15 +39,15 @@ public:
 
 
     /* Creates a buffer.
+    * @param &buffer: The buffer to be created.
     * @param deviceSize: The size of the buffer (in bytes).
     * @param usageFlags: Flags specifying how the buffer will be used.
     * @param properties: Desired properties of the buffer's memory to be allocated.
-    * @param &buffer: The buffer to be created.
     * @param &bufferMemory: The buffer's memory to be allocated.
     * 
-    * @return A pair that contains the cleanup task ID for the buffer (pair::first), and the cleanup task ID for the buffer memory (pair::second).
+    * @return The cleanup task ID for the newly created buffer.
     */
-    std::pair<uint32_t, uint32_t> createBuffer(VkDeviceSize deviceSize, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
+    uint32_t createBuffer(VkBuffer& buffer, VkDeviceSize deviceSize, VkBufferUsageFlags usageFlags, VmaMemoryUsage memoryUsage, VmaAllocation& allocation);
 
 
     /* Copies the contents from a source buffer to a destination buffer.
@@ -77,7 +77,7 @@ private:
     MemoryManager& memoryManager;
     
     VkBuffer vertexBuffer = VK_NULL_HANDLE;
-    VkDeviceMemory vertexBufferMemory = VK_NULL_HANDLE;
+    VmaAllocation vertexBufferAllocation = VK_NULL_HANDLE;
 
     const std::vector<Vertex> vertices = {
         {{0.0f, -0.5f}, {1.0f, 1.0f, 0.0f}},

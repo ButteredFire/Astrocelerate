@@ -198,7 +198,7 @@ void RenderPipeline::createFrameBuffers() {
 		bufferCreateInfo.width = vkContext.swapChainExtent.width;
 		bufferCreateInfo.height = vkContext.swapChainExtent.height;
 		bufferCreateInfo.layers = 1; // Refer to swapChainCreateInfo.imageArrayLayers in VkSwapchainManager
-
+		
 		VkResult result = vkCreateFramebuffer(vkContext.logicalDevice, &bufferCreateInfo, nullptr, &imageFrameBuffers[i]);
 		if (result != VK_SUCCESS) {
 			throw Log::RuntimeException(__FUNCTION__, "Failed to create frame buffer!");

@@ -23,8 +23,8 @@ void BufferManager::cleanup() {
 	if (vkIsValid(vertexBuffer))
 		vkDestroyBuffer(vkContext.logicalDevice, vertexBuffer, nullptr);
 
-	if (vkIsValid(vertexBufferMemory))
-		vkFreeMemory(vkContext.logicalDevice, vertexBufferMemory, nullptr);
+	//if (vkIsValid(vertexBufferMemory))
+	//	vkFreeMemory(vkContext.logicalDevice, vertexBufferMemory, nullptr);
 }
 
 
@@ -68,17 +68,10 @@ std::array<VkVertexInputAttributeDescription, 2> BufferManager::getAttributeDesc
 }
 
 
-std::pair<uint32_t, uint32_t> BufferManager::createBuffer(VkDeviceSize deviceSize, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
-	/* A note on buffer memory allocation:
-	* It should be noted that in a real world application, you’re not supposed to actually call vkAllocateMemory for every individual buffer. The maximum number of simultaneous memory allocations is limited by the maxMemoryAllocationCount physical device limit, which may be as low as 4096 even on high end hardware like an NVIDIA GTX 1080. The right way to allocate memory for a large number of objects at the same time is to create a custom allocator that splits up a single allocation among many different objects by using the offset parameters that we’ve seen in many functions.
-	*/
-
-
+uint32_t BufferManager::createBuffer(VkBuffer& buffer, VkDeviceSize deviceSize, VkBufferUsageFlags usageFlags, VmaMemoryUsage memoryUsage, VmaAllocation& allocation) {
 	// Creates the buffer
 	VkBufferCreateInfo bufCreateInfo{};
 	bufCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-
-		// Specifies the size of the buffer (in bytes)
 	bufCreateInfo.size = deviceSize;
 
 		// Specifies the purpose of the buffer (It is possible to specify multiple purposes using a bitwise OR)
@@ -99,7 +92,12 @@ std::pair<uint32_t, uint32_t> BufferManager::createBuffer(VkDeviceSize deviceSiz
 		// Configures sparse buffer memory (which is irrelevant right now, so we'll leave it at the default value of 0)
 	bufCreateInfo.flags = 0;
 
-	VkResult bufCreateResult = vkCreateBuffer(vkContext.logicalDevice, &bufCreateInfo, nullptr, &buffer);
+
+	// Specifies buffer memory allocation
+	VmaAllocationCreateInfo allocInfo{};
+	allocInfo.usage = memoryUsage; // VMA_MEMORY_USAGE_AUTO is recommended for general usage
+
+	VkResult bufCreateResult = vmaCreateBuffer(vkContext.vmaAllocator, &bufCreateInfo, &allocInfo, &buffer, &allocation, nullptr);
 	if (bufCreateResult != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, "Failed to create buffer!");
 	}
@@ -108,48 +106,13 @@ std::pair<uint32_t, uint32_t> BufferManager::createBuffer(VkDeviceSize deviceSiz
 	CleanupTask bufTask{};
 	bufTask.caller = __FUNCTION__;
 	bufTask.mainObjectName = VARIABLE_NAME(buffer);
-	bufTask.vkObjects = { vkContext.logicalDevice, buffer };
-	bufTask.cleanupFunc = [this, buffer]() { vkDestroyBuffer(vkContext.logicalDevice, buffer, nullptr); };
+	bufTask.vkObjects = { vkContext.vmaAllocator, buffer, allocation };
+	bufTask.cleanupFunc = [this, buffer, allocation]() { vmaDestroyBuffer(vkContext.vmaAllocator, buffer, allocation); };
 
 	uint32_t bufferTaskID = memoryManager.createCleanupTask(bufTask);
 
-	// Allocates memory for the buffer
-	
-		// Queries the buffer's memory requirements
-	VkMemoryRequirements memoryRequirements{};
-	vkGetBufferMemoryRequirements(vkContext.logicalDevice, buffer, &memoryRequirements);
 
-		// Allocates memory for the buffer
-	VkMemoryAllocateInfo allocInfo{};
-	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-	allocInfo.allocationSize = memoryRequirements.size;
-	allocInfo.memoryTypeIndex = findMemoryType(memoryRequirements.memoryTypeBits, properties);
-
-	VkResult memAllocResult = vkAllocateMemory(vkContext.logicalDevice, &allocInfo, nullptr, &bufferMemory);
-	if (memAllocResult != VK_SUCCESS) {
-		throw Log::RuntimeException(__FUNCTION__, "Failed to allocate memory for the buffer!");
-	}
-
-
-	CleanupTask memTask{};
-	memTask.caller = __FUNCTION__;
-	memTask.mainObjectName = VARIABLE_NAME(bufferMemory);
-	memTask.vkObjects = { vkContext.logicalDevice, bufferMemory };
-	memTask.cleanupFunc = [this, bufferMemory]() { vkFreeMemory(vkContext.logicalDevice, bufferMemory, nullptr); };
-
-	uint32_t memTaskID = memoryManager.createCleanupTask(memTask);
-
-		// Binds the buffer memory to the newly allocated memory
-			/* Memory offset is essentially the "distance" between the starting point of the allocated memory block and that of the buffer.
-			* In other words, it specifies how far into the memory block the buffer's memory starts.
-			* In our case, we just have a single buffer with a single memory block allocated specifically for it, so the offset betwen them is 0.
-			*
-			* However, if we have multiple buffers that share the same memory allocation, we must set the offset betwen the memory allocation and each buffer. Note that a valid non-zero offset must be divisible by `memoryRequirements.alignment`.
-			*/
-	vkBindBufferMemory(vkContext.logicalDevice, buffer, bufferMemory, 0);
-
-
-	return {bufferTaskID, memTaskID};
+	return bufferTaskID;
 }
 
 
@@ -224,39 +187,34 @@ void BufferManager::loadVertexBuffer() {
 
 	// Creates a staging buffer
 	VkBuffer stagingBuffer;
-	VkDeviceMemory stagingBufMemory;
+	VmaAllocation stagingBufAllocation;
 
 	VkDeviceSize bufferSize = (sizeof(vertices[0]) * vertices.size());
+
 	VkBufferUsageFlags stagingBufUsage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-		// HOST_COHERENT_BIT ensures that the contents of the mapped buffer memory are coherent/matching with those of the allocated memory
-	VkMemoryPropertyFlags stagingBufPropertyFlags = (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+	VmaMemoryUsage stagingBufMemUsage = VMA_MEMORY_USAGE_CPU_ONLY; // Host-visible memory
 
-	auto stagingTaskIDs = createBuffer(bufferSize, stagingBufUsage, stagingBufPropertyFlags, stagingBuffer, stagingBufMemory);
+	uint32_t stagingBufTaskID = createBuffer(stagingBuffer, bufferSize, stagingBufUsage, stagingBufMemUsage, stagingBufAllocation);
 
-
-	// Maps the buffer memory into CPU-accessible memory so that we can write data to it
+	// Copies vertex data to the staging buffer
 	void* data;
-		// vkMapMemory lets us access a specified memory resource defined by an offset and size (size <= VK_WHOLE_SIZE, a special value used to map all of the memory)
-	vkMapMemory(vkContext.logicalDevice, stagingBufMemory, 0, bufferSize, 0, &data);
 
-	// Copies the vertex data to the mapped buffer memory
-		// Note: we already defined `bufCreateInfo.size` in `createVertexBuffer`, so we can use that instead of `sizeof(vertices[0]) * vertices.size())`
-	memcpy(data, vertices.data(), static_cast<size_t>(bufferSize));
-
-	// Unmaps the mapped buffer memory
-	vkUnmapMemory(vkContext.logicalDevice, stagingBufMemory);
+	vmaMapMemory(vkContext.vmaAllocator, stagingBufAllocation, &data);	// Maps the buffer memory into CPU-accessible memory so that we can write data to it
+	memcpy(data, vertices.data(), static_cast<size_t>(bufferSize));		// Copies the vertex data to the mapped buffer memory
+	vmaUnmapMemory(vkContext.vmaAllocator, stagingBufAllocation);		// Unmaps the mapped buffer memory
 
 
 	// Creates the actual vertex buffer
 	VkBufferUsageFlags vertBufUsage = (VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
-	VkMemoryPropertyFlags vertBufPropertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-	createBuffer(bufferSize, vertBufUsage, vertBufPropertyFlags, vertexBuffer, vertexBufferMemory);
+	VmaMemoryUsage vertBufMemUsage = VMA_MEMORY_USAGE_GPU_ONLY; // Fast device-local memory
+	
+	createBuffer(vertexBuffer, bufferSize, vertBufUsage, vertBufMemUsage, vertexBufferAllocation);
+
 
 	// Copies the contents from the staging buffer to the vertex buffer
 	copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
 
-	memoryManager.executeCleanupTask(stagingTaskIDs.first);
-	memoryManager.executeCleanupTask(stagingTaskIDs.second);
+	memoryManager.executeCleanupTask(stagingBufTaskID);
 }
 
 

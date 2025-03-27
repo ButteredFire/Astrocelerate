@@ -1,22 +1,24 @@
 #include "MemoryManager.hpp"
 
-MemoryManager::MemoryManager(): nextID(0) {
+MemoryManager::MemoryManager(VulkanContext& context): 
+	vkContext(context),
+	nextID(0) {
 
 	Log::print(Log::T_INFO, __FUNCTION__, "Initializing...");
 
 	// Initializes the VMA's cleanup task as a placeholder (for modification later when the VMA is actually created)
-	CleanupTask vmaCleanupTask{};
+	/*CleanupTask vmaCleanupTask{};
 	vmaCleanupTask.validTask = false;
 	vmaCleanupTask.caller = __FUNCTION__;
 	vmaCleanupTask.mainObjectName = "Vulkan Memory Allocator";
-	createCleanupTask(vmaCleanupTask);
+	createCleanupTask(vmaCleanupTask);*/
 }
 
 MemoryManager::~MemoryManager() {}
 
 
 VmaAllocator MemoryManager::createVMAllocator(VkInstance& instance, VkPhysicalDevice& physicalDevice, VkDevice& device) {
-	VmaAllocatorCreateInfo allocatorCreateInfo = {};
+	VmaAllocatorCreateInfo allocatorCreateInfo{};
 	allocatorCreateInfo.physicalDevice = physicalDevice;
 	allocatorCreateInfo.device = device;
 	allocatorCreateInfo.instance = instance;
@@ -28,14 +30,15 @@ VmaAllocator MemoryManager::createVMAllocator(VkInstance& instance, VkPhysicalDe
 		throw Log::RuntimeException(__FUNCTION__, "Failed to create Vulkan Memory Allocator!");
 	}
 
-	// Updates the VMA's cleanup task with proper data
-	CleanupTask& task = modifyCleanupTask(0);
-	task.validTask = true;
+	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.mainObjectName = VARIABLE_NAME(vmaAllocator);
 	task.vkObjects = { vmaAllocator };
 	task.cleanupFunc = [this]() { vmaDestroyAllocator(vmaAllocator); };
 
+	createCleanupTask(task);
+
+	vkContext.vmaAllocator = vmaAllocator;
 	return vmaAllocator;
 }
 
@@ -72,9 +75,8 @@ bool MemoryManager::executeCleanupTask(uint32_t taskID) {
 
 
 void MemoryManager::processCleanupStack() {
+	optimizeStack();
 	size_t stackSize = cleanupStack.size();
-
-	cleanStack();
 
 	std::string plural = (stackSize != 1)? "s" : "";
 	Log::print(Log::T_INFO, __FUNCTION__, "Executing " + std::to_string(stackSize) + " task" + plural + " in the cleanup stack...");
@@ -122,29 +124,38 @@ bool MemoryManager::executeTask(CleanupTask& task, uint32_t taskID) {
 
 	// Executes the task and invalidates it to prevent future executions
 	task.cleanupFunc();
+	Log::print(Log::T_INFO, __FUNCTION__, "Executed cleanup task for object " + objectName + ".");
+
 	task.validTask = false;
 	invalidTasks++;
 
 	if (invalidTasks >= MAX_INVALID_TASKS)
-		cleanStack();
+		optimizeStack();
 
-
-	Log::print(Log::T_INFO, __FUNCTION__, "Executed cleanup task for object " + objectName + ".");
 	return true;
 }
 
 
-void MemoryManager::cleanStack() {
-	size_t displacement = 0, invalidTaskCount = 0;
+void MemoryManager::optimizeStack() {
+	size_t displacement = 0; // Cumulative displacement
+	size_t locDisplacement = 0; // Local displacement (used only for removing redundant key-value pairs in the ID-to-Index hashmap)
+	size_t invalidTaskCount = 0;
 	size_t oldSize = cleanupStack.size();
+
 	for (size_t i = 0; i < oldSize; i++) {
 		if (!cleanupStack[i].validTask) {
 			displacement++;
+			locDisplacement++;
 			invalidTaskCount++;
 		}
 		else {
 			idToIdxLookup[i] -= displacement;
 			cleanupStack[i - displacement] = cleanupStack[i];
+
+			while (locDisplacement > 0) {
+				idToIdxLookup.erase(i - locDisplacement);
+				locDisplacement--;
+			}
 		}
 	}
 
@@ -154,4 +165,10 @@ void MemoryManager::cleanStack() {
 	cleanupStack.resize(nextID);
 
 	invalidTasks = 0;
+
+	size_t newSize = cleanupStack.size();
+	if (newSize < oldSize)
+		Log::print(Log::T_INFO, __FUNCTION__, "Shrunk stack size from " + std::to_string(oldSize) + " down to " + std::to_string(newSize) + ".");
+	else
+		Log::print(Log::T_INFO, __FUNCTION__, "Cleanup stack cannot be optimized further.");
 }

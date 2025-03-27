@@ -30,7 +30,8 @@ VkDeviceManager::~VkDeviceManager() {
 void VkDeviceManager::init() {
     // Initializes required GPU extensions
     requiredDeviceExtensions = {
-        VK_KHR_SWAPCHAIN_EXTENSION_NAME
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+        VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME
     };
 
 
@@ -122,7 +123,11 @@ void VkDeviceManager::createLogicalDevice() {
         queues.push_back(queueInfo);
     }
     // Specifies the features of the device to be used
-    VkPhysicalDeviceFeatures deviceFeatures{}; // We don't need anything special, so we'll just init all to VK_FALSE for now.
+    VkPhysicalDeviceFeatures deviceFeatures{};  // Vulkan 1.0 features (it's unused, but must still be defined anyway because it's used in `VkDeviceCreateInfo`)
+
+    VkPhysicalDeviceVulkan12Features deviceVk12Features{}; // Vulkan 1.2 features
+    deviceVk12Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+    deviceVk12Features.bufferDeviceAddress = VK_TRUE;
 
     // Creates the logical device
     VkDeviceCreateInfo deviceInfo{};
@@ -132,6 +137,7 @@ void VkDeviceManager::createLogicalDevice() {
     deviceInfo.queueCreateInfoCount = static_cast<uint32_t>(queues.size());
     
     deviceInfo.pEnabledFeatures = &deviceFeatures;
+    deviceInfo.pNext = &deviceVk12Features;
 
     /* A note about extensions and validation layers:
     * Extensions and validation layers can be classified into:
@@ -199,8 +205,18 @@ std::vector<PhysicalDeviceScoreProperties> VkDeviceManager::rateGPUSuitability(s
         // Queries basic device properties and optional features (e.g., 64-bit floats for accurate physics computations)
         VkPhysicalDeviceProperties deviceProperties;
         VkPhysicalDeviceFeatures deviceFeatures;
+
+
+        VkPhysicalDeviceVulkan12Features deviceVk12Features{};
+        deviceVk12Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+
+        VkPhysicalDeviceFeatures2 deviceFeatures2{};
+        deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+        deviceFeatures2.pNext = &deviceVk12Features;
+        
         vkGetPhysicalDeviceProperties(device, &deviceProperties);
         vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+        vkGetPhysicalDeviceFeatures2(device, &deviceFeatures2); // Vulkan 1.2
 
         // Creates a device rating profile
         PhysicalDeviceScoreProperties deviceRating;
@@ -215,14 +231,17 @@ std::vector<PhysicalDeviceScoreProperties> VkDeviceManager::rateGPUSuitability(s
         
         // A "list" of minimum requirements; Variable will collapse to "true" if all are satisfied
         bool meetsMinimumRequirements = (
+            // If the GPU has an API version >= the instance Vulkan version
+            (deviceProperties.apiVersion >= VULKAN_VERSION) &&
+
             // If the GPU supports geometry shaders
             (deviceFeatures.geometryShader) &&
 
+            // If the GPU supports the buffer device address feature
+            (deviceVk12Features.bufferDeviceAddress) &&
+
             // If the GPU supports required device extensions
             (checkDeviceExtensionSupport(device, requiredDeviceExtensions)) &&
-
-            // If the GPU has an API version above 1.0
-            (deviceProperties.apiVersion > VK_API_VERSION_1_0) &&
 
             // If the GPU has a graphics queue family
             (queueFamilyIndices.graphicsFamily.index.has_value()) &&
@@ -250,12 +269,6 @@ std::vector<PhysicalDeviceScoreProperties> VkDeviceManager::rateGPUSuitability(s
         std::vector<std::pair<bool, uint32_t>> optionalFeatures = {
             // Discrete GPUs have a significant performance advantage
             {deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU, 3},
-
-            // Vulkan 1.2 unifies many extensions and improves stability
-            {deviceProperties.apiVersion >= VK_API_VERSION_1_2, 1},
-
-            // Vulkan 1.3 adds dynamic rendering, reducing the need for render passes
-            {deviceProperties.apiVersion >= VK_API_VERSION_1_3, 1},
 
             // 64-bit floats enable accurate physics computations 
             {deviceFeatures.shaderFloat64, 2},

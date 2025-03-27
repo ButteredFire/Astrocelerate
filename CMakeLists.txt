@@ -10,8 +10,8 @@ project(Astrocelerate)
     add_compile_definitions(APP_VERSION="${APP_VERSION}")
 
     # Specify VMA version
-    set(VMA_VERSION 1000000)
-    add_compile_definitions(VMA_VULKAN_VERSION=VMA_VERSION) # 1.0.0  (Form: ABBBCCC -> A = major, BBB = minor, CCC = patch); The VMA version must match that of the Vulkan version, i.e., VULKAN_VERSION
+    set(VMA_VERSION 1002000) # 1.2.0  (Form: ABBBCCC -> A = major, BBB = minor, CCC = patch); The VMA version must match that of the Vulkan version, i.e., VULKAN_VERSION
+    add_compile_definitions(VMA_VULKAN_VERSION=VMA_VERSION)
 
 
 # Enable Hot Reload for MSVC compilers (Edit & Continue).

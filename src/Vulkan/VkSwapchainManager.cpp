@@ -37,8 +37,6 @@ void VkSwapchainManager::init() {
 
 
 void VkSwapchainManager::cleanup() {
-    Log::print(Log::T_INFO, __FUNCTION__, "Cleaning up...");
-
     for (const auto& taskID : cleanupTaskIDs) {
         memoryManager.executeCleanupTask(taskID);
     }
@@ -57,6 +55,8 @@ void VkSwapchainManager::cleanup() {
 
 
 void VkSwapchainManager::recreateSwapchain(RenderPipeline& renderPipeline) {
+    Log::print(Log::T_INFO, __FUNCTION__, "Recreating swap-chain...");
+
     // If the window is minimized (i.e., (width, height) = (0, 0), pause the window until it is in the foreground again
     int width = 0, height = 0;
     glfwGetFramebufferSize(vkContext.window, &width, &height);
@@ -72,7 +72,7 @@ void VkSwapchainManager::recreateSwapchain(RenderPipeline& renderPipeline) {
         // Cleans up outdated swap-chain objects
     renderPipeline.destroyFrameBuffers(); // Call this before destroying image views as framebuffers depend on them
     cleanup();
-
+    
     init();
     renderPipeline.createFrameBuffers();
 }
@@ -226,7 +226,7 @@ void VkSwapchainManager::createImageViews() {
         viewCreateInfo.subresourceRange.baseArrayLayer = 0; // Images will have no multiple layers
         viewCreateInfo.subresourceRange.layerCount = 1;
 
-        //VkImageView imageView;
+        
         VkResult result = vkCreateImageView(vkContext.logicalDevice, &viewCreateInfo, nullptr, &swapChainImageViews[i]);
         if (result != VK_SUCCESS) {
             throw Log::RuntimeException(__FUNCTION__, "Failed to read image data!");
