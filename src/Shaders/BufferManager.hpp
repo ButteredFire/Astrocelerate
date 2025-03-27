@@ -42,12 +42,12 @@ public:
     * @param &buffer: The buffer to be created.
     * @param deviceSize: The size of the buffer (in bytes).
     * @param usageFlags: Flags specifying how the buffer will be used.
-    * @param properties: Desired properties of the buffer's memory to be allocated.
-    * @param &bufferMemory: The buffer's memory to be allocated.
+    * @param memoryUsage: Flags specifying how the buffer's allocated memory block is used.
+    * @param bufferAllocation: The memory block allocated for the buffer.
     * 
     * @return The cleanup task ID for the newly created buffer.
     */
-    uint32_t createBuffer(VkBuffer& buffer, VkDeviceSize deviceSize, VkBufferUsageFlags usageFlags, VmaMemoryUsage memoryUsage, VmaAllocation& allocation);
+    uint32_t createBuffer(VkBuffer& buffer, VkDeviceSize deviceSize, VkBufferUsageFlags usageFlags, VmaAllocation& allocation, VmaMemoryUsage memoryUsage);
 
 
     /* Copies the contents from a source buffer to a destination buffer.
@@ -65,6 +65,13 @@ public:
     inline const std::vector<Vertex> getVertexData() const { return vertices; }
 
 
+    /* Gets the index buffer. */
+    inline const VkBuffer& getIndexBuffer() const { return indexBuffer; }
+
+    /* Gets the vertex index data. */
+    inline const std::vector<uint32_t> getVertexIndexData() const { return vertIndices; }
+
+
     /* Gets the vertex input binding description. */
     static VkVertexInputBindingDescription getBindingDescription();
 
@@ -79,15 +86,35 @@ private:
     VkBuffer vertexBuffer = VK_NULL_HANDLE;
     VmaAllocation vertexBufferAllocation = VK_NULL_HANDLE;
 
+    VkBuffer indexBuffer = VK_NULL_HANDLE;
+    VmaAllocation indexBufferAllocation = VK_NULL_HANDLE;
+
     const std::vector<Vertex> vertices = {
-        {{0.0f, -0.5f}, {1.0f, 1.0f, 0.0f}},
-        {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
-        {{-0.5f, 0.5f}, {0.5f, 0.0f, 1.0f}}
+        {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},   // 0
+        {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},    // 1
+        {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},     // 2
+        {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}     // 3
+    };
+
+    const std::vector<uint32_t> vertIndices = {
+        0, 1, 2, 2, 3, 0
     };
 
 
-    /* Populates the vertex buffer with vertex data. */
-    void loadVertexBuffer();
+    /* Writes data to a buffer that is allocated in GPU (device-local) memory.
+    * @param data: The data to write to the buffer.
+    * @param buffer: The buffer to which the data is to be written.
+    * @param bufferSize: The size of the buffer (in bytes).
+    */
+    void writeDataToGPUBuffer(const void* data, VkBuffer& buffer, VkDeviceSize bufferSize);
+
+
+    /* Creates the vertex buffer. */
+    void createVertexBuffer();
+
+
+    /* Creates the index buffer. */
+    void createIndexBuffer();
 
 
     /* Finds the memory type suitable for buffer and application requirements.

@@ -13,7 +13,8 @@ BufferManager::~BufferManager() {
 
 
 void BufferManager::init() {
-	loadVertexBuffer();
+	createVertexBuffer();
+	createIndexBuffer();
 }
 
 
@@ -68,7 +69,7 @@ std::array<VkVertexInputAttributeDescription, 2> BufferManager::getAttributeDesc
 }
 
 
-uint32_t BufferManager::createBuffer(VkBuffer& buffer, VkDeviceSize deviceSize, VkBufferUsageFlags usageFlags, VmaMemoryUsage memoryUsage, VmaAllocation& allocation) {
+uint32_t BufferManager::createBuffer(VkBuffer& buffer, VkDeviceSize deviceSize, VkBufferUsageFlags usageFlags, VmaAllocation& allocation, VmaMemoryUsage memoryUsage) {
 	// Creates the buffer
 	VkBufferCreateInfo bufCreateInfo{};
 	bufCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -95,7 +96,7 @@ uint32_t BufferManager::createBuffer(VkBuffer& buffer, VkDeviceSize deviceSize, 
 
 	// Specifies buffer memory allocation
 	VmaAllocationCreateInfo allocInfo{};
-	allocInfo.usage = memoryUsage; // VMA_MEMORY_USAGE_AUTO is recommended for general usage
+	allocInfo.usage = memoryUsage; // Use VMA_MEMORY_USAGE_AUTO for general usage
 
 	VkResult bufCreateResult = vmaCreateBuffer(vkContext.vmaAllocator, &bufCreateInfo, &allocInfo, &buffer, &allocation, nullptr);
 	if (bufCreateResult != VK_SUCCESS) {
@@ -172,49 +173,64 @@ void BufferManager::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceS
 }
 
 
-void BufferManager::loadVertexBuffer() {
-	/* NOTE: The driver may not immediately copy the data into the buffer memory due to various reasons, like caching. It is also possible that writes to the buffer are not visible in the mapped memory yet. 
-	* There are two ways to deal with that problem:
-	* - Use a memory heap that is host coherent, indicated with VK_MEMORY_PROPERTY_HOST_COHERENT_BIT (the method we currently use; see allocBufferMemory)
-	* - Call vkFlushMappedMemoryRanges after writing to the mapped memory, and call vkInvalidateMappedMemoryRanges before reading from the mapped memory
+void BufferManager::writeDataToGPUBuffer(const void* data, VkBuffer& buffer, VkDeviceSize bufferSize) {
+	/* How data is written into a device-local-memory allocated buffer:
+	*
+	* - We want the CPU to access and write data to a buffer in GPU memory (or device-local memory). It is in GPU memory because its memory usage flag is `VMA_MEMORY_USAGE_GPU_ONLY`. However, such buffers are not always directly accessible from the CPU.
+	*
+	* - Therefore, we will need to use a third buffer: the staging buffer. It acts as a medium through which the CPU can write data into GPU-memory-allocated buffers. The staging buffer is specified to be created in CPU memory (or host-visible memory) via the memory usage flag `VMA_MEMORY_USAGE_CPU_ONLY`.
+	*
+	* - STEP 1: Allocate a staging buffer in host-visible memory.
+	* - STEP 2: Copy/Load the data onto the staging buffer.
+	*	+ STEP 2.1: Map the staging buffer's memory block onto the CPU address space so that the CPU can access and write data to it
+	*	+ STEP 2.2: Copy the data to the memory block via `memcpy` (which is a CPU operation)
+	*	+ STEP 2.3: Unmaps the staging buffer's memory block from the CPU address space to ensure the CPU can no longer access it
+	*
+	* - STEP 3: Copy the data from the staging buffer to the destination/target buffer. This has already been handled in `copyBuffer`.
 	*/
-
-	/* NOTE on buffer usage flags: VK_BUFFER_USAGE_...
-	* - ...TRANSFER_SRC_BIT: Buffer can be used as source in a memory transfer operation.
-	* - ...TRANSFER_DST_BIT: Buffer can be used as destination in a memory transfer operation.
-	*/
-
 
 	// Creates a staging buffer
 	VkBuffer stagingBuffer;
 	VmaAllocation stagingBufAllocation;
 
-	VkDeviceSize bufferSize = (sizeof(vertices[0]) * vertices.size());
-
 	VkBufferUsageFlags stagingBufUsage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 	VmaMemoryUsage stagingBufMemUsage = VMA_MEMORY_USAGE_CPU_ONLY; // Host-visible memory
 
-	uint32_t stagingBufTaskID = createBuffer(stagingBuffer, bufferSize, stagingBufUsage, stagingBufMemUsage, stagingBufAllocation);
+	uint32_t stagingBufTaskID = createBuffer(stagingBuffer, bufferSize, stagingBufUsage, stagingBufAllocation, stagingBufMemUsage);
 
-	// Copies vertex data to the staging buffer
-	void* data;
-
-	vmaMapMemory(vkContext.vmaAllocator, stagingBufAllocation, &data);	// Maps the buffer memory into CPU-accessible memory so that we can write data to it
-	memcpy(data, vertices.data(), static_cast<size_t>(bufferSize));		// Copies the vertex data to the mapped buffer memory
+	// Copies data to the staging buffer
+	void* mappedData;
+	vmaMapMemory(vkContext.vmaAllocator, stagingBufAllocation, &mappedData);	// Maps the buffer memory into CPU-accessible memory so that we can write data to it
+	memcpy(mappedData, data, static_cast<size_t>(bufferSize));	// Copies the data to the mapped buffer memory
 	vmaUnmapMemory(vkContext.vmaAllocator, stagingBufAllocation);		// Unmaps the mapped buffer memory
 
 
-	// Creates the actual vertex buffer
+	// Copies the contents from the staging buffer to the destination buffer
+	copyBuffer(stagingBuffer, buffer, bufferSize);
+
+
+	// The staging buffer has done its job, so we can safely destroy it afterwards
+	memoryManager.executeCleanupTask(stagingBufTaskID);
+}
+
+
+void BufferManager::createVertexBuffer() {
+	VkDeviceSize bufferSize = (sizeof(vertices[0]) * vertices.size());
 	VkBufferUsageFlags vertBufUsage = (VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
 	VmaMemoryUsage vertBufMemUsage = VMA_MEMORY_USAGE_GPU_ONLY; // Fast device-local memory
 	
-	createBuffer(vertexBuffer, bufferSize, vertBufUsage, vertBufMemUsage, vertexBufferAllocation);
+	createBuffer(vertexBuffer, bufferSize, vertBufUsage, vertexBufferAllocation, vertBufMemUsage);
+	writeDataToGPUBuffer(vertices.data(), vertexBuffer, bufferSize);
+}
 
 
-	// Copies the contents from the staging buffer to the vertex buffer
-	copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
+void BufferManager::createIndexBuffer() {
+	VkDeviceSize bufferSize = (sizeof(vertIndices[0]) * vertIndices.size());
+	VkBufferUsageFlags indexBufUsage = (VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+	VmaMemoryUsage indexBufMemUsage = VMA_MEMORY_USAGE_GPU_ONLY; // Fast device-local memory
 
-	memoryManager.executeCleanupTask(stagingBufTaskID);
+	createBuffer(indexBuffer, bufferSize, indexBufUsage, indexBufferAllocation, indexBufMemUsage);
+	writeDataToGPUBuffer(vertIndices.data(), indexBuffer, bufferSize);
 }
 
 

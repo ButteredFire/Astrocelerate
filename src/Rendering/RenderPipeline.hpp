@@ -27,7 +27,7 @@ class BufferManager;
 
 class RenderPipeline {
 public:
-	RenderPipeline(VulkanContext& context, MemoryManager& memMgr, BufferManager& vertBuf, bool autoCleanup = true);
+	RenderPipeline(VulkanContext& context, MemoryManager& memMgr, BufferManager& bufMgr, bool autoCleanup = true);
 	~RenderPipeline();
 
 	void init();
@@ -70,7 +70,7 @@ public:
 private:
 	bool cleanOnDestruction = true;
 	VulkanContext& vkContext;
-	BufferManager& vertexBuffer;
+	BufferManager& bufferManager;
 
 	MemoryManager& memoryManager;
 	std::vector<uint32_t> framebufTaskIDs; // Stores framebuffer cleanup task IDs (used exclusively in the swap-chain recreation process)

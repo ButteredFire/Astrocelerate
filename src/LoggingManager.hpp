@@ -14,7 +14,8 @@ namespace Log {
 		T_VERBOSE,
 		T_INFO,
 		T_WARNING,
-		T_ERROR
+		T_ERROR,
+		T_SUCCESS
 	};
 
 	/* Logs a message. 
@@ -44,6 +45,11 @@ namespace Log {
 		case T_ERROR:
 			msgType = "ERROR";
 			std::cout << termcolor::red;
+			break;
+
+		case T_SUCCESS:
+			msgType = "SUCCESS";
+			std::cout << termcolor::bright_green;
 			break;
 
 		default: break;

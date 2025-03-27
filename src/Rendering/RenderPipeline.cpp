@@ -4,10 +4,10 @@
 #include "RenderPipeline.hpp"
 
 
-RenderPipeline::RenderPipeline(VulkanContext& context, MemoryManager& memMgr, BufferManager& vertBuf, bool autoCleanup) :
+RenderPipeline::RenderPipeline(VulkanContext& context, MemoryManager& memMgr, BufferManager& bufMgr, bool autoCleanup) :
 	vkContext(context),
 	memoryManager(memMgr),
-	vertexBuffer(vertBuf),
+	bufferManager(bufMgr),
 	cleanOnDestruction(autoCleanup) {
 
 	Log::print(Log::T_INFO, __FUNCTION__, "Initializing...");
@@ -76,7 +76,7 @@ void RenderPipeline::cleanup() {
 }
 
 
-void RenderPipeline::recordCommandBuffer(VkCommandBuffer& buffer, uint32_t imageIndex) {
+void RenderPipeline::recordCommandBuffer(VkCommandBuffer& cmdBuffer, uint32_t imageIndex) {
 	// Specifies details about how the passed-in command buffer will be used before beginning
 	VkCommandBufferBeginInfo bufferBeginInfo{};
 	bufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -93,7 +93,7 @@ void RenderPipeline::recordCommandBuffer(VkCommandBuffer& buffer, uint32_t image
 	bufferBeginInfo.pInheritanceInfo = nullptr; 
 
 	// NOTE: vkBeginCommandBuffer will implicitly reset the framebuffer if it has already been recorded before
-	VkResult beginCmdBufferResult = vkBeginCommandBuffer(buffer, &bufferBeginInfo);
+	VkResult beginCmdBufferResult = vkBeginCommandBuffer(cmdBuffer, &bufferBeginInfo);
 	if (beginCmdBufferResult != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, "Failed to start recording command buffer!");
 	}
@@ -120,14 +120,14 @@ void RenderPipeline::recordCommandBuffer(VkCommandBuffer& buffer, uint32_t image
 	* ...CONTENTS_INLINE: The render pass commands will be embedded in the primary command buffer itself and no secondary command buffers will be executed
 	* ..SECONDARY_COMMAND_BUFFERS: The render pass commands will be executed from secondary command buffers
 	*/
-	vkCmdBeginRenderPass(buffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+	vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 
 	// Commands are now ready to record. Functions that record commands begin with the vkCmd prefix.
 
 	// Binds graphics pipeline
 		// The 2nd parameter specifies the pipeline type (in this case, it's the graphics pipeline)
-	vkCmdBindPipeline(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkContext.GraphicsPipeline.pipeline);
+	vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkContext.GraphicsPipeline.pipeline);
 
 	// Specify viewport and scissor states (since they're dynamic states)
 		// Viewport
@@ -138,15 +138,15 @@ void RenderPipeline::recordCommandBuffer(VkCommandBuffer& buffer, uint32_t image
 	viewport.height = static_cast<float>(vkContext.swapChainExtent.height);
 	viewport.minDepth = 0.0f;
 	viewport.maxDepth = 1.0f;
-	vkCmdSetViewport(buffer, 0, 1, &viewport);
+	vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
 
 		// Scissor
 	VkRect2D scissor{};
 	scissor.offset = { 0, 0 };
 	scissor.extent = vkContext.swapChainExtent;
-	vkCmdSetScissor(buffer, 0, 1, &scissor);
+	vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
 
-	// Draw
+	// Bind vertex and index buffers, then draw
 	/* vkCmdDraw parameters (Vulkan specs):
 	* commandBuffer: The command buffer to record the draw commands into
 	* vertexCount: The number of vertices to draw
@@ -154,22 +154,29 @@ void RenderPipeline::recordCommandBuffer(VkCommandBuffer& buffer, uint32_t image
 	* firstVertex: The index of the first vertex to draw. It is used as an offset into the vertex buffer, and defines the lowest value of gl_VertexIndex.
 	* firstInstance: The instance ID of the first instance to draw. It is used as an offset for instanced rendering, and defines the lowest value of gl_InstanceIndex.
 	*/
+		// Vertex buffers
 	VkBuffer vertexBuffers[] = {
-		vertexBuffer.getVertexBuffer()
+		bufferManager.getVertexBuffer()
 	};
 	VkDeviceSize offsets[] = {
 		0
 	};
-	vkCmdBindVertexBuffers(buffer, 0, 1, vertexBuffers, offsets);
+	vkCmdBindVertexBuffers(cmdBuffer, 0, 1, vertexBuffers, offsets);
 
-	std::vector<Vertex> vertexData = vertexBuffer.getVertexData();
-	vkCmdDraw(buffer, static_cast<uint32_t>(vertexData.size()), 1, 0, 0);
+
+		// Index buffer (note: you can only have 1 index buffer)
+	VkBuffer indexBuffer = bufferManager.getIndexBuffer();
+	vkCmdBindIndexBuffer(cmdBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+		// Draw call
+	auto vertexIndices = bufferManager.getVertexIndexData();
+	vkCmdDrawIndexed(cmdBuffer, static_cast<uint32_t>(vertexIndices.size()), 1, 0, 0, 0); // Use vkCmdDrawIndexed instead of vkCmdDraw to draw with the index buffer
 
 	// End the render pass
-	vkCmdEndRenderPass(buffer);
+	vkCmdEndRenderPass(cmdBuffer);
 
 	// Stop recording the command buffer
-	VkResult endCmdBufferResult = vkEndCommandBuffer(buffer);
+	VkResult endCmdBufferResult = vkEndCommandBuffer(cmdBuffer);
 	if (endCmdBufferResult != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, "Failed to record command buffer!");
 	}

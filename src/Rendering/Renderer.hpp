@@ -55,6 +55,8 @@ private:
 	RenderPipeline& renderPipeline;
 	uint32_t currentFrame = 0;
 
+	bool showDemoWindow = true;
+
 	/* Renders a frame. 
 	* At a high level, rendering a frame in Vulkan consists of a common set of steps:
 	*	- Wait for the previous frame to finish

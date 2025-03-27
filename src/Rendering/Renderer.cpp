@@ -51,11 +51,12 @@ Renderer::Renderer(VulkanContext &context, VkSwapchainManager& swapchainMgrInsta
 
     //vkInitInfo.PipelineCache = YOUR_PIPELINE_CACHE;
     //vkInitInfo.DescriptorPool = YOUR_DESCRIPTOR_POOL;
-    vkInitInfo.Subpass = 0;
-    vkInitInfo.MinImageCount = 2;
+    vkInitInfo.Subpass = 1;
+    vkInitInfo.MinImageCount = vkContext.minImageCount;
     vkInitInfo.ImageCount = 2;
     vkInitInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
     vkInitInfo.Allocator = nullptr;
+
     //vkInitInfo.CheckVkResultFn = check_vk_result;
     //ImGui_ImplVulkan_Init(&vkInitInfo, wd->RenderPass);
     // (this gets a bit more complicated, see example app for full reference)

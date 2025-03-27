@@ -168,7 +168,7 @@ void MemoryManager::optimizeStack() {
 
 	size_t newSize = cleanupStack.size();
 	if (newSize < oldSize)
-		Log::print(Log::T_INFO, __FUNCTION__, "Shrunk stack size from " + std::to_string(oldSize) + " down to " + std::to_string(newSize) + ".");
+		Log::print(Log::T_SUCCESS, __FUNCTION__, "Shrunk stack size from " + std::to_string(oldSize) + " down to " + std::to_string(newSize) + ".");
 	else
 		Log::print(Log::T_INFO, __FUNCTION__, "Cleanup stack cannot be optimized further.");
 }
