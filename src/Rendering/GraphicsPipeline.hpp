@@ -35,7 +35,7 @@ static inline std::vector<char> readFile(const std::string& fileName, const std:
 	// Changes the current working directory to the specified one (if provided)
 	std::filesystem::path workingDirPath = workingDirectory; // Converts string to filesystem::path
 	std::filesystem::current_path(workingDirPath);
-	
+
 	// Reads the file to an ifstream
 	// Flag std::ios::ate means "Start reading from the end of the file". Doing so allows us to use the read position to determine the file size and allocate a buffer.
 	// Flag std::ios::binary means "Read the file as a binary file (to avoid text transformations)"
