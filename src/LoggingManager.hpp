@@ -10,13 +10,79 @@
 #define VARIABLE_NAME(V) (#V)
 
 namespace Log {
+	/* Purpose of each message type:
+	* - INFO: Used to log general information about the application's operation. This includes high-level events that are part of the normal operation.
+	*		Examples: Service initialization/stopping, user actions, configuration changes
+	* 
+	* - VERBOSE: Used for very detailed logging that helps with tracing the exact flow of the application.
+	*		Examples: function calls (begin/end), initialization details, data parsing
+	* 
+	* - DEBUG: Used for very detailed logging that helps with understanding the application's current state and behavior.
+	*		Examples: Variable states, function call status, microservice execution status
+	* 
+	* - WARNING: Used to log potentially harmful situations which are not necessarily errors but could lead to problems.
+	*		Examples: Low disk space, configuration issues, missing optional/non-critical data
+	* 
+	* - ERROR: Used to log errors that are fatal to the operation, and not the service/application. Such errors may terminate the application, but do not indicate any serious eventuality, such as data corruption.
+	*		Examples: Failure to open file, missing critical data
+	* 
+	* - FATAL: Used to log severe errors that necessitate service/application termination to prevent (further) data loss or corruption.
+	*		Examples: Failure to completely record data, failure to completely modify data
+	* 
+	* - SUCCESS: Used to log successful operations.
+	*		Examples: Successful task completion, successful data processing
+	*/
 	enum MsgType {
 		T_VERBOSE,
+		T_DEBUG,
 		T_INFO,
 		T_WARNING,
 		T_ERROR,
+		T_FATAL,
 		T_SUCCESS
 	};
+
+	/* Gets the log color based on message type. */
+	static void logColor(MsgType type, std::string& msgType) {
+		switch (type) {
+			case T_VERBOSE:
+				msgType = "VERBOSE";
+				std::cout << termcolor::bright_grey;
+				break;
+
+			case T_DEBUG:
+				msgType = "DEBUG";
+				std::cout << termcolor::white << termcolor::on_bright_grey;
+				break;
+
+			case T_INFO:
+				msgType = "INFO";
+				std::cout << termcolor::white;
+				break;
+
+			case T_WARNING:
+				msgType = "WARNING";
+				std::cout << termcolor::yellow;
+				break;
+
+			case T_ERROR:
+				msgType = "ERROR";
+				std::cout << termcolor::red;
+				break;
+
+			case T_FATAL:
+				msgType = "FATAL";
+				std::cout << termcolor::white << termcolor::on_red;
+				break;
+
+			case T_SUCCESS:
+				msgType = "SUCCESS";
+				std::cout << termcolor::bright_green;
+				break;
+
+			default: break;
+		}
+	}
 
 	/* Logs a message. 
 	* @param type: The message type. Refer to Log::MsgType to see supported types.
@@ -26,34 +92,8 @@ namespace Log {
 	*/
 	static void print(MsgType type, const char* caller, const std::string& message, bool newline = true) {
 		std::string msgType = "Unknown message type";
-		switch (type) {
-		case T_VERBOSE:
-			msgType = "VERBOSE";
-			std::cout << termcolor::bright_cyan;
-			break;
-
-		case T_INFO:
-			msgType = "INFO";
-			std::cout << termcolor::white;
-			break;
-
-		case T_WARNING:
-			msgType = "WARNING";
-			std::cout << termcolor::yellow;
-			break;
-
-		case T_ERROR:
-			msgType = "ERROR";
-			std::cout << termcolor::red;
-			break;
-
-		case T_SUCCESS:
-			msgType = "SUCCESS";
-			std::cout << termcolor::bright_green;
-			break;
-
-		default: break;
-		}
+		
+		logColor(type, msgType);
 
 		std::cout << "[" << msgType << " @ " << caller << "]: " << message << ((newline) ? "\n" : "") << termcolor::reset;
 	}
@@ -62,13 +102,20 @@ namespace Log {
 	/* Custom RTE exception class that allows for origin specification. */
 	class RuntimeException : public std::exception {
 	public:
-		RuntimeException(const std::string& functionName, const std::string& message) : funcName(functionName), exceptionMessage(message) {}
+		RuntimeException(const std::string& functionName, const std::string& message, MsgType severity = T_ERROR) : funcName(functionName), exceptionMessage(message), msgType(severity) {}
 
 		/* Gets the name of the origin from which the exception was raised. 
 		* @return The name of the origin.
 		*/
 		inline const char* origin() const noexcept {
 			return funcName.c_str();
+		}
+
+		/* Gets the message's severity.
+		* @return The message severity.
+		*/
+		inline const MsgType severity() const noexcept {
+			return msgType;
 		}
 
 		/* Gets the error message. 
@@ -81,5 +128,6 @@ namespace Log {
 	private:
 		std::string funcName = "unknown origin";
 		std::string exceptionMessage;
+		MsgType msgType;
 	};
 }

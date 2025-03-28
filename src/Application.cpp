@@ -63,7 +63,7 @@ int main() {
         engine.run();
     }
     catch (const Log::RuntimeException& e) {
-        Log::print(Log::T_ERROR, e.origin(), e.what());
+        Log::print(e.severity(), e.origin(), e.what());
 
         memoryManager.processCleanupStack();
 
