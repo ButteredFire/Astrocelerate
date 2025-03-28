@@ -1,4 +1,4 @@
 echo off
 cls
-python "scripts/GenerateDirectories.py" "src" "external"
+python "scripts/GenerateDirectories.py" "src" "external" "assets"
 pause
