@@ -8,6 +8,9 @@
 
 // GLM
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
+#include <chrono>
 
 // C++ STLs
 #include <iostream>
@@ -21,12 +24,19 @@
 #include <MemoryManager.hpp>
 
 
-// A structure defining a vertex.
+// A structure specifying the properties of a vertex
 struct Vertex {
 	glm::vec2 position;
 	glm::vec3 color;
 };
 
+
+// A structure specifying the properties of a uniform buffer object (UBO)
+struct UniformBufferObject {
+    glm::mat4 model;            // Object transformation matrix
+    glm::mat4 view;             // Camera transformation matrix
+    glm::mat4 projection;       // Depth and perspective transformation matrix
+};
 
 
 class BufferManager {
@@ -40,14 +50,14 @@ public:
 
     /* Creates a buffer.
     * @param &buffer: The buffer to be created.
-    * @param deviceSize: The size of the buffer (in bytes).
+    * @param bufferSize: The size of the buffer (in bytes).
     * @param usageFlags: Flags specifying how the buffer will be used.
-    * @param memoryUsage: Flags specifying how the buffer's allocated memory block is used.
     * @param bufferAllocation: The memory block allocated for the buffer.
+    * @param bufferAllocationCreateInfo: The buffer allocation create info struct.
     * 
     * @return The cleanup task ID for the newly created buffer.
     */
-    uint32_t createBuffer(VkBuffer& buffer, VkDeviceSize deviceSize, VkBufferUsageFlags usageFlags, VmaAllocation& allocation, VmaMemoryUsage memoryUsage);
+    uint32_t createBuffer(VkBuffer& buffer, VkDeviceSize bufferSize, VkBufferUsageFlags usageFlags, VmaAllocation& bufferAllocation, VmaAllocationCreateInfo bufferAllocationCreateInfo);
 
 
     /* Copies the contents from a source buffer to a destination buffer.
@@ -56,6 +66,12 @@ public:
     * @param deviceSize: The size of either the source or destination buffer (in bytes).
     */
     void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize deviceSize);
+    
+
+    /* Updates the uniform buffer. 
+	* @param currentImage: The index of the current image/frame.
+    */
+    void updateUniformBuffer(uint32_t currentImage);
 
 
     /* Gets the vertex buffer. */
@@ -89,6 +105,11 @@ private:
     VkBuffer indexBuffer = VK_NULL_HANDLE;
     VmaAllocation indexBufferAllocation = VK_NULL_HANDLE;
 
+    std::vector<VkBuffer> uniformBuffers;
+    std::vector<VmaAllocation> uniformBuffersAllocations;
+    std::vector<void*> uniformBuffersMappedData;
+
+
     const std::vector<Vertex> vertices = {
         {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},   // 0
         {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},    // 1
@@ -115,6 +136,10 @@ private:
 
     /* Creates the index buffer. */
     void createIndexBuffer();
+
+
+    /* Creates uniform buffers. */
+    void createUniformBuffers();
 
 
     /* Finds the memory type suitable for buffer and application requirements.

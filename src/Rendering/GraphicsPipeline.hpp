@@ -133,6 +133,9 @@ private:
 	// Tessellation state
 	VkPipelineTessellationStateCreateInfo tessStateCreateInfo{};
 
+	// Descriptor set layout
+	VkDescriptorSetLayout uniformBufferDescSetLayout = VK_NULL_HANDLE;
+
 	// Pipeline layout
 	VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
 
@@ -144,6 +147,10 @@ private:
 
 	/* Initializes the pipeline layout. */
 	void createPipelineLayout();
+
+
+	/* Creates a descriptor set layout. */
+	void createDescriptorSetLayout();
 
 
 	/* Creates a render pass. 

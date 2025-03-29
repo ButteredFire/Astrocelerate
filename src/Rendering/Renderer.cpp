@@ -5,10 +5,11 @@
 #include "Renderer.hpp"
 
 
-Renderer::Renderer(VulkanContext &context, VkSwapchainManager& swapchainMgrInstance, RenderPipeline& renderPipelineInstance):
+Renderer::Renderer(VulkanContext &context, VkSwapchainManager& swapchainMgrInstance, RenderPipeline& renderPipelineInstance, BufferManager& bufMgr):
     vulkInst(context.vulkanInstance),
     swapchainMgr(swapchainMgrInstance),
     renderPipeline(renderPipelineInstance),
+    bufferManager(bufMgr),
     vkContext(context) {
 
     Log::print(Log::T_INFO, __FUNCTION__, "Initializing...");
@@ -126,6 +127,10 @@ void Renderer::drawFrame() {
 
         // Records commands
     renderPipeline.recordCommandBuffer(vkContext.RenderPipeline.graphicsCmdBuffers[currentFrame], imageIndex);
+
+
+        // Updates the uniform buffer
+    bufferManager.updateUniformBuffer(currentFrame);
 
         // Submits the buffer to the queue
     VkSubmitInfo submitInfo{};

@@ -15,6 +15,7 @@ BufferManager::~BufferManager() {
 void BufferManager::init() {
 	createVertexBuffer();
 	createIndexBuffer();
+	createUniformBuffers();
 }
 
 
@@ -69,11 +70,11 @@ std::array<VkVertexInputAttributeDescription, 2> BufferManager::getAttributeDesc
 }
 
 
-uint32_t BufferManager::createBuffer(VkBuffer& buffer, VkDeviceSize deviceSize, VkBufferUsageFlags usageFlags, VmaAllocation& allocation, VmaMemoryUsage memoryUsage) {
+uint32_t BufferManager::createBuffer(VkBuffer& buffer, VkDeviceSize bufferSize, VkBufferUsageFlags usageFlags, VmaAllocation& bufferAllocation, VmaAllocationCreateInfo bufferAllocationCreateInfo) {
 	// Creates the buffer
 	VkBufferCreateInfo bufCreateInfo{};
 	bufCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-	bufCreateInfo.size = deviceSize;
+	bufCreateInfo.size = bufferSize;
 
 		// Specifies the purpose of the buffer (It is possible to specify multiple purposes using a bitwise OR)
 	bufCreateInfo.usage = usageFlags;
@@ -94,11 +95,7 @@ uint32_t BufferManager::createBuffer(VkBuffer& buffer, VkDeviceSize deviceSize, 
 	bufCreateInfo.flags = 0;
 
 
-	// Specifies buffer memory allocation
-	VmaAllocationCreateInfo allocInfo{};
-	allocInfo.usage = memoryUsage; // Use VMA_MEMORY_USAGE_AUTO for general usage
-
-	VkResult bufCreateResult = vmaCreateBuffer(vkContext.vmaAllocator, &bufCreateInfo, &allocInfo, &buffer, &allocation, nullptr);
+	VkResult bufCreateResult = vmaCreateBuffer(vkContext.vmaAllocator, &bufCreateInfo, &bufferAllocationCreateInfo, &buffer, &bufferAllocation, nullptr);
 	if (bufCreateResult != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, "Failed to create buffer!");
 	}
@@ -107,8 +104,8 @@ uint32_t BufferManager::createBuffer(VkBuffer& buffer, VkDeviceSize deviceSize, 
 	CleanupTask bufTask{};
 	bufTask.caller = __FUNCTION__;
 	bufTask.mainObjectName = VARIABLE_NAME(buffer);
-	bufTask.vkObjects = { vkContext.vmaAllocator, buffer, allocation };
-	bufTask.cleanupFunc = [this, buffer, allocation]() { vmaDestroyBuffer(vkContext.vmaAllocator, buffer, allocation); };
+	bufTask.vkObjects = { vkContext.vmaAllocator, buffer, bufferAllocation };
+	bufTask.cleanupFunc = [this, buffer, bufferAllocation]() { vmaDestroyBuffer(vkContext.vmaAllocator, buffer, bufferAllocation); };
 
 	uint32_t bufferTaskID = memoryManager.createCleanupTask(bufTask);
 
@@ -173,6 +170,53 @@ void BufferManager::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceS
 }
 
 
+void BufferManager::updateUniformBuffer(uint32_t currentImage) {
+	// Timekeeping ensures that the geometry rotates 90 deg/s regardless of frame rate
+	static auto startTime = std::chrono::high_resolution_clock::now();
+
+	auto currentTime = std::chrono::high_resolution_clock::now();
+	float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+
+	UniformBufferObject UBO{};
+
+	// glm::rotate(transformation, rotationAngle, rotationAxis);
+	glm::mat4 identityMat = glm::mat4(1.0f);
+	float rotationAngle = (time * glm::radians(90.0f));
+	glm::vec3 rotationAxis = glm::vec3(0.0f, 0.0f, 1.0f);
+
+	UBO.model = glm::rotate(identityMat, rotationAngle, rotationAxis);
+
+
+	// glm::lookAt(eyePosition, centerPosition, upAxis);
+	glm::vec3 eyePosition = glm::vec3(1.0f, 1.0f, 1.0f);
+	glm::vec3 centerPosition = glm::vec3(0.0f, 0.0f, 0.0f);
+	glm::vec3 upAxis = glm::vec3(0.0f, 0.0f, 1.0f);
+	
+	UBO.view = glm::lookAt(eyePosition, centerPosition, upAxis);
+
+
+	// glm::perspective(fieldOfView, aspectRatio, nearClipPlane, farClipPlane);
+	const float fieldOfView = glm::radians(60.0f);
+	float aspectRatio = static_cast<float>(vkContext.swapChainExtent.width / vkContext.swapChainExtent.height);
+	float nearClipPlane = 0.1f;
+	float farClipPlane = 10.0f;
+
+	UBO.projection = glm::perspective(fieldOfView, aspectRatio, nearClipPlane, farClipPlane);
+
+
+	/*
+		GLM was originally designed for OpenGL, and because of that, the Y-coordinate of the clip coordinates is flipped.
+		If this behavior is left as is, then images will be flipped upside down.
+		One way to change this behavior is to flip the sign on the Y-axis scaling factor in the projection matrix.
+	*/
+	UBO.projection[1][1] *= -1;
+
+
+	// Copies the data from the uniform buffer object to the uniform buffer
+	memcpy(uniformBuffers[currentImage], &UBO, sizeof(UBO));
+}
+
+
 void BufferManager::writeDataToGPUBuffer(const void* data, VkBuffer& buffer, VkDeviceSize bufferSize) {
 	/* How data is written into a device-local-memory allocated buffer:
 	*
@@ -187,16 +231,34 @@ void BufferManager::writeDataToGPUBuffer(const void* data, VkBuffer& buffer, VkD
 	*	+ STEP 2.3: Unmaps the staging buffer's memory block from the CPU address space to ensure the CPU can no longer access it
 	*
 	* - STEP 3: Copy the data from the staging buffer to the destination/target buffer. This has already been handled in `copyBuffer`.
+	* 
+	* NOTE: `VMA_MEMORY_USAGE_CPU_ONLY` and `VMA_MEMORY_USAGE_GPU_ONLY` are deprecated.
+	* Use `VMA_MEMORY_USAGE_AUTO_PREFER_HOST` and `VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE` respectively.
 	*/
-
+	
 	// Creates a staging buffer
 	VkBuffer stagingBuffer;
 	VmaAllocation stagingBufAllocation;
 
 	VkBufferUsageFlags stagingBufUsage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-	VmaMemoryUsage stagingBufMemUsage = VMA_MEMORY_USAGE_CPU_ONLY; // Host-visible memory
 
-	uint32_t stagingBufTaskID = createBuffer(stagingBuffer, bufferSize, stagingBufUsage, stagingBufAllocation, stagingBufMemUsage);
+	VmaAllocationCreateInfo stagingBufAllocInfo{};
+	stagingBufAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_HOST; // Use VMA_MEMORY_USAGE_AUTO for general usage
+	stagingBufAllocInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT; // Host-visible memory
+	
+	
+	/*
+	Since the staging buffer's allocation is going to be mapped to CPU memory below (vmaMapMemory), we must specify the expected patern of CPU memory access.
+
+	[VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT]
+	This flag indicates that the host will access the memory in a sequential write pattern. This is typically used when the host writes data to the memory in a linear order, such as when uploading a large block of data to a buffer.
+
+	[VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT]
+	This flag indicates that the host will access the memory in a random access pattern. This is typically used when the host reads or writes data to the memory in a non-linear order, such as when updating individual elements in a buffer.
+	*/
+	stagingBufAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+
+	uint32_t stagingBufTaskID = createBuffer(stagingBuffer, bufferSize, stagingBufUsage, stagingBufAllocation, stagingBufAllocInfo);
 
 	// Copies data to the staging buffer
 	void* mappedData;
@@ -217,9 +279,15 @@ void BufferManager::writeDataToGPUBuffer(const void* data, VkBuffer& buffer, VkD
 void BufferManager::createVertexBuffer() {
 	VkDeviceSize bufferSize = (sizeof(vertices[0]) * vertices.size());
 	VkBufferUsageFlags vertBufUsage = (VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
-	VmaMemoryUsage vertBufMemUsage = VMA_MEMORY_USAGE_GPU_ONLY; // Fast device-local memory
+
+	// NOTE: By default, the VMA will attempt to allocate memory in the preferred type (GPU/CPU), but may fall back to other types should it not be available/suitable (hence "AUTO_PREFER").
+	// But we must use GPU memory, so we have to specify the required flags.
+	VmaAllocationCreateInfo vertBufAllocInfo{};
+	vertBufAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE; // PREFERS fast device-local memory
+	vertBufAllocInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT; // FORCES device-local memory
 	
-	createBuffer(vertexBuffer, bufferSize, vertBufUsage, vertexBufferAllocation, vertBufMemUsage);
+	createBuffer(vertexBuffer, bufferSize, vertBufUsage, vertexBufferAllocation, vertBufAllocInfo);
+
 	writeDataToGPUBuffer(vertices.data(), vertexBuffer, bufferSize);
 }
 
@@ -227,10 +295,44 @@ void BufferManager::createVertexBuffer() {
 void BufferManager::createIndexBuffer() {
 	VkDeviceSize bufferSize = (sizeof(vertIndices[0]) * vertIndices.size());
 	VkBufferUsageFlags indexBufUsage = (VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
-	VmaMemoryUsage indexBufMemUsage = VMA_MEMORY_USAGE_GPU_ONLY; // Fast device-local memory
 
-	createBuffer(indexBuffer, bufferSize, indexBufUsage, indexBufferAllocation, indexBufMemUsage);
+	// NOTE: By default, the VMA will attempt to allocate memory in the preferred type (GPU/CPU), but may fall back to other types should it not be available/suitable (hence "AUTO_PREFER").
+	// But we must use GPU memory, so we have to specify the required flags.
+	VmaAllocationCreateInfo indexBufAllocInfo{};
+	indexBufAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE; // PREFERS fast device-local memory
+	indexBufAllocInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT; // FORCES device-local memory
+
+	createBuffer(indexBuffer, bufferSize, indexBufUsage, indexBufferAllocation, indexBufAllocInfo);
+
 	writeDataToGPUBuffer(vertIndices.data(), indexBuffer, bufferSize);
+}
+
+
+void BufferManager::createUniformBuffers() {
+	// NOTE: Since new data is copied to the UBOs every frame, we should not use staging buffers since they add overhead and thus degrade performance
+	VkDeviceSize bufferSize = sizeof(UniformBufferObject);
+
+	uniformBuffers.resize(SimulationConsts::MAX_FRAMES_IN_FLIGHT);
+	uniformBuffersAllocations.resize(SimulationConsts::MAX_FRAMES_IN_FLIGHT);
+	uniformBuffersMappedData.resize(SimulationConsts::MAX_FRAMES_IN_FLIGHT);
+
+	VkBufferUsageFlags uniformBufUsageFlags = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+
+	for (size_t i = 0; i < SimulationConsts::MAX_FRAMES_IN_FLIGHT; i++) {
+		VmaAllocationCreateInfo uniformBufAllocInfo{};
+		uniformBufAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_HOST;
+		uniformBufAllocInfo.requiredFlags = (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+		uniformBufAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+		
+		createBuffer(uniformBuffers[i], bufferSize, uniformBufUsageFlags, uniformBuffersAllocations[i], uniformBufAllocInfo);
+
+		// Maps the buffer allocation post-creation to get a pointer to the CPU memory block on which we can later write data
+		/*
+		The buffer allocation stays mapped to the pointer for the application's whole lifetime.
+		This technique is called "persistent mapping". We use it here because, as aforementioned, the UBOs are updated with new data every single frame, and mapping them alone costs a little performance, much less every frame.
+		*/
+		vmaMapMemory(vkContext.vmaAllocator, uniformBuffersAllocations[i], &uniformBuffersMappedData[i]);
+	}
 }
 
 

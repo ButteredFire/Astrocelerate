@@ -57,7 +57,7 @@ int main() {
         renderPipeline.init();
 
             // Creates a renderer
-        Renderer renderer(vkContext, swapchainManager, renderPipeline);
+        Renderer renderer(vkContext, swapchainManager, renderPipeline, bufferManager);
 
         Engine engine(windowPtr, vkContext, renderer);
         engine.run();

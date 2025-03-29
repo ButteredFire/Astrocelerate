@@ -35,8 +35,20 @@ namespace APP {
 	#endif
 }
 
-// Compiled shader file paths
+// Shader properties
 namespace ShaderConsts {
+	// Locations
+		// Vertex shader
+	constexpr int VERT_LOC_UNIFORM_UBO = 0;
+	constexpr int VERT_LOC_IN_INPOSITION = 0;
+	constexpr int VERT_LOC_IN_INCOLOR = 1;
+	constexpr int VERT_LOC_OUT_FRAGCOLOR = 0;
+
+		// Fragment shader
+	constexpr int FRAG_LOC_IN_FRAGCOLOR = 0;
+	constexpr int FRAG_LOC_OUT_OUTCOLOR = 0;
+
+	// Compiled shaders
 	constexpr char VERTEX[] = "compiled_shaders/VertexShader.spv";
 	constexpr char FRAGMENT[] = "compiled_shaders/FragmentShader.spv";
 }

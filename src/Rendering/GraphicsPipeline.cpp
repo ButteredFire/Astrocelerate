@@ -42,6 +42,9 @@ void GraphicsPipeline::init() {
 	// Load shaders
 	initShaderStage();
 
+	// Create the descriptor
+	createDescriptorSetLayout();
+
 	// Create the pipeline layout
 	createPipelineLayout();
 
@@ -95,18 +98,18 @@ void GraphicsPipeline::createGraphicsPipeline() {
 	// Render pass
 	pipelineCreateInfo.renderPass = renderPass;
 	pipelineCreateInfo.subpass = 0; // Index of the subpass
-	/* NOTE:
-	* It is also possible to use other render passes with this pipeline instead of this specific instance, but they have to be compatible with renderPass. The requirements for compatibility are described here: https://docs.vulkan.org/spec/latest/chapters/renderpass.html#renderpass-compatibility
-	*/
+		/* NOTE:
+		* It is also possible to use other render passes with this pipeline instead of this specific instance, but they have to be compatible with renderPass. The requirements for compatibility are described here: https://docs.vulkan.org/spec/latest/chapters/renderpass.html#renderpass-compatibility
+		*/
 
 	// Pipeline properties
-	/* NOTE:
-	* Vulkan allows you to create a new graphics pipeline by deriving from an existing pipeline. 
-	* The idea of pipeline derivatives is that it is less expensive to set up pipelines when they have much functionality in common with an existing pipeline and switching between pipelines from the same parent can also be done quicker. 
-	* 
-	* You can either specify the handle of an existing pipeline with basePipelineHandle or reference another pipeline that is about to be created by index with basePipelineIndex.
-	* These values are only used if the VK_PIPELINE_CREATE_DERIVATIVE_BIT flag is also specified in the flags field of VkGraphicsPipelineCreateInfo.
-	*/
+		/* NOTE:
+		* Vulkan allows you to create a new graphics pipeline by deriving from an existing pipeline. 
+		* The idea of pipeline derivatives is that it is less expensive to set up pipelines when they have much functionality in common with an existing pipeline and switching between pipelines from the same parent can also be done quicker. 
+		* 
+		* You can either specify the handle of an existing pipeline with basePipelineHandle or reference another pipeline that is about to be created by index with basePipelineIndex.
+		* These values are only used if the VK_PIPELINE_CREATE_DERIVATIVE_BIT flag is also specified in the flags field of VkGraphicsPipelineCreateInfo.
+		*/
 		// Right now, there is only a single pipeline, so we'll specify the handle and index as null and -1 (an invalid index)
 	//pipelineCreateInfo.flags;
 	pipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
@@ -135,8 +138,8 @@ void GraphicsPipeline::createGraphicsPipeline() {
 void GraphicsPipeline::createPipelineLayout() {
 	VkPipelineLayoutCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	createInfo.setLayoutCount = 0;
-	createInfo.pSetLayouts = nullptr;
+	createInfo.setLayoutCount = 1;
+	createInfo.pSetLayouts = &uniformBufferDescSetLayout;
 
 	// Push constants are a way of passing dynamic values to shaders
 	createInfo.pushConstantRangeCount = 0;
@@ -158,6 +161,7 @@ void GraphicsPipeline::createPipelineLayout() {
 
 	memoryManager.createCleanupTask(task);
 }
+
 
 
 void GraphicsPipeline::createRenderPass() {

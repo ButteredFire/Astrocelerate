@@ -34,6 +34,7 @@
 #include <Vulkan/VkDeviceManager.hpp>
 #include <Vulkan/VkSwapchainManager.hpp>
 #include <Rendering/RenderPipeline.hpp>
+#include <Shaders/BufferManager.hpp>
 #include <Constants.h>
 #include <LoggingManager.hpp>
 
@@ -41,7 +42,7 @@
 
 class Renderer {
 public:
-	Renderer(VulkanContext &context, VkSwapchainManager& swapchainMgrInstance, RenderPipeline& renderPipelineInstance);
+	Renderer(VulkanContext &context, VkSwapchainManager& swapchainMgrInstance, RenderPipeline& renderPipelineInstance, BufferManager& bufMgr);
 	~Renderer();
 
 	/* Updates the rendering. */
@@ -53,6 +54,8 @@ private:
 
 	VkSwapchainManager& swapchainMgr;
 	RenderPipeline& renderPipeline;
+	BufferManager& bufferManager;
+
 	uint32_t currentFrame = 0;
 
 	bool showDemoWindow = true;
