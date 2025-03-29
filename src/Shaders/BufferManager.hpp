@@ -26,7 +26,7 @@
 
 // A structure specifying the properties of a vertex
 struct Vertex {
-	glm::vec2 position;
+	glm::vec3 position;
 	glm::vec3 color;
 };
 
@@ -148,14 +148,21 @@ private:
 
 
     const std::vector<Vertex> vertices = {
-        {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},   // 0
-        {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},    // 1
-        {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},     // 2
-        {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}     // 3
+        {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},   // 0
+        {{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}},    // 1
+        {{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}},     // 2
+        {{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}},    // 3
+        {{0.0f, 0.0f, 1.0f}, {0.25f, 0.5f, 0.75f}}
     };
 
     const std::vector<uint32_t> vertIndices = {
-        0, 1, 2, 2, 3, 0
+        0, 1, 2,
+        2, 3, 0,
+
+        0, 1, 4,
+        1, 2, 4,
+        2, 3, 4,
+        3, 0, 4
     };
 
 

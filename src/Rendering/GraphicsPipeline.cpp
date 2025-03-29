@@ -45,7 +45,11 @@ void GraphicsPipeline::init() {
 
 	// Create uniform buffer descriptors
 	createDescriptorSetLayout();
-	createDescriptorPool();
+
+	std::vector<VkDescriptorPoolSize> uniformBufDescPoolSize = {
+		{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, static_cast<uint32_t>(SimulationConsts::MAX_FRAMES_IN_FLIGHT)}
+	};
+	createDescriptorPool(uniformBufDescPoolSize, uniformBufferDescriptorPool);
 	createDescriptorSets();
 
 	// Create the pipeline layout
@@ -201,21 +205,20 @@ void GraphicsPipeline::createDescriptorSetLayout() {
 }
 
 
-void GraphicsPipeline::createDescriptorPool() {
-	// Specifies the number of descriptors and their type
-	VkDescriptorPoolSize descPoolSize{};
-	descPoolSize.descriptorCount = static_cast<uint32_t>(SimulationConsts::MAX_FRAMES_IN_FLIGHT);
-	descPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-
+void GraphicsPipeline::createDescriptorPool(std::vector<VkDescriptorPoolSize> poolSizes, VkDescriptorPool& descriptorPool) {
 	VkDescriptorPoolCreateInfo descPoolCreateInfo{};
 	descPoolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-	descPoolCreateInfo.poolSizeCount = 1;
-	descPoolCreateInfo.pPoolSizes = &descPoolSize;
+	descPoolCreateInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+	descPoolCreateInfo.pPoolSizes = poolSizes.data();
 
 	// Specifies the maximum number of descriptor sets that can be allocated
-	descPoolCreateInfo.maxSets = static_cast<uint32_t>(SimulationConsts::MAX_FRAMES_IN_FLIGHT);
+	descPoolCreateInfo.maxSets = 0;
+	for (const auto& poolSize : poolSizes) {
+		descPoolCreateInfo.maxSets += poolSize.descriptorCount;
+	}
 
-	VkResult result = vkCreateDescriptorPool(vkContext.logicalDevice, &descPoolCreateInfo, nullptr, &uniformBufferDescriptorPool);
+
+	VkResult result = vkCreateDescriptorPool(vkContext.logicalDevice, &descPoolCreateInfo, nullptr, &descriptorPool);
 	if (result != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, "Failed to create descriptor pool!");
 	}
@@ -223,9 +226,9 @@ void GraphicsPipeline::createDescriptorPool() {
 	
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
-	task.mainObjectName = VARIABLE_NAME(uniformBufferDescriptorPool);
-	task.vkObjects = { vkContext.logicalDevice, uniformBufferDescriptorPool };
-	task.cleanupFunc = [this]() { vkDestroyDescriptorPool(vkContext.logicalDevice, uniformBufferDescriptorPool, nullptr); };
+	task.mainObjectName = VARIABLE_NAME(descriptorPool);
+	task.vkObjects = { vkContext.logicalDevice, descriptorPool };
+	task.cleanupFunc = [this, descriptorPool]() { vkDestroyDescriptorPool(vkContext.logicalDevice, descriptorPool, nullptr); };
 
 	memoryManager.createCleanupTask(task);
 }

@@ -55,13 +55,13 @@ std::array<VkVertexInputAttributeDescription, 2> BufferManager::getAttributeDesc
 
 	// Attribute: Position
 	attribDescriptions[0].binding = 0;
-	attribDescriptions[0].location = 0;
+	attribDescriptions[0].location = ShaderConsts::VERT_LOC_IN_INPOSITION;
 	attribDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT; // R32G32 because `position` is a vec2. If it were a vec3, its format would need to have 3 channels, e.g., R32G32B32_SFLOAT
 	attribDescriptions[0].offset = offsetof(Vertex, position);
 
 	// Attribute: Color
 	attribDescriptions[1].binding = 0;
-	attribDescriptions[1].location = 1;
+	attribDescriptions[1].location = ShaderConsts::VERT_LOC_IN_INCOLOR;
 	attribDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
 	attribDescriptions[1].offset = offsetof(Vertex, color);
 

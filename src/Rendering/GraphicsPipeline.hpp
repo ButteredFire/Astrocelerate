@@ -80,6 +80,13 @@ public:
 	void init();
 	void cleanup();
 
+
+	/* Creates a descriptor pool.
+	* @param poolSizes: A vector storing descriptor pool sizes. Note that the resulting descriptor pool's max sets value is the cumulative descriptor count of all pool sizes in the vector.
+	* @param descriptorPool: The descriptor pool to be created.
+	*/
+	void createDescriptorPool(std::vector<VkDescriptorPoolSize> poolSizes, VkDescriptorPool& descriptorPool);
+
 private:
 	bool cleanOnDestruction = true;
 	VulkanContext& vkContext;
@@ -154,10 +161,6 @@ private:
 
 	/* Creates a descriptor set layout. */
 	void createDescriptorSetLayout();
-
-
-	/* Creates a descriptor pool. */
-	void createDescriptorPool();
 
 
 	/* Creates a descriptor set. */

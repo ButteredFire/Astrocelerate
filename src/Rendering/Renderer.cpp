@@ -5,11 +5,12 @@
 #include "Renderer.hpp"
 
 
-Renderer::Renderer(VulkanContext &context, VkSwapchainManager& swapchainMgrInstance, RenderPipeline& renderPipelineInstance, BufferManager& bufMgr):
+Renderer::Renderer(VulkanContext& context, VkSwapchainManager& swapchainMgr, BufferManager& bufMgr, GraphicsPipeline& graphicsPipelineInstance, RenderPipeline& renderPipelineInstance):
     vulkInst(context.vulkanInstance),
-    swapchainMgr(swapchainMgrInstance),
-    renderPipeline(renderPipelineInstance),
+    swapchainManager(swapchainMgr),
     bufferManager(bufMgr),
+    graphicsPipeline(graphicsPipelineInstance),
+    renderPipeline(renderPipelineInstance),
     vkContext(context) {
 
     // Setup Dear ImGui context
@@ -44,24 +45,40 @@ Renderer::Renderer(VulkanContext &context, VkSwapchainManager& swapchainMgrInsta
     vkInitInfo.PhysicalDevice = vkContext.physicalDevice;
     vkInitInfo.Device = vkContext.logicalDevice;
     
-	QueueFamilyIndices familyIndices = VkDeviceManager::getQueueFamilies(vkContext.physicalDevice, vkContext.vkSurface);
+	QueueFamilyIndices familyIndices = vkContext.queueFamilies;
     vkInitInfo.QueueFamily = familyIndices.graphicsFamily.index.value();
     vkInitInfo.Queue = familyIndices.graphicsFamily.deviceQueue;
 
-    //vkInitInfo.PipelineCache = YOUR_PIPELINE_CACHE;
-    //vkInitInfo.DescriptorPool = YOUR_DESCRIPTOR_POOL;
-    vkInitInfo.Subpass = 1;
-    vkInitInfo.MinImageCount = vkContext.minImageCount;
-    vkInitInfo.ImageCount = 2;
+    vkInitInfo.PipelineCache = VK_NULL_HANDLE;
+
+    std::vector<VkDescriptorPoolSize> imgui_PoolSizes = {
+        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE }
+    };
+    graphicsPipeline.createDescriptorPool(imgui_PoolSizes, imgui_DescriptorPool);
+    vkInitInfo.DescriptorPool = imgui_DescriptorPool;
+
+    vkInitInfo.RenderPass = vkContext.GraphicsPipeline.renderPass;
+    vkInitInfo.Subpass = 0;
+    vkInitInfo.MinImageCount = vkContext.minImageCount; // For some unknown reason, ImGui does not actually use this property
+    vkInitInfo.ImageCount = vkContext.minImageCount;
     vkInitInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
     vkInitInfo.Allocator = nullptr;
 
     //vkInitInfo.CheckVkResultFn = check_vk_result;
-    //ImGui_ImplVulkan_Init(&vkInitInfo, wd->RenderPass);
+    
+    ImGui_ImplVulkan_Init(&vkInitInfo);
+    
     // (this gets a bit more complicated, see example app for full reference)
+    
     //ImGui_ImplVulkan_CreateFontsTexture(YOUR_COMMAND_BUFFER);
+    const char* fontPath = "C:\\Users\\HP\\Documents\\Visual Studio 2022\\Fonts\\Fragment_Mono\\FragmentMono-Regular.ttf";
+    font = io.Fonts->AddFontFromFileTTF(fontPath, 20.0f);
+
+    ImGui_ImplVulkan_CreateFontsTexture();
+
     // (your code submit a queue)
     //ImGui_ImplVulkan_DestroyFontUploadObjects();
+
 
     Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
@@ -100,7 +117,7 @@ void Renderer::drawFrame() {
     VkResult imgAcquisitionResult = vkAcquireNextImageKHR(vkContext.logicalDevice, vkContext.swapChain, UINT64_MAX, vkContext.RenderPipeline.imageReadySemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
     if (imgAcquisitionResult != VK_SUCCESS) {
         if (imgAcquisitionResult == VK_ERROR_OUT_OF_DATE_KHR || imgAcquisitionResult == VK_SUBOPTIMAL_KHR) {
-            swapchainMgr.recreateSwapchain(renderPipeline);
+            swapchainManager.recreateSwapchain(renderPipeline);
             return;
         }
 
@@ -170,6 +187,7 @@ void Renderer::drawFrame() {
         throw Log::RuntimeException(__FUNCTION__, "Failed to submit draw command buffer!");
     }
 
+
     // To finally draw the frame, we submit the result back to the swap-chain to have it eventually show up on screen
         // Configures presentation
     VkPresentInfoKHR presentationInfo{};
@@ -193,7 +211,7 @@ void Renderer::drawFrame() {
     VkResult presentResult = vkQueuePresentKHR(graphicsQueue, &presentationInfo);
     if (presentResult != VK_SUCCESS) {
         if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR) {
-            swapchainMgr.recreateSwapchain(renderPipeline);
+            swapchainManager.recreateSwapchain(renderPipeline);
             return;
         }
         else {
