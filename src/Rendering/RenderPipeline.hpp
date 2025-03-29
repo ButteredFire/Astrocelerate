@@ -36,8 +36,9 @@ public:
 	/* Writes a command into a command buffer.
 	* @param buffer: The buffer to be recorded into.
 	* @param imageIndex: The index of the swap-chain image from which commands are recorded.
+	* @param currentFrame: The index of the frame currently being rendered.
 	*/
-	void recordCommandBuffer(VkCommandBuffer& buffer, uint32_t imageIndex);
+	void recordCommandBuffer(VkCommandBuffer& buffer, uint32_t imageIndex, uint32_t currentFrame);
 
 
 	/* Creates a framebuffer for each image in the swap-chain. */

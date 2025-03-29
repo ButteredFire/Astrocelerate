@@ -52,7 +52,7 @@ namespace Log {
 
 			case T_DEBUG:
 				msgType = "DEBUG";
-				std::cout << termcolor::white << termcolor::on_bright_grey;
+				std::cout << termcolor::bright_grey;
 				break;
 
 			case T_INFO:

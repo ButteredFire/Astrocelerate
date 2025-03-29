@@ -7,7 +7,7 @@
 VkInstanceManager::VkInstanceManager(VulkanContext& context, MemoryManager& memMgr, bool autoCleanup):
     vkContext(context), memoryManager(memMgr), cleanOnDestruction(autoCleanup) {
 
-    Log::print(Log::T_INFO, __FUNCTION__, "Initializing...");
+    Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
 
 VkInstanceManager::~VkInstanceManager() {
@@ -124,7 +124,7 @@ void VkInstanceManager::createVulkanInstance() {
 
         // Copies GLFW extensions into enabledExtensions
     for (uint32_t i = 0; i < glfwExtensionCount; i++)
-        enabledExtensions.push_back(glfwExtensions[i]);
+        addVulkanExtensions({ glfwExtensions[i] });
 
         // Sets up additional extensions
     if (inDebugMode)
@@ -252,7 +252,7 @@ void VkInstanceManager::addVulkanExtensions(std::vector<const char*> extensions)
 
     for (const auto& ext : extensions) {
         if (UTIL_enabledExtensionSet.count(ext) == 0) {
-            Log::print(Log::T_INFO, __FUNCTION__, ("Extension " + enquote(ext) + " verified. Enabling..."));
+            Log::print(Log::T_DEBUG, __FUNCTION__, ("Extension " + enquote(ext) + " verified. Enabling..."));
             enabledExtensions.push_back(ext);
             UTIL_enabledExtensionSet.insert(ext);
         }
@@ -268,7 +268,7 @@ void VkInstanceManager::addVulkanValidationLayers(std::vector<const char*> layer
 
     for (const auto& layer : layers) {
         if (UTIL_enabledValidationLayerSet.count(layer) == 0) {
-            Log::print(Log::T_INFO, __FUNCTION__, ("Validation layer " + enquote(layer) + " verified. Enabling..."));
+            Log::print(Log::T_DEBUG, __FUNCTION__, ("Validation layer " + enquote(layer) + " verified. Enabling..."));
             enabledValidationLayers.push_back(layer);
             UTIL_enabledValidationLayerSet.insert(layer);
         }

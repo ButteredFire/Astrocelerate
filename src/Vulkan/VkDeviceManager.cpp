@@ -8,8 +8,6 @@
 VkDeviceManager::VkDeviceManager(VulkanContext &context, MemoryManager& memMgr, bool autoCleanup):
     vulkInst(context.vulkanInstance), vkContext(context), memoryManager(memMgr), cleanOnDestruction(autoCleanup) {
 
-    Log::print(Log::T_INFO, __FUNCTION__, "Initializing...");
-
     if (vulkInst == VK_NULL_HANDLE) {
         throw Log::RuntimeException(__FUNCTION__, "Cannot initialize device manager: Invalid Vulkan instance!");
     }
@@ -17,6 +15,8 @@ VkDeviceManager::VkDeviceManager(VulkanContext &context, MemoryManager& memMgr, 
     if (vkContext.vkSurface == VK_NULL_HANDLE) {
         throw Log::RuntimeException(__FUNCTION__, "Cannot initialize device manager: Invalid Vulkan window surface!");
     }
+
+    Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
 
 

@@ -6,8 +6,6 @@
 VkSwapchainManager::VkSwapchainManager(VulkanContext& context, MemoryManager& memMgr, bool autoCleanup) :
     vkContext(context), memoryManager(memMgr), cleanOnDestruction(autoCleanup) {
 
-    Log::print(Log::T_INFO, __FUNCTION__, "Initializing...");
-
     if (vkContext.physicalDevice == VK_NULL_HANDLE) {
         throw Log::RuntimeException(__FUNCTION__, "Cannot initialize swap-chain manager: The GPU's physical device handle is null!");
     }
@@ -17,6 +15,8 @@ VkSwapchainManager::VkSwapchainManager(VulkanContext& context, MemoryManager& me
     }
 
     swapChain = vkContext.swapChain;
+
+    Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
 
 VkSwapchainManager::~VkSwapchainManager() {

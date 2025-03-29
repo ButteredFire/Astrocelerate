@@ -31,11 +31,41 @@ struct Vertex {
 };
 
 
+/* VERY IMPORTANT EXPLANATION BEHIND alignas(...) PER STRUCT MEMBER: "Alignment requirements"
+
+For example, if you have a struct like this:
+
+    struct ABC {
+        glm::vec2 foo;
+        glm::mat4 bar;
+        glm::mat4 foobar;
+    }
+
+... and you declare the struct in the vertex shader like this:
+
+    layout(binding = 0) uniform ABC {
+        vec2 foo;
+        mat4 bar;
+        mat4 foobar;
+    } abc;
+
+... the entire rendering pipeline fails, and nothing will be rendered on the screen. That is because we have not taken into account "alignment requirements." More information here: https://docs.vulkan.org/tutorial/latest/05_Uniform_buffers/01_Descriptor_pool_and_sets.html#_alignment_requirements
+
+[SOLUTION]
+Always be explicit about alignment:
+
+    struct ABC {
+        alignas(8) glm::vec2 foo;
+        alignas(16) glm::mat4 bar;
+        alignas(16) glm::mat4 foobar;
+    }
+
+*/
 // A structure specifying the properties of a uniform buffer object (UBO)
 struct UniformBufferObject {
-    glm::mat4 model;            // Object transformation matrix
-    glm::mat4 view;             // Camera transformation matrix
-    glm::mat4 projection;       // Depth and perspective transformation matrix
+    alignas(16) glm::mat4 model;            // Object transformation matrix
+    alignas(16) glm::mat4 view;             // Camera transformation matrix
+    alignas(16) glm::mat4 projection;       // Depth and perspective transformation matrix
 };
 
 
@@ -86,6 +116,13 @@ public:
 
     /* Gets the vertex index data. */
     inline const std::vector<uint32_t> getVertexIndexData() const { return vertIndices; }
+
+
+    /* Gets the uniform buffers */
+    inline const std::vector<VkBuffer>& getUniformBuffers() const { return uniformBuffers; };
+
+    /* Gets the uniform buffer allocations */
+    inline const std::vector<VmaAllocation>& getUniformBuffersAllocations() const { return uniformBuffersAllocations; };
 
 
     /* Gets the vertex input binding description. */

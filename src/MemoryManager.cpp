@@ -4,14 +4,7 @@ MemoryManager::MemoryManager(VulkanContext& context):
 	vkContext(context),
 	nextID(0) {
 
-	Log::print(Log::T_INFO, __FUNCTION__, "Initializing...");
-
-	// Initializes the VMA's cleanup task as a placeholder (for modification later when the VMA is actually created)
-	/*CleanupTask vmaCleanupTask{};
-	vmaCleanupTask.validTask = false;
-	vmaCleanupTask.caller = __FUNCTION__;
-	vmaCleanupTask.mainObjectName = "Vulkan Memory Allocator";
-	createCleanupTask(vmaCleanupTask);*/
+	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
 
 MemoryManager::~MemoryManager() {}
@@ -48,7 +41,7 @@ uint32_t MemoryManager::createCleanupTask(CleanupTask task) {
 	cleanupStack.push_back(task);
 	idToIdxLookup[id] = (cleanupStack.size() - 1);
 
-	Log::print(Log::T_INFO, task.caller.c_str(), "Pushed object " + enquote(task.mainObjectName) + " to cleanup stack.");
+	Log::print(Log::T_VERBOSE, task.caller.c_str(), "Pushed object " + enquote(task.mainObjectName) + " to cleanup stack.");
 	return id;
 }
 
@@ -79,7 +72,7 @@ void MemoryManager::processCleanupStack() {
 	size_t stackSize = cleanupStack.size();
 
 	std::string plural = (stackSize != 1)? "s" : "";
-	Log::print(Log::T_INFO, __FUNCTION__, "Executing " + std::to_string(stackSize) + " task" + plural + " in the cleanup stack...");
+	Log::print(Log::T_VERBOSE, __FUNCTION__, "Executing " + std::to_string(stackSize) + " task" + plural + " in the cleanup stack...");
 
 	while (!cleanupStack.empty()) {
 		uint32_t id = (cleanupStack.size() - 1);
@@ -124,7 +117,7 @@ bool MemoryManager::executeTask(CleanupTask& task, uint32_t taskID) {
 
 	// Executes the task and invalidates it to prevent future executions
 	task.cleanupFunc();
-	Log::print(Log::T_INFO, __FUNCTION__, "Executed cleanup task for object " + objectName + ".");
+	Log::print(Log::T_VERBOSE, __FUNCTION__, "Executed cleanup task for object " + objectName + ".");
 
 	task.validTask = false;
 	invalidTasks++;

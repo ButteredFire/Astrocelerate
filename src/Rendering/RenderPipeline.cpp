@@ -10,7 +10,7 @@ RenderPipeline::RenderPipeline(VulkanContext& context, MemoryManager& memMgr, Bu
 	bufferManager(bufMgr),
 	cleanOnDestruction(autoCleanup) {
 
-	Log::print(Log::T_INFO, __FUNCTION__, "Initializing...");
+	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
 
 RenderPipeline::~RenderPipeline() {
@@ -38,7 +38,7 @@ void RenderPipeline::init() {
 
 
 void RenderPipeline::cleanup() {
-	Log::print(Log::T_INFO, __FUNCTION__, "Cleaning up...");
+	Log::print(Log::T_VERBOSE, __FUNCTION__, "Cleaning up...");
 
 	for (const auto& buffer : imageFrameBuffers) {
 		if (vkIsValid(buffer))
@@ -76,7 +76,7 @@ void RenderPipeline::cleanup() {
 }
 
 
-void RenderPipeline::recordCommandBuffer(VkCommandBuffer& cmdBuffer, uint32_t imageIndex) {
+void RenderPipeline::recordCommandBuffer(VkCommandBuffer& cmdBuffer, uint32_t imageIndex, uint32_t currentFrame) {
 	// Specifies details about how the passed-in command buffer will be used before beginning
 	VkCommandBufferBeginInfo bufferBeginInfo{};
 	bufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -169,6 +169,10 @@ void RenderPipeline::recordCommandBuffer(VkCommandBuffer& cmdBuffer, uint32_t im
 	vkCmdBindIndexBuffer(cmdBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
 		// Draw call
+			// Binds descriptor sets
+	vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkContext.GraphicsPipeline.layout, 0, 1, &vkContext.GraphicsPipeline.uniformBufferDescriptorSets[currentFrame], 0, nullptr);
+
+			// Draws vertices based on the index buffer
 	auto vertexIndices = bufferManager.getVertexIndexData();
 	vkCmdDrawIndexed(cmdBuffer, static_cast<uint32_t>(vertexIndices.size()), 1, 0, 0, 0); // Use vkCmdDrawIndexed instead of vkCmdDraw to draw with the index buffer
 

@@ -74,7 +74,7 @@ static inline std::vector<char> readFile(const std::string& fileName, const std:
 
 class GraphicsPipeline {
 public:
-	GraphicsPipeline(VulkanContext& context, MemoryManager& memMgr, bool autoCleanup = true);
+	GraphicsPipeline(VulkanContext& context, MemoryManager& memMgr, BufferManager& bufMgr, bool autoCleanup = true);
 	~GraphicsPipeline();
 
 	void init();
@@ -84,6 +84,7 @@ private:
 	bool cleanOnDestruction = true;
 	VulkanContext& vkContext;
 	MemoryManager& memoryManager;
+	BufferManager& bufferManager;
 
 	VkPipeline graphicsPipeline = VK_NULL_HANDLE;
 
@@ -133,8 +134,10 @@ private:
 	// Tessellation state
 	VkPipelineTessellationStateCreateInfo tessStateCreateInfo{};
 
-	// Descriptor set layout
-	VkDescriptorSetLayout uniformBufferDescSetLayout = VK_NULL_HANDLE;
+	// Descriptors
+	VkDescriptorSetLayout uniformBufferDescriptorSetLayout = VK_NULL_HANDLE;
+	VkDescriptorPool uniformBufferDescriptorPool = VK_NULL_HANDLE;
+	std::vector<VkDescriptorSet> uniformBufferDescriptorSets;
 
 	// Pipeline layout
 	VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
@@ -151,6 +154,14 @@ private:
 
 	/* Creates a descriptor set layout. */
 	void createDescriptorSetLayout();
+
+
+	/* Creates a descriptor pool. */
+	void createDescriptorPool();
+
+
+	/* Creates a descriptor set. */
+	void createDescriptorSets();
 
 
 	/* Creates a render pass. 

@@ -12,8 +12,6 @@ Renderer::Renderer(VulkanContext &context, VkSwapchainManager& swapchainMgrInsta
     bufferManager(bufMgr),
     vkContext(context) {
 
-    Log::print(Log::T_INFO, __FUNCTION__, "Initializing...");
-
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -64,6 +62,8 @@ Renderer::Renderer(VulkanContext &context, VkSwapchainManager& swapchainMgrInsta
     //ImGui_ImplVulkan_CreateFontsTexture(YOUR_COMMAND_BUFFER);
     // (your code submit a queue)
     //ImGui_ImplVulkan_DestroyFontUploadObjects();
+
+    Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
 
 
@@ -126,7 +126,7 @@ void Renderer::drawFrame() {
     }
 
         // Records commands
-    renderPipeline.recordCommandBuffer(vkContext.RenderPipeline.graphicsCmdBuffers[currentFrame], imageIndex);
+    renderPipeline.recordCommandBuffer(vkContext.RenderPipeline.graphicsCmdBuffers[currentFrame], imageIndex, currentFrame);
 
 
         // Updates the uniform buffer

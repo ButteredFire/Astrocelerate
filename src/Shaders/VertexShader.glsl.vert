@@ -1,6 +1,9 @@
 #version 450
 
-layout(location = 0) uniform UniformBufferObject {
+// NOTE: It is possible to bind multiple descriptor sets simultaneously:
+// layout(set = 0, binding = 0) uniform UniformBufferObject { ... }
+
+layout(binding = 0) uniform UniformBufferObject {
     mat4 model;
     mat4 view;
     mat4 projection;

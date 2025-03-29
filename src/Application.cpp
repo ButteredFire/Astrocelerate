@@ -44,13 +44,13 @@ int main() {
         VkSwapchainManager swapchainManager(vkContext, memoryManager, false);
         swapchainManager.init();
 
-            // Creates a graphics pipeline
-        GraphicsPipeline graphicsPipeline(vkContext, memoryManager, false);
-        graphicsPipeline.init();
-
             // Creates a buffer manager
         BufferManager bufferManager(vkContext, memoryManager, false);
         bufferManager.init();
+
+            // Creates a graphics pipeline
+        GraphicsPipeline graphicsPipeline(vkContext, memoryManager, bufferManager, false);
+        graphicsPipeline.init();
 
             // Creates a rendering pipeline
         RenderPipeline renderPipeline(vkContext, memoryManager, bufferManager, false);

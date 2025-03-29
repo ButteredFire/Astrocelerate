@@ -3,7 +3,7 @@
 BufferManager::BufferManager(VulkanContext& context, MemoryManager& memMgr, bool autoCleanup):
 	vkContext(context), memoryManager(memMgr), cleanOnDestruction(autoCleanup) {
 
-	Log::print(Log::T_INFO, __FUNCTION__, "Initializing...");
+	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
 
 BufferManager::~BufferManager() {
@@ -196,7 +196,7 @@ void BufferManager::updateUniformBuffer(uint32_t currentImage) {
 
 
 	// glm::perspective(fieldOfView, aspectRatio, nearClipPlane, farClipPlane);
-	const float fieldOfView = glm::radians(60.0f);
+	constexpr float fieldOfView = glm::radians(60.0f);
 	float aspectRatio = static_cast<float>(vkContext.swapChainExtent.width / vkContext.swapChainExtent.height);
 	float nearClipPlane = 0.1f;
 	float farClipPlane = 10.0f;
@@ -212,8 +212,8 @@ void BufferManager::updateUniformBuffer(uint32_t currentImage) {
 	UBO.projection[1][1] *= -1;
 
 
-	// Copies the data from the uniform buffer object to the uniform buffer
-	memcpy(uniformBuffers[currentImage], &UBO, sizeof(UBO));
+	// Copies the contents in the uniform buffer object to the uniform buffer's data
+	memcpy(uniformBuffersMappedData[currentImage], &UBO, sizeof(UBO));
 }
 
 
@@ -332,6 +332,15 @@ void BufferManager::createUniformBuffers() {
 		This technique is called "persistent mapping". We use it here because, as aforementioned, the UBOs are updated with new data every single frame, and mapping them alone costs a little performance, much less every frame.
 		*/
 		vmaMapMemory(vkContext.vmaAllocator, uniformBuffersAllocations[i], &uniformBuffersMappedData[i]);
+
+		VmaAllocation uniformBufAlloc = uniformBuffersAllocations[i];
+		CleanupTask task{};
+		task.caller = __FUNCTION__;
+		task.mainObjectName = VARIABLE_NAME(uniformBuffersAllocations);
+		task.vkObjects = { vkContext.vmaAllocator, uniformBufAlloc };
+		task.cleanupFunc = [this, uniformBufAlloc]() { vmaUnmapMemory(vkContext.vmaAllocator, uniformBufAlloc); };
+
+		memoryManager.createCleanupTask(task);
 	}
 }
 

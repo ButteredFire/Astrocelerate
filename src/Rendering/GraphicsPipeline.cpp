@@ -3,12 +3,13 @@
 
 #include "GraphicsPipeline.hpp"
 
-GraphicsPipeline::GraphicsPipeline(VulkanContext& context, MemoryManager& memMgr, bool autoCleanup):
+GraphicsPipeline::GraphicsPipeline(VulkanContext& context, MemoryManager& memMgr, BufferManager& bufMgr, bool autoCleanup):
 	vkContext(context),
 	memoryManager(memMgr),
+	bufferManager(bufMgr),
 	cleanOnDestruction(autoCleanup) {
 
-	Log::print(Log::T_INFO, __FUNCTION__, "Initializing...");
+	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
 
 GraphicsPipeline::~GraphicsPipeline() {
@@ -42,8 +43,10 @@ void GraphicsPipeline::init() {
 	// Load shaders
 	initShaderStage();
 
-	// Create the descriptor
+	// Create uniform buffer descriptors
 	createDescriptorSetLayout();
+	createDescriptorPool();
+	createDescriptorSets();
 
 	// Create the pipeline layout
 	createPipelineLayout();
@@ -139,7 +142,7 @@ void GraphicsPipeline::createPipelineLayout() {
 	VkPipelineLayoutCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	createInfo.setLayoutCount = 1;
-	createInfo.pSetLayouts = &uniformBufferDescSetLayout;
+	createInfo.pSetLayouts = &uniformBufferDescriptorSetLayout;
 
 	// Push constants are a way of passing dynamic values to shaders
 	createInfo.pushConstantRangeCount = 0;
@@ -162,6 +165,137 @@ void GraphicsPipeline::createPipelineLayout() {
 	memoryManager.createCleanupTask(task);
 }
 
+
+void GraphicsPipeline::createDescriptorSetLayout() {
+	VkDescriptorSetLayoutBinding layoutBinding{};
+	layoutBinding.binding = ShaderConsts::VERT_BIND_UNIFORM_UBO;
+	layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+
+	// It is possible for the UBO shader variable to have multiple uniform buffer objects, so we need to specify the number of UBOs in it
+	layoutBinding.descriptorCount = 1;
+
+	// Specifies which shader stages will the UBO(s) be referenced and used (through `VkShaderStageFlagBits` values; see the specification for more information)
+	layoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+	// Specifies descriptors handling image-sampling
+	layoutBinding.pImmutableSamplers = nullptr;
+
+
+	VkDescriptorSetLayoutCreateInfo layoutCreateInfo{};
+	layoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	layoutCreateInfo.bindingCount = 1;
+	layoutCreateInfo.pBindings = &layoutBinding;
+
+	VkResult result = vkCreateDescriptorSetLayout(vkContext.logicalDevice, &layoutCreateInfo, nullptr, &uniformBufferDescriptorSetLayout);
+	if (result != VK_SUCCESS) {
+		throw Log::RuntimeException(__FUNCTION__, "Failed to create descriptor set layout!");
+	}
+
+	CleanupTask task{};
+	task.caller = __FUNCTION__;
+	task.mainObjectName = VARIABLE_NAME(uniformBufferDescriptorSetLayout);
+	task.vkObjects = { vkContext.logicalDevice, uniformBufferDescriptorSetLayout };
+	task.cleanupFunc = [this]() { vkDestroyDescriptorSetLayout(vkContext.logicalDevice, uniformBufferDescriptorSetLayout, nullptr); };
+
+	memoryManager.createCleanupTask(task);
+}
+
+
+void GraphicsPipeline::createDescriptorPool() {
+	// Specifies the number of descriptors and their type
+	VkDescriptorPoolSize descPoolSize{};
+	descPoolSize.descriptorCount = static_cast<uint32_t>(SimulationConsts::MAX_FRAMES_IN_FLIGHT);
+	descPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+
+	VkDescriptorPoolCreateInfo descPoolCreateInfo{};
+	descPoolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+	descPoolCreateInfo.poolSizeCount = 1;
+	descPoolCreateInfo.pPoolSizes = &descPoolSize;
+
+	// Specifies the maximum number of descriptor sets that can be allocated
+	descPoolCreateInfo.maxSets = static_cast<uint32_t>(SimulationConsts::MAX_FRAMES_IN_FLIGHT);
+
+	VkResult result = vkCreateDescriptorPool(vkContext.logicalDevice, &descPoolCreateInfo, nullptr, &uniformBufferDescriptorPool);
+	if (result != VK_SUCCESS) {
+		throw Log::RuntimeException(__FUNCTION__, "Failed to create descriptor pool!");
+	}
+
+	
+	CleanupTask task{};
+	task.caller = __FUNCTION__;
+	task.mainObjectName = VARIABLE_NAME(uniformBufferDescriptorPool);
+	task.vkObjects = { vkContext.logicalDevice, uniformBufferDescriptorPool };
+	task.cleanupFunc = [this]() { vkDestroyDescriptorPool(vkContext.logicalDevice, uniformBufferDescriptorPool, nullptr); };
+
+	memoryManager.createCleanupTask(task);
+}
+
+
+void GraphicsPipeline::createDescriptorSets() {
+	// Creates one descriptor set for every frame in flight (all with the same layout)
+	std::vector<VkDescriptorSetLayout> descSetLayouts(SimulationConsts::MAX_FRAMES_IN_FLIGHT, uniformBufferDescriptorSetLayout);
+
+	VkDescriptorSetAllocateInfo descSetAllocInfo{};
+	descSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	descSetAllocInfo.descriptorPool = uniformBufferDescriptorPool;
+
+	descSetAllocInfo.descriptorSetCount = static_cast<uint32_t>(descSetLayouts.size());
+	descSetAllocInfo.pSetLayouts = descSetLayouts.data();
+
+	// Creates descriptor sets
+	uniformBufferDescriptorSets.resize(descSetLayouts.size());
+	
+	VkResult result = vkAllocateDescriptorSets(vkContext.logicalDevice, &descSetAllocInfo, uniformBufferDescriptorSets.data());
+	if (result != VK_SUCCESS) {
+		throw Log::RuntimeException(__FUNCTION__, "Failed to create descriptor sets!");
+	}
+
+
+	// Configures the descriptors within the newly allocated descriptor sets
+	for (size_t i = 0; i < descSetLayouts.size(); i++) {
+		// Descriptors handling buffers (including uniform buffers) are configured with the following struct:
+		VkDescriptorBufferInfo descBufInfo{};
+
+		std::vector<VkBuffer> uniformBuffers = bufferManager.getUniformBuffers();
+		descBufInfo.buffer = uniformBuffers[i];
+
+		descBufInfo.offset = 0;
+		descBufInfo.range = sizeof(UniformBufferObject); // Note: We can also use VK_WHOLE_SIZE if we want to overwrite the whole buffer (like what we're doing)
+
+		// Updates the configuration for each descriptor
+		VkWriteDescriptorSet descWrite{};
+		descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descWrite.dstSet = uniformBufferDescriptorSets[i];
+		descWrite.dstBinding = ShaderConsts::VERT_BIND_UNIFORM_UBO;
+
+		// Since descriptors can be arrays, we must specify the first descriptor's index to update in the array.
+		// We are not using an array now, so we can leave it at 0.
+		descWrite.dstArrayElement = 0;
+
+
+		descWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		descWrite.descriptorCount = 1; // Specifies how many array elements to update (refer to `VkWriteDescriptorSet::dstArrayElement`)
+
+
+		/* The descriptor write configuration also needs a reference to its Info struct, and this part depends on the type of descriptor:
+		
+			- `VkWriteDescriptorSet::pBufferInfo`: Used for descriptors that refer to buffer data
+			- `VkWriteDescriptorSet::pImageInfo`: Used for descriptors that refer to image data
+			- `VkWriteDescriptorSet::pTexelBufferInfo`: Used for descriptors that refer to buffer views
+
+			We can only choose 1 out of 3.
+		*/
+		descWrite.pBufferInfo = &descBufInfo;
+		//descWrite.pImageInfo = nullptr;
+		//descWrite.pTexelBufferView = nullptr;
+
+
+		// Applies the updates
+		vkUpdateDescriptorSets(vkContext.logicalDevice, 1, &descWrite, 0, nullptr);
+	}
+
+	vkContext.GraphicsPipeline.uniformBufferDescriptorSets = uniformBufferDescriptorSets;
+}
 
 
 void GraphicsPipeline::createRenderPass() {
@@ -246,12 +380,12 @@ void GraphicsPipeline::initShaderStage() {
 	// Loads shader bytecode onto buffers
 		// Vertex shader
 	vertShaderBytecode = readFile(ShaderConsts::VERTEX);
-	Log::print(Log::T_INFO, __FUNCTION__, ("Loaded vertex shader! SPIR-V bytecode file size is " + std::to_string(vertShaderBytecode.size()) + " (bytes)."));
+	Log::print(Log::T_SUCCESS, __FUNCTION__, ("Loaded vertex shader! SPIR-V bytecode file size is " + std::to_string(vertShaderBytecode.size()) + " (bytes)."));
 	vertShaderModule = createShaderModule(vertShaderBytecode);
 
 		// Fragment shader
 	fragShaderBytecode = readFile(ShaderConsts::FRAGMENT);
-	Log::print(Log::T_INFO, __FUNCTION__, ("Loaded fragment shader! SPIR-V bytecode file size is " + std::to_string(fragShaderBytecode.size()) + " (bytes)."));
+	Log::print(Log::T_SUCCESS, __FUNCTION__, ("Loaded fragment shader! SPIR-V bytecode file size is " + std::to_string(fragShaderBytecode.size()) + " (bytes)."));
 	fragShaderModule = createShaderModule(fragShaderBytecode);
 
 	// Creates shader stages
@@ -358,7 +492,10 @@ void GraphicsPipeline::initRasterizationState() {
 	rasterizerCreateInfo.lineWidth = 1.0f;
 
 	rasterizerCreateInfo.cullMode = VK_CULL_MODE_BACK_BIT; // Determines the type of culling to use
-	rasterizerCreateInfo.frontFace = VK_FRONT_FACE_CLOCKWISE; // Specifies the vertex order for faces to be considered front-facing (can be clockwise/counter-clockwise)
+
+	// Specifies the vertex order for faces to be considered front-facing (can be clockwise/counter-clockwise)
+	// Since we flipped the Y-coordinate of the clip coordinates in `BufferManager::updateUniformBuffer` to prevent images from being rendered upside-down, we must also specify that the vertex order should be counter-clockwise. If we keep it as clockwise, in our Y-flip case, backface culling will appear and prevent any geometry from being drawn.
+	rasterizerCreateInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
 	rasterizerCreateInfo.depthBiasEnable = VK_FALSE;
 	rasterizerCreateInfo.depthBiasConstantFactor = 0.0f;

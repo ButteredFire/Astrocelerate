@@ -159,6 +159,8 @@ struct VulkanContext {
         VkPipeline pipeline = VK_NULL_HANDLE;
         VkPipelineLayout layout = VK_NULL_HANDLE;
         VkRenderPass renderPass = VK_NULL_HANDLE;
+
+		std::vector<VkDescriptorSet> uniformBufferDescriptorSets;
     } GraphicsPipeline;
 
     struct RenderPipeline {
