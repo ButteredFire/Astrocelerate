@@ -40,8 +40,10 @@ void GraphicsPipeline::init() {
 
 	initTessellationState();		// Tessellation state
 
+
 	// Load shaders
 	initShaderStage();
+
 
 	// Create uniform buffer descriptors
 	createDescriptorSetLayout();
@@ -52,11 +54,14 @@ void GraphicsPipeline::init() {
 	createDescriptorPool(uniformBufDescPoolSize, uniformBufferDescriptorPool);
 	createDescriptorSets();
 
+
 	// Create the pipeline layout
 	createPipelineLayout();
 
+
 	// Create the render pass
 	createRenderPass();
+
 
 	// Create the graphics pipeline
 	createGraphicsPipeline();
@@ -205,11 +210,12 @@ void GraphicsPipeline::createDescriptorSetLayout() {
 }
 
 
-void GraphicsPipeline::createDescriptorPool(std::vector<VkDescriptorPoolSize> poolSizes, VkDescriptorPool& descriptorPool) {
+void GraphicsPipeline::createDescriptorPool(std::vector<VkDescriptorPoolSize> poolSizes, VkDescriptorPool& descriptorPool, VkDescriptorPoolCreateFlags createFlags) {
 	VkDescriptorPoolCreateInfo descPoolCreateInfo{};
 	descPoolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 	descPoolCreateInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
 	descPoolCreateInfo.pPoolSizes = poolSizes.data();
+	descPoolCreateInfo.flags = createFlags;
 
 	// Specifies the maximum number of descriptor sets that can be allocated
 	descPoolCreateInfo.maxSets = 0;
@@ -302,64 +308,84 @@ void GraphicsPipeline::createDescriptorSets() {
 
 
 void GraphicsPipeline::createRenderPass() {
-	// Specifies the framebuffer attachment that will be used while rendering
-	VkAttachmentDescription colorAttachment{};
-	colorAttachment.format = vkContext.surfaceFormat.format;		// Swap-chain image format
-	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;				// Use 1 sample since multisampling is not enabled yet
+	// Main rendering
+	VkAttachmentDescription mainColorAttachment{};
+	mainColorAttachment.format = vkContext.surfaceFormat.format;
+	mainColorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;				// Use 1 sample since multisampling is not enabled yet
+	mainColorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;	// The render area will be cleared to a uniform value on every render pass instantiation. Since the render pass is run for every frame in our case, we effectively "refresh" the render area.
+	mainColorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	mainColorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	mainColorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	mainColorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED; // Vulkan is free to discard any previous contents (which is fine because we are clearing it anyway)
+	mainColorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
-		// loadOp and storeOp specify how the data in the attachment will be dealt with before and after rendering.
-		// loadOp and storeOp apply to color and depth data; stencilLoadOp and stencilStoreOp apply to stencil data.
-	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-	colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
-		// initialLayout specifies the layout the image will have before the render pass begins;
-		// finalLayout specifies the layout the image will have when the render pass ends
-	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;		// Ignore the image's previous layout (which works because we'll clear the contents of the image when the render pass ends anyway)
-	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;	// Used for presenting a presentable image (i.e., an image processed by the swap-chain) for display
-
-	/* A single render pass can consist of multiple subpasses. Subpasses are subsequent rendering operations that depend on the contents of framebuffers in previous passes, for example a sequence of post-processing effects that are applied one after another. If you group these rendering operations into one render pass, then Vulkan is able to reorder the operations and conserve memory bandwidth for possibly better performance. 
-	* However, we’ll stick to a single subpass for now.
-	*/
-	// Specifies the reference to the attachment
-	VkAttachmentReference colorAttachmentRef{};
-	colorAttachmentRef.attachment = 0;	// The attachment descriptions array currently consists of a single description, so the reference to it is 0 (the index referenced from the fragment shader with `layout(location = 0) ...`)
-	colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; // Specifies that the attachment will function as a color buffer
+	VkAttachmentReference mainColorAttachmentRef{};
+	mainColorAttachmentRef.attachment = 0;
+	mainColorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 	
-	// Specifies properties of a subpass
-	VkSubpassDescription subpass{};
-	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS; // Specifies the subpass as being a graphics subpass (for the graphics pipeline)
-	subpass.colorAttachmentCount = 1;
-	subpass.pColorAttachments = &colorAttachmentRef;
+	VkSubpassDescription mainSubpass{};
+	mainSubpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	mainSubpass.colorAttachmentCount = 1;
+	mainSubpass.pColorAttachments = &mainColorAttachmentRef;
+
+	
+	VkSubpassDependency mainDependency{};
+	mainDependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+	mainDependency.dstSubpass = 0;
+	mainDependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	mainDependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	mainDependency.srcAccessMask = 0;
+	mainDependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
 
 
-	// Subpass dependencies define memory and execution dependencies between subpasses. They are used to synchronize access to attachments in the render passes.
-	VkSubpassDependency dependency{};
-	dependency.srcSubpass = VK_SUBPASS_EXTERNAL; // Specifies the implicit subpass before the render pass
-	dependency.dstSubpass = 0; // Specifies the first subpass
+	// Dear ImGui
+		// NOTE: Dear Imgui uses the same color attachment as the main one, since Vulkan only allows for 1 color attachment per render pass.
+		// If Dear Imgui has its own render pass, then its color attachment's load operation must be LOAD_OP_LOAD because it needs to load the existing image from the main render pass.
+		// However, here, Dear Imgui is a subpass, so it automatically inherits the color atachment contents from the previous subpass (which is the main one). Therefore, we don't need to specify its load operation. 
+	VkSubpassDescription imguiSubpass{};
+	imguiSubpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	imguiSubpass.colorAttachmentCount = 1;
+	imguiSubpass.pColorAttachments = &mainColorAttachmentRef;
 
-	// Specifies the operations to wait for (and the stages in which they occur)
-		// We must wait for the swap-chain to finish reading the image before it can be accessed. To this end, we can wait on the color attachment output stage.
-	dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependency.srcAccessMask = 0;
-		
-		// The operations that should wait on this are in the color attachment stage and involve the writing of the color attachment. These settings will prevent the transition from happening until it’s actually necessary (and allowed): when we want to start writing colors to it.
-	dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+	VkSubpassDependency mainToImguiDependency{};
+	mainToImguiDependency.srcSubpass = mainDependency.dstSubpass;
+	mainToImguiDependency.dstSubpass = 1;
+	mainToImguiDependency.srcStageMask = mainDependency.dstStageMask;
+	mainToImguiDependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	mainToImguiDependency.srcAccessMask = mainDependency.dstAccessMask;
+	mainToImguiDependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
 
 	// Creates render pass
+	VkAttachmentDescription attachments[] = {
+		mainColorAttachment
+	};
+
+	VkSubpassDescription subpasses[] = {
+		mainSubpass,
+		imguiSubpass
+	};
+
+	VkSubpassDependency dependencies[] = {
+		mainDependency,
+		mainToImguiDependency
+	};
+
 	VkRenderPassCreateInfo renderPassCreateInfo{};
 	renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-	renderPassCreateInfo.attachmentCount = 1;
-	renderPassCreateInfo.pAttachments = &colorAttachment;
-	renderPassCreateInfo.subpassCount = 1;
-	renderPassCreateInfo.pSubpasses = &subpass;
-	renderPassCreateInfo.dependencyCount = 1;
-	renderPassCreateInfo.pDependencies = &dependency;
+
+	renderPassCreateInfo.attachmentCount = (sizeof(attachments) / sizeof(attachments[0]));
+	renderPassCreateInfo.pAttachments = attachments;
+
+	renderPassCreateInfo.subpassCount = (sizeof(subpasses) / sizeof(subpasses[0]));
+	renderPassCreateInfo.pSubpasses = subpasses;
+
+	renderPassCreateInfo.dependencyCount = (sizeof(dependencies) / sizeof(dependencies[0]));
+	renderPassCreateInfo.pDependencies = dependencies;
 
 	VkResult result = vkCreateRenderPass(vkContext.logicalDevice, &renderPassCreateInfo, nullptr, &renderPass);
 	if (result != VK_SUCCESS) {
@@ -376,7 +402,6 @@ void GraphicsPipeline::createRenderPass() {
 
 	memoryManager.createCleanupTask(task);
 }
-
 
 
 void GraphicsPipeline::initShaderStage() {

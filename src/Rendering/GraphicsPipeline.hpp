@@ -84,8 +84,9 @@ public:
 	/* Creates a descriptor pool.
 	* @param poolSizes: A vector storing descriptor pool sizes. Note that the resulting descriptor pool's max sets value is the cumulative descriptor count of all pool sizes in the vector.
 	* @param descriptorPool: The descriptor pool to be created.
+	* @param createFlags (Default: null): The descriptor pool's create flags.
 	*/
-	void createDescriptorPool(std::vector<VkDescriptorPoolSize> poolSizes, VkDescriptorPool& descriptorPool);
+	void createDescriptorPool(std::vector<VkDescriptorPoolSize> poolSizes, VkDescriptorPool& descriptorPool, VkDescriptorPoolCreateFlags createFlags = VkDescriptorPoolCreateFlags());
 
 private:
 	bool cleanOnDestruction = true;
@@ -167,9 +168,9 @@ private:
 	void createDescriptorSets();
 
 
-	/* Creates a render pass. 
-	* A render pass is a collection of rendering operations that all share/use the same framebuffer of the image to be rendered.
-	* It defines how the rendering commands are organized and executed.
+	/* Creates a render pass.
+	A render pass is a collection of rendering operations that all share/use the same framebuffer of the image to be rendered.
+	It defines how the rendering commands are organized and executed.
 	*/
 	void createRenderPass();
 

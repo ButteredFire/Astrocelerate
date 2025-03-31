@@ -39,12 +39,17 @@
 #include <Constants.h>
 #include <LoggingManager.hpp>
 
+// Font
+#include <../assets/FragmentMonoRegular.hpp>
+
 
 
 class Renderer {
 public:
 	Renderer(VulkanContext &context, VkSwapchainManager& swapchainMgr, BufferManager& bufMgr, GraphicsPipeline& graphicsPipelineInstance, RenderPipeline& renderPipelineInstance);
 	~Renderer();
+
+	void init();
 
 	/* Updates the rendering. */
 	void update();
@@ -61,9 +66,18 @@ private:
 
 	uint32_t currentFrame = 0;
 
-	ImFont* font;
+	ImFont* font = nullptr;
 	VkDescriptorPool imgui_DescriptorPool = VK_NULL_HANDLE;
 	bool showDemoWindow = true;
+
+
+	/* Configures Dear Imgui */
+	void configureDearImGui();
+
+
+	/* Reconfigures Dear Imgui on swapchain recreation. */
+	void refreshDearImgui();
+
 
 	/* Renders a frame. 
 	* At a high level, rendering a frame in Vulkan consists of a common set of steps:

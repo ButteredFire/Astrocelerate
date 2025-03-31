@@ -13,6 +13,26 @@ Renderer::Renderer(VulkanContext& context, VkSwapchainManager& swapchainMgr, Buf
     renderPipeline(renderPipelineInstance),
     vkContext(context) {
 
+    Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
+}
+
+
+Renderer::~Renderer() {
+    ImGui_ImplVulkan_DestroyFontsTexture();
+    ImGui_ImplVulkan_Shutdown();
+};
+
+void Renderer::update() {
+    drawFrame();
+}
+
+
+void Renderer::init() {
+    configureDearImGui();
+}
+
+
+void Renderer::configureDearImGui() {
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -37,59 +57,85 @@ Renderer::Renderer(VulkanContext& context, VkSwapchainManager& swapchainMgr, Buf
         style.WindowRounding = 0.0f;
         style.Colors[ImGuiCol_WindowBg].w = 1.0f;
     }
-    
+
 
     // Initialization info
     ImGui_ImplVulkan_InitInfo vkInitInfo = {};
-    vkInitInfo.Instance = vkContext.vulkanInstance;
-    vkInitInfo.PhysicalDevice = vkContext.physicalDevice;
-    vkInitInfo.Device = vkContext.logicalDevice;
-    
-	QueueFamilyIndices familyIndices = vkContext.queueFamilies;
+    vkInitInfo.Instance = vkContext.vulkanInstance;         // Instance
+    vkInitInfo.PhysicalDevice = vkContext.physicalDevice;   // Physical device
+    vkInitInfo.Device = vkContext.logicalDevice;            // Logical device
+
+        // Queue
+    QueueFamilyIndices familyIndices = vkContext.queueFamilies;
     vkInitInfo.QueueFamily = familyIndices.graphicsFamily.index.value();
     vkInitInfo.Queue = familyIndices.graphicsFamily.deviceQueue;
 
+        // Pipeline cache
     vkInitInfo.PipelineCache = VK_NULL_HANDLE;
 
+        // Descriptor pool
     std::vector<VkDescriptorPoolSize> imgui_PoolSizes = {
         { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE }
     };
-    graphicsPipeline.createDescriptorPool(imgui_PoolSizes, imgui_DescriptorPool);
+    VkDescriptorPoolCreateFlags imgui_DescPoolCreateFlags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+    graphicsPipeline.createDescriptorPool(imgui_PoolSizes, imgui_DescriptorPool, imgui_DescPoolCreateFlags);
     vkInitInfo.DescriptorPool = imgui_DescriptorPool;
 
+
+        // Render pass & subpass
     vkInitInfo.RenderPass = vkContext.GraphicsPipeline.renderPass;
-    vkInitInfo.Subpass = 0;
-    vkInitInfo.MinImageCount = vkContext.minImageCount; // For some unknown reason, ImGui does not actually use this property
+    vkInitInfo.Subpass = 1;
+
+        // Image count
+    vkInitInfo.MinImageCount = vkContext.minImageCount; // For some reason, ImGui does not actually use this property
     vkInitInfo.ImageCount = vkContext.minImageCount;
+    
+        // Other
     vkInitInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
     vkInitInfo.Allocator = nullptr;
 
-    //vkInitInfo.CheckVkResultFn = check_vk_result;
-    
+    vkInitInfo.CheckVkResultFn = [](VkResult result) {
+        if (result != VK_SUCCESS) {
+            throw Log::RuntimeException(__FUNCTION__, "An error occurred while setting up or running Dear Imgui!");
+        }
+        };
+
     ImGui_ImplVulkan_Init(&vkInitInfo);
-    
-    // (this gets a bit more complicated, see example app for full reference)
-    
+
+
+    // Loads font
+        // (this gets a bit more complicated, see example app for full reference)
     //ImGui_ImplVulkan_CreateFontsTexture(YOUR_COMMAND_BUFFER);
+    font = io.Fonts->AddFontFromMemoryTTF((void*)FragmentMonoRegular_ttf, static_cast<int>(FragmentMonoRegular_ttf_len), 20.0f);
+
+        // Default to Imgui's default font if loading from memory fails
+    if (font == nullptr) {
+        font = io.Fonts->AddFontDefault();
+    }
+    /*
     const char* fontPath = "C:\\Users\\HP\\Documents\\Visual Studio 2022\\Fonts\\Fragment_Mono\\FragmentMono-Regular.ttf";
     font = io.Fonts->AddFontFromFileTTF(fontPath, 20.0f);
+    if (!std::filesystem::exists(fontPath))
+        io.Fonts->AddFontDefault();
+    */
 
     ImGui_ImplVulkan_CreateFontsTexture();
 
+
     // (your code submit a queue)
     //ImGui_ImplVulkan_DestroyFontUploadObjects();
-
-
-    Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
 
 
-Renderer::~Renderer() {
-    
-};
+void Renderer::refreshDearImgui(){
+    int width = 0, height = 0;
+    glfwGetFramebufferSize(vkContext.window, &width, &height);
 
-void Renderer::update() {
-    drawFrame();
+    QueueFamilyIndices familyIndices = vkContext.queueFamilies;
+    uint32_t queueFamily = familyIndices.graphicsFamily.index.value();
+
+    ImGui_ImplVulkan_SetMinImageCount(vkContext.minImageCount);
+    //ImGui_ImplVulkanH_CreateOrResizeWindow(vkContext.vulkanInstance, vkContext.physicalDevice, vkContext.logicalDevice, WINDOW, queueFamily, nullptr, width, height, vkContext.minImageCount);
 }
 
 
@@ -118,6 +164,7 @@ void Renderer::drawFrame() {
     if (imgAcquisitionResult != VK_SUCCESS) {
         if (imgAcquisitionResult == VK_ERROR_OUT_OF_DATE_KHR || imgAcquisitionResult == VK_SUBOPTIMAL_KHR) {
             swapchainManager.recreateSwapchain(renderPipeline);
+            refreshDearImgui();
             return;
         }
 
@@ -133,6 +180,17 @@ void Renderer::drawFrame() {
     if (resetFenceResult != VK_SUCCESS) {
         throw Log::RuntimeException(__FUNCTION__, "Failed to reset fence!");
     }
+
+
+    ImGui_ImplVulkan_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+
+    ImGui::PushFont(font);
+    ImGui::ShowDemoWindow();
+    ImGui::PopFont();
+
+    ImGui::Render();
 
 
     // Records the command buffer
@@ -212,6 +270,7 @@ void Renderer::drawFrame() {
     if (presentResult != VK_SUCCESS) {
         if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR) {
             swapchainManager.recreateSwapchain(renderPipeline);
+            refreshDearImgui();
             return;
         }
         else {

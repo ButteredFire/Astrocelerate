@@ -55,8 +55,8 @@ namespace ShaderConsts {
 
 // Window properties
 namespace WindowConsts {
-	constexpr int DEFAULT_WINDOW_WIDTH = 1020;
-	constexpr int DEFAULT_WINDOW_HEIGHT = 800;
+	constexpr int DEFAULT_WINDOW_WIDTH = 1200;
+	constexpr int DEFAULT_WINDOW_HEIGHT = 900;
 }
 
 

@@ -176,6 +176,12 @@ void RenderPipeline::recordCommandBuffer(VkCommandBuffer& cmdBuffer, uint32_t im
 	auto vertexIndices = bufferManager.getVertexIndexData();
 	vkCmdDrawIndexed(cmdBuffer, static_cast<uint32_t>(vertexIndices.size()), 1, 0, 0, 0); // Use vkCmdDrawIndexed instead of vkCmdDraw to draw with the index buffer
 
+
+	// Transition to the ImGui subpass to record ImGui draw commands
+	vkCmdNextSubpass(cmdBuffer, VK_SUBPASS_CONTENTS_INLINE);
+	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmdBuffer);
+
+
 	// End the render pass
 	vkCmdEndRenderPass(cmdBuffer);
 
