@@ -40,7 +40,7 @@
 #include <LoggingManager.hpp>
 
 // Font
-#include <../assets/FragmentMonoRegular.hpp>
+#include <../assets/DefaultFont.hpp>
 
 
 
@@ -77,6 +77,10 @@ private:
 
 	/* Reconfigures Dear Imgui on swapchain recreation. */
 	void refreshDearImgui();
+
+
+	/* Renders the Imgui Demo Window */
+	void imgui_RenderDemoWindow();
 
 
 	/* Renders a frame. 

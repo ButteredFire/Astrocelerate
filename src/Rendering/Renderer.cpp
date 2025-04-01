@@ -106,7 +106,7 @@ void Renderer::configureDearImGui() {
     // Loads font
         // (this gets a bit more complicated, see example app for full reference)
     //ImGui_ImplVulkan_CreateFontsTexture(YOUR_COMMAND_BUFFER);
-    font = io.Fonts->AddFontFromMemoryTTF((void*)FragmentMonoRegular_ttf, static_cast<int>(FragmentMonoRegular_ttf_len), 20.0f);
+    font = io.Fonts->AddFontFromMemoryTTF((void*)DefaultFontData, static_cast<int>(DefaultFontLength), 20.0f);
 
         // Default to Imgui's default font if loading from memory fails
     if (font == nullptr) {
@@ -124,6 +124,59 @@ void Renderer::configureDearImGui() {
 
     // (your code submit a queue)
     //ImGui_ImplVulkan_DestroyFontUploadObjects();
+
+    // Implements custom style
+    ImVec4* colors = style.Colors;
+    // Backgrounds
+    colors[ImGuiCol_WindowBg] = ImVec4(0.10f, 0.10f, 0.10f, 1.0f); // Dark gray
+    colors[ImGuiCol_ChildBg] = ImVec4(0.12f, 0.12f, 0.12f, 1.0f); // Slightly lighter gray
+    colors[ImGuiCol_PopupBg] = ImVec4(0.08f, 0.08f, 0.08f, 0.94f); // Almost black
+
+    // Headers (collapsing sections, menus)
+    colors[ImGuiCol_Header] = ImVec4(0.25f, 0.25f, 0.25f, 1.0f);
+    colors[ImGuiCol_HeaderHovered] = ImVec4(0.30f, 0.30f, 0.30f, 1.0f);
+    colors[ImGuiCol_HeaderActive] = ImVec4(0.35f, 0.35f, 0.35f, 1.0f);
+
+    // Borders and separators
+    colors[ImGuiCol_Border] = ImVec4(0.25f, 0.25f, 0.25f, 0.50f);
+    colors[ImGuiCol_BorderShadow] = ImVec4(0, 0, 0, 0); // Remove shadow
+
+    // Text
+    colors[ImGuiCol_Text] = ImVec4(0.95f, 0.96f, 0.98f, 1.00f); // White
+    colors[ImGuiCol_TextDisabled] = ImVec4(0.50f, 0.50f, 0.50f, 1.00f); // Dim gray
+
+    // Frames (inputs, sliders, etc.)
+    colors[ImGuiCol_FrameBg] = ImVec4(0.15f, 0.15f, 0.15f, 1.0f);
+    colors[ImGuiCol_FrameBgHovered] = ImVec4(0.20f, 0.20f, 0.20f, 1.0f);
+    colors[ImGuiCol_FrameBgActive] = ImVec4(0.25f, 0.25f, 0.25f, 1.0f);
+
+    // Buttons
+    colors[ImGuiCol_Button] = ImVec4(0.20f, 0.22f, 0.27f, 1.0f); // Dark blue-gray
+    colors[ImGuiCol_ButtonHovered] = ImVec4(0.30f, 0.33f, 0.38f, 1.0f);
+    colors[ImGuiCol_ButtonActive] = ImVec4(0.35f, 0.40f, 0.45f, 1.0f);
+
+    // Scrollbars
+    colors[ImGuiCol_ScrollbarBg] = ImVec4(0.10f, 0.10f, 0.10f, 1.0f);
+    colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.20f, 0.25f, 0.30f, 1.0f);
+    colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.25f, 0.30f, 0.35f, 1.0f);
+    colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.30f, 0.35f, 0.40f, 1.0f);
+
+    // Tabs (used for docking)
+    colors[ImGuiCol_Tab] = ImVec4(0.18f, 0.18f, 0.18f, 1.0f);
+    colors[ImGuiCol_TabHovered] = ImVec4(0.26f, 0.26f, 0.26f, 1.0f);
+    colors[ImGuiCol_TabActive] = ImVec4(0.28f, 0.28f, 0.28f, 1.0f);
+    colors[ImGuiCol_TabUnfocused] = ImVec4(0.15f, 0.15f, 0.15f, 1.0f);
+    colors[ImGuiCol_TabUnfocusedActive] = ImVec4(0.20f, 0.20f, 0.20f, 1.0f);
+
+    // Title bar
+    colors[ImGuiCol_TitleBg] = ImVec4(0.10f, 0.10f, 0.10f, 1.0f);
+    colors[ImGuiCol_TitleBgActive] = ImVec4(0.15f, 0.15f, 0.15f, 1.0f);
+    colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.10f, 0.10f, 0.10f, 0.75f);
+
+    // Resize grips (bottom-right corner)
+    colors[ImGuiCol_ResizeGrip] = ImVec4(0.30f, 0.30f, 0.30f, 0.5f);
+    colors[ImGuiCol_ResizeGripHovered] = ImVec4(0.40f, 0.40f, 0.40f, 0.75f);
+    colors[ImGuiCol_ResizeGripActive] = ImVec4(0.45f, 0.45f, 0.45f, 1.0f);
 }
 
 
@@ -136,6 +189,23 @@ void Renderer::refreshDearImgui(){
 
     ImGui_ImplVulkan_SetMinImageCount(vkContext.minImageCount);
     //ImGui_ImplVulkanH_CreateOrResizeWindow(vkContext.vulkanInstance, vkContext.physicalDevice, vkContext.logicalDevice, WINDOW, queueFamily, nullptr, width, height, vkContext.minImageCount);
+}
+
+
+void Renderer::imgui_RenderDemoWindow() {
+    ImGui::ShowDemoWindow();
+
+    ImGui::Begin("Astrocelerate Control Panel"); // Window title
+
+    ImGui::Text("Welcome to Astrocelerate!"); // Basic text
+    static float someValue = 0.0f;
+    ImGui::SliderFloat("Simulation Speed", &someValue, 0.0f, 10.0f); // Slider
+
+    if (ImGui::Button("Launch Simulation")) {
+        // Call your simulation start function here
+    }
+
+    ImGui::End();
 }
 
 
@@ -187,7 +257,7 @@ void Renderer::drawFrame() {
     ImGui::NewFrame();
 
     ImGui::PushFont(font);
-    ImGui::ShowDemoWindow();
+    imgui_RenderDemoWindow();
     ImGui::PopFont();
 
     ImGui::Render();

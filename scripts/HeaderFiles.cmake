@@ -1,5 +1,5 @@
 set(HEADER_FILES
-	"assets/FragmentMonoRegular.hpp"
+	"assets/DefaultFont.hpp"
 	"external/boxer/include/boxer/boxer.h"
 	"external/imgui/imconfig.h"
 	"external/imgui/imgui.h"

@@ -1,5 +1,5 @@
 set(SOURCE_FILES
-	"assets/FragmentMonoRegular.cpp"
+	"assets/DefaultFont.cpp"
 	"external/boxer/src/boxer_win.cpp"
 	"external/imgui/imgui.cpp"
 	"external/imgui/imgui_demo.cpp"
