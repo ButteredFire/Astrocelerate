@@ -7,10 +7,7 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
    set(LINUX TRUE)
 endif()
 
-message(STATUS "CMAKE_SYSTEM_NAME = ${CMAKE_SYSTEM_NAME}")
-message(STATUS "APPLE = ${APPLE}")
-message(STATUS "WIN32 = ${WIN32}")
-message(STATUS "LINUX = ${LINUX}")
+message(STATUS "System name: ${CMAKE_SYSTEM_NAME}")
 
 # Source files
 set(SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")

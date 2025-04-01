@@ -79,6 +79,8 @@ public:
 
 
     /* Creates a buffer.
+    * @param vkContext: The application context.
+    * @param memoryManager: An instance of the memory manager. This is used to create a cleanup task after buffer creation.
     * @param &buffer: The buffer to be created.
     * @param bufferSize: The size of the buffer (in bytes).
     * @param usageFlags: Flags specifying how the buffer will be used.
@@ -87,7 +89,7 @@ public:
     * 
     * @return The cleanup task ID for the newly created buffer.
     */
-    uint32_t createBuffer(VkBuffer& buffer, VkDeviceSize bufferSize, VkBufferUsageFlags usageFlags, VmaAllocation& bufferAllocation, VmaAllocationCreateInfo bufferAllocationCreateInfo);
+    static uint32_t createBuffer(VulkanContext& vkContext, MemoryManager& memoryManager, VkBuffer& buffer, VkDeviceSize bufferSize, VkBufferUsageFlags usageFlags, VmaAllocation& bufferAllocation, VmaAllocationCreateInfo bufferAllocationCreateInfo);
 
 
     /* Copies the contents from a source buffer to a destination buffer.

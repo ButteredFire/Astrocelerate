@@ -60,6 +60,16 @@ namespace WindowConsts {
 }
 
 
+// Gamma correction constants
+namespace Gamma {
+	constexpr float THRESHOLD = 0.04045f;
+	constexpr float DIVISOR = 12.92f;
+	constexpr float OFFSET = 0.055f;
+	constexpr float SCALE = 1.055f;
+	constexpr float EXPONENT = 2.4f;
+}
+
+
 // Physics constants
 namespace PhysicsConsts {
 	constexpr double GRAVITATIONAL_CONSTANT = 6.67430e-11;  // m^3 kg^-1 s^-2
