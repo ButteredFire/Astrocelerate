@@ -268,6 +268,9 @@ void Renderer::drawFrame() {
 
     ImGui::Render();
 
+    ImGui::UpdatePlatformWindows();
+    ImGui::EndFrame();
+
 
     // Records the command buffer
         // Resets the command buffer first to ensure it is able to be recorded
