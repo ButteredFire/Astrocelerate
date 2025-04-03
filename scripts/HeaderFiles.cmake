@@ -17,6 +17,7 @@ set(HEADER_FILES
 	"src/IncludesRefs.h"
 	"src/LoggingManager.hpp"
 	"src/MemoryManager.hpp"
+	"src/ServiceLocator.hpp"
 	"src/Engine/Engine.hpp"
 	"src/Rendering/GraphicsPipeline.hpp"
 	"src/Rendering/Renderer.hpp"

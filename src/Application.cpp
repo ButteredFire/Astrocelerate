@@ -3,6 +3,7 @@
 
 #include <AppWindow.hpp>
 #include <Engine/Engine.hpp>
+#include <ServiceLocator.hpp>
 #include <Constants.h>
 #include <MemoryManager.hpp>
 #include <ApplicationContext.hpp>
@@ -35,10 +36,14 @@ int main() {
             // Creates an instance manager and initializes instance-related objects
         VkInstanceManager instanceManager(vkContext, memoryManager, false);
         instanceManager.init();
+        //std::shared_ptr<VkInstanceManager> instanceManager = std::make_shared<VkInstanceManager>(vkContext, memoryManager, false);
+        //instanceManager->init();
 
             // Creates a device manager and initializes GPU-related objects
         VkDeviceManager deviceManager(vkContext, memoryManager, false);
         deviceManager.init();
+        //std::shared_ptr<VkDeviceManager> deviceManager = std::make_shared<VkDeviceManager>(vkContext, memoryManager, false);
+        //deviceManager->init();
 
             // Creates a swap-chain manager for swap-chain operations
         VkSwapchainManager swapchainManager(vkContext, memoryManager, false);
