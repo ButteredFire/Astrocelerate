@@ -12,6 +12,7 @@ from pathlib import Path
 # Name of the script (used for loggging)
 fileName = __file__.replace(str(Path(__file__).parent.parent), "").replace("\\", "/")[1:]
 
+# Writes the file paths of all source and header files to corresponding CMake files. 
 def retrieveFileDirectories(startPath, pyFilePath, targetDirs):
     def enquote(s) -> str:
         # Enquotes a string.
