@@ -40,9 +40,9 @@ public:
 	void cleanup();
 
 	/* Writes a command into a command buffer.
-	* @param buffer: The buffer to be recorded into.
-	* @param imageIndex: The index of the swap-chain image from which commands are recorded.
-	* @param currentFrame: The index of the frame currently being rendered.
+		@param buffer: The buffer to be recorded into.
+		@param imageIndex: The index of the swap-chain image from which commands are recorded.
+		@param currentFrame: The index of the frame currently being rendered.
 	*/
 	void recordCommandBuffer(VkCommandBuffer& buffer, uint32_t imageIndex, uint32_t currentFrame);
 
@@ -56,16 +56,16 @@ public:
 
 
 	/* Gets a list of image framebuffers.
-	* @return A vector of type VkFrameBuffer containing a framebuffer for every swap-chain image.
+		@return A vector of type VkFrameBuffer containing a framebuffer for every swap-chain image.
 	*/
 	inline std::vector<VkFramebuffer> getImageFrameBuffers() const { return imageFrameBuffers; };
 
 	
 	/* Creates a command pool.
-	* @param vkContext: The application context.
-	* @param device: The logical device.
-	* @param queueFamilyIndex: The index of the queue family for which the command pool is to be created.
-	* @param flags (Default: VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT): The command pool flags.
+		@param vkContext: The application context.
+		@param device: The logical device.
+		@param queueFamilyIndex: The index of the queue family for which the command pool is to be created.
+		@param flags (Default: VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT): The command pool flags.
 	*/
 	static VkCommandPool createCommandPool(VulkanContext& vkContext, VkDevice device, uint32_t queueFamilyIndex, VkCommandPoolCreateFlags flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
 

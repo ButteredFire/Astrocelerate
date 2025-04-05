@@ -39,31 +39,35 @@ public:
 
 
 	/* Creates the Vulkan Memory Allocator. The VMA object is automatically added to the application context, and its cleanup task created.
-	* @param instance: The Vulkan instance.
-	* @param physicalDevice: The selected physical device.
-	* @param device: The selected logical device.
-	* @return The VmaAllocator handle.
+		@param instance: The Vulkan instance.
+		@param physicalDevice: The selected physical device.
+		@param device: The selected logical device.
+		
+		@return The VmaAllocator handle.
 	*/
 	VmaAllocator createVMAllocator(VkInstance& instance, VkPhysicalDevice& physicalDevice, VkDevice& device);
 
 
 	/* Pushes a cleanup task to be executed on program exit to the cleanup stack (technically a deque, but almost always used like a stack).
-	* @param task: The cleanup task.
-	* @return The cleanup task's ID.
+		@param task: The cleanup task.
+		
+		@return The cleanup task's ID.
 	*/
 	uint32_t createCleanupTask(CleanupTask task);
 
 
 	/* Modifies an existing cleanup task. 
-	* @param taskID: The task's ID.
-	* @return A reference to the cleanup task (allowing for method chaining).
+		@param taskID: The task's ID.
+		
+		@return A reference to the cleanup task (allowing for method chaining).
 	*/
 	CleanupTask& modifyCleanupTask(uint32_t taskID);
 
 
 	/* Executes a cleanup task from anywhere in the cleanup stack. This can be dangerous if the main object of the cleanup task to be executed is still being referenced by other objects or tasks.
-	* @param taskID: The task's ID.
-	* @return True if the execution was successful, otherwise False.
+		@param taskID: The task's ID.
+		
+		@return True if the execution was successful, otherwise False.
 	*/
 	bool executeCleanupTask(uint32_t taskID);
 
@@ -86,9 +90,10 @@ private:
 
 
 	/* Executes a cleanup task.
-	* @param task: The task to be executed.
-	* @param taskID: The task's ID.
-	* @return True if the execution was successful, otherwise False.
+		@param task: The task to be executed.
+		@param taskID: The task's ID.
+		
+		@return True if the execution was successful, otherwise False.
 	*/
 	bool executeTask(CleanupTask& task, uint32_t taskID);
 

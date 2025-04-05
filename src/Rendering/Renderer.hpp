@@ -109,12 +109,12 @@ private:
 
 
 	/* Renders a frame. 
-	* At a high level, rendering a frame in Vulkan consists of a common set of steps:
-	*	- Wait for the previous frame to finish
-	*	- Acquire an image from the swap chain
-	*	- Record a command buffer which draws the scene onto that image
-	*	- Submit the recorded command buffer
-	*	- Present the swap chain image
+		At a high level, rendering a frame in Vulkan consists of a common set of steps:
+			- Wait for the previous frame to finish
+			- Acquire an image from the swap chain
+			- Record a command buffer which draws the scene onto that image
+			- Submit the recorded command buffer
+			- Present the swap chain image
 	*/
 	void drawFrame();
 };

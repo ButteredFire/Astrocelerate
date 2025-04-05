@@ -95,19 +95,19 @@ public:
 	void cleanup();
 
 	/* Gets the renderer's currently enabled Vulkan validation layers.
-	* @return A vector of type `const char*` that contains the names of currently enabled validation layers.
+		@return A vector of type `const char*` that contains the names of currently enabled validation layers.
 	*/
 	inline std::vector<const char*> getEnabledVulkanValidationLayers() const { return enabledValidationLayers; };
 
 
 	/* Queries supported Vulkan extensions (may differ from machine to machine).
-	* @return A vector of type `VkExtensionProperties` that contains supported Vulkan extensions.
+		@return A vector of type `VkExtensionProperties` that contains supported Vulkan extensions.
 	*/
 	std::vector<VkExtensionProperties> getSupportedVulkanExtensions();
 
 
 	/* Queries supported Vulkan validation layers.
-	* @return A vector of type `VkLayerProperties` that contains supported Vulkan validation layers.
+		@return A vector of type `VkLayerProperties` that contains supported Vulkan validation layers.
 	*/
 	std::vector<VkLayerProperties> getSupportedVulkanValidationLayers();
 
@@ -121,13 +121,13 @@ public:
 
 
 	/* Adds Vulkan extensions to the current list of enabled extensions.
-	* @param extensions: A vector containing Vulkan extension names to be bound to the current list of enabled extensions.
+		@param extensions: A vector containing Vulkan extension names to be bound to the current list of enabled extensions.
 	*/
 	void addVulkanExtensions(std::vector<const char*> extensions);
 
 
 	/* Adds Vulkan validation layers to the current list of enabled validation layers.
-	* @param layers: A vector containing Vulkan validation layer names to be bound to the current list of enabled validation layers.
+		@param layers: A vector containing Vulkan validation layer names to be bound to the current list of enabled validation layers.
 	*/
 	void addVulkanValidationLayers(std::vector<const char*> layers);
 
@@ -150,8 +150,7 @@ private:
 	std::unordered_set<std::string> supportedExtensionNames;
 
 
-	/* Initializes Vulkan.
-	*/
+	/* Initializes Vulkan. */
 	void initVulkan();
 
 
@@ -167,17 +166,17 @@ private:
 	void createSurface();
 
 	/* Verifies whether a given array of Vulkan extensions is available or supported.
-	* @param extensions: A vector containing the names of Vulkan extensions to be evaluated for validity.
-	*
-	* @return True if all specified Vulkan extensions are supported, otherwise False.
+		@param extensions: A vector containing the names of Vulkan extensions to be evaluated for validity.
+		
+		@return True if all specified Vulkan extensions are supported, otherwise False.
 	*/
 	bool verifyVulkanExtensions(std::vector<const char*> extensions);
 
 
 	/* Verifies whether a given vector of Vulkan validation layers is available or supported.
-	* @param layers: A vector containing the names of Vulkan validation layers to be evaluated for validity.
-	*
-	* @return True if all specified Vulkan validation layers are supported, otherwise False.
+		@param layers: A vector containing the names of Vulkan validation layers to be evaluated for validity.
+		
+		@return True if all specified Vulkan validation layers are supported, otherwise False.
 	*/
 	bool verifyVulkanValidationLayers(std::vector<const char*>& layers);
 };

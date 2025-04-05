@@ -80,28 +80,28 @@ public:
 
 
     /* Creates a buffer.
-    * @param vkContext: The application context.
-    * @param &buffer: The buffer to be created.
-    * @param bufferSize: The size of the buffer (in bytes).
-    * @param usageFlags: Flags specifying how the buffer will be used.
-    * @param bufferAllocation: The memory block allocated for the buffer.
-    * @param bufferAllocationCreateInfo: The buffer allocation create info struct.
-    * 
-    * @return The cleanup task ID for the newly created buffer.
+        @param vkContext: The application context.
+        @param &buffer: The buffer to be created.
+        @param bufferSize: The size of the buffer (in bytes).
+        @param usageFlags: Flags specifying how the buffer will be used.
+        @param bufferAllocation: The memory block allocated for the buffer.
+        @param bufferAllocationCreateInfo: The buffer allocation create info struct.
+        
+        @return The cleanup task ID for the newly created buffer.
     */
     static uint32_t createBuffer(VulkanContext& vkContext, VkBuffer& buffer, VkDeviceSize bufferSize, VkBufferUsageFlags usageFlags, VmaAllocation& bufferAllocation, VmaAllocationCreateInfo bufferAllocationCreateInfo);
 
 
     /* Copies the contents from a source buffer to a destination buffer.
-    * @param srcBuffer: The source buffer that stores the contents to be transferred.
-    * @param dstBuffer: The destination buffer to receive the contents from the source buffer.
-    * @param deviceSize: The size of either the source or destination buffer (in bytes).
+        @param srcBuffer: The source buffer that stores the contents to be transferred.
+        @param dstBuffer: The destination buffer to receive the contents from the source buffer.
+        @param deviceSize: The size of either the source or destination buffer (in bytes).
     */
     void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize deviceSize);
     
 
     /* Updates the uniform buffer. 
-	* @param currentImage: The index of the current image/frame.
+	    @param currentImage: The index of the current image/frame.
     */
     void updateUniformBuffer(uint32_t currentImage);
 
@@ -169,9 +169,9 @@ private:
 
 
     /* Writes data to a buffer that is allocated in GPU (device-local) memory.
-    * @param data: The data to write to the buffer.
-    * @param buffer: The buffer to which the data is to be written.
-    * @param bufferSize: The size of the buffer (in bytes).
+        @param data: The data to write to the buffer.
+        @param buffer: The buffer to which the data is to be written.
+        @param bufferSize: The size of the buffer (in bytes).
     */
     void writeDataToGPUBuffer(const void* data, VkBuffer& buffer, VkDeviceSize bufferSize);
 
@@ -189,11 +189,12 @@ private:
 
 
     /* Finds the memory type suitable for buffer and application requirements.
-    *
-    * GPUs offer different types of memory to allocate from, each differs in allowed operations and performance characteristics.
-	* @param typeFilter: A bitfield specifying the memory types that are suitable.
-	* @param properties: The properties of the memory.
-	* @return The index of the sutiable memory type.
+        
+        GPUs offer different types of memory to allocate from, each differs in allowed operations and performance characteristics.
+	    @param typeFilter: A bitfield specifying the memory types that are suitable.
+	    @param properties: The properties of the memory.
+
+	    @return The index of the sutiable memory type.
     */
     uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 };

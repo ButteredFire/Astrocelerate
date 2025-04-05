@@ -58,8 +58,8 @@ public:
 
 
 	/* Queries all GPU-supported queue families.
-	* @param device: The GPU from which to query queue families.
-	* @return A QueueFamilyIndices struct, with each family assigned to their corresponding index.
+		@param device: The GPU from which to query queue families.
+		@return A QueueFamilyIndices struct, with each family assigned to their corresponding index.
 	*/
 	static QueueFamilyIndices getQueueFamilies(VkPhysicalDevice& device, VkSurfaceKHR& surface);
 
@@ -88,17 +88,17 @@ private:
 
 
 	/* Grades a list of GPUs according to their suitability for Astrocelerate's features.
-	* @param physicalDevices: A vector of GPUs to be evaluated for suitability.
-	* @return A vector containing the final scores of all GPUs in the list.
+		@param physicalDevices: A vector of GPUs to be evaluated for suitability.
+		@return A vector containing the final scores of all GPUs in the list.
 	*/
 	std::vector<PhysicalDeviceScoreProperties> rateGPUSuitability(std::vector<VkPhysicalDevice>& physicalDevices);
 	
 	
 	/* Checks whether a GPU supports a list of extensions.
-	* @param device: The GPU to be evaluated for extension support.
-	* @param extensions: A vector containing extensions to be checked.
-	* 
-	* @return True if the GPU supports all extensions in the list of extensions, otherwise False.
+		@param device: The GPU to be evaluated for extension support.
+		@param extensions: A vector containing extensions to be checked.
+		
+		@return True if the GPU supports all extensions in the list of extensions, otherwise False.
 	*/
 	bool checkDeviceExtensionSupport(VkPhysicalDevice& device, std::vector<const char*>& extensions);
 };
