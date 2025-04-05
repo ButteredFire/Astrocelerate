@@ -4,8 +4,10 @@
 
 #include "VkInstanceManager.hpp"
 
-VkInstanceManager::VkInstanceManager(VulkanContext& context, MemoryManager& memMgr, bool autoCleanup):
-    vkContext(context), memoryManager(memMgr), cleanOnDestruction(autoCleanup) {
+VkInstanceManager::VkInstanceManager(VulkanContext& context, bool autoCleanup):
+    vkContext(context), cleanOnDestruction(autoCleanup) {
+    
+    memoryManager = ServiceLocator::getService<MemoryManager>();
 
     Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
@@ -96,7 +98,7 @@ void VkInstanceManager::createDebugMessenger() {
     task.cleanupFunc = [&]() { destroyDebugUtilsMessengerEXT(vulkInst, debugMessenger, nullptr); };
     task.cleanupConditions = { inDebugMode };
 
-    memoryManager.createCleanupTask(task);
+    memoryManager->createCleanupTask(task);
 }
 
 
@@ -168,7 +170,7 @@ void VkInstanceManager::createVulkanInstance() {
     task.vkObjects = { vulkInst };
     task.cleanupFunc = [&]() { vkDestroyInstance(vulkInst, nullptr); };
 
-    memoryManager.createCleanupTask(task);
+    memoryManager->createCleanupTask(task);
 }
 
 
@@ -189,9 +191,9 @@ void VkInstanceManager::createSurface() {
     task.caller = __FUNCTION__;
     task.mainObjectName = VARIABLE_NAME(windowSurface);
     task.vkObjects = { vulkInst, windowSurface };
-    task.cleanupFunc = [&]() { vkDestroySurfaceKHR(vulkInst, windowSurface, nullptr); };
+    task.cleanupFunc = [this]() { vkDestroySurfaceKHR(vulkInst, windowSurface, nullptr); };
 
-    memoryManager.createCleanupTask(task);
+    memoryManager->createCleanupTask(task);
 }
 
 

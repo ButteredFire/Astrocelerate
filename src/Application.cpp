@@ -25,7 +25,9 @@ int main() {
     VulkanContext vkContext{};
 
     // Creates a memory manager
-    MemoryManager memoryManager(vkContext);
+    //MemoryManager memoryManager(vkContext);
+    std::shared_ptr<MemoryManager> memoryManager = std::make_shared<MemoryManager>(vkContext);
+    ServiceLocator::registerService(memoryManager);
 
     try {
             // Creates a window
@@ -34,35 +36,36 @@ int main() {
         vkContext.window = windowPtr;
 
             // Creates an instance manager and initializes instance-related objects
-        VkInstanceManager instanceManager(vkContext, memoryManager, false);
+        VkInstanceManager instanceManager(vkContext, false);
         instanceManager.init();
-        //std::shared_ptr<VkInstanceManager> instanceManager = std::make_shared<VkInstanceManager>(vkContext, memoryManager, false);
-        //instanceManager->init();
 
             // Creates a device manager and initializes GPU-related objects
-        VkDeviceManager deviceManager(vkContext, memoryManager, false);
+        VkDeviceManager deviceManager(vkContext, false);
         deviceManager.init();
-        //std::shared_ptr<VkDeviceManager> deviceManager = std::make_shared<VkDeviceManager>(vkContext, memoryManager, false);
-        //deviceManager->init();
 
             // Creates a swap-chain manager for swap-chain operations
-        VkSwapchainManager swapchainManager(vkContext, memoryManager, false);
-        swapchainManager.init();
+        std::shared_ptr<VkSwapchainManager> swapchainManager = std::make_shared<VkSwapchainManager>(vkContext, false);
+        swapchainManager->init();
+        ServiceLocator::registerService(swapchainManager);
 
             // Creates a buffer manager
-        BufferManager bufferManager(vkContext, memoryManager, false);
-        bufferManager.init();
+        std::shared_ptr<BufferManager> bufferManager = std::make_shared<BufferManager>(vkContext, false);
+        bufferManager->init();
+
+        ServiceLocator::registerService(bufferManager);
 
             // Creates a graphics pipeline
-        GraphicsPipeline graphicsPipeline(vkContext, memoryManager, bufferManager, false);
-        graphicsPipeline.init();
+        std::shared_ptr<GraphicsPipeline> graphicsPipeline = std::make_shared<GraphicsPipeline>(vkContext, false);
+        graphicsPipeline->init();
+        ServiceLocator::registerService(graphicsPipeline);
 
             // Creates a rendering pipeline
-        RenderPipeline renderPipeline(vkContext, memoryManager, bufferManager, false);
-        renderPipeline.init();
+        std::shared_ptr<RenderPipeline> renderPipeline = std::make_shared<RenderPipeline>(vkContext, false);
+        renderPipeline->init();
+        ServiceLocator::registerService(renderPipeline);
 
             // Creates a renderer
-        Renderer renderer(vkContext, swapchainManager, bufferManager, graphicsPipeline, renderPipeline);
+        Renderer renderer(vkContext);
         renderer.init();
 
         Engine engine(windowPtr, vkContext, renderer);
@@ -71,12 +74,12 @@ int main() {
     catch (const Log::RuntimeException& e) {
         Log::print(e.severity(), e.origin(), e.what());
 
-        memoryManager.processCleanupStack();
+        memoryManager->processCleanupStack();
 
         boxer::show(e.what(), ("Exception raised from " + std::string(e.origin())).c_str(), boxer::Style::Error, boxer::Buttons::Quit);
         return EXIT_FAILURE;
     }
 
-    memoryManager.processCleanupStack();
+    memoryManager->processCleanupStack();
     return EXIT_SUCCESS;
 }

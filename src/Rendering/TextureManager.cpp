@@ -27,7 +27,7 @@ void TextureManager::createTextureImage(VulkanContext& vkContext, MemoryManager&
 	bufAllocInfo.requiredFlags = (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 	bufAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT; // Specify CPU access since we will be mapping the buffer allocation to CPU memory
 
-	BufferManager::createBuffer(vkContext, memoryManager, stagingBuffer, imageSize, stagingBufUsageFlags, stagingBufAllocation, bufAllocInfo);
+	BufferManager::createBuffer(vkContext, stagingBuffer, imageSize, stagingBufUsageFlags, stagingBufAllocation, bufAllocInfo);
 
 
 		// Copy pixel data to the buffer

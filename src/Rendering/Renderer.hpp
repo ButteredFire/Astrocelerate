@@ -38,6 +38,7 @@
 #include <Shaders/BufferManager.hpp>
 #include <Constants.h>
 #include <LoggingManager.hpp>
+#include <ServiceLocator.hpp>
 
 // Font
 #include <../assets/DefaultFont.hpp>
@@ -66,7 +67,7 @@ static inline ImVec4 linearRGBA(float r, float g, float b, float a = 1.0f) {
 
 class Renderer {
 public:
-	Renderer(VulkanContext &context, VkSwapchainManager& swapchainMgr, BufferManager& bufMgr, GraphicsPipeline& graphicsPipelineInstance, RenderPipeline& renderPipelineInstance);
+	Renderer(VulkanContext &context);
 	~Renderer();
 
 	void init();
@@ -78,11 +79,11 @@ private:
 	VkInstance &vulkInst;
 	VulkanContext &vkContext;
 
-	VkSwapchainManager& swapchainManager;
-	BufferManager& bufferManager;
+	std::shared_ptr<VkSwapchainManager> swapchainManager;
+	std::shared_ptr<BufferManager> bufferManager;
 
-	GraphicsPipeline& graphicsPipeline;
-	RenderPipeline& renderPipeline;
+	std::shared_ptr<GraphicsPipeline> graphicsPipeline;
+	std::shared_ptr<RenderPipeline> renderPipeline;
 
 	uint32_t currentFrame = 0;
 

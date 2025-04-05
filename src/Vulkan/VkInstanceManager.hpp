@@ -21,6 +21,7 @@
 #include <Vulkan/VkDeviceManager.hpp>
 #include <LoggingManager.hpp>
 #include <MemoryManager.hpp>
+#include <ServiceLocator.hpp>
 #include <ApplicationContext.hpp>
 #include <Constants.h>
 
@@ -86,7 +87,7 @@ inline static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSe
 
 class VkInstanceManager {
 public:
-	VkInstanceManager(VulkanContext &context, MemoryManager& memMgr, bool autoCleanup = true);
+	VkInstanceManager(VulkanContext &context, bool autoCleanup = true);
 	~VkInstanceManager();
 
 	/* Initializes the Vulkan instance setup process. */
@@ -134,7 +135,7 @@ private:
 	bool cleanOnDestruction = true;
 	VkInstance vulkInst = VK_NULL_HANDLE;
 	VulkanContext& vkContext;
-	MemoryManager& memoryManager;
+	std::shared_ptr<MemoryManager> memoryManager;
 	VkSurfaceKHR windowSurface = VK_NULL_HANDLE;
 
 	VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;

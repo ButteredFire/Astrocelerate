@@ -3,8 +3,10 @@
 
 #include "VkSwapchainManager.hpp"
 
-VkSwapchainManager::VkSwapchainManager(VulkanContext& context, MemoryManager& memMgr, bool autoCleanup) :
-    vkContext(context), memoryManager(memMgr), cleanOnDestruction(autoCleanup) {
+VkSwapchainManager::VkSwapchainManager(VulkanContext& context, bool autoCleanup) :
+    vkContext(context), cleanOnDestruction(autoCleanup) {
+
+    memoryManager = ServiceLocator::getService<MemoryManager>();
 
     if (vkContext.physicalDevice == VK_NULL_HANDLE) {
         throw Log::RuntimeException(__FUNCTION__, "Cannot initialize swap-chain manager: The GPU's physical device handle is null!");
@@ -38,7 +40,7 @@ void VkSwapchainManager::init() {
 
 void VkSwapchainManager::cleanup() {
     for (const auto& taskID : cleanupTaskIDs) {
-        memoryManager.executeCleanupTask(taskID);
+        memoryManager->executeCleanupTask(taskID);
     }
     cleanupTaskIDs.clear();
 
@@ -54,8 +56,10 @@ void VkSwapchainManager::cleanup() {
 }
 
 
-void VkSwapchainManager::recreateSwapchain(RenderPipeline& renderPipeline) {
+void VkSwapchainManager::recreateSwapchain() {
     Log::print(Log::T_INFO, __FUNCTION__, "Recreating swap-chain...");
+
+    std::shared_ptr<RenderPipeline> renderPipeline = ServiceLocator::getService<RenderPipeline>();
 
     // If the window is minimized (i.e., (width, height) = (0, 0), pause the window until it is in the foreground again
     int width = 0, height = 0;
@@ -70,11 +74,11 @@ void VkSwapchainManager::recreateSwapchain(RenderPipeline& renderPipeline) {
     vkDeviceWaitIdle(vkContext.logicalDevice);
 
         // Cleans up outdated swap-chain objects
-    renderPipeline.destroyFrameBuffers(); // Call this before destroying image views as framebuffers depend on them
+    renderPipeline->destroyFrameBuffers(); // Call this before destroying image views as framebuffers depend on them
     cleanup();
     
     init();
-    renderPipeline.createFrameBuffers();
+    renderPipeline->createFrameBuffers();
 }
 
 
@@ -175,7 +179,7 @@ void VkSwapchainManager::createSwapChain() {
     task.vkObjects = { swapChain };
     task.cleanupFunc = [&]() { vkDestroySwapchainKHR(vkContext.logicalDevice, swapChain, nullptr); };
 
-    uint32_t swapChainTaskID = memoryManager.createCleanupTask(task);
+    uint32_t swapChainTaskID = memoryManager->createCleanupTask(task);
     cleanupTaskIDs.push_back(swapChainTaskID);
 }
 
@@ -240,7 +244,7 @@ void VkSwapchainManager::createImageViews() {
         task.vkObjects = { vkContext.logicalDevice, imageView };
         task.cleanupFunc = [this, imageView]() { vkDestroyImageView(vkContext.logicalDevice, imageView, nullptr); };
 
-        uint32_t imageViewTaskID = memoryManager.createCleanupTask(task);
+        uint32_t imageViewTaskID = memoryManager->createCleanupTask(task);
         cleanupTaskIDs.push_back(imageViewTaskID);
     }
 }

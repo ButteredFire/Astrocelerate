@@ -4,11 +4,12 @@
 #include "RenderPipeline.hpp"
 
 
-RenderPipeline::RenderPipeline(VulkanContext& context, MemoryManager& memMgr, BufferManager& bufMgr, bool autoCleanup) :
+RenderPipeline::RenderPipeline(VulkanContext& context, bool autoCleanup) :
 	vkContext(context),
-	memoryManager(memMgr),
-	bufferManager(bufMgr),
 	cleanOnDestruction(autoCleanup) {
+
+	memoryManager = ServiceLocator::getService<MemoryManager>();
+	bufferManager = ServiceLocator::getService<BufferManager>();
 
 	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
@@ -23,8 +24,8 @@ void RenderPipeline::init() {
 	createFrameBuffers();
 
 	QueueFamilyIndices familyIndices = VkDeviceManager::getQueueFamilies(vkContext.physicalDevice, vkContext.vkSurface);
-	graphicsCmdPool = createCommandPool(vkContext, memoryManager, vkContext.logicalDevice, familyIndices.graphicsFamily.index.value());
-	transferCmdPool = createCommandPool(vkContext, memoryManager, vkContext.logicalDevice, familyIndices.transferFamily.index.value());
+	graphicsCmdPool = createCommandPool(vkContext, vkContext.logicalDevice, familyIndices.graphicsFamily.index.value());
+	transferCmdPool = createCommandPool(vkContext, vkContext.logicalDevice, familyIndices.transferFamily.index.value());
 
 	allocCommandBuffers(graphicsCmdPool, graphicsCmdBuffers);
 	vkContext.RenderPipeline.graphicsCmdBuffers = graphicsCmdBuffers;
@@ -156,7 +157,7 @@ void RenderPipeline::recordCommandBuffer(VkCommandBuffer& cmdBuffer, uint32_t im
 	*/
 		// Vertex buffers
 	VkBuffer vertexBuffers[] = {
-		bufferManager.getVertexBuffer()
+		bufferManager->getVertexBuffer()
 	};
 	VkDeviceSize offsets[] = {
 		0
@@ -165,7 +166,7 @@ void RenderPipeline::recordCommandBuffer(VkCommandBuffer& cmdBuffer, uint32_t im
 
 
 		// Index buffer (note: you can only have 1 index buffer)
-	VkBuffer indexBuffer = bufferManager.getIndexBuffer();
+	VkBuffer indexBuffer = bufferManager->getIndexBuffer();
 	vkCmdBindIndexBuffer(cmdBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
 		// Draw call
@@ -173,7 +174,7 @@ void RenderPipeline::recordCommandBuffer(VkCommandBuffer& cmdBuffer, uint32_t im
 	vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkContext.GraphicsPipeline.layout, 0, 1, &vkContext.GraphicsPipeline.uniformBufferDescriptorSets[currentFrame], 0, nullptr);
 
 			// Draws vertices based on the index buffer
-	auto vertexIndices = bufferManager.getVertexIndexData();
+	auto vertexIndices = bufferManager->getVertexIndexData();
 	vkCmdDrawIndexed(cmdBuffer, static_cast<uint32_t>(vertexIndices.size()), 1, 0, 0, 0); // Use vkCmdDrawIndexed instead of vkCmdDraw to draw with the index buffer
 
 
@@ -229,7 +230,7 @@ void RenderPipeline::createFrameBuffers() {
 		task.vkObjects = { vkContext.logicalDevice, framebuffer };
 		task.cleanupFunc = [this, framebuffer]() { vkDestroyFramebuffer(vkContext.logicalDevice, framebuffer, nullptr); };
 
-		uint32_t framebufferTaskID = memoryManager.createCleanupTask(task);
+		uint32_t framebufferTaskID = memoryManager->createCleanupTask(task);
 		framebufTaskIDs.push_back(framebufferTaskID);
 	}
 }
@@ -237,13 +238,16 @@ void RenderPipeline::createFrameBuffers() {
 
 void RenderPipeline::destroyFrameBuffers() {
 	for (const auto& taskID : framebufTaskIDs) {
-		memoryManager.executeCleanupTask(taskID);
+		memoryManager->executeCleanupTask(taskID);
 	}
 	framebufTaskIDs.clear();
 }
 
 
-VkCommandPool RenderPipeline::createCommandPool(VulkanContext& vkContext, MemoryManager& memMgr, VkDevice device, uint32_t queueFamilyIndex, VkCommandPoolCreateFlags flags) {
+VkCommandPool RenderPipeline::createCommandPool(VulkanContext& vkContext, VkDevice device, uint32_t queueFamilyIndex, VkCommandPoolCreateFlags flags) {
+
+	std::shared_ptr<MemoryManager> memoryManager = ServiceLocator::getService<MemoryManager>();
+
 	VkCommandPoolCreateInfo poolCreateInfo{};
 	poolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 	poolCreateInfo.flags = flags; // Allows command buffers to be re-recorded individually
@@ -264,7 +268,7 @@ VkCommandPool RenderPipeline::createCommandPool(VulkanContext& vkContext, Memory
 	task.vkObjects = { vkContext.logicalDevice, commandPool };
 	task.cleanupFunc = [vkContext, commandPool]() { vkDestroyCommandPool(vkContext.logicalDevice, commandPool, nullptr); };
 
-	memMgr.createCleanupTask(task);
+	memoryManager->createCleanupTask(task);
 
 	return commandPool;
 }
@@ -295,7 +299,7 @@ void RenderPipeline::allocCommandBuffers(VkCommandPool& commandPool, std::vector
 	task.vkObjects = { vkContext.logicalDevice, commandPool };
 	task.cleanupFunc = [this, commandPool, commandBuffers]() { vkFreeCommandBuffers(vkContext.logicalDevice, commandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data()); };
 	
-	memoryManager.createCleanupTask(task);
+	memoryManager->createCleanupTask(task);
 }
 
 
@@ -371,9 +375,9 @@ void RenderPipeline::createSyncObjects() {
 		renderSemaphoreTask.cleanupFunc = [this, renderFinishedSemaphore]() { vkDestroySemaphore(vkContext.logicalDevice, renderFinishedSemaphore, nullptr); };
 		fenceTask.cleanupFunc = [this, inFlightFence]() { vkDestroyFence(vkContext.logicalDevice, inFlightFence, nullptr); };
 
-		memoryManager.createCleanupTask(imgSemaphoreTask);
-		memoryManager.createCleanupTask(renderSemaphoreTask);
-		memoryManager.createCleanupTask(fenceTask);
+		memoryManager->createCleanupTask(imgSemaphoreTask);
+		memoryManager->createCleanupTask(renderSemaphoreTask);
+		memoryManager->createCleanupTask(fenceTask);
 	}
 
 	vkContext.RenderPipeline.imageReadySemaphores = imageReadySemaphores;

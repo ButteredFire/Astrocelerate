@@ -22,6 +22,7 @@
 #include <ApplicationContext.hpp>
 #include <LoggingManager.hpp>
 #include <MemoryManager.hpp>
+#include <ServiceLocator.hpp>
 
 
 // A structure specifying the properties of a vertex
@@ -71,7 +72,7 @@ struct UniformBufferObject {
 
 class BufferManager {
 public:
-    BufferManager(VulkanContext& context, MemoryManager& memMgr, bool autoCleanup = true);
+    BufferManager(VulkanContext& context, bool autoCleanup = true);
     ~BufferManager();
 
     void init();
@@ -80,7 +81,6 @@ public:
 
     /* Creates a buffer.
     * @param vkContext: The application context.
-    * @param memoryManager: An instance of the memory manager. This is used to create a cleanup task after buffer creation.
     * @param &buffer: The buffer to be created.
     * @param bufferSize: The size of the buffer (in bytes).
     * @param usageFlags: Flags specifying how the buffer will be used.
@@ -89,7 +89,7 @@ public:
     * 
     * @return The cleanup task ID for the newly created buffer.
     */
-    static uint32_t createBuffer(VulkanContext& vkContext, MemoryManager& memoryManager, VkBuffer& buffer, VkDeviceSize bufferSize, VkBufferUsageFlags usageFlags, VmaAllocation& bufferAllocation, VmaAllocationCreateInfo bufferAllocationCreateInfo);
+    static uint32_t createBuffer(VulkanContext& vkContext, VkBuffer& buffer, VkDeviceSize bufferSize, VkBufferUsageFlags usageFlags, VmaAllocation& bufferAllocation, VmaAllocationCreateInfo bufferAllocationCreateInfo);
 
 
     /* Copies the contents from a source buffer to a destination buffer.
@@ -136,7 +136,7 @@ public:
 private:
     bool cleanOnDestruction = true;
     VulkanContext& vkContext;
-    MemoryManager& memoryManager;
+    std::shared_ptr<MemoryManager> memoryManager;
     
     VkBuffer vertexBuffer = VK_NULL_HANDLE;
     VmaAllocation vertexBufferAllocation = VK_NULL_HANDLE;

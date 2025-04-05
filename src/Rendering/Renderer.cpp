@@ -5,13 +5,14 @@
 #include "Renderer.hpp"
 
 
-Renderer::Renderer(VulkanContext& context, VkSwapchainManager& swapchainMgr, BufferManager& bufMgr, GraphicsPipeline& graphicsPipelineInstance, RenderPipeline& renderPipelineInstance):
+Renderer::Renderer(VulkanContext& context):
     vulkInst(context.vulkanInstance),
-    swapchainManager(swapchainMgr),
-    bufferManager(bufMgr),
-    graphicsPipeline(graphicsPipelineInstance),
-    renderPipeline(renderPipelineInstance),
     vkContext(context) {
+
+    swapchainManager = ServiceLocator::getService<VkSwapchainManager>();
+    bufferManager = ServiceLocator::getService<BufferManager>();
+    graphicsPipeline = ServiceLocator::getService<GraphicsPipeline>();
+    renderPipeline = ServiceLocator::getService<RenderPipeline>();
 
     Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
@@ -78,7 +79,7 @@ void Renderer::configureDearImGui() {
         { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE }
     };
     VkDescriptorPoolCreateFlags imgui_DescPoolCreateFlags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-    graphicsPipeline.createDescriptorPool(imgui_PoolSizes, imgui_DescriptorPool, imgui_DescPoolCreateFlags);
+    graphicsPipeline->createDescriptorPool(imgui_PoolSizes, imgui_DescriptorPool, imgui_DescPoolCreateFlags);
     vkInitInfo.DescriptorPool = imgui_DescriptorPool;
 
 
@@ -239,7 +240,7 @@ void Renderer::drawFrame() {
     VkResult imgAcquisitionResult = vkAcquireNextImageKHR(vkContext.logicalDevice, vkContext.swapChain, UINT64_MAX, vkContext.RenderPipeline.imageReadySemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
     if (imgAcquisitionResult != VK_SUCCESS) {
         if (imgAcquisitionResult == VK_ERROR_OUT_OF_DATE_KHR || imgAcquisitionResult == VK_SUBOPTIMAL_KHR) {
-            swapchainManager.recreateSwapchain(renderPipeline);
+            swapchainManager->recreateSwapchain();
             refreshDearImgui();
             return;
         }
@@ -280,11 +281,11 @@ void Renderer::drawFrame() {
     }
 
         // Records commands
-    renderPipeline.recordCommandBuffer(vkContext.RenderPipeline.graphicsCmdBuffers[currentFrame], imageIndex, currentFrame);
+    renderPipeline->recordCommandBuffer(vkContext.RenderPipeline.graphicsCmdBuffers[currentFrame], imageIndex, currentFrame);
 
 
         // Updates the uniform buffer
-    bufferManager.updateUniformBuffer(currentFrame);
+    bufferManager->updateUniformBuffer(currentFrame);
 
         // Submits the buffer to the queue
     VkSubmitInfo submitInfo{};
@@ -348,7 +349,7 @@ void Renderer::drawFrame() {
     VkResult presentResult = vkQueuePresentKHR(graphicsQueue, &presentationInfo);
     if (presentResult != VK_SUCCESS) {
         if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR) {
-            swapchainManager.recreateSwapchain(renderPipeline);
+            swapchainManager->recreateSwapchain();
             refreshDearImgui();
             return;
         }

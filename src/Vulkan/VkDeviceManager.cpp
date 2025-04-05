@@ -5,8 +5,10 @@
 #include "VkDeviceManager.hpp"
 
 
-VkDeviceManager::VkDeviceManager(VulkanContext &context, MemoryManager& memMgr, bool autoCleanup):
-    vulkInst(context.vulkanInstance), vkContext(context), memoryManager(memMgr), cleanOnDestruction(autoCleanup) {
+VkDeviceManager::VkDeviceManager(VulkanContext &context, bool autoCleanup):
+    vulkInst(context.vulkanInstance), vkContext(context), cleanOnDestruction(autoCleanup) {
+
+    memoryManager = ServiceLocator::getService<MemoryManager>();
 
     if (vulkInst == VK_NULL_HANDLE) {
         throw Log::RuntimeException(__FUNCTION__, "Cannot initialize device manager: Invalid Vulkan instance!");
@@ -40,7 +42,7 @@ void VkDeviceManager::init() {
     createLogicalDevice();
 
     // Creates a VMA
-    vmaAllocator = memoryManager.createVMAllocator(vkContext.vulkanInstance, GPUPhysicalDevice, GPULogicalDevice);
+    vmaAllocator = memoryManager->createVMAllocator(vkContext.vulkanInstance, GPUPhysicalDevice, GPULogicalDevice);
 }
 
 
@@ -194,7 +196,7 @@ void VkDeviceManager::createLogicalDevice() {
     task.vkObjects = { GPULogicalDevice };
     task.cleanupFunc = [this]() { vkDestroyDevice(GPULogicalDevice, nullptr); };
 
-    memoryManager.createCleanupTask(task);
+    memoryManager->createCleanupTask(task);
 }
 
 

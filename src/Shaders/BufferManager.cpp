@@ -1,7 +1,9 @@
 #include "BufferManager.hpp"
 
-BufferManager::BufferManager(VulkanContext& context, MemoryManager& memMgr, bool autoCleanup):
-	vkContext(context), memoryManager(memMgr), cleanOnDestruction(autoCleanup) {
+BufferManager::BufferManager(VulkanContext& context, bool autoCleanup):
+	vkContext(context), cleanOnDestruction(autoCleanup) {
+
+	memoryManager = ServiceLocator::getService<MemoryManager>();
 
 	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
@@ -70,7 +72,10 @@ std::array<VkVertexInputAttributeDescription, 2> BufferManager::getAttributeDesc
 }
 
 
-uint32_t BufferManager::createBuffer(VulkanContext& vkContext, MemoryManager& memoryManager, VkBuffer& buffer, VkDeviceSize bufferSize, VkBufferUsageFlags usageFlags, VmaAllocation& bufferAllocation, VmaAllocationCreateInfo bufferAllocationCreateInfo) {
+uint32_t BufferManager::createBuffer(VulkanContext& vkContext, VkBuffer& buffer, VkDeviceSize bufferSize, VkBufferUsageFlags usageFlags, VmaAllocation& bufferAllocation, VmaAllocationCreateInfo bufferAllocationCreateInfo) {
+
+	std::shared_ptr<MemoryManager> memoryManager = ServiceLocator::getService<MemoryManager>();
+
 	// Creates the buffer
 	VkBufferCreateInfo bufCreateInfo{};
 	bufCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -107,7 +112,7 @@ uint32_t BufferManager::createBuffer(VulkanContext& vkContext, MemoryManager& me
 	bufTask.vkObjects = { vkContext.vmaAllocator, buffer, bufferAllocation };
 	bufTask.cleanupFunc = [vkContext, buffer, bufferAllocation]() { vmaDestroyBuffer(vkContext.vmaAllocator, buffer, bufferAllocation); };
 
-	uint32_t bufferTaskID = memoryManager.createCleanupTask(bufTask);
+	uint32_t bufferTaskID = memoryManager->createCleanupTask(bufTask);
 
 
 	return bufferTaskID;
@@ -126,7 +131,7 @@ void BufferManager::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceS
 	}
 
 
-	VkCommandPool commandPool = RenderPipeline::createCommandPool(vkContext, memoryManager, vkContext.logicalDevice, queueFamily.index.value(), VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
+	VkCommandPool commandPool = RenderPipeline::createCommandPool(vkContext, vkContext.logicalDevice, queueFamily.index.value(), VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
 
 	VkCommandBufferAllocateInfo bufAllocInfo{};
 	bufAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -258,7 +263,7 @@ void BufferManager::writeDataToGPUBuffer(const void* data, VkBuffer& buffer, VkD
 	*/
 	stagingBufAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
 
-	uint32_t stagingBufTaskID = createBuffer(vkContext, memoryManager, stagingBuffer, bufferSize, stagingBufUsage, stagingBufAllocation, stagingBufAllocInfo);
+	uint32_t stagingBufTaskID = createBuffer(vkContext, stagingBuffer, bufferSize, stagingBufUsage, stagingBufAllocation, stagingBufAllocInfo);
 
 	// Copies data to the staging buffer
 	void* mappedData;
@@ -272,7 +277,7 @@ void BufferManager::writeDataToGPUBuffer(const void* data, VkBuffer& buffer, VkD
 
 
 	// The staging buffer has done its job, so we can safely destroy it afterwards
-	memoryManager.executeCleanupTask(stagingBufTaskID);
+	memoryManager->executeCleanupTask(stagingBufTaskID);
 }
 
 
@@ -286,7 +291,7 @@ void BufferManager::createVertexBuffer() {
 	vertBufAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE; // PREFERS fast device-local memory
 	vertBufAllocInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT; // FORCES device-local memory
 	
-	createBuffer(vkContext, memoryManager, vertexBuffer, bufferSize, vertBufUsage, vertexBufferAllocation, vertBufAllocInfo);
+	createBuffer(vkContext, vertexBuffer, bufferSize, vertBufUsage, vertexBufferAllocation, vertBufAllocInfo);
 
 	writeDataToGPUBuffer(vertices.data(), vertexBuffer, bufferSize);
 }
@@ -302,7 +307,7 @@ void BufferManager::createIndexBuffer() {
 	indexBufAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE; // PREFERS fast device-local memory
 	indexBufAllocInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT; // FORCES device-local memory
 
-	createBuffer(vkContext, memoryManager, indexBuffer, bufferSize, indexBufUsage, indexBufferAllocation, indexBufAllocInfo);
+	createBuffer(vkContext, indexBuffer, bufferSize, indexBufUsage, indexBufferAllocation, indexBufAllocInfo);
 
 	writeDataToGPUBuffer(vertIndices.data(), indexBuffer, bufferSize);
 }
@@ -324,7 +329,7 @@ void BufferManager::createUniformBuffers() {
 		uniformBufAllocInfo.requiredFlags = (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 		uniformBufAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
 		
-		createBuffer(vkContext, memoryManager, uniformBuffers[i], bufferSize, uniformBufUsageFlags, uniformBuffersAllocations[i], uniformBufAllocInfo);
+		createBuffer(vkContext, uniformBuffers[i], bufferSize, uniformBufUsageFlags, uniformBuffersAllocations[i], uniformBufAllocInfo);
 
 		// Maps the buffer allocation post-creation to get a pointer to the CPU memory block on which we can later write data
 		/*
@@ -340,7 +345,7 @@ void BufferManager::createUniformBuffers() {
 		task.vkObjects = { vkContext.vmaAllocator, uniformBufAlloc };
 		task.cleanupFunc = [this, uniformBufAlloc]() { vmaUnmapMemory(vkContext.vmaAllocator, uniformBufAlloc); };
 
-		memoryManager.createCleanupTask(task);
+		memoryManager->createCleanupTask(task);
 	}
 }
 

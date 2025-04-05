@@ -25,6 +25,7 @@ class RenderPipeline;
 #include <Rendering/RenderPipeline.hpp>
 #include <LoggingManager.hpp>
 #include <MemoryManager.hpp>
+#include <ServiceLocator.hpp>
 #include <Constants.h>
 #include <ApplicationContext.hpp>
 
@@ -38,17 +39,16 @@ typedef struct SwapChainProperties {
 
 class VkSwapchainManager {
 public:
-	VkSwapchainManager(VulkanContext& context, MemoryManager& memMgr, bool autoCleanup = true);
+	VkSwapchainManager(VulkanContext& context, bool autoCleanup = true);
 	~VkSwapchainManager();
 
 	/* Initializes the swap-chain manager. */
 	void init();
 	void cleanup();
 
-	/* Recreates the swap-chain. 
-	* @param renderPipeline: A RenderPipeline instance (since recreating the swap-chain also necessitates recreating the framebuffers).
+	/* Recreates the swap-chain.
 	*/
-	void recreateSwapchain(RenderPipeline& renderPipeline);
+	void recreateSwapchain();
 
 
 	/* Queries the properties of a GPU's swap-chain.
@@ -62,7 +62,7 @@ private:
 	bool cleanOnDestruction = true;
 	VulkanContext& vkContext;
 
-	MemoryManager& memoryManager;
+	std::shared_ptr<MemoryManager> memoryManager;
 	std::vector<uint32_t> cleanupTaskIDs;
 
 	VkSwapchainKHR swapChain = VK_NULL_HANDLE;

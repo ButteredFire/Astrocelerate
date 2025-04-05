@@ -3,11 +3,12 @@
 
 #include "GraphicsPipeline.hpp"
 
-GraphicsPipeline::GraphicsPipeline(VulkanContext& context, MemoryManager& memMgr, BufferManager& bufMgr, bool autoCleanup):
+GraphicsPipeline::GraphicsPipeline(VulkanContext& context, bool autoCleanup):
 	vkContext(context),
-	memoryManager(memMgr),
-	bufferManager(bufMgr),
 	cleanOnDestruction(autoCleanup) {
+
+	memoryManager = ServiceLocator::getService<MemoryManager>();
+	bufferManager = ServiceLocator::getService<BufferManager>();
 
 	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
@@ -143,7 +144,7 @@ void GraphicsPipeline::createGraphicsPipeline() {
 	task.vkObjects = { vkContext.logicalDevice, graphicsPipeline };
 	task.cleanupFunc = [&]() { vkDestroyPipeline(vkContext.logicalDevice, graphicsPipeline, nullptr); };
 
-	memoryManager.createCleanupTask(task);
+	memoryManager->createCleanupTask(task);
 }
 
 
@@ -171,7 +172,7 @@ void GraphicsPipeline::createPipelineLayout() {
 	task.vkObjects = { vkContext.logicalDevice, pipelineLayout };
 	task.cleanupFunc = [&]() { vkDestroyPipelineLayout(vkContext.logicalDevice, pipelineLayout, nullptr); };
 
-	memoryManager.createCleanupTask(task);
+	memoryManager->createCleanupTask(task);
 }
 
 
@@ -206,7 +207,7 @@ void GraphicsPipeline::createDescriptorSetLayout() {
 	task.vkObjects = { vkContext.logicalDevice, uniformBufferDescriptorSetLayout };
 	task.cleanupFunc = [this]() { vkDestroyDescriptorSetLayout(vkContext.logicalDevice, uniformBufferDescriptorSetLayout, nullptr); };
 
-	memoryManager.createCleanupTask(task);
+	memoryManager->createCleanupTask(task);
 }
 
 
@@ -236,7 +237,7 @@ void GraphicsPipeline::createDescriptorPool(std::vector<VkDescriptorPoolSize> po
 	task.vkObjects = { vkContext.logicalDevice, descriptorPool };
 	task.cleanupFunc = [this, descriptorPool]() { vkDestroyDescriptorPool(vkContext.logicalDevice, descriptorPool, nullptr); };
 
-	memoryManager.createCleanupTask(task);
+	memoryManager->createCleanupTask(task);
 }
 
 
@@ -265,7 +266,7 @@ void GraphicsPipeline::createDescriptorSets() {
 		// Descriptors handling buffers (including uniform buffers) are configured with the following struct:
 		VkDescriptorBufferInfo descBufInfo{};
 
-		std::vector<VkBuffer> uniformBuffers = bufferManager.getUniformBuffers();
+		std::vector<VkBuffer> uniformBuffers = bufferManager->getUniformBuffers();
 		descBufInfo.buffer = uniformBuffers[i];
 
 		descBufInfo.offset = 0;
@@ -400,7 +401,7 @@ void GraphicsPipeline::createRenderPass() {
 	task.vkObjects = { vkContext.logicalDevice, renderPass };
 	task.cleanupFunc = [&]() { vkDestroyRenderPass(vkContext.logicalDevice, renderPass, nullptr); };
 
-	memoryManager.createCleanupTask(task);
+	memoryManager->createCleanupTask(task);
 }
 
 
@@ -464,8 +465,8 @@ void GraphicsPipeline::initShaderStage() {
 	vertCleanupTask.cleanupFunc = [&]() { vkDestroyShaderModule(vkContext.logicalDevice, vertShaderModule, nullptr); };
 	fragCleanupTask.cleanupFunc = [&]() { vkDestroyShaderModule(vkContext.logicalDevice, fragShaderModule, nullptr); };
 
-	memoryManager.createCleanupTask(vertCleanupTask);
-	memoryManager.createCleanupTask(fragCleanupTask);
+	memoryManager->createCleanupTask(vertCleanupTask);
+	memoryManager->createCleanupTask(fragCleanupTask);
 }
 
 

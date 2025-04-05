@@ -27,12 +27,13 @@ class BufferManager;
 #include <Shaders/BufferManager.hpp>
 #include <LoggingManager.hpp>
 #include <MemoryManager.hpp>
+#include <ServiceLocator.hpp>
 #include <Constants.h>
 
 
 class RenderPipeline {
 public:
-	RenderPipeline(VulkanContext& context, MemoryManager& memMgr, BufferManager& bufMgr, bool autoCleanup = true);
+	RenderPipeline(VulkanContext& context, bool autoCleanup = true);
 	~RenderPipeline();
 
 	void init();
@@ -62,12 +63,11 @@ public:
 	
 	/* Creates a command pool.
 	* @param vkContext: The application context.
-	* @param memMgr: The application memory manager.
 	* @param device: The logical device.
 	* @param queueFamilyIndex: The index of the queue family for which the command pool is to be created.
 	* @param flags (Default: VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT): The command pool flags.
 	*/
-	static VkCommandPool createCommandPool(VulkanContext& vkContext, MemoryManager& memMgr, VkDevice device, uint32_t queueFamilyIndex, VkCommandPoolCreateFlags flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
+	static VkCommandPool createCommandPool(VulkanContext& vkContext, VkDevice device, uint32_t queueFamilyIndex, VkCommandPoolCreateFlags flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
 
 
 	/* Allocates a command buffer vector. */
@@ -76,9 +76,9 @@ public:
 private:
 	bool cleanOnDestruction = true;
 	VulkanContext& vkContext;
-	BufferManager& bufferManager;
+	std::shared_ptr<BufferManager> bufferManager;
 
-	MemoryManager& memoryManager;
+	std::shared_ptr<MemoryManager> memoryManager;
 	std::vector<uint32_t> framebufTaskIDs; // Stores framebuffer cleanup task IDs (used exclusively in the swap-chain recreation process)
 
 	std::vector<VkFramebuffer> imageFrameBuffers;

@@ -19,7 +19,7 @@ public:
 			throw Log::RuntimeException(__FUNCTION__, "Failed to find service!");
 		}
 
-		return std::static_pointer_cast(ptrIt->second);
+		return std::static_pointer_cast<T>(ptrIt->second);
 	}
 
 

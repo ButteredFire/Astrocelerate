@@ -22,6 +22,7 @@
 #include <Shaders/BufferManager.hpp>
 #include <LoggingManager.hpp>
 #include <MemoryManager.hpp>
+#include <ServiceLocator.hpp>
 #include <Constants.h>
 
 
@@ -74,7 +75,7 @@ static inline std::vector<char> readFile(const std::string& fileName, const std:
 
 class GraphicsPipeline {
 public:
-	GraphicsPipeline(VulkanContext& context, MemoryManager& memMgr, BufferManager& bufMgr, bool autoCleanup = true);
+	GraphicsPipeline(VulkanContext& context, bool autoCleanup = true);
 	~GraphicsPipeline();
 
 	void init();
@@ -91,8 +92,8 @@ public:
 private:
 	bool cleanOnDestruction = true;
 	VulkanContext& vkContext;
-	MemoryManager& memoryManager;
-	BufferManager& bufferManager;
+	std::shared_ptr<MemoryManager> memoryManager;
+	std::shared_ptr<BufferManager> bufferManager;
 
 	VkPipeline graphicsPipeline = VK_NULL_HANDLE;
 
