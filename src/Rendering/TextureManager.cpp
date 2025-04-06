@@ -3,7 +3,7 @@
 #include "TextureManager.hpp"
 
 
-void TextureManager::createTextureImage(VulkanContext& vkContext, MemoryManager& memoryManager, const char* imgPath, int channels) {
+std::pair<VkImage, VmaAllocation> TextureManager::createTextureImage(VulkanContext& vkContext, const char* imgPath, int channels) {
 	int textureWidth, textureHeight, textureChannels;
 	stbi_uc* pixels = stbi_load(imgPath, &textureWidth, &textureHeight, &textureChannels, channels);
 
@@ -33,10 +33,81 @@ void TextureManager::createTextureImage(VulkanContext& vkContext, MemoryManager&
 		// Copy pixel data to the buffer
 	void* pixelData;
 	vmaMapMemory(vkContext.vmaAllocator, stagingBufAllocation, &pixelData);
-		memcpy(&pixelData, &pixels, static_cast<size_t>(imageSize));
+		memcpy(pixelData, pixels, static_cast<size_t>(imageSize));
 	vmaUnmapMemory(vkContext.vmaAllocator, stagingBufAllocation);
 
 
 	// Clean up the `pixels` array
 	stbi_image_free(pixels);
+
+
+	// Create texture image objects
+	VkImage textureImage;
+	VmaAllocation textureImageAllocation;
+
+		// Image
+	VkFormat imgFormat = VK_FORMAT_R8G8B8A8_SRGB;
+	VkImageTiling imgTiling = VK_IMAGE_TILING_OPTIMAL;
+	VkImageUsageFlags imgUsageFlags = (VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
+
+		// Image allocation info
+	VmaAllocationCreateInfo imgAllocCreateInfo{};
+	imgAllocCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+	imgAllocCreateInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+
+	createImage(vkContext, textureImage, textureImageAllocation, textureWidth, textureHeight, 1, imgFormat, imgTiling, imgUsageFlags, imgAllocCreateInfo);
+
+
+	return { textureImage, textureImageAllocation };
+}
+
+
+void TextureManager::createImage(VulkanContext& vkContext, VkImage& image, VmaAllocation& imgAllocation, uint32_t width, uint32_t height, uint32_t depth, VkFormat imgFormat, VkImageTiling imgTiling, VkImageUsageFlags imgUsageFlags, VmaAllocationCreateInfo imgAllocCreateInfo) {
+	// Image info
+	VkImageCreateInfo imgCreateInfo{};
+	imgCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+
+	// Specifies the type of image to be created (including the kind of coordinate system the image's texels are going to be addressed)
+	/* It is possible to create 1D, 2D, and 3D images.
+		+ A 1D image (width) is an array of texels (texture elements/pixels). It is typically used for linear data storage (e.g., lookup tables, gradients).
+		+ A 2D image (width * height) is a rectangular grid of texels. It is typically used for textures in 2D and 3D rendering (e.g., diffuse maps, normal maps).
+		+ A 3D image (width * height * depth) is a volumetric grid of texels. It is typically used for volumetric data (e.g., 3D textures, volume rendering, scientific visualization).
+	*/
+	imgCreateInfo.imageType = VK_IMAGE_TYPE_2D;
+
+	// Specifies image dimensions (i.e., number of texels per axis) 
+	imgCreateInfo.extent.width = static_cast<uint32_t>(width);
+	imgCreateInfo.extent.height = static_cast<uint32_t>(height);
+	imgCreateInfo.extent.depth = static_cast<uint32_t>(depth);
+
+	imgCreateInfo.mipLevels = 1;
+	imgCreateInfo.arrayLayers = 1;
+
+	imgCreateInfo.format = imgFormat;
+	imgCreateInfo.tiling = imgTiling;
+
+	/* NOTE: VK_IMAGE_...
+		+ ...LAYOUT_UNDEFINED: The image will not be usable by the GPU and the very first transition will discard the texels.
+		+ ...LAYOUT_PREINITIALZED: Same as LAYOUT_UNDEFINED, but the very first transition will preserve the texels.
+	*/
+	imgCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+	/* NOTE: VK_IMAGE_USAGE_...
+		+ ...TRANSFER_DST_BIT: The image will be used as the destination for the staging buffer copy .
+		+ ...SAMPLED_BIT: The image is accessible from the shader. We need this accessibility to color meshes. In other words, the image will be used for sampling in shaders.
+
+	*/
+	imgCreateInfo.usage = imgUsageFlags;
+
+	imgCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+	imgCreateInfo.flags = 0; // Currently disabled, but is useful for sparse images
+
+	// The image will only be used by the graphics queue family (which fortunately also supports transfer operations, so there is no need to specify the image to be used both by the graphics and transfer queue families)
+	imgCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+
+	VkResult imgCreateResult = vmaCreateImage(vkContext.vmaAllocator, &imgCreateInfo, &imgAllocCreateInfo, &image, &imgAllocation, nullptr);
+	if (imgCreateResult != VK_SUCCESS) {
+		throw Log::RuntimeException(__FUNCTION__, "Failed to create image!");
+	}
 }

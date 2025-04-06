@@ -39,8 +39,6 @@ int main() {
         VkInstanceManager instanceManager(vkContext, false);
         instanceManager.init();
 
-        ServiceLocator::registerService(memoryManager);
-
             // Creates a device manager and initializes GPU-related objects
         VkDeviceManager deviceManager(vkContext, false);
         deviceManager.init();

@@ -108,14 +108,14 @@ void VkDeviceManager::createLogicalDevice() {
 
     // Creates a set of all unique queue families that are necessary for the required queues
     std::vector<VkDeviceQueueCreateInfo> queues;
-    std::set<uint32_t> uniqueQueueFamilies = {
-        queueFamilies.graphicsFamily.index.value(),
-        queueFamilies.presentationFamily.index.value(),
-        queueFamilies.transferFamily.index.value()
-    };
+    std::set<uint32_t> uniqueQueueFamilies;
+    for (const auto& family : allFamilies) {
+        uniqueQueueFamilies.insert(family->index.value());
+    }
 
+
+    // Creates a device queue for each queue family
     for (auto& family : uniqueQueueFamilies) {
-        // Specifies the queues to be created
         VkDeviceQueueCreateInfo queueInfo{};
 
         queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
@@ -124,6 +124,8 @@ void VkDeviceManager::createLogicalDevice() {
         queueInfo.pQueuePriorities = &queuePriority;
         queues.push_back(queueInfo);
     }
+
+
     // Specifies the features of the device to be used
     VkPhysicalDeviceFeatures deviceFeatures{};  // Vulkan 1.0 features (it's unused, but must still be defined anyway because it's used in `VkDeviceCreateInfo`)
 
@@ -185,6 +187,7 @@ void VkDeviceManager::createLogicalDevice() {
         queueFamilies.presentationFamily.index = queueFamilies.graphicsFamily.index;
         queueFamilies.presentationFamily.deviceQueue = queueFamilies.graphicsFamily.deviceQueue;
     }
+
 
     vkContext.logicalDevice = GPULogicalDevice;
     vkContext.queueFamilies = queueFamilies;

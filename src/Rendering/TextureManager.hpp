@@ -30,9 +30,22 @@ public:
 
 	/* Creates a texture image.
 		@param vkContext: The application context.
-		@param memoryManager: An instance of the memory manager. This is used to create a cleanup task after buffer creation.
 		@param imgPath: The path to the image.
 		@param channels (Default: STBI_rgb_alpha): The channels the texture to be created is expected to have.
 	*/
-	static void createTextureImage(VulkanContext& vkContext, MemoryManager& memoryManager, const char* imgPath, int channels = STBI_rgb_alpha);
+	static std::pair<VkImage, VmaAllocation> createTextureImage(VulkanContext& vkContext, const char* imgPath, int channels = STBI_rgb_alpha);
+
+    /* Creates an image object.
+        @param vkContext: The application context.
+        @param image: The Vulkan image to be created.
+        @param imgAllocation: The memory allocation for the image.
+        @param width: The width of the image.
+        @param height: The height of the image.
+        @param depth: The depth of the image.
+        @param imgFormat: The format of the image.
+        @param imgTiling: The tiling mode of the image.
+        @param imgUsageFlags: The usage flags for the image.
+        @param imgAllocCreateInfo: The allocation create info for the image.
+    */
+    static void createImage(VulkanContext& vkContext, VkImage& image, VmaAllocation& imgAllocation, uint32_t width, uint32_t height, uint32_t depth, VkFormat imgFormat, VkImageTiling imgTiling, VkImageUsageFlags imgUsageFlags, VmaAllocationCreateInfo imgAllocCreateInfo);
 };

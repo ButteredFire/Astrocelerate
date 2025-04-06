@@ -88,7 +88,7 @@ uint32_t BufferManager::createBuffer(VulkanContext& vkContext, VkBuffer& buffer,
 	bufCreateInfo.sharingMode = VK_SHARING_MODE_CONCURRENT;
 
 		// If the sharing mode is CONCURRENT, we must specify queue families
-	QueueFamilyIndices familyIndices = VkDeviceManager::getQueueFamilies(vkContext.physicalDevice, vkContext.vkSurface);
+	QueueFamilyIndices familyIndices = vkContext.queueFamilies;
 	uint32_t queueFamilyIndices[] = {
 		familyIndices.graphicsFamily.index.value(),
 		familyIndices.transferFamily.index.value()
