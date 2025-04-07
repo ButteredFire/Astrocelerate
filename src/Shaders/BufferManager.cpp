@@ -1,17 +1,14 @@
 #include "BufferManager.hpp"
 
-BufferManager::BufferManager(VulkanContext& context, bool autoCleanup):
-	vkContext(context), cleanOnDestruction(autoCleanup) {
+BufferManager::BufferManager(VulkanContext& context):
+	vkContext(context) {
 
 	memoryManager = ServiceLocator::getService<MemoryManager>();
 
 	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
 
-BufferManager::~BufferManager() {
-	if (cleanOnDestruction)
-		cleanup();
-}
+BufferManager::~BufferManager() {}
 
 
 void BufferManager::init() {

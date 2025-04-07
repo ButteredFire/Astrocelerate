@@ -4,9 +4,8 @@
 #include "RenderPipeline.hpp"
 
 
-RenderPipeline::RenderPipeline(VulkanContext& context, bool autoCleanup) :
-	vkContext(context),
-	cleanOnDestruction(autoCleanup) {
+RenderPipeline::RenderPipeline(VulkanContext& context):
+	vkContext(context) {
 
 	memoryManager = ServiceLocator::getService<MemoryManager>();
 	bufferManager = ServiceLocator::getService<BufferManager>();
@@ -14,10 +13,7 @@ RenderPipeline::RenderPipeline(VulkanContext& context, bool autoCleanup) :
 	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
 
-RenderPipeline::~RenderPipeline() {
-	if (cleanOnDestruction)
-		cleanup();
-}
+RenderPipeline::~RenderPipeline() {}
 
 
 void RenderPipeline::init() {

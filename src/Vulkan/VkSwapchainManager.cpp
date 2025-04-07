@@ -3,8 +3,8 @@
 
 #include "VkSwapchainManager.hpp"
 
-VkSwapchainManager::VkSwapchainManager(VulkanContext& context, bool autoCleanup) :
-    vkContext(context), cleanOnDestruction(autoCleanup) {
+VkSwapchainManager::VkSwapchainManager(VulkanContext& context):
+    vkContext(context) {
 
     memoryManager = ServiceLocator::getService<MemoryManager>();
 
@@ -21,10 +21,7 @@ VkSwapchainManager::VkSwapchainManager(VulkanContext& context, bool autoCleanup)
     Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
 
-VkSwapchainManager::~VkSwapchainManager() {
-    if (cleanOnDestruction)
-        cleanup();
-}
+VkSwapchainManager::~VkSwapchainManager() {}
 
 
 void VkSwapchainManager::init() {

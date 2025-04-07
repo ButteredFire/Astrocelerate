@@ -76,7 +76,7 @@ static inline std::vector<char> readFile(const std::string& fileName, const std:
 
 class GraphicsPipeline {
 public:
-	GraphicsPipeline(VulkanContext& context, bool autoCleanup = true);
+	GraphicsPipeline(VulkanContext& context);
 	~GraphicsPipeline();
 
 	void init();
@@ -91,7 +91,6 @@ public:
 	void createDescriptorPool(std::vector<VkDescriptorPoolSize> poolSizes, VkDescriptorPool& descriptorPool, VkDescriptorPoolCreateFlags createFlags = VkDescriptorPoolCreateFlags());
 
 private:
-	bool cleanOnDestruction = true;
 	VulkanContext& vkContext;
 	std::shared_ptr<MemoryManager> memoryManager;
 	std::shared_ptr<BufferManager> bufferManager;

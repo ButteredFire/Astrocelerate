@@ -49,7 +49,7 @@ inline bool ScoreComparator(const PhysicalDeviceScoreProperties& s1, const Physi
 
 class VkDeviceManager {
 public:
-	VkDeviceManager(VulkanContext& context, bool autoCleanup = true);
+	VkDeviceManager(VulkanContext& context);
 	~VkDeviceManager();
 
 	/* Initializes the device creation process. */
@@ -64,7 +64,6 @@ public:
 	static QueueFamilyIndices getQueueFamilies(VkPhysicalDevice& device, VkSurfaceKHR& surface);
 
 private:
-	bool cleanOnDestruction = true;
 	VkInstance vulkInst = VK_NULL_HANDLE;
 	VulkanContext& vkContext;
 	std::shared_ptr<MemoryManager> memoryManager;

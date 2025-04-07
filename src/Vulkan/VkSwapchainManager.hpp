@@ -39,7 +39,7 @@ typedef struct SwapChainProperties {
 
 class VkSwapchainManager {
 public:
-	VkSwapchainManager(VulkanContext& context, bool autoCleanup = true);
+	VkSwapchainManager(VulkanContext& context);
 	~VkSwapchainManager();
 
 	/* Initializes the swap-chain manager. */
@@ -59,7 +59,6 @@ public:
 	static SwapChainProperties getSwapChainProperties(VkPhysicalDevice& device, VkSurfaceKHR& surface);
 
 private:
-	bool cleanOnDestruction = true;
 	VulkanContext& vkContext;
 
 	std::shared_ptr<MemoryManager> memoryManager;

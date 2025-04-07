@@ -4,18 +4,15 @@
 
 #include "VkInstanceManager.hpp"
 
-VkInstanceManager::VkInstanceManager(VulkanContext& context, bool autoCleanup):
-    vkContext(context), cleanOnDestruction(autoCleanup) {
+VkInstanceManager::VkInstanceManager(VulkanContext& context):
+    vkContext(context) {
     
     memoryManager = ServiceLocator::getService<MemoryManager>();
 
     Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
 
-VkInstanceManager::~VkInstanceManager() {
-    if (cleanOnDestruction)
-        cleanup();
-}
+VkInstanceManager::~VkInstanceManager() {}
 
 
 void VkInstanceManager::init() {

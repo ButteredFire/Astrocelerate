@@ -36,31 +36,31 @@ int main() {
         vkContext.window = windowPtr;
 
             // Creates an instance manager and initializes instance-related objects
-        VkInstanceManager instanceManager(vkContext, false);
+        VkInstanceManager instanceManager(vkContext);
         instanceManager.init();
 
             // Creates a device manager and initializes GPU-related objects
-        VkDeviceManager deviceManager(vkContext, false);
+        VkDeviceManager deviceManager(vkContext);
         deviceManager.init();
 
             // Creates a swap-chain manager for swap-chain operations
-        std::shared_ptr<VkSwapchainManager> swapchainManager = std::make_shared<VkSwapchainManager>(vkContext, false);
+        std::shared_ptr<VkSwapchainManager> swapchainManager = std::make_shared<VkSwapchainManager>(vkContext);
         swapchainManager->init();
         ServiceLocator::registerService(swapchainManager);
 
             // Creates a buffer manager
-        std::shared_ptr<BufferManager> bufferManager = std::make_shared<BufferManager>(vkContext, false);
+        std::shared_ptr<BufferManager> bufferManager = std::make_shared<BufferManager>(vkContext);
         bufferManager->init();
 
         ServiceLocator::registerService(bufferManager);
 
             // Creates a graphics pipeline
-        std::shared_ptr<GraphicsPipeline> graphicsPipeline = std::make_shared<GraphicsPipeline>(vkContext, false);
+        std::shared_ptr<GraphicsPipeline> graphicsPipeline = std::make_shared<GraphicsPipeline>(vkContext);
         graphicsPipeline->init();
         ServiceLocator::registerService(graphicsPipeline);
 
             // Creates a rendering pipeline
-        std::shared_ptr<RenderPipeline> renderPipeline = std::make_shared<RenderPipeline>(vkContext, false);
+        std::shared_ptr<RenderPipeline> renderPipeline = std::make_shared<RenderPipeline>(vkContext);
         renderPipeline->init();
         ServiceLocator::registerService(renderPipeline);
 

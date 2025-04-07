@@ -3,9 +3,8 @@
 
 #include "GraphicsPipeline.hpp"
 
-GraphicsPipeline::GraphicsPipeline(VulkanContext& context, bool autoCleanup):
-	vkContext(context),
-	cleanOnDestruction(autoCleanup) {
+GraphicsPipeline::GraphicsPipeline(VulkanContext& context):
+	vkContext(context) {
 
 	memoryManager = ServiceLocator::getService<MemoryManager>();
 	bufferManager = ServiceLocator::getService<BufferManager>();
@@ -13,10 +12,7 @@ GraphicsPipeline::GraphicsPipeline(VulkanContext& context, bool autoCleanup):
 	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
 
-GraphicsPipeline::~GraphicsPipeline() {
-	if (cleanOnDestruction)
-		cleanup();
-}
+GraphicsPipeline::~GraphicsPipeline() {}
 
 void GraphicsPipeline::init() {
 	// Set up fixed-function states

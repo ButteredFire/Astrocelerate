@@ -5,8 +5,8 @@
 #include "VkDeviceManager.hpp"
 
 
-VkDeviceManager::VkDeviceManager(VulkanContext &context, bool autoCleanup):
-    vulkInst(context.vulkanInstance), vkContext(context), cleanOnDestruction(autoCleanup) {
+VkDeviceManager::VkDeviceManager(VulkanContext &context):
+    vulkInst(context.vulkanInstance), vkContext(context) {
 
     memoryManager = ServiceLocator::getService<MemoryManager>();
 
@@ -22,10 +22,7 @@ VkDeviceManager::VkDeviceManager(VulkanContext &context, bool autoCleanup):
 }
 
 
-VkDeviceManager::~VkDeviceManager() {
-    if (cleanOnDestruction)
-        cleanup();
-}
+VkDeviceManager::~VkDeviceManager() {}
 
 
 

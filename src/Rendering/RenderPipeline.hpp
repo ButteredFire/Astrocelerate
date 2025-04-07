@@ -33,7 +33,7 @@ class BufferManager;
 
 class RenderPipeline {
 public:
-	RenderPipeline(VulkanContext& context, bool autoCleanup = true);
+	RenderPipeline(VulkanContext& context);
 	~RenderPipeline();
 
 	void init();
@@ -74,7 +74,6 @@ public:
 	void allocCommandBuffers(VkCommandPool& commandPool, std::vector<VkCommandBuffer>& commandBuffers);
 
 private:
-	bool cleanOnDestruction = true;
 	VulkanContext& vkContext;
 	std::shared_ptr<BufferManager> bufferManager;
 

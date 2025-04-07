@@ -72,7 +72,7 @@ struct UniformBufferObject {
 
 class BufferManager {
 public:
-    BufferManager(VulkanContext& context, bool autoCleanup = true);
+    BufferManager(VulkanContext& context);
     ~BufferManager();
 
     void init();
@@ -134,7 +134,6 @@ public:
     static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions();
 
 private:
-    bool cleanOnDestruction = true;
     VulkanContext& vkContext;
     std::shared_ptr<MemoryManager> memoryManager;
     

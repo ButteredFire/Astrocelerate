@@ -32,8 +32,11 @@ public:
 		@param vkContext: The application context.
 		@param imgPath: The path to the image.
 		@param channels (Default: STBI_rgb_alpha): The channels the texture to be created is expected to have.
+
+        @return A pair containing the image object (pair::first), and its memory allocation (pair::second).
 	*/
 	static std::pair<VkImage, VmaAllocation> createTextureImage(VulkanContext& vkContext, const char* imgPath, int channels = STBI_rgb_alpha);
+    
 
     /* Creates an image object.
         @param vkContext: The application context.
