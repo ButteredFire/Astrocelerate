@@ -54,7 +54,6 @@ public:
 
 	/* Initializes the device creation process. */
 	void init();
-	void cleanup();
 
 
 	/* Queries all GPU-supported queue families.

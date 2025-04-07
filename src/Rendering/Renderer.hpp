@@ -33,7 +33,7 @@
 #include <Vulkan/VkInstanceManager.hpp>
 #include <Vulkan/VkDeviceManager.hpp>
 #include <Vulkan/VkSwapchainManager.hpp>
-#include <Rendering/RenderPipeline.hpp>
+#include <Vulkan/VkCommandManager.hpp>
 #include <Rendering/GraphicsPipeline.hpp>
 #include <Shaders/BufferManager.hpp>
 #include <Constants.h>
@@ -81,9 +81,9 @@ private:
 
 	std::shared_ptr<VkSwapchainManager> swapchainManager;
 	std::shared_ptr<BufferManager> bufferManager;
+	std::shared_ptr<VkCommandManager> commandManager;
 
 	std::shared_ptr<GraphicsPipeline> graphicsPipeline;
-	std::shared_ptr<RenderPipeline> renderPipeline;
 
 	uint32_t currentFrame = 0;
 

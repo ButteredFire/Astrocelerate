@@ -1,19 +1,11 @@
-/* RenderPipeline.hpp - Manages the rendering pipeline.
+/* VkCommandManager.hpp - Manages command pools and command buffers.
 */
 
 #pragma once
 
-// Forward declaration
-class BufferManager;
-
 // GLFW & Vulkan
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
-
-// Dear ImGui
-#include <imgui/imgui.h>
-#include <imgui/imgui_impl_glfw.h>
-#include <imgui/imgui_impl_vulkan.h>
 
 // C++ STLs
 #include <filesystem>
@@ -21,6 +13,11 @@ class BufferManager;
 #include <iostream>
 #include <fstream>
 #include <vector>
+
+// Dear ImGui
+#include <imgui/imgui.h>
+#include <imgui/imgui_impl_glfw.h>
+#include <imgui/imgui_impl_vulkan.h>
 
 // Local
 #include <ApplicationContext.hpp>
@@ -31,13 +28,15 @@ class BufferManager;
 #include <Constants.h>
 
 
-class RenderPipeline {
+class BufferManager;
+
+
+class VkCommandManager {
 public:
-	RenderPipeline(VulkanContext& context);
-	~RenderPipeline();
+	VkCommandManager(VulkanContext& context);
+	~VkCommandManager();
 
 	void init();
-	void cleanup();
 
 	/* Writes a command into a command buffer.
 		@param buffer: The buffer to be recorded into.
@@ -47,20 +46,17 @@ public:
 	void recordCommandBuffer(VkCommandBuffer& buffer, uint32_t imageIndex, uint32_t currentFrame);
 
 
-	/* Creates a framebuffer for each image in the swap-chain. */
-	void createFrameBuffers();
-
-
-	/* Destroys each swap-chain image's framebuffer. This should only be called when the swap-chain is recreated. */
-	void destroyFrameBuffers();
-
-
-	/* Gets a list of image framebuffers.
-		@return A vector of type VkFrameBuffer containing a framebuffer for every swap-chain image.
+	/* Begins recording a single-use/anonymous command buffer for single-time commands.
+		@return The command buffer in question.
 	*/
-	inline std::vector<VkFramebuffer> getImageFrameBuffers() const { return imageFrameBuffers; };
+	VkCommandBuffer beginSingleUseCommandBuffer();
 
-	
+	/* Stops recording a single-use/anonymous command buffer.
+		@param cmdBuffer: The command buffer in question.
+	*/
+	void endSingleUseCommandBuffer(VkCommandBuffer& cmdBuffer);
+
+
 	/* Creates a command pool.
 		@param vkContext: The application context.
 		@param device: The logical device.
@@ -75,12 +71,10 @@ public:
 
 private:
 	VulkanContext& vkContext;
+
 	std::shared_ptr<BufferManager> bufferManager;
-
 	std::shared_ptr<MemoryManager> memoryManager;
-	std::vector<uint32_t> framebufTaskIDs; // Stores framebuffer cleanup task IDs (used exclusively in the swap-chain recreation process)
 
-	std::vector<VkFramebuffer> imageFrameBuffers;
 
 	// Command pools manage the memory that is used to store the buffers
 	// Command buffers are allocated from them
@@ -89,12 +83,4 @@ private:
 
 	VkCommandPool transferCmdPool = VK_NULL_HANDLE;
 	std::vector<VkCommandBuffer> transferCmdBuffers;
-
-	// Synchronization
-	std::vector<VkSemaphore> imageReadySemaphores;
-	std::vector<VkSemaphore> renderFinishedSemaphores;
-	std::vector<VkFence> inFlightFences;
-
-	/* Creates synchronization objects. */
-	void createSyncObjects();
 };

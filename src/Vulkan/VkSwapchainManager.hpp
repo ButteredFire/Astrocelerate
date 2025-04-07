@@ -6,10 +6,6 @@
 
 #pragma once
 
-// Forward-declares RenderPipeline (see recreateSwapchain()) so that the compiler knows about the RenderPipeline class before it is used.
-// This is necessary because VkSwapchainManager is initialized before RenderPipeline.
-class RenderPipeline;
-
 // GLFW & Vulkan
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -22,7 +18,6 @@ class RenderPipeline;
 
 // Local
 #include <Vulkan/VkInstanceManager.hpp>
-#include <Rendering/RenderPipeline.hpp>
 #include <LoggingManager.hpp>
 #include <MemoryManager.hpp>
 #include <ServiceLocator.hpp>
@@ -44,7 +39,11 @@ public:
 
 	/* Initializes the swap-chain manager. */
 	void init();
-	void cleanup();
+
+
+	/* Creates a framebuffer for each image in the swap-chain. Only call this after the graphics pipeline has been initialized. */
+	void createFrameBuffers();
+
 
 	/* Recreates the swap-chain. */
 	void recreateSwapchain();
@@ -62,12 +61,16 @@ private:
 	VulkanContext& vkContext;
 
 	std::shared_ptr<MemoryManager> memoryManager;
-	std::vector<uint32_t> cleanupTaskIDs;
+	std::vector<uint32_t> cleanupTaskIDs; // Stores cleanup task IDs (used exclusively in the swap-chain recreation process)
 
 	VkSwapchainKHR swapChain = VK_NULL_HANDLE;
-	std::vector<VkImage> swapChainImages;
-	std::vector<VkImageView> swapChainImageViews;
-	VkFormat swapChainImageFormat = VkFormat();
+
+	std::vector<VkImage> images;
+	std::vector<VkImageView> imageViews;
+	VkFormat imageFormat = VkFormat();
+
+	std::vector<VkFramebuffer> imageFrameBuffers;
+
 
 	/* Creates a swap-chain. */
 	void createSwapChain();

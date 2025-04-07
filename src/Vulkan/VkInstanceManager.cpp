@@ -7,7 +7,7 @@
 VkInstanceManager::VkInstanceManager(VulkanContext& context):
     vkContext(context) {
     
-    memoryManager = ServiceLocator::getService<MemoryManager>();
+    memoryManager = ServiceLocator::getService<MemoryManager>(__FUNCTION__);
 
     Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
@@ -20,21 +20,6 @@ void VkInstanceManager::init() {
     createVulkanInstance();
     createDebugMessenger();
     createSurface();
-}
-
-
-void VkInstanceManager::cleanup() {
-    Log::print(Log::T_INFO, __FUNCTION__, "Cleaning up...");
-
-    if (inDebugMode && vkIsValid(debugMessenger))
-        destroyDebugUtilsMessengerEXT(vulkInst, debugMessenger, nullptr);
-
-    if (vkIsValid(windowSurface))
-        vkDestroySurfaceKHR(vulkInst, windowSurface, nullptr);
-
-    // Destroy the instance last (because the destruction of other Vulkan objects depend on it)
-    if (vkIsValid(vulkInst))
-        vkDestroyInstance(vulkInst, nullptr);
 }
 
 
@@ -131,7 +116,6 @@ void VkInstanceManager::createVulkanInstance() {
 
     if (verifyVulkanExtensions(enabledExtensions) == false) {
         enabledExtensions.clear();
-        cleanup();
         throw Log::RuntimeException(__FUNCTION__, "GLFW Instance Extensions contain invalid or unsupported extensions!");
     }
 
@@ -245,7 +229,6 @@ std::vector<VkLayerProperties> VkInstanceManager::getSupportedVulkanValidationLa
 
 void VkInstanceManager::addVulkanExtensions(std::vector<const char*> extensions) {
     if (verifyVulkanExtensions(extensions) == false) {
-        cleanup();
         throw Log::RuntimeException(__FUNCTION__, "Cannot set Vulkan extensions: Provided extensions are either invalid or unsupported!");
     }
 
@@ -261,7 +244,6 @@ void VkInstanceManager::addVulkanExtensions(std::vector<const char*> extensions)
 
 void VkInstanceManager::addVulkanValidationLayers(std::vector<const char*> layers) {
     if (inDebugMode && verifyVulkanValidationLayers(layers) == false) {
-        cleanup();
         throw Log::RuntimeException(__FUNCTION__, "Cannot set Vulkan validation layers: Provided layers are either invalid or unsupported!");
     }
 

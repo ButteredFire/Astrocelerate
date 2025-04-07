@@ -35,38 +35,54 @@ int main() {
         GLFWwindow *windowPtr = window.getGLFWwindowPtr();
         vkContext.window = windowPtr;
 
-            // Creates an instance manager and initializes instance-related objects
+
+            // Instance manager
         VkInstanceManager instanceManager(vkContext);
         instanceManager.init();
 
-            // Creates a device manager and initializes GPU-related objects
+
+            // Device manager
         VkDeviceManager deviceManager(vkContext);
         deviceManager.init();
 
-            // Creates a swap-chain manager for swap-chain operations
+
+            // Swap-chain manager
         std::shared_ptr<VkSwapchainManager> swapchainManager = std::make_shared<VkSwapchainManager>(vkContext);
-        swapchainManager->init();
         ServiceLocator::registerService(swapchainManager);
 
-            // Creates a buffer manager
-        std::shared_ptr<BufferManager> bufferManager = std::make_shared<BufferManager>(vkContext);
-        bufferManager->init();
+        swapchainManager->init();
 
+
+            // Buffer manager and graphics pipeline
+        std::shared_ptr<BufferManager> bufferManager = std::make_shared<BufferManager>(vkContext);
         ServiceLocator::registerService(bufferManager);
 
-            // Creates a graphics pipeline
         std::shared_ptr<GraphicsPipeline> graphicsPipeline = std::make_shared<GraphicsPipeline>(vkContext);
-        graphicsPipeline->init();
         ServiceLocator::registerService(graphicsPipeline);
 
-            // Creates a rendering pipeline
-        std::shared_ptr<RenderPipeline> renderPipeline = std::make_shared<RenderPipeline>(vkContext);
-        renderPipeline->init();
-        ServiceLocator::registerService(renderPipeline);
+        bufferManager->init();
+        graphicsPipeline->init();
+        swapchainManager->createFrameBuffers(); // Only possible when it has a valid render pass (which must first be created in the graphics pipeline)
 
-            // Creates a renderer
+
+            // Command manager
+        std::shared_ptr<VkCommandManager> commandManager = std::make_shared<VkCommandManager>(vkContext);
+        ServiceLocator::registerService(commandManager);
+
+        commandManager->init();
+
+
+            // Synchronization manager
+        std::shared_ptr<VkSyncManager> syncManager = std::make_shared<VkSyncManager>(vkContext);
+        ServiceLocator::registerService(syncManager);
+        
+        syncManager->init();
+
+
+            // Renderer
         Renderer renderer(vkContext);
         renderer.init();
+
 
         Engine engine(windowPtr, vkContext, renderer);
         engine.run();

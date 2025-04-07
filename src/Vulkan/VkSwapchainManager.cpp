@@ -6,7 +6,7 @@
 VkSwapchainManager::VkSwapchainManager(VulkanContext& context):
     vkContext(context) {
 
-    memoryManager = ServiceLocator::getService<MemoryManager>();
+    memoryManager = ServiceLocator::getService<MemoryManager>(__FUNCTION__);
 
     if (vkContext.physicalDevice == VK_NULL_HANDLE) {
         throw Log::RuntimeException(__FUNCTION__, "Cannot initialize swap-chain manager: The GPU's physical device handle is null!");
@@ -16,7 +16,7 @@ VkSwapchainManager::VkSwapchainManager(VulkanContext& context):
         throw Log::RuntimeException(__FUNCTION__, "Cannot initialize swap-chain manager: The GPU's logical device handle is null!");
     }
 
-    swapChain = vkContext.swapChain;
+    swapChain = vkContext.SwapChain.swapChain;
 
     Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
@@ -31,32 +31,12 @@ void VkSwapchainManager::init() {
 
     // Parses data for each image
     createImageViews();
-    vkContext.swapChainImageViews = swapChainImageViews;
-}
-
-
-void VkSwapchainManager::cleanup() {
-    for (const auto& taskID : cleanupTaskIDs) {
-        memoryManager->executeCleanupTask(taskID);
-    }
-    cleanupTaskIDs.clear();
-
-    //// Frees image views memory
-    //for (const auto& imageView : swapChainImageViews) {
-    //    if (vkIsValid(imageView))
-    //        vkDestroyImageView(vkContext.logicalDevice, imageView, nullptr);
-    //}
-
-    //// Frees swap-chain memory
-    //if (vkIsValid(swapChain))
-    //    vkDestroySwapchainKHR(vkContext.logicalDevice, swapChain, nullptr);
+    vkContext.SwapChain.imageViews = imageViews;
 }
 
 
 void VkSwapchainManager::recreateSwapchain() {
     Log::print(Log::T_INFO, __FUNCTION__, "Recreating swap-chain...");
-
-    std::shared_ptr<RenderPipeline> renderPipeline = ServiceLocator::getService<RenderPipeline>();
 
     // If the window is minimized (i.e., (width, height) = (0, 0), pause the window until it is in the foreground again
     int width = 0, height = 0;
@@ -71,11 +51,14 @@ void VkSwapchainManager::recreateSwapchain() {
     vkDeviceWaitIdle(vkContext.logicalDevice);
 
         // Cleans up outdated swap-chain objects
-    renderPipeline->destroyFrameBuffers(); // Call this before destroying image views as framebuffers depend on them
-    cleanup();
-    
+    for (const auto& taskID : cleanupTaskIDs) {
+        memoryManager->executeCleanupTask(taskID);
+    }
+    cleanupTaskIDs.clear();
+
+
     init();
-    renderPipeline->createFrameBuffers();
+    createFrameBuffers();
 }
 
 
@@ -158,16 +141,16 @@ void VkSwapchainManager::createSwapChain() {
     }
 
     // Saves swap-chain properties
-    vkContext.swapChain = swapChain;
+    vkContext.SwapChain.swapChain = swapChain;
     // Saves swap-chain properties
-    vkContext.surfaceFormat = surfaceFormat;
-    vkContext.swapChainExtent = extent;
+    vkContext.SwapChain.surfaceFormat = surfaceFormat;
+    vkContext.SwapChain.extent = extent;
 
     // Fills swapChainImages with a set of VkImage objects provided after swap-chain creation
-    vkGetSwapchainImagesKHR(vkContext.logicalDevice, vkContext.swapChain, &imageCount, nullptr);
-    swapChainImages.resize(imageCount);
-    vkContext.minImageCount = imageCount;
-    vkGetSwapchainImagesKHR(vkContext.logicalDevice, vkContext.swapChain, &imageCount, swapChainImages.data());
+    vkGetSwapchainImagesKHR(vkContext.logicalDevice, vkContext.SwapChain.swapChain, &imageCount, nullptr);
+    images.resize(imageCount);
+    vkContext.SwapChain.minImageCount = imageCount;
+    vkGetSwapchainImagesKHR(vkContext.logicalDevice, vkContext.SwapChain.swapChain, &imageCount, images.data());
 
 
     CleanupTask task;
@@ -182,22 +165,21 @@ void VkSwapchainManager::createSwapChain() {
 
 
 void VkSwapchainManager::createImageViews() {
-	if (swapChainImages.empty()) {
-		cleanup();
+	if (images.empty()) {
 		throw Log::RuntimeException(__FUNCTION__, "Cannot create image views: Swap-chain contains no images to process!");
 	}
 
-    swapChainImageViews.clear();
-    swapChainImageViews.resize(swapChainImages.size());
+    imageViews.clear();
+    imageViews.resize(images.size());
 
-    for (size_t i = 0; i < swapChainImages.size(); i++) {
+    for (size_t i = 0; i < images.size(); i++) {
         VkImageViewCreateInfo viewCreateInfo{};
         viewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        viewCreateInfo.image = swapChainImages[i];
+        viewCreateInfo.image = images[i];
 
         // Specifies how the data is interpreted
         viewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D; // Treats images as 2D textures
-        viewCreateInfo.format = vkContext.surfaceFormat.format; // Specifies image format
+        viewCreateInfo.format = vkContext.SwapChain.surfaceFormat.format; // Specifies image format
 
         /* Defines how the color channels of the image should be interpreted (swizzling).
         * In essence, swizzling remaps the color channels of the image to how they should be interpreted by the image view.
@@ -228,12 +210,12 @@ void VkSwapchainManager::createImageViews() {
         viewCreateInfo.subresourceRange.layerCount = 1;
 
         
-        VkResult result = vkCreateImageView(vkContext.logicalDevice, &viewCreateInfo, nullptr, &swapChainImageViews[i]);
+        VkResult result = vkCreateImageView(vkContext.logicalDevice, &viewCreateInfo, nullptr, &imageViews[i]);
         if (result != VK_SUCCESS) {
             throw Log::RuntimeException(__FUNCTION__, "Failed to read image data!");
         }
 
-        VkImageView imageView = swapChainImageViews[i];
+        VkImageView imageView = imageViews[i];
 
         CleanupTask task{};
         task.caller = __FUNCTION__;
@@ -246,6 +228,48 @@ void VkSwapchainManager::createImageViews() {
     }
 }
 
+
+void VkSwapchainManager::createFrameBuffers() {
+    imageFrameBuffers.resize(imageViews.size());
+
+    for (size_t i = 0; i < imageFrameBuffers.size(); i++) {
+        if (imageViews[i] == VK_NULL_HANDLE) {
+            throw Log::RuntimeException(__FUNCTION__, "Cannot read null image view!");
+        }
+
+        VkImageView attachments[] = {
+            imageViews[i]
+        };
+
+        VkFramebufferCreateInfo bufferCreateInfo{};
+        bufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        bufferCreateInfo.renderPass = vkContext.GraphicsPipeline.renderPass;
+        bufferCreateInfo.attachmentCount = (sizeof(attachments) / sizeof(VkImageView));
+        bufferCreateInfo.pAttachments = attachments;
+        bufferCreateInfo.width = vkContext.SwapChain.extent.width;
+        bufferCreateInfo.height = vkContext.SwapChain.extent.height;
+        bufferCreateInfo.layers = 1; // Refer to swapChainCreateInfo.imageArrayLayers in createSwapChain()
+
+
+        VkResult result = vkCreateFramebuffer(vkContext.logicalDevice, &bufferCreateInfo, nullptr, &imageFrameBuffers[i]);
+        if (result != VK_SUCCESS) {
+            throw Log::RuntimeException(__FUNCTION__, "Failed to create frame buffer for image #" + std::to_string(i) + "!");
+        }
+
+        VkFramebuffer framebuffer = imageFrameBuffers[i];
+
+        CleanupTask task{};
+        task.caller = __FUNCTION__;
+        task.mainObjectName = VARIABLE_NAME(framebuffer);
+        task.vkObjects = { vkContext.logicalDevice, framebuffer };
+        task.cleanupFunc = [this, framebuffer]() { vkDestroyFramebuffer(vkContext.logicalDevice, framebuffer, nullptr); };
+
+        uint32_t framebufferTaskID = memoryManager->createCleanupTask(task);
+        cleanupTaskIDs.push_back(framebufferTaskID);
+    }
+
+    vkContext.SwapChain.imageFrameBuffers = imageFrameBuffers;
+}
 
 
 SwapChainProperties VkSwapchainManager::getSwapChainProperties(VkPhysicalDevice& device, VkSurfaceKHR& surface) {
@@ -282,7 +306,6 @@ SwapChainProperties VkSwapchainManager::getSwapChainProperties(VkPhysicalDevice&
 
 VkSurfaceFormatKHR VkSwapchainManager::getBestSurfaceFormat(std::vector<VkSurfaceFormatKHR>& formats) {
     if (formats.empty()) {
-        cleanup();
         throw Log::RuntimeException(__FUNCTION__, "Unable to get surface formats from an empty vector!");
     }
 

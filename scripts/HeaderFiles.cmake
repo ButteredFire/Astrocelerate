@@ -21,10 +21,11 @@ set(HEADER_FILES
 	"src/Engine/Engine.hpp"
 	"src/Rendering/GraphicsPipeline.hpp"
 	"src/Rendering/Renderer.hpp"
-	"src/Rendering/RenderPipeline.hpp"
 	"src/Rendering/TextureManager.hpp"
 	"src/Shaders/BufferManager.hpp"
+	"src/Vulkan/VkCommandManager.hpp"
 	"src/Vulkan/VkDeviceManager.hpp"
 	"src/Vulkan/VkInstanceManager.hpp"
 	"src/Vulkan/VkSwapchainManager.hpp"
+	"src/Vulkan/VkSyncManager.hpp"
 )

@@ -80,7 +80,6 @@ public:
 	~GraphicsPipeline();
 
 	void init();
-	void cleanup();
 
 
 	/* Creates a descriptor pool.

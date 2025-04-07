@@ -5,6 +5,7 @@
 #include <vk_mem_alloc.h>
 
 #include <LoggingManager.hpp>
+#include <vector>
 #include <optional>
 #include <variant>
 
@@ -137,24 +138,48 @@ struct VulkanContext {
     GLFWwindow* window;
 	VmaAllocator vmaAllocator = VK_NULL_HANDLE;
 
+
     // Instance creation
     VkInstance vulkanInstance = VK_NULL_HANDLE;
     VkSurfaceKHR vkSurface = VK_NULL_HANDLE;
     std::vector<const char*> enabledValidationLayers;
+
 
     // Devices
     VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
     VkDevice logicalDevice = VK_NULL_HANDLE;
 	QueueFamilyIndices queueFamilies = QueueFamilyIndices();
 
-    // Swap-chain
-    VkSwapchainKHR swapChain = VK_NULL_HANDLE;
-    std::vector<VkImageView> swapChainImageViews;
-    VkExtent2D swapChainExtent = VkExtent2D();
-    VkSurfaceFormatKHR surfaceFormat = VkSurfaceFormatKHR();
-    uint32_t minImageCount = 0;
 
-    // Pipelines
+    // Swap-chain
+	struct SwapChain {
+		VkSwapchainKHR swapChain = VK_NULL_HANDLE;
+
+		std::vector<VkImageView> imageViews;
+		std::vector<VkFramebuffer> imageFrameBuffers;
+
+		VkExtent2D extent = VkExtent2D();
+		VkSurfaceFormatKHR surfaceFormat = VkSurfaceFormatKHR();
+		uint32_t minImageCount = 0;
+	} SwapChain;
+
+
+	// Command objects
+	struct CommandObjects {
+        std::vector<VkCommandBuffer> graphicsCmdBuffers;
+		std::vector<VkCommandBuffer> transferCmdBuffers;
+	} CommandObjects;
+
+
+	// Synchronization objects
+	struct SyncObjects {
+		std::vector<VkSemaphore> imageReadySemaphores;
+		std::vector<VkSemaphore> renderFinishedSemaphores;
+		std::vector<VkFence> inFlightFences;
+	} SyncObjects;
+
+
+    // Graphics pipeline
     struct GraphicsPipeline {
         VkPipeline pipeline = VK_NULL_HANDLE;
         VkPipelineLayout layout = VK_NULL_HANDLE;
@@ -162,17 +187,6 @@ struct VulkanContext {
 
 		std::vector<VkDescriptorSet> uniformBufferDescriptorSets;
     } GraphicsPipeline;
-
-    struct RenderPipeline {
-        std::vector<VkCommandBuffer> graphicsCmdBuffers;
-		std::vector<VkCommandBuffer> transferCmdBuffers;
-
-        // Synchronization
-		std::vector<VkSemaphore> imageReadySemaphores;
-		std::vector<VkSemaphore> renderFinishedSemaphores;
-		std::vector<VkFence> inFlightFences;
-    } RenderPipeline;
-
 };
 
 

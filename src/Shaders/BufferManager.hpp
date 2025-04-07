@@ -19,6 +19,8 @@
 
 // Other
 #include <Vulkan/VkDeviceManager.hpp>
+#include <Vulkan/VkCommandManager.hpp>
+
 #include <ApplicationContext.hpp>
 #include <LoggingManager.hpp>
 #include <MemoryManager.hpp>
@@ -76,7 +78,6 @@ public:
     ~BufferManager();
 
     void init();
-    void cleanup();
 
 
     /* Creates a buffer.

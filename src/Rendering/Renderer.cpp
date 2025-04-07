@@ -9,10 +9,10 @@ Renderer::Renderer(VulkanContext& context):
     vulkInst(context.vulkanInstance),
     vkContext(context) {
 
-    swapchainManager = ServiceLocator::getService<VkSwapchainManager>();
-    bufferManager = ServiceLocator::getService<BufferManager>();
-    graphicsPipeline = ServiceLocator::getService<GraphicsPipeline>();
-    renderPipeline = ServiceLocator::getService<RenderPipeline>();
+    swapchainManager = ServiceLocator::getService<VkSwapchainManager>(__FUNCTION__);
+    bufferManager = ServiceLocator::getService<BufferManager>(__FUNCTION__);
+    graphicsPipeline = ServiceLocator::getService<GraphicsPipeline>(__FUNCTION__);
+    commandManager = ServiceLocator::getService<VkCommandManager>(__FUNCTION__);
 
     Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
@@ -22,6 +22,7 @@ Renderer::~Renderer() {
     ImGui_ImplVulkan_DestroyFontsTexture();
     ImGui_ImplVulkan_Shutdown();
 };
+
 
 void Renderer::update() {
     drawFrame();
@@ -88,8 +89,8 @@ void Renderer::configureDearImGui() {
     vkInitInfo.Subpass = 1;
 
         // Image count
-    vkInitInfo.MinImageCount = vkContext.minImageCount; // For some reason, ImGui does not actually use this property
-    vkInitInfo.ImageCount = vkContext.minImageCount;
+    vkInitInfo.MinImageCount = vkContext.SwapChain.minImageCount; // For some reason, ImGui does not actually use this property
+    vkInitInfo.ImageCount = vkContext.SwapChain.minImageCount;
     
         // Other
     vkInitInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
@@ -194,7 +195,7 @@ void Renderer::refreshDearImgui(){
     QueueFamilyIndices familyIndices = vkContext.queueFamilies;
     uint32_t queueFamily = familyIndices.graphicsFamily.index.value();
 
-    ImGui_ImplVulkan_SetMinImageCount(vkContext.minImageCount);
+    ImGui_ImplVulkan_SetMinImageCount(vkContext.SwapChain.minImageCount);
     //ImGui_ImplVulkanH_CreateOrResizeWindow(vkContext.vulkanInstance, vkContext.physicalDevice, vkContext.logicalDevice, WINDOW, queueFamily, nullptr, width, height, vkContext.minImageCount);
 }
 
@@ -230,14 +231,14 @@ void Renderer::drawFrame() {
 
     // VK_TRUE: Indicates that the vkWaitForFences should wait for all fences.
     // UINT64_MAX: The maximum time to wait (timeout) (in nanoseconds). UINT64_MAX means to wait indefinitely (i.e., to disable the timeout)
-    VkResult waitResult = vkWaitForFences(vkContext.logicalDevice, 1, &vkContext.RenderPipeline.inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
+    VkResult waitResult = vkWaitForFences(vkContext.logicalDevice, 1, &vkContext.SyncObjects.inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
     if (waitResult != VK_SUCCESS) {
         throw Log::RuntimeException(__FUNCTION__, "Failed to wait for in-flight fence!");
     }
 
     // Acquires an image from the swap-chain
     uint32_t imageIndex;
-    VkResult imgAcquisitionResult = vkAcquireNextImageKHR(vkContext.logicalDevice, vkContext.swapChain, UINT64_MAX, vkContext.RenderPipeline.imageReadySemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+    VkResult imgAcquisitionResult = vkAcquireNextImageKHR(vkContext.logicalDevice, vkContext.SwapChain.swapChain, UINT64_MAX, vkContext.SyncObjects.imageReadySemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
     if (imgAcquisitionResult != VK_SUCCESS) {
         if (imgAcquisitionResult == VK_ERROR_OUT_OF_DATE_KHR || imgAcquisitionResult == VK_SUBOPTIMAL_KHR) {
             swapchainManager->recreateSwapchain();
@@ -253,7 +254,7 @@ void Renderer::drawFrame() {
     // Only reset the fence when we're submitting work
 
     // After waiting, reset fence to unsignaled
-    VkResult resetFenceResult = vkResetFences(vkContext.logicalDevice, 1, &vkContext.RenderPipeline.inFlightFences[currentFrame]);
+    VkResult resetFenceResult = vkResetFences(vkContext.logicalDevice, 1, &vkContext.SyncObjects.inFlightFences[currentFrame]);
     if (resetFenceResult != VK_SUCCESS) {
         throw Log::RuntimeException(__FUNCTION__, "Failed to reset fence!");
     }
@@ -275,13 +276,13 @@ void Renderer::drawFrame() {
 
     // Records the command buffer
         // Resets the command buffer first to ensure it is able to be recorded
-    VkResult cmdBufResetResult = vkResetCommandBuffer(vkContext.RenderPipeline.graphicsCmdBuffers[currentFrame], 0);
+    VkResult cmdBufResetResult = vkResetCommandBuffer(vkContext.CommandObjects.graphicsCmdBuffers[currentFrame], 0);
     if (cmdBufResetResult != VK_SUCCESS) {
         throw Log::RuntimeException(__FUNCTION__, "Failed to reset command buffer!");
     }
 
         // Records commands
-    renderPipeline->recordCommandBuffer(vkContext.RenderPipeline.graphicsCmdBuffers[currentFrame], imageIndex, currentFrame);
+    commandManager->recordCommandBuffer(vkContext.CommandObjects.graphicsCmdBuffers[currentFrame], imageIndex, currentFrame);
 
 
         // Updates the uniform buffer
@@ -293,13 +294,13 @@ void Renderer::drawFrame() {
 
             // Specifies the command buffer to be submitted
     submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &vkContext.RenderPipeline.graphicsCmdBuffers[currentFrame];
+    submitInfo.pCommandBuffers = &vkContext.CommandObjects.graphicsCmdBuffers[currentFrame];
 
             /* NOTE:
             * Each stage in waitStages[] corresponds to a semaphore in waitSemaphores[].
             */
     VkSemaphore waitSemaphores[] = {
-        vkContext.RenderPipeline.imageReadySemaphores[currentFrame] // Wait for the image to be available (see waitStages[0])
+        vkContext.SyncObjects.imageReadySemaphores[currentFrame] // Wait for the image to be available (see waitStages[0])
     };
     VkPipelineStageFlags waitStages[] = {
         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT // Wait for the colors to first be written to the image, because (theoretically) our vertex shader could be executed prematurely (before the image is available).
@@ -314,13 +315,13 @@ void Renderer::drawFrame() {
 
             // Specifies which semaphores to signal once the command buffer's execution is finished
     VkSemaphore signalSemaphores[] = {
-        vkContext.RenderPipeline.renderFinishedSemaphores[currentFrame]
+        vkContext.SyncObjects.renderFinishedSemaphores[currentFrame]
     };
     submitInfo.signalSemaphoreCount = (sizeof(signalSemaphores) / sizeof(VkSemaphore));
     submitInfo.pSignalSemaphores = signalSemaphores;
 
     VkQueue graphicsQueue = vkContext.queueFamilies.graphicsFamily.deviceQueue;
-    VkResult submitResult = vkQueueSubmit(graphicsQueue, 1, &submitInfo, vkContext.RenderPipeline.inFlightFences[currentFrame]);
+    VkResult submitResult = vkQueueSubmit(graphicsQueue, 1, &submitInfo, vkContext.SyncObjects.inFlightFences[currentFrame]);
     if (submitResult != VK_SUCCESS) {
         throw Log::RuntimeException(__FUNCTION__, "Failed to submit draw command buffer!");
     }
@@ -337,7 +338,7 @@ void Renderer::drawFrame() {
 
         // Specifies the swap-chains to present images to, and the image index for each swap-chain (this will almost always be a single one)
     VkSwapchainKHR swapChains[] = {
-        vkContext.swapChain
+        vkContext.SwapChain.swapChain
     };
     presentationInfo.swapchainCount = (sizeof(swapChains) / sizeof(VkSwapchainKHR));
     presentationInfo.pSwapchains = swapChains;

@@ -8,7 +8,7 @@
 VkDeviceManager::VkDeviceManager(VulkanContext &context):
     vulkInst(context.vulkanInstance), vkContext(context) {
 
-    memoryManager = ServiceLocator::getService<MemoryManager>();
+    memoryManager = ServiceLocator::getService<MemoryManager>(__FUNCTION__);
 
     if (vulkInst == VK_NULL_HANDLE) {
         throw Log::RuntimeException(__FUNCTION__, "Cannot initialize device manager: Invalid Vulkan instance!");
@@ -43,21 +43,12 @@ void VkDeviceManager::init() {
 }
 
 
-void VkDeviceManager::cleanup() {
-    Log::print(Log::T_INFO, __FUNCTION__, "Cleaning up...");
-
-    if (vkIsValid(GPULogicalDevice))
-        vkDestroyDevice(GPULogicalDevice, nullptr);
-}
-
-
 void VkDeviceManager::createPhysicalDevice() {
     // Queries available Vulkan-supported GPUs
     uint32_t physDeviceCount = 0;
     vkEnumeratePhysicalDevices(vulkInst, &physDeviceCount, nullptr);
 
     if (physDeviceCount == 0) {
-        cleanup();
         throw Log::RuntimeException(__FUNCTION__, "This machine does not have Vulkan-supported GPUs!");
     }
 
@@ -81,7 +72,6 @@ void VkDeviceManager::createPhysicalDevice() {
     //std::cout << "Most suitable GPU: (GPU: " << enquoteCOUT(bestDevice.deviceName) << "; Compatible: " << std::boolalpha << isDeviceCompatible << "; Optional Score: " << physicalDeviceScore << ")\n\n";
 
     if (physicalDevice == nullptr || !isDeviceCompatible) {
-        cleanup();
         throw Log::RuntimeException(__FUNCTION__, "Failed to find a GPU that supports required features!");
     }
 
@@ -96,7 +86,6 @@ void VkDeviceManager::createLogicalDevice() {
     std::vector<QueueFamilyIndices::QueueFamily*> allFamilies = queueFamilies.getAllQueueFamilies();
     for (const auto &family : allFamilies)
         if (!queueFamilies.familyExists(*family)) {
-            cleanup();
             throw Log::RuntimeException(__FUNCTION__, "Unable to create logical device: " + (family->deviceName) + " is non-existent!");
         }
 

@@ -92,7 +92,6 @@ public:
 
 	/* Initializes the Vulkan instance setup process. */
 	void init();
-	void cleanup();
 
 	/* Gets the renderer's currently enabled Vulkan validation layers.
 		@return A vector of type `const char*` that contains the names of currently enabled validation layers.

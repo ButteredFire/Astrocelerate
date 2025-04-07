@@ -6,8 +6,8 @@
 GraphicsPipeline::GraphicsPipeline(VulkanContext& context):
 	vkContext(context) {
 
-	memoryManager = ServiceLocator::getService<MemoryManager>();
-	bufferManager = ServiceLocator::getService<BufferManager>();
+	memoryManager = ServiceLocator::getService<MemoryManager>(__FUNCTION__);
+	bufferManager = ServiceLocator::getService<BufferManager>(__FUNCTION__);
 
 	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
@@ -62,26 +62,6 @@ void GraphicsPipeline::init() {
 
 	// Create the graphics pipeline
 	createGraphicsPipeline();
-}
-
-
-void GraphicsPipeline::cleanup() {
-	Log::print(Log::T_INFO, __FUNCTION__, "Cleaning up...");
-
-	if (vkIsValid(vertShaderModule))
-		vkDestroyShaderModule(vkContext.logicalDevice, vertShaderModule, nullptr);
-	
-	if (vkIsValid(fragShaderModule))
-		vkDestroyShaderModule(vkContext.logicalDevice, fragShaderModule, nullptr);
-
-	if (vkIsValid(renderPass))
-		vkDestroyRenderPass(vkContext.logicalDevice, renderPass, nullptr);
-	
-	if (vkIsValid(pipelineLayout))
-		vkDestroyPipelineLayout(vkContext.logicalDevice, pipelineLayout, nullptr);
-	
-	if (vkIsValid(graphicsPipeline))
-		vkDestroyPipeline(vkContext.logicalDevice, graphicsPipeline, nullptr);
 }
 
 
@@ -307,7 +287,7 @@ void GraphicsPipeline::createDescriptorSets() {
 void GraphicsPipeline::createRenderPass() {
 	// Main rendering
 	VkAttachmentDescription mainColorAttachment{};
-	mainColorAttachment.format = vkContext.surfaceFormat.format;
+	mainColorAttachment.format = vkContext.SwapChain.surfaceFormat.format;
 	mainColorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;				// Use 1 sample since multisampling is not enabled yet
 	mainColorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;	// The render area will be cleared to a uniform value on every render pass instantiation. Since the render pass is run for every frame in our case, we effectively "refresh" the render area.
 	mainColorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -482,15 +462,15 @@ void GraphicsPipeline::initInputAssemblyState() {
 
 void GraphicsPipeline::initViewportState() {
 	viewport.x = viewport.y = 0.0f;
-	viewport.width = static_cast<float>(vkContext.swapChainExtent.width);
-	viewport.height = static_cast<float>(vkContext.swapChainExtent.height);
+	viewport.width = static_cast<float>(vkContext.SwapChain.extent.width);
+	viewport.height = static_cast<float>(vkContext.SwapChain.extent.height);
 	viewport.minDepth = 0.0f;
 	viewport.maxDepth = 1.0f;
 
 	// Since we want to draw the entire framebuffer, we'll specify a scissor rectangle that covers it entirely (i.e., that has the same extent as the swap chain's)
 	// If we want to (re)draw only a partial part of the framebuffer from (a, b) to (x, y), we'll specify the offset as {a, b} and extent as {x, y}
 	scissorRectangle.offset = { 0, 0 };
-	scissorRectangle.extent = vkContext.swapChainExtent;
+	scissorRectangle.extent = vkContext.SwapChain.extent;
 
 	// NOTE: We don't need to specify pViewports and pScissors since the viewport was set as a dynamic state. Therefore, we only need to specify the viewport and scissor counts at pipeline creation time. The actual objects can be set up later at drawing time.
 	viewportStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;

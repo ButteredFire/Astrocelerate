@@ -21,15 +21,18 @@ public:
 	}
 
 	/* Gets a service from the registry.
-		@tparam T: the service type.
+		@tparam T: The service type.
+		@param caller: The origin from which the call to this function is made.
 		
 		@return A shared pointer to the service.
 	*/
 	template<typename T>
-	inline static std::shared_ptr<T> getService() {
-		auto ptrIt = services.find(std::type_index(typeid(T)));
+	inline static std::shared_ptr<T> getService(const char* caller) {
+		std::type_index serviceTypeIdx = std::type_index(typeid(T));
+		auto ptrIt = services.find(serviceTypeIdx);
 		if (ptrIt == services.end()) {
-			throw Log::RuntimeException(__FUNCTION__, "Failed to find service!");
+			throw Log::RuntimeException(__FUNCTION__, "Failed to find service of type " + enquote(serviceTypeIdx.name()) + "!"
+				+ '\n' + "Service retrieval requested from " + std::string(caller) + ".");
 		}
 
 		return std::static_pointer_cast<T>(ptrIt->second);

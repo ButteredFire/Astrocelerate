@@ -16,10 +16,11 @@ set(SOURCE_FILES
 	"src/Engine/Engine.cpp"
 	"src/Rendering/GraphicsPipeline.cpp"
 	"src/Rendering/Renderer.cpp"
-	"src/Rendering/RenderPipeline.cpp"
 	"src/Rendering/TextureManager.cpp"
 	"src/Shaders/BufferManager.cpp"
+	"src/Vulkan/VkCommandManager.cpp"
 	"src/Vulkan/VkDeviceManager.cpp"
 	"src/Vulkan/VkInstanceManager.cpp"
 	"src/Vulkan/VkSwapchainManager.cpp"
+	"src/Vulkan/VkSyncManager.cpp"
 )

@@ -3,7 +3,7 @@
 BufferManager::BufferManager(VulkanContext& context):
 	vkContext(context) {
 
-	memoryManager = ServiceLocator::getService<MemoryManager>();
+	memoryManager = ServiceLocator::getService<MemoryManager>(__FUNCTION__);
 
 	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
@@ -15,17 +15,6 @@ void BufferManager::init() {
 	createVertexBuffer();
 	createIndexBuffer();
 	createUniformBuffers();
-}
-
-
-void BufferManager::cleanup() {
-	Log::print(Log::T_INFO, __FUNCTION__, "Cleaning up...");
-
-	if (vkIsValid(vertexBuffer))
-		vkDestroyBuffer(vkContext.logicalDevice, vertexBuffer, nullptr);
-
-	//if (vkIsValid(vertexBufferMemory))
-	//	vkFreeMemory(vkContext.logicalDevice, vertexBufferMemory, nullptr);
 }
 
 
@@ -71,7 +60,7 @@ std::array<VkVertexInputAttributeDescription, 2> BufferManager::getAttributeDesc
 
 uint32_t BufferManager::createBuffer(VulkanContext& vkContext, VkBuffer& buffer, VkDeviceSize bufferSize, VkBufferUsageFlags usageFlags, VmaAllocation& bufferAllocation, VmaAllocationCreateInfo bufferAllocationCreateInfo) {
 
-	std::shared_ptr<MemoryManager> memoryManager = ServiceLocator::getService<MemoryManager>();
+	std::shared_ptr<MemoryManager> memoryManager = ServiceLocator::getService<MemoryManager>(__FUNCTION__);
 
 	// Creates the buffer
 	VkBufferCreateInfo bufCreateInfo{};
@@ -128,7 +117,7 @@ void BufferManager::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceS
 	}
 
 
-	VkCommandPool commandPool = RenderPipeline::createCommandPool(vkContext, vkContext.logicalDevice, queueFamily.index.value(), VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
+	VkCommandPool commandPool = VkCommandManager::createCommandPool(vkContext, vkContext.logicalDevice, queueFamily.index.value(), VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
 
 	VkCommandBufferAllocateInfo bufAllocInfo{};
 	bufAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -199,7 +188,7 @@ void BufferManager::updateUniformBuffer(uint32_t currentImage) {
 
 	// glm::perspective(fieldOfView, aspectRatio, nearClipPlane, farClipPlane);
 	constexpr float fieldOfView = glm::radians(60.0f);
-	float aspectRatio = static_cast<float>(vkContext.swapChainExtent.width / vkContext.swapChainExtent.height);
+	float aspectRatio = static_cast<float>(vkContext.SwapChain.extent.width / vkContext.SwapChain.extent.height);
 	float nearClipPlane = 0.1f;
 	float farClipPlane = 10.0f;
 
