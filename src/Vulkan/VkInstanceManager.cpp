@@ -75,7 +75,7 @@ void VkInstanceManager::createDebugMessenger() {
 
     CleanupTask task{};
     task.caller = __FUNCTION__;
-    task.mainObjectName = VARIABLE_NAME(debugMessenger);
+    task.objectNames = { VARIABLE_NAME(debugMessenger) };
     task.vkObjects = { vulkInst, debugMessenger };
     task.cleanupFunc = [&]() { destroyDebugUtilsMessengerEXT(vulkInst, debugMessenger, nullptr); };
     task.cleanupConditions = { inDebugMode };
@@ -147,7 +147,7 @@ void VkInstanceManager::createVulkanInstance() {
 
     CleanupTask task{};
     task.caller = __FUNCTION__;
-    task.mainObjectName = VARIABLE_NAME(vulkInst);
+    task.objectNames = { VARIABLE_NAME(vulkInst) };
     task.vkObjects = { vulkInst };
     task.cleanupFunc = [&]() { vkDestroyInstance(vulkInst, nullptr); };
 
@@ -170,7 +170,7 @@ void VkInstanceManager::createSurface() {
 
     CleanupTask task{};
     task.caller = __FUNCTION__;
-    task.mainObjectName = VARIABLE_NAME(windowSurface);
+    task.objectNames = { VARIABLE_NAME(windowSurface) };
     task.vkObjects = { vulkInst, windowSurface };
     task.cleanupFunc = [this]() { vkDestroySurfaceKHR(vulkInst, windowSurface, nullptr); };
 

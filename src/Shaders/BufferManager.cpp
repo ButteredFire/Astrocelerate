@@ -94,7 +94,7 @@ uint32_t BufferManager::createBuffer(VulkanContext& vkContext, VkBuffer& buffer,
 
 	CleanupTask bufTask{};
 	bufTask.caller = __FUNCTION__;
-	bufTask.mainObjectName = VARIABLE_NAME(buffer);
+	bufTask.objectNames = { VARIABLE_NAME(buffer) };
 	bufTask.vkObjects = { vkContext.vmaAllocator, buffer, bufferAllocation };
 	bufTask.cleanupFunc = [vkContext, buffer, bufferAllocation]() { vmaDestroyBuffer(vkContext.vmaAllocator, buffer, bufferAllocation); };
 
@@ -327,7 +327,7 @@ void BufferManager::createUniformBuffers() {
 		VmaAllocation uniformBufAlloc = uniformBuffersAllocations[i];
 		CleanupTask task{};
 		task.caller = __FUNCTION__;
-		task.mainObjectName = VARIABLE_NAME(uniformBuffersAllocations);
+		task.objectNames = { VARIABLE_NAME(uniformBuffersAllocations) };
 		task.vkObjects = { vkContext.vmaAllocator, uniformBufAlloc };
 		task.cleanupFunc = [this, uniformBufAlloc]() { vmaUnmapMemory(vkContext.vmaAllocator, uniformBufAlloc); };
 

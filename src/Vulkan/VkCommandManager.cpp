@@ -26,6 +26,9 @@ void VkCommandManager::init() {
 
 	allocCommandBuffers(transferCmdPool, transferCmdBuffers);
 	vkContext.CommandObjects.transferCmdBuffers = transferCmdBuffers;
+
+
+	transientCmdPool = createCommandPool(vkContext, vkContext.logicalDevice, familyIndices.graphicsFamily.index.value(), VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
 }
 
 
@@ -147,13 +150,38 @@ void VkCommandManager::recordCommandBuffer(VkCommandBuffer& cmdBuffer, uint32_t 
 
 
 VkCommandBuffer VkCommandManager::beginSingleUseCommandBuffer() {
+	VkCommandBufferAllocateInfo cmdBufAllocInfo{};
+	cmdBufAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	cmdBufAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	cmdBufAllocInfo.commandPool = transientCmdPool;
+	cmdBufAllocInfo.commandBufferCount = 1;
 
-	return VkCommandBuffer();
+	VkCommandBuffer cmdBuffer;
+	vkAllocateCommandBuffers(vkContext.logicalDevice, &cmdBufAllocInfo, &cmdBuffer);
+
+	VkCommandBufferBeginInfo cmdBufBeginInfo{};
+	cmdBufBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	cmdBufBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+	vkBeginCommandBuffer(cmdBuffer, &cmdBufBeginInfo);
+
+	return cmdBuffer;
 }
 
 
 void VkCommandManager::endSingleUseCommandBuffer(VkCommandBuffer& cmdBuffer) {
+	vkEndCommandBuffer(cmdBuffer);
 
+	VkSubmitInfo submitInfo{};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &cmdBuffer;
+
+	VkQueue graphicsQueue = vkContext.queueFamilies.graphicsFamily.deviceQueue;
+	vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+	vkDeviceWaitIdle(vkContext.logicalDevice);
+
+	vkFreeCommandBuffers(vkContext.logicalDevice, transientCmdPool, 1, &cmdBuffer);
 }
 
 
@@ -177,7 +205,7 @@ VkCommandPool VkCommandManager::createCommandPool(VulkanContext& vkContext, VkDe
 
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
-	task.mainObjectName = VARIABLE_NAME(commandPool);
+	task.objectNames = { VARIABLE_NAME(commandPool) };
 	task.vkObjects = { vkContext.logicalDevice, commandPool };
 	task.cleanupFunc = [vkContext, commandPool]() { vkDestroyCommandPool(vkContext.logicalDevice, commandPool, nullptr); };
 
@@ -208,7 +236,7 @@ void VkCommandManager::allocCommandBuffers(VkCommandPool& commandPool, std::vect
 
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
-	task.mainObjectName = VARIABLE_NAME(commandBuffers);
+	task.objectNames = { VARIABLE_NAME(commandBuffers) };
 	task.vkObjects = { vkContext.logicalDevice, commandPool };
 	task.cleanupFunc = [this, commandPool, commandBuffers]() { vkFreeCommandBuffers(vkContext.logicalDevice, commandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data()); };
 

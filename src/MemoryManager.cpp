@@ -25,7 +25,7 @@ VmaAllocator MemoryManager::createVMAllocator(VkInstance& instance, VkPhysicalDe
 
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
-	task.mainObjectName = VARIABLE_NAME(vmaAllocator);
+	task.objectNames = { VARIABLE_NAME(vmaAllocator) };
 	task.vkObjects = { vmaAllocator };
 	task.cleanupFunc = [this]() { vmaDestroyAllocator(vmaAllocator); };
 
@@ -41,7 +41,7 @@ uint32_t MemoryManager::createCleanupTask(CleanupTask task) {
 	cleanupStack.push_back(task);
 	idToIdxLookup[id] = (cleanupStack.size() - 1);
 
-	Log::print(Log::T_VERBOSE, task.caller.c_str(), "Pushed object " + enquote(task.mainObjectName) + " to cleanup stack.");
+	Log::print(Log::T_VERBOSE, task.caller.c_str(), "Pushed object " + enquote(task.objectNames[0]) + " to cleanup stack.");
 	return id;
 }
 
@@ -85,10 +85,17 @@ void MemoryManager::processCleanupStack() {
 
 
 bool MemoryManager::executeTask(CleanupTask& task, uint32_t taskID) {
-	std::string objectName = enquote(task.caller + " -> " + task.mainObjectName);
+	// Constructs a string displaying the object name(s) for logging
+	std::string objectNamesStr = (task.caller + " -> " + task.objectNames[0]);
+	for (size_t i = 1; i < task.objectNames.size(); i++) {
+		objectNamesStr += ", " + task.objectNames[i];
+	}
+	objectNamesStr = enquote(objectNamesStr);
 
+
+	// Checks whether the task is already invalid
 	if (!task.validTask) {
-		Log::print(Log::T_WARNING, __FUNCTION__, "Skipped cleanup task for object " + objectName + " because it either has already been executed or is invalid.");
+		Log::print(Log::T_WARNING, __FUNCTION__, "Skipped cleanup task for object(s) " + objectNamesStr + ".");
 		return false;
 	}
 
@@ -111,35 +118,38 @@ bool MemoryManager::executeTask(CleanupTask& task, uint32_t taskID) {
 	}
 
 	if (!proceedCleanup) {
-		Log::print(Log::T_WARNING, __FUNCTION__, "Skipped cleanup task for object " + objectName + " due to an invalid Vulkan object used in its destroy/free callback function.");
+		Log::print(Log::T_WARNING, __FUNCTION__, "Skipped cleanup task for object(s) " + objectNamesStr + " due to an invalid Vulkan object used in their destroy/free callback function.");
 		return false;
 	}
 
+
 	// Executes the task and invalidates it to prevent future executions
 	task.cleanupFunc();
-	Log::print(Log::T_VERBOSE, __FUNCTION__, "Executed cleanup task for object " + objectName + ".");
+
+	Log::print(Log::T_VERBOSE, __FUNCTION__, "Executed cleanup task for object(s) " + objectNamesStr + ".");
 
 	task.validTask = false;
-	invalidTasks++;
+	invalidTaskCount++;
 
-	if (invalidTasks >= MAX_INVALID_TASKS)
+	if (invalidTaskCount >= MAX_INVALID_TASKS) {
 		optimizeStack();
+	}
 
 	return true;
 }
 
 
 void MemoryManager::optimizeStack() {
-	size_t displacement = 0; // Cumulative displacement
-	size_t locDisplacement = 0; // Local displacement (used only for removing redundant key-value pairs in the ID-to-Index hashmap)
-	size_t invalidTaskCount = 0;
+	size_t displacement = 0;		 // Cumulative displacement
+	size_t locDisplacement = 0;		 // Local displacement (used only for removing redundant key-value pairs in the ID-to-Index hashmap)
+	size_t locInvalidTaskCount = 0;	 // Local invalid task count (differs from MemoryManager::invalidTaskCount because this keeps track of all invalid tasks, while the member variable only serves to trigger a call to optimizeStack on exceeding the maximum constant)
 	size_t oldSize = cleanupStack.size();
 
 	for (size_t i = 0; i < oldSize; i++) {
 		if (!cleanupStack[i].validTask) {
 			displacement++;
 			locDisplacement++;
-			invalidTaskCount++;
+			locInvalidTaskCount++;
 		}
 		else {
 			idToIdxLookup[i] -= displacement;
@@ -152,16 +162,17 @@ void MemoryManager::optimizeStack() {
 		}
 	}
 
-	nextID = (oldSize - invalidTaskCount);
+	nextID = (oldSize - locInvalidTaskCount);
 
-	// Resizing down `invalidTaskCount` elements effectively discards tasks whose indices are greater than (size - invalidTaskCount)
+	// Resizing down `invalidTaskCount` elements effectively discards tasks whose indices are greater than (size - locInvalidTaskCount)
 	cleanupStack.resize(nextID);
 
-	invalidTasks = 0;
+	invalidTaskCount = 0;
 
 	size_t newSize = cleanupStack.size();
 	if (newSize < oldSize)
 		Log::print(Log::T_SUCCESS, __FUNCTION__, "Shrunk stack size from " + std::to_string(oldSize) + " down to " + std::to_string(newSize) + ".");
+
 	else
 		Log::print(Log::T_INFO, __FUNCTION__, "Cleanup stack cannot be optimized further.");
 }

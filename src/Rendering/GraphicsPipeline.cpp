@@ -116,7 +116,7 @@ void GraphicsPipeline::createGraphicsPipeline() {
 
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
-	task.mainObjectName = VARIABLE_NAME(graphicsPipeline);
+	task.objectNames = { VARIABLE_NAME(graphicsPipeline) };
 	task.vkObjects = { vkContext.logicalDevice, graphicsPipeline };
 	task.cleanupFunc = [&]() { vkDestroyPipeline(vkContext.logicalDevice, graphicsPipeline, nullptr); };
 
@@ -144,7 +144,7 @@ void GraphicsPipeline::createPipelineLayout() {
 
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
-	task.mainObjectName = VARIABLE_NAME(pipelineLayout);
+	task.objectNames = { VARIABLE_NAME(pipelineLayout) };
 	task.vkObjects = { vkContext.logicalDevice, pipelineLayout };
 	task.cleanupFunc = [&]() { vkDestroyPipelineLayout(vkContext.logicalDevice, pipelineLayout, nullptr); };
 
@@ -179,7 +179,7 @@ void GraphicsPipeline::createDescriptorSetLayout() {
 
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
-	task.mainObjectName = VARIABLE_NAME(uniformBufferDescriptorSetLayout);
+	task.objectNames = { VARIABLE_NAME(uniformBufferDescriptorSetLayout) };
 	task.vkObjects = { vkContext.logicalDevice, uniformBufferDescriptorSetLayout };
 	task.cleanupFunc = [this]() { vkDestroyDescriptorSetLayout(vkContext.logicalDevice, uniformBufferDescriptorSetLayout, nullptr); };
 
@@ -209,7 +209,7 @@ void GraphicsPipeline::createDescriptorPool(std::vector<VkDescriptorPoolSize> po
 	
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
-	task.mainObjectName = VARIABLE_NAME(descriptorPool);
+	task.objectNames = { VARIABLE_NAME(descriptorPool) };
 	task.vkObjects = { vkContext.logicalDevice, descriptorPool };
 	task.cleanupFunc = [this, descriptorPool]() { vkDestroyDescriptorPool(vkContext.logicalDevice, descriptorPool, nullptr); };
 
@@ -373,7 +373,7 @@ void GraphicsPipeline::createRenderPass() {
 
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
-	task.mainObjectName = VARIABLE_NAME(renderPass);
+	task.objectNames = { VARIABLE_NAME(renderPass) };
 	task.vkObjects = { vkContext.logicalDevice, renderPass };
 	task.cleanupFunc = [&]() { vkDestroyRenderPass(vkContext.logicalDevice, renderPass, nullptr); };
 
@@ -432,8 +432,8 @@ void GraphicsPipeline::initShaderStage() {
 	CleanupTask vertCleanupTask{}, fragCleanupTask{};
 	vertCleanupTask.caller = fragCleanupTask.caller = __FUNCTION__;
 
-	vertCleanupTask.mainObjectName = VARIABLE_NAME(vertShaderModule);
-	fragCleanupTask.mainObjectName = VARIABLE_NAME(fragShaderModule);
+	vertCleanupTask.objectNames = { VARIABLE_NAME(vertShaderModule) };
+	fragCleanupTask.objectNames = { VARIABLE_NAME(fragShaderModule) };
 
 	vertCleanupTask.vkObjects = { vkContext.logicalDevice, vertShaderModule };
 	fragCleanupTask.vkObjects = { vkContext.logicalDevice, fragShaderModule };

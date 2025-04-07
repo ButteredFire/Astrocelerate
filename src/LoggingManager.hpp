@@ -7,7 +7,7 @@
 
 #define enquote(S) std::string(std::string("\"") + S + std::string("\""))
 #define enquoteCOUT(S) '"' << (S) << '"'
-#define VARIABLE_NAME(V) (#V)
+#define VARIABLE_NAME(V) std::string(#V)
 
 namespace Log {
 	/* Purpose of each message type:

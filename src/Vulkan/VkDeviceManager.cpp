@@ -181,7 +181,7 @@ void VkDeviceManager::createLogicalDevice() {
 
     CleanupTask task{};
     task.caller = __FUNCTION__;
-    task.mainObjectName = VARIABLE_NAME(GPULogicalDevice);
+    task.objectNames = { VARIABLE_NAME(GPULogicalDevice) };
     task.vkObjects = { GPULogicalDevice };
     task.cleanupFunc = [this]() { vkDestroyDevice(GPULogicalDevice, nullptr); };
 

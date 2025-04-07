@@ -15,20 +15,12 @@
 
 // A structure specifying the properties of a cleanup task
 struct CleanupTask {
-	bool validTask = true;								// A special boolean specifying whether this task is executable or not
-	std::string caller = "Unknown caller";				// The caller from which the task was pushed to the cleanup stack (used for logging)
-	std::string mainObjectName = "Unknown object";		// The variable name of the primary object to be cleaned up later (used for logging)
-	std::vector<VulkanHandles> vkObjects;				// A vector of Vulkan objects involved in their cleanup function
-	std::function<void()> cleanupFunc;					// The cleanup/destroy callback function
-    std::vector<bool> cleanupConditions;				// The conditions required for the callback function to be executed (aside from the default object validity checking)
-};
-
-
-// A structure specifying the properties of a memory block
-struct MemoryBlock {
-	VkDeviceMemory memory;			// The handle to the device memory object
-	VkDeviceSize size;				// The size of the memory block (in bytes)
-	VkDeviceSize currentOffset;		// The offset between the start of the actual memory block and the start of the usable sub-block
+	bool validTask = true;											// A special boolean specifying whether this task is executable or not
+	std::string caller = "Unknown caller";							// The caller from which the task was pushed to the cleanup stack (used for logging)
+	std::vector<std::string> objectNames = {"Unknown object"};		// The variable name of objects to be cleaned up later (used for logging)
+	std::vector<VulkanHandles> vkObjects;							// A vector of Vulkan objects involved in their cleanup function
+	std::function<void()> cleanupFunc;								// The cleanup/destroy callback function
+    std::vector<bool> cleanupConditions;							// The conditions required for the callback function to be executed (aside from the default object validity checking)
 };
 
 
@@ -86,7 +78,7 @@ private:
 
 	// Defines the maximum number of invalid tasks (if invalidTasks exceeds the maximum, we can perform a cleanup on the cleanup stack itself, i.e., remove invalid tasks from the stack and update the ID-to-Index hashmap accordingly)
 	const uint32_t MAX_INVALID_TASKS = 20;
-	uint32_t invalidTasks = 0;
+	uint32_t invalidTaskCount = 0;
 
 
 	/* Executes a cleanup task.

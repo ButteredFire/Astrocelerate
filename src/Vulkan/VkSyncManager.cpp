@@ -78,24 +78,17 @@ void VkSyncManager::createSyncObjects() {
 		VkSemaphore renderFinishedSemaphore = renderFinishedSemaphores[i];
 		VkFence inFlightFence = inFlightFences[i];
 
-		CleanupTask imgSemaphoreTask{}, renderSemaphoreTask{}, fenceTask{};
-		imgSemaphoreTask.caller = renderSemaphoreTask.caller = fenceTask.caller = __FUNCTION__;
+		CleanupTask syncObjTask{};
+		syncObjTask.caller = __FUNCTION__;
+		syncObjTask.objectNames = { VARIABLE_NAME(imageReadySemaphore), VARIABLE_NAME(renderFinishedSemaphore), VARIABLE_NAME(inFlightFence) };
+		syncObjTask.vkObjects = { vkContext.logicalDevice, imageReadySemaphore, renderFinishedSemaphore, inFlightFence };
+		syncObjTask.cleanupFunc = [this, imageReadySemaphore, renderFinishedSemaphore, inFlightFence]() {
+			vkDestroySemaphore(vkContext.logicalDevice, imageReadySemaphore, nullptr);
+			vkDestroySemaphore(vkContext.logicalDevice, renderFinishedSemaphore, nullptr);
+			vkDestroyFence(vkContext.logicalDevice, inFlightFence, nullptr); 
+		};
 
-		imgSemaphoreTask.mainObjectName = VARIABLE_NAME(imageReadySemaphore);
-		renderSemaphoreTask.mainObjectName = VARIABLE_NAME(renderFinishedSemaphore);
-		fenceTask.mainObjectName = VARIABLE_NAME(inFlightFence);
-
-		imgSemaphoreTask.vkObjects = { vkContext.logicalDevice, imageReadySemaphore };
-		renderSemaphoreTask.vkObjects = { vkContext.logicalDevice, renderFinishedSemaphore };
-		fenceTask.vkObjects = { vkContext.logicalDevice, inFlightFence };
-
-		imgSemaphoreTask.cleanupFunc = [this, imageReadySemaphore]() { vkDestroySemaphore(vkContext.logicalDevice, imageReadySemaphore, nullptr); };
-		renderSemaphoreTask.cleanupFunc = [this, renderFinishedSemaphore]() { vkDestroySemaphore(vkContext.logicalDevice, renderFinishedSemaphore, nullptr); };
-		fenceTask.cleanupFunc = [this, inFlightFence]() { vkDestroyFence(vkContext.logicalDevice, inFlightFence, nullptr); };
-
-		memoryManager->createCleanupTask(imgSemaphoreTask);
-		memoryManager->createCleanupTask(renderSemaphoreTask);
-		memoryManager->createCleanupTask(fenceTask);
+		memoryManager->createCleanupTask(syncObjTask);
 	}
 
 	vkContext.SyncObjects.imageReadySemaphores = imageReadySemaphores;

@@ -83,4 +83,7 @@ private:
 
 	VkCommandPool transferCmdPool = VK_NULL_HANDLE;
 	std::vector<VkCommandBuffer> transferCmdBuffers;
+
+	// Transient command pool for single-time commands
+	VkCommandPool transientCmdPool = VK_NULL_HANDLE;
 };

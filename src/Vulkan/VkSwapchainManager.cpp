@@ -155,7 +155,7 @@ void VkSwapchainManager::createSwapChain() {
 
     CleanupTask task;
     task.caller = __FUNCTION__;
-    task.mainObjectName = VARIABLE_NAME(swapChain);
+    task.objectNames = { VARIABLE_NAME(swapChain) };
     task.vkObjects = { swapChain };
     task.cleanupFunc = [&]() { vkDestroySwapchainKHR(vkContext.logicalDevice, swapChain, nullptr); };
 
@@ -219,7 +219,7 @@ void VkSwapchainManager::createImageViews() {
 
         CleanupTask task{};
         task.caller = __FUNCTION__;
-        task.mainObjectName = VARIABLE_NAME(imageView);
+        task.objectNames = { VARIABLE_NAME(imageView) };
         task.vkObjects = { vkContext.logicalDevice, imageView };
         task.cleanupFunc = [this, imageView]() { vkDestroyImageView(vkContext.logicalDevice, imageView, nullptr); };
 
@@ -260,7 +260,7 @@ void VkSwapchainManager::createFrameBuffers() {
 
         CleanupTask task{};
         task.caller = __FUNCTION__;
-        task.mainObjectName = VARIABLE_NAME(framebuffer);
+        task.objectNames = { VARIABLE_NAME(framebuffer) };
         task.vkObjects = { vkContext.logicalDevice, framebuffer };
         task.cleanupFunc = [this, framebuffer]() { vkDestroyFramebuffer(vkContext.logicalDevice, framebuffer, nullptr); };
 
