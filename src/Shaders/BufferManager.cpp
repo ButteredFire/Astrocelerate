@@ -3,7 +3,7 @@
 BufferManager::BufferManager(VulkanContext& context):
 	vkContext(context) {
 
-	memoryManager = ServiceLocator::getService<MemoryManager>(__FUNCTION__);
+	garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
 
 	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
@@ -60,7 +60,7 @@ std::array<VkVertexInputAttributeDescription, 2> BufferManager::getAttributeDesc
 
 uint32_t BufferManager::createBuffer(VulkanContext& vkContext, VkBuffer& buffer, VkDeviceSize bufferSize, VkBufferUsageFlags usageFlags, VmaAllocation& bufferAllocation, VmaAllocationCreateInfo bufferAllocationCreateInfo) {
 
-	std::shared_ptr<MemoryManager> memoryManager = ServiceLocator::getService<MemoryManager>(__FUNCTION__);
+	std::shared_ptr<GarbageCollector> garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
 
 	// Creates the buffer
 	VkBufferCreateInfo bufCreateInfo{};
@@ -98,7 +98,7 @@ uint32_t BufferManager::createBuffer(VulkanContext& vkContext, VkBuffer& buffer,
 	bufTask.vkObjects = { vkContext.vmaAllocator, buffer, bufferAllocation };
 	bufTask.cleanupFunc = [vkContext, buffer, bufferAllocation]() { vmaDestroyBuffer(vkContext.vmaAllocator, buffer, bufferAllocation); };
 
-	uint32_t bufferTaskID = memoryManager->createCleanupTask(bufTask);
+	uint32_t bufferTaskID = garbageCollector->createCleanupTask(bufTask);
 
 
 	return bufferTaskID;
@@ -106,34 +106,21 @@ uint32_t BufferManager::createBuffer(VulkanContext& vkContext, VkBuffer& buffer,
 
 
 void BufferManager::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize deviceSize) {
-	// Allocates a temporary command buffer to perform memory transfer operations on
-	QueueFamilyIndices familyIndices = vkContext.queueFamilies;
-
 	// Uses the transfer queue by default, but if it does not exist, switch to the graphics queue
-	QueueFamilyIndices::QueueFamily queueFamily = familyIndices.transferFamily;
+	QueueFamilyIndices::QueueFamily queueFamily = vkContext.queueFamilies.transferFamily;
 	if (queueFamily.deviceQueue == VK_NULL_HANDLE || !queueFamily.index.has_value()) {
 		Log::print(Log::T_WARNING, __FUNCTION__, "Transfer queue family is not valid. Switching to graphics queue family...");
-		queueFamily = familyIndices.graphicsFamily;
+		queueFamily = vkContext.queueFamilies.graphicsFamily;
 	}
 
 
-	VkCommandPool commandPool = VkCommandManager::createCommandPool(vkContext, vkContext.logicalDevice, queueFamily.index.value(), VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
+	// Begins recording a command buffer to send data to the GPU
+	SingleUseCommandInfo cmdBufInfo{};
+	cmdBufInfo.commandPool = VkCommandManager::createCommandPool(vkContext, vkContext.logicalDevice, queueFamily.index.value(), VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
+	cmdBufInfo.queue = queueFamily.deviceQueue;
 
-	VkCommandBufferAllocateInfo bufAllocInfo{};
-	bufAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	bufAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	bufAllocInfo.commandPool = commandPool;
-	bufAllocInfo.commandBufferCount = 1;
+	VkCommandBuffer commandBuffer = VkCommandManager::beginSingleUseCommandBuffer(vkContext, &cmdBufInfo);
 
-	VkCommandBuffer commandBuffer;
-	vkAllocateCommandBuffers(vkContext.logicalDevice, &bufAllocInfo, &commandBuffer);
-
-	// Start recording the command buffer
-	VkCommandBufferBeginInfo beginInfo{};
-	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT; // Use the command buffer once
-
-	vkBeginCommandBuffer(commandBuffer, &beginInfo);
 
 	// Copies the data
 	VkBufferCopy copyRegion{};
@@ -143,21 +130,9 @@ void BufferManager::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceS
 		// We can actually transfer multiple regions (that is why there is `regionCount` - to specify how many regions to transfer). To copy multiple regions, we can pass in a region array for `pRegions`, and its size for `regionCount`.
 	vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
 
-	// Stops recording
-	vkEndCommandBuffer(commandBuffer);
 
-
-	// Executes the command buffer
-	VkSubmitInfo submitInfo{};
-	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = &commandBuffer;
-
-	vkQueueSubmit(queueFamily.deviceQueue, 1, &submitInfo, VK_NULL_HANDLE);
-	vkQueueWaitIdle(queueFamily.deviceQueue);
-
-	// Free command buffer
-	vkFreeCommandBuffers(vkContext.logicalDevice, commandPool, 1, &commandBuffer);
+	// Stops recording the command buffer and submits recorded data to the GPU
+	VkCommandManager::endSingleUseCommandBuffer(vkContext, &cmdBufInfo, commandBuffer);
 }
 
 
@@ -263,7 +238,7 @@ void BufferManager::writeDataToGPUBuffer(const void* data, VkBuffer& buffer, VkD
 
 
 	// The staging buffer has done its job, so we can safely destroy it afterwards
-	memoryManager->executeCleanupTask(stagingBufTaskID);
+	garbageCollector->executeCleanupTask(stagingBufTaskID);
 }
 
 
@@ -331,7 +306,7 @@ void BufferManager::createUniformBuffers() {
 		task.vkObjects = { vkContext.vmaAllocator, uniformBufAlloc };
 		task.cleanupFunc = [this, uniformBufAlloc]() { vmaUnmapMemory(vkContext.vmaAllocator, uniformBufAlloc); };
 
-		memoryManager->createCleanupTask(task);
+		garbageCollector->createCleanupTask(task);
 	}
 }
 

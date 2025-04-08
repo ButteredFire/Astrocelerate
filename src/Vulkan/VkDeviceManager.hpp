@@ -28,7 +28,7 @@
 // Local
 #include <Vulkan/VkSwapchainManager.hpp>
 #include <LoggingManager.hpp>
-#include <MemoryManager.hpp>
+#include <GarbageCollector.hpp>
 #include <ServiceLocator.hpp>
 #include <ApplicationContext.hpp>
 
@@ -65,7 +65,7 @@ public:
 private:
 	VkInstance vulkInst = VK_NULL_HANDLE;
 	VulkanContext& vkContext;
-	std::shared_ptr<MemoryManager> memoryManager;
+	std::shared_ptr<GarbageCollector> garbageCollector;
 
 	VmaAllocator vmaAllocator = VK_NULL_HANDLE;
 

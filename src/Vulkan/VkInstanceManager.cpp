@@ -7,7 +7,7 @@
 VkInstanceManager::VkInstanceManager(VulkanContext& context):
     vkContext(context) {
     
-    memoryManager = ServiceLocator::getService<MemoryManager>(__FUNCTION__);
+    garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
 
     Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
@@ -80,7 +80,7 @@ void VkInstanceManager::createDebugMessenger() {
     task.cleanupFunc = [&]() { destroyDebugUtilsMessengerEXT(vulkInst, debugMessenger, nullptr); };
     task.cleanupConditions = { inDebugMode };
 
-    memoryManager->createCleanupTask(task);
+    garbageCollector->createCleanupTask(task);
 }
 
 
@@ -151,7 +151,7 @@ void VkInstanceManager::createVulkanInstance() {
     task.vkObjects = { vulkInst };
     task.cleanupFunc = [&]() { vkDestroyInstance(vulkInst, nullptr); };
 
-    memoryManager->createCleanupTask(task);
+    garbageCollector->createCleanupTask(task);
 }
 
 
@@ -174,7 +174,7 @@ void VkInstanceManager::createSurface() {
     task.vkObjects = { vulkInst, windowSurface };
     task.cleanupFunc = [this]() { vkDestroySurfaceKHR(vulkInst, windowSurface, nullptr); };
 
-    memoryManager->createCleanupTask(task);
+    garbageCollector->createCleanupTask(task);
 }
 
 

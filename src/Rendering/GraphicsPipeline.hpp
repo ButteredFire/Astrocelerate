@@ -21,7 +21,7 @@
 #include <ApplicationContext.hpp>
 #include <Shaders/BufferManager.hpp>
 #include <LoggingManager.hpp>
-#include <MemoryManager.hpp>
+#include <GarbageCollector.hpp>
 #include <ServiceLocator.hpp>
 #include <Constants.h>
 
@@ -91,7 +91,7 @@ public:
 
 private:
 	VulkanContext& vkContext;
-	std::shared_ptr<MemoryManager> memoryManager;
+	std::shared_ptr<GarbageCollector> garbageCollector;
 	std::shared_ptr<BufferManager> bufferManager;
 
 	VkPipeline graphicsPipeline = VK_NULL_HANDLE;

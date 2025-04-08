@@ -1,16 +1,16 @@
-#include "MemoryManager.hpp"
+#include "GarbageCollector.hpp"
 
-MemoryManager::MemoryManager(VulkanContext& context): 
+GarbageCollector::GarbageCollector(VulkanContext& context): 
 	vkContext(context),
 	nextID(0) {
 
 	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
 
-MemoryManager::~MemoryManager() {}
+GarbageCollector::~GarbageCollector() {}
 
 
-VmaAllocator MemoryManager::createVMAllocator(VkInstance& instance, VkPhysicalDevice& physicalDevice, VkDevice& device) {
+VmaAllocator GarbageCollector::createVMAllocator(VkInstance& instance, VkPhysicalDevice& physicalDevice, VkDevice& device) {
 	VmaAllocatorCreateInfo allocatorCreateInfo{};
 	allocatorCreateInfo.physicalDevice = physicalDevice;
 	allocatorCreateInfo.device = device;
@@ -36,7 +36,7 @@ VmaAllocator MemoryManager::createVMAllocator(VkInstance& instance, VkPhysicalDe
 }
 
 
-uint32_t MemoryManager::createCleanupTask(CleanupTask task) {
+uint32_t GarbageCollector::createCleanupTask(CleanupTask task) {
 	uint32_t id = nextID++;
 	cleanupStack.push_back(task);
 	idToIdxLookup[id] = (cleanupStack.size() - 1);
@@ -46,7 +46,7 @@ uint32_t MemoryManager::createCleanupTask(CleanupTask task) {
 }
 
 
-CleanupTask& MemoryManager::modifyCleanupTask(uint32_t taskID) {
+CleanupTask& GarbageCollector::modifyCleanupTask(uint32_t taskID) {
 	try {
 		return cleanupStack[idToIdxLookup.at(taskID)];
 	}
@@ -56,7 +56,7 @@ CleanupTask& MemoryManager::modifyCleanupTask(uint32_t taskID) {
 }
 
 
-bool MemoryManager::executeCleanupTask(uint32_t taskID) {
+bool GarbageCollector::executeCleanupTask(uint32_t taskID) {
 	try {
 		CleanupTask& task = cleanupStack[idToIdxLookup.at(taskID)];
 		return executeTask(task, taskID);
@@ -67,7 +67,7 @@ bool MemoryManager::executeCleanupTask(uint32_t taskID) {
 }
 
 
-void MemoryManager::processCleanupStack() {
+void GarbageCollector::processCleanupStack() {
 	optimizeStack();
 	size_t stackSize = cleanupStack.size();
 
@@ -84,7 +84,7 @@ void MemoryManager::processCleanupStack() {
 }
 
 
-bool MemoryManager::executeTask(CleanupTask& task, uint32_t taskID) {
+bool GarbageCollector::executeTask(CleanupTask& task, uint32_t taskID) {
 	// Constructs a string displaying the object name(s) for logging
 	std::string objectNamesStr = (task.caller + " -> " + task.objectNames[0]);
 	for (size_t i = 1; i < task.objectNames.size(); i++) {
@@ -139,10 +139,10 @@ bool MemoryManager::executeTask(CleanupTask& task, uint32_t taskID) {
 }
 
 
-void MemoryManager::optimizeStack() {
+void GarbageCollector::optimizeStack() {
 	size_t displacement = 0;		 // Cumulative displacement
 	size_t locDisplacement = 0;		 // Local displacement (used only for removing redundant key-value pairs in the ID-to-Index hashmap)
-	size_t locInvalidTaskCount = 0;	 // Local invalid task count (differs from MemoryManager::invalidTaskCount because this keeps track of all invalid tasks, while the member variable only serves to trigger a call to optimizeStack on exceeding the maximum constant)
+	size_t locInvalidTaskCount = 0;	 // Local invalid task count (differs from GarbageCollector::invalidTaskCount because this keeps track of all invalid tasks, while the member variable only serves to trigger a call to optimizeStack on exceeding the maximum constant)
 	size_t oldSize = cleanupStack.size();
 
 	for (size_t i = 0; i < oldSize; i++) {

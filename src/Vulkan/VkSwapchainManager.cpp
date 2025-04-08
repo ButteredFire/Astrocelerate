@@ -6,7 +6,7 @@
 VkSwapchainManager::VkSwapchainManager(VulkanContext& context):
     vkContext(context) {
 
-    memoryManager = ServiceLocator::getService<MemoryManager>(__FUNCTION__);
+    garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
 
     if (vkContext.physicalDevice == VK_NULL_HANDLE) {
         throw Log::RuntimeException(__FUNCTION__, "Cannot initialize swap-chain manager: The GPU's physical device handle is null!");
@@ -52,7 +52,7 @@ void VkSwapchainManager::recreateSwapchain() {
 
         // Cleans up outdated swap-chain objects
     for (const auto& taskID : cleanupTaskIDs) {
-        memoryManager->executeCleanupTask(taskID);
+        garbageCollector->executeCleanupTask(taskID);
     }
     cleanupTaskIDs.clear();
 
@@ -159,7 +159,7 @@ void VkSwapchainManager::createSwapChain() {
     task.vkObjects = { swapChain };
     task.cleanupFunc = [&]() { vkDestroySwapchainKHR(vkContext.logicalDevice, swapChain, nullptr); };
 
-    uint32_t swapChainTaskID = memoryManager->createCleanupTask(task);
+    uint32_t swapChainTaskID = garbageCollector->createCleanupTask(task);
     cleanupTaskIDs.push_back(swapChainTaskID);
 }
 
@@ -223,7 +223,7 @@ void VkSwapchainManager::createImageViews() {
         task.vkObjects = { vkContext.logicalDevice, imageView };
         task.cleanupFunc = [this, imageView]() { vkDestroyImageView(vkContext.logicalDevice, imageView, nullptr); };
 
-        uint32_t imageViewTaskID = memoryManager->createCleanupTask(task);
+        uint32_t imageViewTaskID = garbageCollector->createCleanupTask(task);
         cleanupTaskIDs.push_back(imageViewTaskID);
     }
 }
@@ -264,7 +264,7 @@ void VkSwapchainManager::createFrameBuffers() {
         task.vkObjects = { vkContext.logicalDevice, framebuffer };
         task.cleanupFunc = [this, framebuffer]() { vkDestroyFramebuffer(vkContext.logicalDevice, framebuffer, nullptr); };
 
-        uint32_t framebufferTaskID = memoryManager->createCleanupTask(task);
+        uint32_t framebufferTaskID = garbageCollector->createCleanupTask(task);
         cleanupTaskIDs.push_back(framebufferTaskID);
     }
 

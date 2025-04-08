@@ -18,7 +18,7 @@
 #include <Constants.h>
 #include <LoggingManager.hpp>
 #include <ApplicationContext.hpp>
-#include <MemoryManager.hpp>
+#include <GarbageCollector.hpp>
 #include <Shaders/BufferManager.hpp>
 
 

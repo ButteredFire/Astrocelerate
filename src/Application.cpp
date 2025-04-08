@@ -5,7 +5,7 @@
 #include <Engine/Engine.hpp>
 #include <ServiceLocator.hpp>
 #include <Constants.h>
-#include <MemoryManager.hpp>
+#include <GarbageCollector.hpp>
 #include <ApplicationContext.hpp>
 
 #include <iostream>
@@ -19,15 +19,15 @@ const int WIN_HEIGHT = WindowConsts::DEFAULT_WINDOW_HEIGHT;
 const std::string WIN_NAME = APP::APP_NAME;
 
 int main() {
-    std::cout << "Project " << APP::APP_NAME << ", version " << APP_VERSION << '\n';
+    std::cout << "Project " << WIN_NAME << ", version " << APP_VERSION << ". Copyright 2025 Duong Duy Nhat Minh.\n";
 
     // Binds members in the VulkanInstanceContext struct to their corresponding active Vulkan objects
     VulkanContext vkContext{};
 
     // Creates a memory manager
-    //MemoryManager memoryManager(vkContext);
-    std::shared_ptr<MemoryManager> memoryManager = std::make_shared<MemoryManager>(vkContext);
-    ServiceLocator::registerService(memoryManager);
+    //GarbageCollector GarbageCollector(vkContext);
+    std::shared_ptr<GarbageCollector> garbageCollector = std::make_shared<GarbageCollector>(vkContext);
+    ServiceLocator::registerService(garbageCollector);
 
     try {
             // Creates a window
@@ -90,12 +90,12 @@ int main() {
     catch (const Log::RuntimeException& e) {
         Log::print(e.severity(), e.origin(), e.what());
 
-        memoryManager->processCleanupStack();
+        garbageCollector->processCleanupStack();
 
         boxer::show(e.what(), ("Exception raised from " + std::string(e.origin())).c_str(), boxer::Style::Error, boxer::Buttons::Quit);
         return EXIT_FAILURE;
     }
 
-    memoryManager->processCleanupStack();
+    garbageCollector->processCleanupStack();
     return EXIT_SUCCESS;
 }

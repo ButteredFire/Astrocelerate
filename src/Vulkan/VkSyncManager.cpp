@@ -7,7 +7,7 @@
 VkSyncManager::VkSyncManager(VulkanContext& context):
 	vkContext(context) {
 
-	memoryManager = ServiceLocator::getService<MemoryManager>(__FUNCTION__);
+	garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
 
 	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 };
@@ -88,7 +88,7 @@ void VkSyncManager::createSyncObjects() {
 			vkDestroyFence(vkContext.logicalDevice, inFlightFence, nullptr); 
 		};
 
-		memoryManager->createCleanupTask(syncObjTask);
+		garbageCollector->createCleanupTask(syncObjTask);
 	}
 
 	vkContext.SyncObjects.imageReadySemaphores = imageReadySemaphores;

@@ -23,12 +23,34 @@
 #include <ApplicationContext.hpp>
 #include <Shaders/BufferManager.hpp>
 #include <LoggingManager.hpp>
-#include <MemoryManager.hpp>
+#include <GarbageCollector.hpp>
 #include <ServiceLocator.hpp>
 #include <Constants.h>
 
 
 class BufferManager;
+
+
+// A structure that stores the configuration for single-use command buffers
+struct SingleUseCommandInfo {
+	VkCommandPool commandPool;		// The command pool from which the command buffer is allocated.
+	VkQueue queue;					// The queue to which the command buffer's recorded data is submitted (and for which the command pool is allocated).
+
+
+	// The command buffer level. Default value is: Primary command buffer.
+	VkCommandBufferLevel bufferLevel = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+
+	// The command buffer usage flag. Default value is: One-time command buffer.
+	VkCommandBufferUsageFlags bufferUsageFlags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+
+	VkFence fence = VK_NULL_HANDLE;
+	std::vector<VkSemaphore> waitSemaphores = {};
+	VkPipelineStageFlags waitStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+	std::vector<VkSemaphore> signalSemaphores = {};
+
+	bool freeAfterSubmit = true;    // Auto-free or defer manual cleanup
+};
 
 
 class VkCommandManager {
@@ -47,14 +69,19 @@ public:
 
 
 	/* Begins recording a single-use/anonymous command buffer for single-time commands.
+		@param vkContext: The application context.
+		@param commandBufInfo: The command buffer configuration.
+
 		@return The command buffer in question.
 	*/
-	VkCommandBuffer beginSingleUseCommandBuffer();
+	static VkCommandBuffer beginSingleUseCommandBuffer(VulkanContext& vkContext, SingleUseCommandInfo* commandBufInfo);
 
-	/* Stops recording a single-use/anonymous command buffer.
-		@param cmdBuffer: The command buffer in question.
+	/* Stops recording a single-use/anonymous command buffer and submit its data to the GPU.
+		@param vkContext: The application context.
+		@param commandBufInfo: The command buffer configuration.
+		@param cmdBuffer: The command buffer.
 	*/
-	void endSingleUseCommandBuffer(VkCommandBuffer& cmdBuffer);
+	static void endSingleUseCommandBuffer(VulkanContext& vkContext, SingleUseCommandInfo* commandBufInfo, VkCommandBuffer& cmdBuffer);
 
 
 	/* Creates a command pool.
@@ -73,7 +100,7 @@ private:
 	VulkanContext& vkContext;
 
 	std::shared_ptr<BufferManager> bufferManager;
-	std::shared_ptr<MemoryManager> memoryManager;
+	std::shared_ptr<GarbageCollector> garbageCollector;
 
 
 	// Command pools manage the memory that is used to store the buffers
@@ -83,7 +110,4 @@ private:
 
 	VkCommandPool transferCmdPool = VK_NULL_HANDLE;
 	std::vector<VkCommandBuffer> transferCmdBuffers;
-
-	// Transient command pool for single-time commands
-	VkCommandPool transientCmdPool = VK_NULL_HANDLE;
 };

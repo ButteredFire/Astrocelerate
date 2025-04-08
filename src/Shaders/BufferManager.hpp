@@ -23,7 +23,7 @@
 
 #include <ApplicationContext.hpp>
 #include <LoggingManager.hpp>
-#include <MemoryManager.hpp>
+#include <GarbageCollector.hpp>
 #include <ServiceLocator.hpp>
 
 
@@ -136,7 +136,7 @@ public:
 
 private:
     VulkanContext& vkContext;
-    std::shared_ptr<MemoryManager> memoryManager;
+    std::shared_ptr<GarbageCollector> garbageCollector;
     
     VkBuffer vertexBuffer = VK_NULL_HANDLE;
     VmaAllocation vertexBufferAllocation = VK_NULL_HANDLE;

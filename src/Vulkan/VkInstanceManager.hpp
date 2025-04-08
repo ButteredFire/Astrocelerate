@@ -20,7 +20,7 @@
 // Local
 #include <Vulkan/VkDeviceManager.hpp>
 #include <LoggingManager.hpp>
-#include <MemoryManager.hpp>
+#include <GarbageCollector.hpp>
 #include <ServiceLocator.hpp>
 #include <ApplicationContext.hpp>
 #include <Constants.h>
@@ -133,7 +133,7 @@ public:
 private:
 	VkInstance vulkInst = VK_NULL_HANDLE;
 	VulkanContext& vkContext;
-	std::shared_ptr<MemoryManager> memoryManager;
+	std::shared_ptr<GarbageCollector> garbageCollector;
 	VkSurfaceKHR windowSurface = VK_NULL_HANDLE;
 
 	VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;

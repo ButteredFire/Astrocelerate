@@ -19,7 +19,7 @@
 // Local
 #include <Vulkan/VkInstanceManager.hpp>
 #include <LoggingManager.hpp>
-#include <MemoryManager.hpp>
+#include <GarbageCollector.hpp>
 #include <ServiceLocator.hpp>
 #include <Constants.h>
 #include <ApplicationContext.hpp>
@@ -60,7 +60,7 @@ public:
 private:
 	VulkanContext& vkContext;
 
-	std::shared_ptr<MemoryManager> memoryManager;
+	std::shared_ptr<GarbageCollector> garbageCollector;
 	std::vector<uint32_t> cleanupTaskIDs; // Stores cleanup task IDs (used exclusively in the swap-chain recreation process)
 
 	VkSwapchainKHR swapChain = VK_NULL_HANDLE;

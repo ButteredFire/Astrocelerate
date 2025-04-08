@@ -24,10 +24,10 @@ struct CleanupTask {
 };
 
 
-class MemoryManager {
+class GarbageCollector {
 public:
-	MemoryManager(VulkanContext& context);
-	~MemoryManager();
+	GarbageCollector(VulkanContext& context);
+	~GarbageCollector();
 
 
 	/* Creates the Vulkan Memory Allocator. The VMA object is automatically added to the application context, and its cleanup task created.

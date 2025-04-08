@@ -13,7 +13,7 @@
 // Local
 #include <ApplicationContext.hpp>
 #include <LoggingManager.hpp>
-#include <MemoryManager.hpp>
+#include <GarbageCollector.hpp>
 #include <ServiceLocator.hpp>
 #include <Constants.h>
 
@@ -28,7 +28,7 @@ public:
 private:
 	VulkanContext& vkContext;
 
-	std::shared_ptr<MemoryManager> memoryManager;
+	std::shared_ptr<GarbageCollector> garbageCollector;
 
 	std::vector<VkSemaphore> imageReadySemaphores;
 	std::vector<VkSemaphore> renderFinishedSemaphores;

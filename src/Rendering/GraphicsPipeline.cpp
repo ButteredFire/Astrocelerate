@@ -6,7 +6,7 @@
 GraphicsPipeline::GraphicsPipeline(VulkanContext& context):
 	vkContext(context) {
 
-	memoryManager = ServiceLocator::getService<MemoryManager>(__FUNCTION__);
+	garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
 	bufferManager = ServiceLocator::getService<BufferManager>(__FUNCTION__);
 
 	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
@@ -120,7 +120,7 @@ void GraphicsPipeline::createGraphicsPipeline() {
 	task.vkObjects = { vkContext.logicalDevice, graphicsPipeline };
 	task.cleanupFunc = [&]() { vkDestroyPipeline(vkContext.logicalDevice, graphicsPipeline, nullptr); };
 
-	memoryManager->createCleanupTask(task);
+	garbageCollector->createCleanupTask(task);
 }
 
 
@@ -148,7 +148,7 @@ void GraphicsPipeline::createPipelineLayout() {
 	task.vkObjects = { vkContext.logicalDevice, pipelineLayout };
 	task.cleanupFunc = [&]() { vkDestroyPipelineLayout(vkContext.logicalDevice, pipelineLayout, nullptr); };
 
-	memoryManager->createCleanupTask(task);
+	garbageCollector->createCleanupTask(task);
 }
 
 
@@ -183,7 +183,7 @@ void GraphicsPipeline::createDescriptorSetLayout() {
 	task.vkObjects = { vkContext.logicalDevice, uniformBufferDescriptorSetLayout };
 	task.cleanupFunc = [this]() { vkDestroyDescriptorSetLayout(vkContext.logicalDevice, uniformBufferDescriptorSetLayout, nullptr); };
 
-	memoryManager->createCleanupTask(task);
+	garbageCollector->createCleanupTask(task);
 }
 
 
@@ -213,7 +213,7 @@ void GraphicsPipeline::createDescriptorPool(std::vector<VkDescriptorPoolSize> po
 	task.vkObjects = { vkContext.logicalDevice, descriptorPool };
 	task.cleanupFunc = [this, descriptorPool]() { vkDestroyDescriptorPool(vkContext.logicalDevice, descriptorPool, nullptr); };
 
-	memoryManager->createCleanupTask(task);
+	garbageCollector->createCleanupTask(task);
 }
 
 
@@ -377,7 +377,7 @@ void GraphicsPipeline::createRenderPass() {
 	task.vkObjects = { vkContext.logicalDevice, renderPass };
 	task.cleanupFunc = [&]() { vkDestroyRenderPass(vkContext.logicalDevice, renderPass, nullptr); };
 
-	memoryManager->createCleanupTask(task);
+	garbageCollector->createCleanupTask(task);
 }
 
 
@@ -441,8 +441,8 @@ void GraphicsPipeline::initShaderStage() {
 	vertCleanupTask.cleanupFunc = [&]() { vkDestroyShaderModule(vkContext.logicalDevice, vertShaderModule, nullptr); };
 	fragCleanupTask.cleanupFunc = [&]() { vkDestroyShaderModule(vkContext.logicalDevice, fragShaderModule, nullptr); };
 
-	memoryManager->createCleanupTask(vertCleanupTask);
-	memoryManager->createCleanupTask(fragCleanupTask);
+	garbageCollector->createCleanupTask(vertCleanupTask);
+	garbageCollector->createCleanupTask(fragCleanupTask);
 }
 
 
