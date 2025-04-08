@@ -37,11 +37,14 @@ VmaAllocator GarbageCollector::createVMAllocator(VkInstance& instance, VkPhysica
 
 
 uint32_t GarbageCollector::createCleanupTask(CleanupTask task) {
+	// Constructs a string displaying the object name(s) for logging
+	std::string objectNamesStr = enquote(getObjectNamesString(task));
+
 	uint32_t id = nextID++;
 	cleanupStack.push_back(task);
 	idToIdxLookup[id] = (cleanupStack.size() - 1);
 
-	Log::print(Log::T_VERBOSE, task.caller.c_str(), "Pushed object " + enquote(task.objectNames[0]) + " to cleanup stack.");
+	Log::print(Log::T_VERBOSE, task.caller.c_str(), "Pushed object(s) " + objectNamesStr + " to cleanup stack.");
 	return id;
 }
 
@@ -86,11 +89,7 @@ void GarbageCollector::processCleanupStack() {
 
 bool GarbageCollector::executeTask(CleanupTask& task, uint32_t taskID) {
 	// Constructs a string displaying the object name(s) for logging
-	std::string objectNamesStr = (task.caller + " -> " + task.objectNames[0]);
-	for (size_t i = 1; i < task.objectNames.size(); i++) {
-		objectNamesStr += ", " + task.objectNames[i];
-	}
-	objectNamesStr = enquote(objectNamesStr);
+	std::string objectNamesStr = enquote(getObjectNamesString(task));
 
 
 	// Checks whether the task is already invalid

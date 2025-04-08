@@ -92,4 +92,17 @@ private:
 
 	/* Garbage-collects the cleanup stack. */
 	void optimizeStack();
+
+
+	/* Constructs a string of object names involved in a cleanup task.
+		@return The string in question.
+	*/
+	inline std::string getObjectNamesString(CleanupTask& task) {
+		std::string objectNamesStr = (task.caller + " -> " + task.objectNames[0]);
+		for (size_t i = 1; i < task.objectNames.size(); i++) {
+			objectNamesStr += ", " + task.objectNames[i];
+		}
+
+		return objectNamesStr;
+	}
 };

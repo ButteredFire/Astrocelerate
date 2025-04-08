@@ -14,10 +14,10 @@ namespace Log {
 	* - INFO: Used to log general information about the application's operation. This includes high-level events that are part of the normal operation.
 	*		Examples: Service initialization/stopping, user actions, configuration changes
 	* 
-	* - VERBOSE: Used for very detailed logging that helps with tracing the exact flow of the application.
+	* - VERBOSE: Used to log very detailed logging that helps with tracing the exact flow of the application.
 	*		Examples: function calls (begin/end), initialization details, data parsing
 	* 
-	* - DEBUG: Used for very detailed logging that helps with understanding the application's current state and behavior.
+	* - DEBUG: Used to log very detailed logging that helps with understanding the application's current state and behavior.
 	*		Examples: Variable states, function call status, microservice execution status
 	* 
 	* - WARNING: Used to log potentially harmful situations which are not necessarily errors but could lead to problems.
@@ -42,7 +42,7 @@ namespace Log {
 		T_SUCCESS
 	};
 
-	/* Gets the log color based on message type. */
+	/* Outputs a color to the output stream based on message type. */
 	static void logColor(MsgType type, std::string& msgType) {
 		switch (type) {
 			case T_VERBOSE:
