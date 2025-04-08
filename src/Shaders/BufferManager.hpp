@@ -20,6 +20,7 @@
 // Other
 #include <Vulkan/VkDeviceManager.hpp>
 #include <Vulkan/VkCommandManager.hpp>
+#include <Vulkan/VkSyncManager.hpp>
 
 #include <ApplicationContext.hpp>
 #include <LoggingManager.hpp>

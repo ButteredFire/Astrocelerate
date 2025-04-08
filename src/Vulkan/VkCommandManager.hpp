@@ -45,6 +45,8 @@ struct SingleUseCommandInfo {
 
 
 	VkFence fence = VK_NULL_HANDLE;
+	bool isSingleUseFence = false;
+
 	std::vector<VkSemaphore> waitSemaphores = {};
 	VkPipelineStageFlags waitStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
 	std::vector<VkSemaphore> signalSemaphores = {};

@@ -62,7 +62,7 @@ std::pair<VkImage, VmaAllocation> TextureManager::createTextureImage(VulkanConte
 }
 
 
-void TextureManager::createImage(VulkanContext& vkContext, VkImage& image, VmaAllocation& imgAllocation, uint32_t width, uint32_t height, uint32_t depth, VkFormat imgFormat, VkImageTiling imgTiling, VkImageUsageFlags imgUsageFlags, VmaAllocationCreateInfo imgAllocCreateInfo) {
+void TextureManager::createImage(VulkanContext& vkContext, VkImage& image, VmaAllocation& imgAllocation, uint32_t width, uint32_t height, uint32_t depth, VkFormat imgFormat, VkImageTiling imgTiling, VkImageUsageFlags imgUsageFlags, VmaAllocationCreateInfo& imgAllocCreateInfo) {
 	// Image info
 	VkImageCreateInfo imgCreateInfo{};
 	imgCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -110,4 +110,38 @@ void TextureManager::createImage(VulkanContext& vkContext, VkImage& image, VmaAl
 	if (imgCreateResult != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, "Failed to create image!");
 	}
+}
+
+
+void TextureManager::transitionImageLayout(VkImage image, VkFormat imgFormat, VkImageLayout oldLayout, VkImageLayout newLayout) {
+	/* Perform layout transition using an image memory barrier.
+		It is part of Vulkan barriers, which are used for processes like:
+			- Synchronization (execution barrier): Ensuring sync/order between commands/resources
+			- Memory visibility/availability (memory barrier):
+				+ Ensuring the visibility of writes (i.e., that writes are flushed to allow for, for instance, subsequent reading of the written data)
+				+ Also used to transition image layouts and transfer queue family ownership (if `VK_SHARING_MODE_EXCLUSIVE` is used)
+	*/
+
+	VkImageMemoryBarrier imgMemBarrier{};
+	imgMemBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+
+	// Specifies layout transition
+	imgMemBarrier.oldLayout = oldLayout;
+	imgMemBarrier.newLayout = newLayout;
+
+	// Specifies queue family ownership transference
+	imgMemBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED; // Use IGNORED to skip this transference
+	imgMemBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+	// Specifies image properties
+	imgMemBarrier.image = image;
+	imgMemBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		
+		// Image does not have multiple mipmapping levels
+	imgMemBarrier.subresourceRange.baseMipLevel = 0;
+	imgMemBarrier.subresourceRange.levelCount = 1;
+
+		// Image is not an array, i.e., only having one layer
+	imgMemBarrier.subresourceRange.baseArrayLayer = 0;
+	imgMemBarrier.subresourceRange.layerCount = 1;
 }

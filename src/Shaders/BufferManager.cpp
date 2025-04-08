@@ -117,6 +117,8 @@ void BufferManager::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceS
 	// Begins recording a command buffer to send data to the GPU
 	SingleUseCommandInfo cmdBufInfo{};
 	cmdBufInfo.commandPool = VkCommandManager::createCommandPool(vkContext, vkContext.logicalDevice, queueFamily.index.value(), VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
+	cmdBufInfo.fence = VkSyncManager::createSingleUseFence(vkContext);
+	cmdBufInfo.isSingleUseFence = true;
 	cmdBufInfo.queue = queueFamily.deviceQueue;
 
 	VkCommandBuffer commandBuffer = VkCommandManager::beginSingleUseCommandBuffer(vkContext, &cmdBufInfo);

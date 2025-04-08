@@ -25,7 +25,6 @@ int main() {
     VulkanContext vkContext{};
 
     // Creates a memory manager
-    //GarbageCollector GarbageCollector(vkContext);
     std::shared_ptr<GarbageCollector> garbageCollector = std::make_shared<GarbageCollector>(vkContext);
     ServiceLocator::registerService(garbageCollector);
 
@@ -90,12 +89,16 @@ int main() {
     catch (const Log::RuntimeException& e) {
         Log::print(e.severity(), e.origin(), e.what());
 
+        if (vkContext.logicalDevice != VK_NULL_HANDLE)
+            vkDeviceWaitIdle(vkContext.logicalDevice);
+
         garbageCollector->processCleanupStack();
 
         boxer::show(e.what(), ("Exception raised from " + std::string(e.origin())).c_str(), boxer::Style::Error, boxer::Buttons::Quit);
         return EXIT_FAILURE;
     }
 
+    vkDeviceWaitIdle(vkContext.logicalDevice);
     garbageCollector->processCleanupStack();
     return EXIT_SUCCESS;
 }

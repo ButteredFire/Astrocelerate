@@ -40,7 +40,7 @@ public:
 
     /* Creates an image object.
         @param vkContext: The application context.
-        @param image: The Vulkan image to be created.
+        @param image: The image to be created.
         @param imgAllocation: The memory allocation for the image.
         @param width: The width of the image.
         @param height: The height of the image.
@@ -50,5 +50,14 @@ public:
         @param imgUsageFlags: The usage flags for the image.
         @param imgAllocCreateInfo: The allocation create info for the image.
     */
-    static void createImage(VulkanContext& vkContext, VkImage& image, VmaAllocation& imgAllocation, uint32_t width, uint32_t height, uint32_t depth, VkFormat imgFormat, VkImageTiling imgTiling, VkImageUsageFlags imgUsageFlags, VmaAllocationCreateInfo imgAllocCreateInfo);
+    static void createImage(VulkanContext& vkContext, VkImage& image, VmaAllocation& imgAllocation, uint32_t width, uint32_t height, uint32_t depth, VkFormat imgFormat, VkImageTiling imgTiling, VkImageUsageFlags imgUsageFlags, VmaAllocationCreateInfo& imgAllocCreateInfo);
+
+
+    /* Handles image layout transition.
+		@param image: The image to be used in the image memory barrier.
+        @param imgFormat: The format of the image.
+        @param oldLayout: The old image layout.
+        @param newLayout: The new image layout.
+    */
+    static void transitionImageLayout(VkImage image, VkFormat imgFormat, VkImageLayout oldLayout, VkImageLayout newLayout);
 };

@@ -21,6 +21,33 @@ void VkSyncManager::init() {
 }
 
 
+VkFence VkSyncManager::createSingleUseFence(VulkanContext& vkContext, bool signaled) {
+	VkFenceCreateInfo fenceCreateInfo{};
+	fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+	
+	if (signaled)
+		fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+	
+	VkFence fence;
+	VkResult result = vkCreateFence(vkContext.logicalDevice, &fenceCreateInfo, nullptr, &fence);
+	if (result != VK_SUCCESS) {
+		throw Log::RuntimeException(__FUNCTION__, "Failed to create single-use fence!");
+	}
+	
+	return fence;
+}
+
+
+void VkSyncManager::waitForSingleUseFence(VulkanContext& vkContext, VkFence& fence, uint64_t timeout) {
+	VkResult result = vkWaitForFences(vkContext.logicalDevice, 1, &fence, VK_TRUE, timeout);
+	if (result != VK_SUCCESS) {
+		throw Log::RuntimeException(__FUNCTION__, "Failed to wait for single-use fence!");
+	}
+	
+	vkDestroyFence(vkContext.logicalDevice, fence, nullptr);
+}
+
+
 void VkSyncManager::createSyncObjects() {
 	/* A note on synchronization:
 	* - Since the GPU executes commands in parallel, and since each step in the frame-rendering process depends on the previous step (and the completion thereof), we must explicitly define an order of operations to prevent these steps from being executed concurrently (which results in unintended/undefined behavior). To that effect, we may use various synchronization primitives:

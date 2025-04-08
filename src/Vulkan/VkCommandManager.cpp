@@ -200,8 +200,13 @@ void VkCommandManager::endSingleUseCommandBuffer(VulkanContext& vkContext, Singl
 	}
 	
 	if (commandBufInfo->fence != VK_NULL_HANDLE) {
-		vkWaitForFences(vkContext.logicalDevice, 1, &commandBufInfo->fence, VK_TRUE, UINT64_MAX);
-		vkResetFences(vkContext.logicalDevice, 1, &commandBufInfo->fence);
+		if (commandBufInfo->isSingleUseFence) {
+			VkSyncManager::waitForSingleUseFence(vkContext, commandBufInfo->fence);
+		}
+		else {
+			vkWaitForFences(vkContext.logicalDevice, 1, &commandBufInfo->fence, VK_TRUE, UINT64_MAX);
+			vkResetFences(vkContext.logicalDevice, 1, &commandBufInfo->fence);
+		}
 	}
 	else
 		vkDeviceWaitIdle(vkContext.logicalDevice);
