@@ -113,7 +113,15 @@ void TextureManager::createImage(VulkanContext& vkContext, VkImage& image, VmaAl
 }
 
 
-void TextureManager::transitionImageLayout(VkImage image, VkFormat imgFormat, VkImageLayout oldLayout, VkImageLayout newLayout) {
+void TextureManager::transitionImageLayout(VulkanContext& vkContext, VkImage image, VkFormat imgFormat, VkImageLayout oldLayout, VkImageLayout newLayout) {
+	SingleUseCommandInfo cmdInfo{};
+	cmdInfo.commandPool = VkCommandManager::createCommandPool(vkContext, vkContext.logicalDevice, vkContext.queueFamilies.graphicsFamily.index.value(), VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
+	cmdInfo.fence = VkSyncManager::createSingleUseFence(vkContext);
+	cmdInfo.isSingleUseFence = true;
+	cmdInfo.queue = vkContext.queueFamilies.graphicsFamily.deviceQueue;
+
+	VkCommandBuffer commandBuffer = VkCommandManager::beginSingleUseCommandBuffer(vkContext, &cmdInfo);
+
 	/* Perform layout transition using an image memory barrier.
 		It is part of Vulkan barriers, which are used for processes like:
 			- Synchronization (execution barrier): Ensuring sync/order between commands/resources
@@ -144,4 +152,6 @@ void TextureManager::transitionImageLayout(VkImage image, VkFormat imgFormat, Vk
 		// Image is not an array, i.e., only having one layer
 	imgMemBarrier.subresourceRange.baseArrayLayer = 0;
 	imgMemBarrier.subresourceRange.layerCount = 1;
+
+
 }

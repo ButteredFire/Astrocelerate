@@ -48,33 +48,31 @@ int main() {
             // Swap-chain manager
         std::shared_ptr<VkSwapchainManager> swapchainManager = std::make_shared<VkSwapchainManager>(vkContext);
         ServiceLocator::registerService(swapchainManager);
-
         swapchainManager->init();
-
-
-            // Buffer manager and graphics pipeline
-        std::shared_ptr<BufferManager> bufferManager = std::make_shared<BufferManager>(vkContext);
-        ServiceLocator::registerService(bufferManager);
-
-        std::shared_ptr<GraphicsPipeline> graphicsPipeline = std::make_shared<GraphicsPipeline>(vkContext);
-        ServiceLocator::registerService(graphicsPipeline);
-
-        bufferManager->init();
-        graphicsPipeline->init();
-        swapchainManager->createFrameBuffers(); // Only possible when it has a valid render pass (which must first be created in the graphics pipeline)
 
 
             // Command manager
         std::shared_ptr<VkCommandManager> commandManager = std::make_shared<VkCommandManager>(vkContext);
         ServiceLocator::registerService(commandManager);
-
         commandManager->init();
+
+            // Buffer manager
+        std::shared_ptr<BufferManager> bufferManager = std::make_shared<BufferManager>(vkContext);
+        ServiceLocator::registerService(bufferManager);
+        bufferManager->init();
+
+
+            // Graphics pipeline
+        std::shared_ptr<GraphicsPipeline> graphicsPipeline = std::make_shared<GraphicsPipeline>(vkContext);
+        ServiceLocator::registerService(graphicsPipeline);
+        graphicsPipeline->init();
+
+        swapchainManager->createFrameBuffers(); // Only possible when it has a valid render pass (which must first be created in the graphics pipeline)
 
 
             // Synchronization manager
         std::shared_ptr<VkSyncManager> syncManager = std::make_shared<VkSyncManager>(vkContext);
         ServiceLocator::registerService(syncManager);
-        
         syncManager->init();
 
 

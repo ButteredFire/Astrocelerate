@@ -17,7 +17,7 @@ VkCommandManager::~VkCommandManager() {};
 
 
 void VkCommandManager::init() {
-	QueueFamilyIndices familyIndices = VkDeviceManager::getQueueFamilies(vkContext.physicalDevice, vkContext.vkSurface);
+	QueueFamilyIndices familyIndices = vkContext.queueFamilies;
 	graphicsCmdPool = createCommandPool(vkContext, vkContext.logicalDevice, familyIndices.graphicsFamily.index.value());
 	transferCmdPool = createCommandPool(vkContext, vkContext.logicalDevice, familyIndices.transferFamily.index.value());
 

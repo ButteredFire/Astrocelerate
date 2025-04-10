@@ -54,10 +54,11 @@ public:
 
 
     /* Handles image layout transition.
+        @param vkContext: The application context.
 		@param image: The image to be used in the image memory barrier.
         @param imgFormat: The format of the image.
         @param oldLayout: The old image layout.
         @param newLayout: The new image layout.
     */
-    static void transitionImageLayout(VkImage image, VkFormat imgFormat, VkImageLayout oldLayout, VkImageLayout newLayout);
+    static void transitionImageLayout(VulkanContext& vkContext, VkImage image, VkFormat imgFormat, VkImageLayout oldLayout, VkImageLayout newLayout);
 };

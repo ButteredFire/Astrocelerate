@@ -71,7 +71,6 @@ public:
 
 
 	/* Begins recording a single-use/anonymous command buffer for single-time commands.
-		@param vkContext: The application context.
 		@param commandBufInfo: The command buffer configuration.
 
 		@return The command buffer in question.
@@ -79,7 +78,6 @@ public:
 	static VkCommandBuffer beginSingleUseCommandBuffer(VulkanContext& vkContext, SingleUseCommandInfo* commandBufInfo);
 
 	/* Stops recording a single-use/anonymous command buffer and submit its data to the GPU.
-		@param vkContext: The application context.
 		@param commandBufInfo: The command buffer configuration.
 		@param cmdBuffer: The command buffer.
 	*/
