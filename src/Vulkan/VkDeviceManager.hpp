@@ -11,7 +11,7 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
-#include <Constants.h>
+#include <Core/Constants.h>
 
 	// VMA
 #include <vk_mem_alloc.h>
@@ -27,10 +27,10 @@
 
 // Local
 #include <Vulkan/VkSwapchainManager.hpp>
-#include <LoggingManager.hpp>
-#include <GarbageCollector.hpp>
-#include <ServiceLocator.hpp>
-#include <ApplicationContext.hpp>
+#include <Core/LoggingManager.hpp>
+#include <Core/GarbageCollector.hpp>
+#include <Core/ServiceLocator.hpp>
+#include <Core/ApplicationContext.hpp>
 
 
 

@@ -15,10 +15,10 @@
 #include <iostream>
 
 // Other
-#include <Constants.h>
-#include <LoggingManager.hpp>
-#include <ApplicationContext.hpp>
-#include <GarbageCollector.hpp>
+#include <Core/Constants.h>
+#include <Core/LoggingManager.hpp>
+#include <Core/ApplicationContext.hpp>
+#include <Core/GarbageCollector.hpp>
 #include <Shaders/BufferManager.hpp>
 
 

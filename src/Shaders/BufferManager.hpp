@@ -22,10 +22,10 @@
 #include <Vulkan/VkCommandManager.hpp>
 #include <Vulkan/VkSyncManager.hpp>
 
-#include <ApplicationContext.hpp>
-#include <LoggingManager.hpp>
-#include <GarbageCollector.hpp>
-#include <ServiceLocator.hpp>
+#include <Core/ApplicationContext.hpp>
+#include <Core/LoggingManager.hpp>
+#include <Core/GarbageCollector.hpp>
+#include <Core/ServiceLocator.hpp>
 
 
 // A structure specifying the properties of a vertex

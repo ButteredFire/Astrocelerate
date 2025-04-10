@@ -20,10 +20,10 @@
 
 #include <Shaders/BufferManager.hpp>
 
-#include <AppWindow.hpp>
-#include <Constants.h>
-#include <LoggingManager.hpp>
-#include <ApplicationContext.hpp>
+#include <Core/AppWindow.hpp>
+#include <Core/Constants.h>
+#include <Core/LoggingManager.hpp>
+#include <Core/ApplicationContext.hpp>
 
 
 

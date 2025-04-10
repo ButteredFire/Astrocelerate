@@ -36,12 +36,18 @@
 #include <Vulkan/VkCommandManager.hpp>
 #include <Rendering/GraphicsPipeline.hpp>
 #include <Shaders/BufferManager.hpp>
-#include <Constants.h>
-#include <LoggingManager.hpp>
-#include <ServiceLocator.hpp>
+#include <Core/Constants.h>
+#include <Core/LoggingManager.hpp>
+#include <Core/ServiceLocator.hpp>
 
 // Font
 #include <../assets/DefaultFont.hpp>
+
+
+//
+struct RenderableObject {
+	virtual void recordCommands(VkCommandBuffer commandBuffer) const = 0;
+};
 
 
 /* Converts a color channel value in sRGB space to an equivalent value in linear space.

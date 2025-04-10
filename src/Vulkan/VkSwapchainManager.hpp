@@ -18,11 +18,11 @@
 
 // Local
 #include <Vulkan/VkInstanceManager.hpp>
-#include <LoggingManager.hpp>
-#include <GarbageCollector.hpp>
-#include <ServiceLocator.hpp>
-#include <Constants.h>
-#include <ApplicationContext.hpp>
+#include <Core/LoggingManager.hpp>
+#include <Core/GarbageCollector.hpp>
+#include <Core/ServiceLocator.hpp>
+#include <Core/Constants.h>
+#include <Core/ApplicationContext.hpp>
 
 
 // A structure that manages properties of a swap chain.

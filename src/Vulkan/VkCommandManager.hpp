@@ -20,12 +20,12 @@
 #include <imgui/imgui_impl_vulkan.h>
 
 // Local
-#include <ApplicationContext.hpp>
+#include <Core/ApplicationContext.hpp>
 #include <Shaders/BufferManager.hpp>
-#include <LoggingManager.hpp>
-#include <GarbageCollector.hpp>
-#include <ServiceLocator.hpp>
-#include <Constants.h>
+#include <Core/LoggingManager.hpp>
+#include <Core/GarbageCollector.hpp>
+#include <Core/ServiceLocator.hpp>
+#include <Core/Constants.h>
 
 
 class BufferManager;

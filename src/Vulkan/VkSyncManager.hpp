@@ -11,11 +11,11 @@
 #include <iostream>
 
 // Local
-#include <ApplicationContext.hpp>
-#include <LoggingManager.hpp>
-#include <GarbageCollector.hpp>
-#include <ServiceLocator.hpp>
-#include <Constants.h>
+#include <Core/ApplicationContext.hpp>
+#include <Core/LoggingManager.hpp>
+#include <Core/GarbageCollector.hpp>
+#include <Core/ServiceLocator.hpp>
+#include <Core/Constants.h>
 
 
 class VkSyncManager {

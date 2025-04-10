@@ -18,12 +18,12 @@
 
 // Local
 #include <Vulkan/VkInstanceManager.hpp>
-#include <ApplicationContext.hpp>
+#include <Core/ApplicationContext.hpp>
 #include <Shaders/BufferManager.hpp>
-#include <LoggingManager.hpp>
-#include <GarbageCollector.hpp>
-#include <ServiceLocator.hpp>
-#include <Constants.h>
+#include <Core/LoggingManager.hpp>
+#include <Core/GarbageCollector.hpp>
+#include <Core/ServiceLocator.hpp>
+#include <Core/Constants.h>
 
 
 /* Reads a file in binary mode.

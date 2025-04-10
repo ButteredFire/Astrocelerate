@@ -4,7 +4,7 @@
 // VMA
 #include <vk_mem_alloc.h>
 
-#include <LoggingManager.hpp>
+#include <Core/LoggingManager.hpp>
 #include <vector>
 #include <optional>
 #include <variant>

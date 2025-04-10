@@ -9,8 +9,8 @@
 #include <variant>
 #include <functional>
 
-#include <ApplicationContext.hpp>
-#include <LoggingManager.hpp>
+#include <Core/ApplicationContext.hpp>
+#include <Core/LoggingManager.hpp>
 
 
 // A structure specifying the properties of a cleanup task

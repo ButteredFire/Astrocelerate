@@ -1,12 +1,12 @@
 /* Application.cpp: The entry point for the Astrocelerate engine.
 */
 
-#include <AppWindow.hpp>
+#include <Core/AppWindow.hpp>
 #include <Engine/Engine.hpp>
-#include <ServiceLocator.hpp>
-#include <Constants.h>
-#include <GarbageCollector.hpp>
-#include <ApplicationContext.hpp>
+#include <Core/ServiceLocator.hpp>
+#include <Core/Constants.h>
+#include <Core/GarbageCollector.hpp>
+#include <Core/ApplicationContext.hpp>
 
 #include <iostream>
 #include <stdexcept>
@@ -51,14 +51,16 @@ int main() {
         swapchainManager->init();
 
 
-            // Command manager
-        std::shared_ptr<VkCommandManager> commandManager = std::make_shared<VkCommandManager>(vkContext);
-        ServiceLocator::registerService(commandManager);
-        commandManager->init();
-
             // Buffer manager
         std::shared_ptr<BufferManager> bufferManager = std::make_shared<BufferManager>(vkContext);
         ServiceLocator::registerService(bufferManager);
+
+
+            // Command manager
+        std::shared_ptr<VkCommandManager> commandManager = std::make_shared<VkCommandManager>(vkContext);
+        ServiceLocator::registerService(commandManager);
+
+        commandManager->init();
         bufferManager->init();
 
 
