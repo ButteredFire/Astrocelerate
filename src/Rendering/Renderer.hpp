@@ -34,41 +34,18 @@
 #include <Vulkan/VkDeviceManager.hpp>
 #include <Vulkan/VkSwapchainManager.hpp>
 #include <Vulkan/VkCommandManager.hpp>
+
+#include <Rendering/UIRenderer.hpp>
 #include <Rendering/GraphicsPipeline.hpp>
+
 #include <Shaders/BufferManager.hpp>
+
 #include <Core/Constants.h>
 #include <Core/LoggingManager.hpp>
 #include <Core/ServiceLocator.hpp>
 
 // Font
 #include <../assets/DefaultFont.hpp>
-
-
-//
-struct RenderableObject {
-	virtual void recordCommands(VkCommandBuffer commandBuffer) const = 0;
-};
-
-
-/* Converts a color channel value in sRGB space to an equivalent value in linear space.
-* @param color: The sRGB color value.
-* @return An equivalent value in linear color space.
-*/
-static inline float sRGBToLinear(float color) {
-	return (color <= Gamma::THRESHOLD) ? (color / Gamma::DIVISOR) : powf((color + Gamma::OFFSET) / Gamma::SCALE, Gamma::EXPONENT);
-}
-
-
-/* Converts a set of sRGB values to an equivalent set of linear color space values. 
-* @param r: The Red channel.
-* @param g: The Green channel.
-* @param b: The Blue channel.
-* @param a (Default: 1.0): The Alpha channel.
-* @return A 4-component ImGui Vector containing the (r, g, b, a) set in linear color space.
-*/
-static inline ImVec4 linearRGBA(float r, float g, float b, float a = 1.0f) {
-	return ImVec4(sRGBToLinear(r), sRGBToLinear(g), sRGBToLinear(b), a);
-}
 
 
 class Renderer {
@@ -91,27 +68,9 @@ private:
 
 	std::shared_ptr<GraphicsPipeline> graphicsPipeline;
 
+	std::shared_ptr<UIRenderer> imguiRenderer;
+
 	uint32_t currentFrame = 0;
-
-	ImFont* font = nullptr;
-	VkDescriptorPool imgui_DescriptorPool = VK_NULL_HANDLE;
-	bool showDemoWindow = true;
-
-
-	/* Configures Dear Imgui */
-	void configureDearImGui();
-
-
-	/* Changes the Imgui appearance to have a custom dark theme. */
-	void imgui_SetDarkTheme();
-
-
-	/* Reconfigures Dear Imgui on swapchain recreation. */
-	void refreshDearImgui();
-
-
-	/* Renders the Imgui Demo Window */
-	void imgui_RenderDemoWindow();
 
 
 	/* Renders a frame. 

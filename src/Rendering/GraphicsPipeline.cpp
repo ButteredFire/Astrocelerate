@@ -419,8 +419,8 @@ void GraphicsPipeline::initShaderStage() {
 	vertInputState.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 	// Describes binding, i.e., spacing between the data and whether the data is per-vertex or per-instance
 		// Gets vertex input binding and attribute descriptions
-	vertBindingDescription = BufferManager::getBindingDescription();
-	vertAttribDescriptions = BufferManager::getAttributeDescriptions();
+	vertBindingDescription = BufferManager::getVertexInputBindingDescription();
+	vertAttribDescriptions = BufferManager::getVertexAttributeDescriptions();
 
 	vertInputState.vertexBindingDescriptionCount = 1;
 	vertInputState.pVertexBindingDescriptions = &vertBindingDescription;

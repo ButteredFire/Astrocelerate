@@ -32,26 +32,22 @@ class BufferManager;
 
 
 // A structure that stores the configuration for single-use command buffers
-struct SingleUseCommandInfo {
+struct SingleUseCommandBufferInfo {
 	VkCommandPool commandPool;		// The command pool from which the command buffer is allocated.
 	VkQueue queue;					// The queue to which the command buffer's recorded data is submitted (and for which the command pool is allocated).
 
-
-	// The command buffer level. Default value is: Primary command buffer.
-	VkCommandBufferLevel bufferLevel = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-
-	// The command buffer usage flag. Default value is: One-time command buffer.
-	VkCommandBufferUsageFlags bufferUsageFlags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
+	VkCommandBufferLevel bufferLevel = VK_COMMAND_BUFFER_LEVEL_PRIMARY;							// The buffer level.
+	VkCommandBufferUsageFlags bufferUsageFlags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;   // The buffer usage flags.
+	VkCommandBufferInheritanceInfo* pInheritanceInfo = nullptr;									// The pointer to the buffer's inheritance info
 
 	VkFence fence = VK_NULL_HANDLE;
-	bool isSingleUseFence = false;
-
 	std::vector<VkSemaphore> waitSemaphores = {};
 	VkPipelineStageFlags waitStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
 	std::vector<VkSemaphore> signalSemaphores = {};
 
-	bool freeAfterSubmit = true;    // Auto-free or defer manual cleanup
+	bool usingSingleUseFence = false;		// Is the fence being used (if it is) single-use?
+	bool autoSubmit = true;					// Automatically submit after ending buffer recording?
+	bool freeAfterSubmit = true;			// Automatically free the buffer after submitting?
 };
 
 
@@ -62,12 +58,12 @@ public:
 
 	void init();
 
-	/* Writes a command into a command buffer.
+	/* Writes commands into the command buffer to be used for rendering.
 		@param buffer: The buffer to be recorded into.
 		@param imageIndex: The index of the swap-chain image from which commands are recorded.
 		@param currentFrame: The index of the frame currently being rendered.
 	*/
-	void recordCommandBuffer(VkCommandBuffer& buffer, uint32_t imageIndex, uint32_t currentFrame);
+	void recordRenderingCommandBuffer(VkCommandBuffer& buffer, uint32_t imageIndex, uint32_t currentFrame);
 
 
 	/* Begins recording a single-use/anonymous command buffer for single-time commands.
@@ -75,13 +71,14 @@ public:
 
 		@return The command buffer in question.
 	*/
-	static VkCommandBuffer beginSingleUseCommandBuffer(VulkanContext& vkContext, SingleUseCommandInfo* commandBufInfo);
+	static VkCommandBuffer beginSingleUseCommandBuffer(VulkanContext& vkContext, SingleUseCommandBufferInfo* commandBufInfo);
+
 
 	/* Stops recording a single-use/anonymous command buffer and submit its data to the GPU.
 		@param commandBufInfo: The command buffer configuration.
 		@param cmdBuffer: The command buffer.
 	*/
-	static void endSingleUseCommandBuffer(VulkanContext& vkContext, SingleUseCommandInfo* commandBufInfo, VkCommandBuffer& cmdBuffer);
+	static void endSingleUseCommandBuffer(VulkanContext& vkContext, SingleUseCommandBufferInfo* commandBufInfo, VkCommandBuffer& cmdBuffer);
 
 
 	/* Creates a command pool.

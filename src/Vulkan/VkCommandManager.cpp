@@ -29,7 +29,7 @@ void VkCommandManager::init() {
 }
 
 
-void VkCommandManager::recordCommandBuffer(VkCommandBuffer& cmdBuffer, uint32_t imageIndex, uint32_t currentFrame) {
+void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, uint32_t imageIndex, uint32_t currentFrame) {
 	// Specifies details about how the passed-in command buffer will be used before beginning
 	VkCommandBufferBeginInfo bufferBeginInfo{};
 	bufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -51,17 +51,18 @@ void VkCommandManager::recordCommandBuffer(VkCommandBuffer& cmdBuffer, uint32_t 
 		throw Log::RuntimeException(__FUNCTION__, "Failed to start recording command buffer!");
 	}
 
+
 	// Starts a render pass to start recording the drawing commands
 	VkRenderPassBeginInfo renderPassBeginInfo{};
 	renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	renderPassBeginInfo.renderPass = vkContext.GraphicsPipeline.renderPass;
 	renderPassBeginInfo.framebuffer = vkContext.SwapChain.imageFrameBuffers[imageIndex];
 
-	// Defines the render area (from (0, 0) to (extent.width, extent.height))
+		// Defines the render area (from (0, 0) to (extent.width, extent.height))
 	renderPassBeginInfo.renderArea.offset = { 0, 0 };
 	renderPassBeginInfo.renderArea.extent = vkContext.SwapChain.extent;
 
-	// Defines the clear values to use (we must specify this since the color attachment's load operation is VK_ATTACHMENT_LOAD_OP_CLEAR)
+		// Defines the clear values to use (we must specify this since the color attachment's load operation is VK_ATTACHMENT_LOAD_OP_CLEAR)
 	VkClearValue clearColor{};
 	clearColor.color = { 0.0f, 0.0f, 0.0f, 1.0f }; // (0, 0, 0, 1) -> Black;
 	clearColor.depthStencil = VkClearDepthStencilValue(); // Null for now (if depth stencil is implemented, you must also specify the color attachment load and store operations before specifying the clear value here)
@@ -69,17 +70,17 @@ void VkCommandManager::recordCommandBuffer(VkCommandBuffer& cmdBuffer, uint32_t 
 	renderPassBeginInfo.clearValueCount = 1;
 	renderPassBeginInfo.pClearValues = &clearColor;
 
-	/* The final parameter controls how the drawing commands within the render pass will be provided. It can have 2 values: VK_SUBPASS_...
-	* ...CONTENTS_INLINE: The render pass commands will be embedded in the primary command buffer itself and no secondary command buffers will be executed
-	* ..SECONDARY_COMMAND_BUFFERS: The render pass commands will be executed from secondary command buffers
-	*/
+		/* The final parameter controls how the drawing commands within the render pass will be provided. It can have 2 values: VK_SUBPASS_...
+			...CONTENTS_INLINE: The render pass commands will be embedded in the primary command buffer itself and no secondary command buffers will be executed
+			..SECONDARY_COMMAND_BUFFERS: The render pass commands will be executed from secondary command buffers
+		*/
 	vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 
 	// Commands are now ready to record. Functions that record commands begin with the vkCmd prefix.
 
+
 	// Binds graphics pipeline
-		// The 2nd parameter specifies the pipeline type (in this case, it's the graphics pipeline)
 	vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkContext.GraphicsPipeline.pipeline);
 
 	// Specify viewport and scissor states (since they're dynamic states)
@@ -93,20 +94,20 @@ void VkCommandManager::recordCommandBuffer(VkCommandBuffer& cmdBuffer, uint32_t 
 	viewport.maxDepth = 1.0f;
 	vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
 
-	// Scissor
+		// Scissor
 	VkRect2D scissor{};
 	scissor.offset = { 0, 0 };
 	scissor.extent = vkContext.SwapChain.extent;
 	vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
 
 	// Bind vertex and index buffers, then draw
-	/* vkCmdDraw parameters (Vulkan specs):
-	* commandBuffer: The command buffer to record the draw commands into
-	* vertexCount: The number of vertices to draw
-	* instanceCount: The number of instances to draw (useful for instanced rendering)
-	* firstVertex: The index of the first vertex to draw. It is used as an offset into the vertex buffer, and defines the lowest value of gl_VertexIndex.
-	* firstInstance: The instance ID of the first instance to draw. It is used as an offset for instanced rendering, and defines the lowest value of gl_InstanceIndex.
-	*/
+		/* vkCmdDraw parameters (Vulkan specs):
+			- commandBuffer: The command buffer to record the draw commands into
+			- vertexCount: The number of vertices to draw
+			- instanceCount: The number of instances to draw (useful for instanced rendering)
+			- firstVertex: The index of the first vertex to draw. It is used as an offset into the vertex buffer, and defines the lowest value of gl_VertexIndex.
+			- firstInstance: The instance ID of the first instance to draw. It is used as an offset for instanced rendering, and defines the lowest value of gl_InstanceIndex.
+		*/
 	// Vertex buffers
 	VkBuffer vertexBuffers[] = {
 		bufferManager->getVertexBuffer()
@@ -117,13 +118,15 @@ void VkCommandManager::recordCommandBuffer(VkCommandBuffer& cmdBuffer, uint32_t 
 	vkCmdBindVertexBuffers(cmdBuffer, 0, 1, vertexBuffers, offsets);
 
 
-	// Index buffer (note: you can only have 1 index buffer)
+		// Index buffer (note: you can only have 1 index buffer)
 	VkBuffer indexBuffer = bufferManager->getIndexBuffer();
 	vkCmdBindIndexBuffer(cmdBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
 
 	// Draw call
 		// Binds descriptor sets
 	vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkContext.GraphicsPipeline.layout, 0, 1, &vkContext.GraphicsPipeline.uniformBufferDescriptorSets[currentFrame], 0, nullptr);
+
 
 	// Draws vertices based on the index buffer
 	auto vertexIndices = bufferManager->getVertexIndexData();
@@ -146,7 +149,7 @@ void VkCommandManager::recordCommandBuffer(VkCommandBuffer& cmdBuffer, uint32_t 
 }
 
 
-VkCommandBuffer VkCommandManager::beginSingleUseCommandBuffer(VulkanContext& vkContext, SingleUseCommandInfo* commandBufInfo) {
+VkCommandBuffer VkCommandManager::beginSingleUseCommandBuffer(VulkanContext& vkContext, SingleUseCommandBufferInfo* commandBufInfo) {
 	VkCommandBufferAllocateInfo cmdBufAllocInfo{};
 	cmdBufAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 	cmdBufAllocInfo.level = commandBufInfo->bufferLevel;
@@ -162,6 +165,7 @@ VkCommandBuffer VkCommandManager::beginSingleUseCommandBuffer(VulkanContext& vkC
 	VkCommandBufferBeginInfo cmdBufBeginInfo{};
 	cmdBufBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 	cmdBufBeginInfo.flags = commandBufInfo->bufferUsageFlags;
+	cmdBufBeginInfo.pInheritanceInfo = commandBufInfo->pInheritanceInfo;
 
 	VkResult bufBeginResult = vkBeginCommandBuffer(cmdBuffer, &cmdBufBeginInfo);
 	if (bufBeginResult != VK_SUCCESS) {
@@ -172,11 +176,16 @@ VkCommandBuffer VkCommandManager::beginSingleUseCommandBuffer(VulkanContext& vkC
 }
 
 
-void VkCommandManager::endSingleUseCommandBuffer(VulkanContext& vkContext, SingleUseCommandInfo* commandBufInfo, VkCommandBuffer& cmdBuffer) {
+void VkCommandManager::endSingleUseCommandBuffer(VulkanContext& vkContext, SingleUseCommandBufferInfo* commandBufInfo, VkCommandBuffer& cmdBuffer) {
 	VkResult bufEndResult = vkEndCommandBuffer(cmdBuffer);
 	if (bufEndResult != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, "Failed to stop recording single-use command buffer!");
 	}
+
+
+	if (!commandBufInfo->autoSubmit)
+		return;
+
 
 	VkSubmitInfo submitInfo{};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -200,7 +209,7 @@ void VkCommandManager::endSingleUseCommandBuffer(VulkanContext& vkContext, Singl
 	}
 	
 	if (commandBufInfo->fence != VK_NULL_HANDLE) {
-		if (commandBufInfo->isSingleUseFence) {
+		if (commandBufInfo->usingSingleUseFence) {
 			VkSyncManager::waitForSingleUseFence(vkContext, commandBufInfo->fence);
 		}
 		else {

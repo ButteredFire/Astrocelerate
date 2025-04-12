@@ -17,6 +17,7 @@ set(SOURCE_FILES
 	"src/Rendering/GraphicsPipeline.cpp"
 	"src/Rendering/Renderer.cpp"
 	"src/Rendering/TextureManager.cpp"
+	"src/Rendering/UIRenderer.cpp"
 	"src/Shaders/BufferManager.cpp"
 	"src/Vulkan/VkCommandManager.cpp"
 	"src/Vulkan/VkDeviceManager.cpp"

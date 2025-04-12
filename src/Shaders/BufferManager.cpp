@@ -18,7 +18,7 @@ void BufferManager::init() {
 }
 
 
-VkVertexInputBindingDescription BufferManager::getBindingDescription() {
+VkVertexInputBindingDescription BufferManager::getVertexInputBindingDescription() {
 	// A vertex binding describes at which rate to load data from memory throughout the vertices.
 		// It specifies the number of bytes between data entries and whether to move to the next data entry after each vertex or after each instance.
 	VkVertexInputBindingDescription bindingDescription{};
@@ -36,7 +36,7 @@ VkVertexInputBindingDescription BufferManager::getBindingDescription() {
 }
 
 
-std::array<VkVertexInputAttributeDescription, 2> BufferManager::getAttributeDescriptions() {
+std::array<VkVertexInputAttributeDescription, 2> BufferManager::getVertexAttributeDescriptions() {
 	// Attribute descriptions specify the type of the attributes passed to the vertex shader, which binding to load them from (and at which offset)
 		// Each vertex attribute (e.g., position, color) must have its own attribute description.
 	std::array<VkVertexInputAttributeDescription, 2> attribDescriptions{};
@@ -115,10 +115,10 @@ void BufferManager::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceS
 
 
 	// Begins recording a command buffer to send data to the GPU
-	SingleUseCommandInfo cmdBufInfo{};
+	SingleUseCommandBufferInfo cmdBufInfo{};
 	cmdBufInfo.commandPool = VkCommandManager::createCommandPool(vkContext, vkContext.logicalDevice, queueFamily.index.value(), VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
 	cmdBufInfo.fence = VkSyncManager::createSingleUseFence(vkContext);
-	cmdBufInfo.isSingleUseFence = true;
+	cmdBufInfo.usingSingleUseFence = true;
 	cmdBufInfo.queue = queueFamily.deviceQueue;
 
 	VkCommandBuffer commandBuffer = VkCommandManager::beginSingleUseCommandBuffer(vkContext, &cmdBufInfo);

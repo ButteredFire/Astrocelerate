@@ -114,10 +114,10 @@ void TextureManager::createImage(VulkanContext& vkContext, VkImage& image, VmaAl
 
 
 void TextureManager::transitionImageLayout(VulkanContext& vkContext, VkImage image, VkFormat imgFormat, VkImageLayout oldLayout, VkImageLayout newLayout) {
-	SingleUseCommandInfo cmdInfo{};
+	SingleUseCommandBufferInfo cmdInfo{};
 	cmdInfo.commandPool = VkCommandManager::createCommandPool(vkContext, vkContext.logicalDevice, vkContext.queueFamilies.graphicsFamily.index.value(), VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
 	cmdInfo.fence = VkSyncManager::createSingleUseFence(vkContext);
-	cmdInfo.isSingleUseFence = true;
+	cmdInfo.usingSingleUseFence = true;
 	cmdInfo.queue = vkContext.queueFamilies.graphicsFamily.deviceQueue;
 
 	VkCommandBuffer commandBuffer = VkCommandManager::beginSingleUseCommandBuffer(vkContext, &cmdInfo);

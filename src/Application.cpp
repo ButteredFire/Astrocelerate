@@ -5,6 +5,7 @@
 #include <Engine/Engine.hpp>
 #include <Core/ServiceLocator.hpp>
 #include <Core/Constants.h>
+#include <Core/ECSCore.hpp>
 #include <Core/GarbageCollector.hpp>
 #include <Core/ApplicationContext.hpp>
 
@@ -78,7 +79,10 @@ int main() {
         syncManager->init();
 
 
-            // Renderer
+            // Renderers
+        std::shared_ptr<UIRenderer> uiRenderer = std::make_shared<UIRenderer>(vkContext);
+        ServiceLocator::registerService(uiRenderer);
+
         Renderer renderer(vkContext);
         renderer.init();
 
@@ -97,6 +101,7 @@ int main() {
         boxer::show(e.what(), ("Exception raised from " + std::string(e.origin())).c_str(), boxer::Style::Error, boxer::Buttons::Quit);
         return EXIT_FAILURE;
     }
+
 
     vkDeviceWaitIdle(vkContext.logicalDevice);
     garbageCollector->processCleanupStack();

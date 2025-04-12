@@ -130,10 +130,10 @@ public:
 
 
     /* Gets the vertex input binding description. */
-    static VkVertexInputBindingDescription getBindingDescription();
+    static VkVertexInputBindingDescription getVertexInputBindingDescription();
 
     /* Gets the vertex attribute descriptions. */
-    static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions();
+    static std::array<VkVertexInputAttributeDescription, 2> getVertexAttributeDescriptions();
 
 private:
     VulkanContext& vkContext;
