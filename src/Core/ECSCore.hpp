@@ -17,7 +17,9 @@ constexpr Entity INVALID_ENTITY = UINT32_MAX;
 
 class EntityManager {
 public:
-	EntityManager() : nextEntity(0) {};
+	EntityManager() : nextEntity(0) {
+		Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
+	};
 	~EntityManager() = default;
 
 
@@ -89,7 +91,7 @@ public:
 	/* Queries an entity to get its component.
 		@param entity: The entity to be queried.
 	*/
-	inline Component& getComponent(Entity entity) const {
+	inline Component& getComponent(Entity entity) {
 		if (!contains(entity)) {
 			throw Log::RuntimeException(__FUNCTION__, "Unable to get component from entity #" + std::to_string(entity) + ": Entity does not exist!");
 		}
@@ -106,21 +108,48 @@ private:
 };
 
 
-template<typename... Components>
 class View {
 public:
-	View(const ComponentArray<Components>... args) : components(args) {};
-	
-	template<typename LoopFunc>
-	void forEach(LoopFunc func) const {
-		for (const auto& [entity, component] : std::get<0>(components).data()) {
-			if (std::get<ComponentArray<Components>>(components).contains(entity)) {
-				func(entity, std::get<ComponentArray<Components>>(components).getComponent(entity));
-			}
+	template<typename... Components>
+	static auto getView(ComponentArray<Components>... args) {
+		constexpr size_t argCount = sizeof...(args);
+		if (argCount == 0) {
+			throw Log::RuntimeException(__FUNCTION__, "No components are passed into view!");
 		}
+
+		return InternalView<Components...>(args...);
 	}
 
-	
 private:
-	std::tuple<const ComponentArray<Components>...> components;
+
+	template<typename... Components>
+	class InternalView {
+	public:
+		InternalView(ComponentArray<Components>... args) : components(args...) {};
+
+		template<typename LoopFunc>
+		void forEach(LoopFunc func) {
+			constexpr size_t tupleSize = std::tuple_size<decltype(components)>::value;
+			if (tupleSize == 0) {
+				Log::print(Log::T_WARNING, __FUNCTION__, "No detectable component tuple to be iterated over!");
+				return;
+			}
+
+			auto& firstComponentArray = std::get<0>(components);
+
+			for (auto& [entity, component] : firstComponentArray.getAll()) {
+				auto componentArrayContainsEntity = [this, entity](auto&... arrays) { return (arrays.contains(entity) && ...); };
+
+				if (std::apply(componentArrayContainsEntity, components)) {
+					auto finalFunc = [this, func, entity](auto&... arrays) { func(entity, arrays.getComponent(entity)...); };
+					std::apply(finalFunc, components);
+				}
+			}
+
+		}
+
+	private:
+		std::tuple<ComponentArray<Components>...> components;
+	};
 };
+

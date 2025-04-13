@@ -29,6 +29,54 @@ int main() {
     std::shared_ptr<GarbageCollector> garbageCollector = std::make_shared<GarbageCollector>(vkContext);
     ServiceLocator::registerService(garbageCollector);
 
+    // Entity manager
+    std::shared_ptr<EntityManager> entityManager = std::make_shared<EntityManager>();
+    ServiceLocator::registerService(entityManager);
+
+    // Test components
+    struct TransformComponent {
+        glm::vec3 position;
+    };
+
+    struct PhysicsComponent {
+        glm::vec3 velocityVector;
+        int acceleration;
+    };
+
+    // Test entities
+    Entity satellite = entityManager->createEntity();
+    Entity launchVehicle = entityManager->createEntity();
+    Entity staticCelestialObject = entityManager->createEntity();
+
+    // Test component arrays
+    ComponentArray<TransformComponent> transforms;
+    ComponentArray<PhysicsComponent> physicsComponents;
+
+    // Entity attachment
+    transforms.attach(satellite, TransformComponent{ {0.0f, 0.0f, 1.0f} });
+    transforms.attach(launchVehicle, TransformComponent{ {5.0f, 8.0f, 3.5f} });
+    transforms.attach(staticCelestialObject, TransformComponent{ {83914.32f, 12514.2134f, 30234.32f} });
+
+    physicsComponents.attach(satellite, PhysicsComponent{ {1.0f, 1.0f, 1.0f}, 15 });
+    physicsComponents.attach(launchVehicle, PhysicsComponent{ {0.0f, 0.0f, 0.0f}, 0 });
+
+
+    // Iterating over entities that have the TransformComponent and PhysicsComponent components
+    auto view = View::getView(transforms, physicsComponents);
+    view.forEach([](Entity entity, TransformComponent& transform, PhysicsComponent& physicsComponent) {
+        Log::print(Log::T_INFO, __FUNCTION__, "Entity #" + std::to_string(entity) + 
+            "; Transform data: (" 
+                + std::to_string(transform.position.x) + ", " 
+                + std::to_string(transform.position.y) + ", " 
+                + std::to_string(transform.position.z) + 
+
+            "); Physics data: (Velocity vector: (" 
+                + std::to_string(physicsComponent.velocityVector.x) + ", " 
+                + std::to_string(physicsComponent.velocityVector.y) + ", " 
+                + std::to_string(physicsComponent.velocityVector.z) + 
+                "); Acceleration: " + std::to_string(physicsComponent.acceleration) + "m/s^2)");
+    });
+
     try {
             // Creates a window
         Window window(WIN_WIDTH, WIN_HEIGHT, WIN_NAME);
