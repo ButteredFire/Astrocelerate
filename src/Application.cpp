@@ -31,7 +31,6 @@ int main() {
 
     // Entity manager
     std::shared_ptr<EntityManager> entityManager = std::make_shared<EntityManager>();
-    ServiceLocator::registerService(entityManager);
 
     // Test components
     struct TransformComponent {
@@ -40,8 +39,10 @@ int main() {
 
     struct PhysicsComponent {
         glm::vec3 velocityVector;
-        int acceleration;
+        float acceleration;
     };
+
+    struct TestComponent {};
 
     // Test entities
     Entity satellite = entityManager->createEntity();
@@ -49,22 +50,26 @@ int main() {
     Entity staticCelestialObject = entityManager->createEntity();
 
     // Test component arrays
-    ComponentArray<TransformComponent> transforms;
-    ComponentArray<PhysicsComponent> physicsComponents;
+    ComponentArray<TransformComponent> transforms(entityManager);
+    ComponentArray<PhysicsComponent> physicsComponents(entityManager);
+    ComponentArray<TestComponent> testComponents(entityManager);
 
     // Entity attachment
     transforms.attach(satellite, TransformComponent{ {0.0f, 0.0f, 1.0f} });
     transforms.attach(launchVehicle, TransformComponent{ {5.0f, 8.0f, 3.5f} });
     transforms.attach(staticCelestialObject, TransformComponent{ {83914.32f, 12514.2134f, 30234.32f} });
 
-    physicsComponents.attach(satellite, PhysicsComponent{ {1.0f, 1.0f, 1.0f}, 15 });
-    physicsComponents.attach(launchVehicle, PhysicsComponent{ {0.0f, 0.0f, 0.0f}, 0 });
+    physicsComponents.attach(satellite, PhysicsComponent{ {1.0f, 1.0f, 1.0f}, 1.01f });
+    physicsComponents.attach(launchVehicle, PhysicsComponent{ {0.0f, 1.0f, 0.0f}, 20.0f });
+    physicsComponents.attach(staticCelestialObject, PhysicsComponent{ {0.0f, 0.0f, 0.0f}, 0.0f });
 
+    testComponents.attach(launchVehicle, TestComponent{});
+    testComponents.attach(staticCelestialObject, TestComponent{});
 
     // Iterating over entities that have the TransformComponent and PhysicsComponent components
-    auto view = View::getView(transforms, physicsComponents);
-    view.forEach([](Entity entity, TransformComponent& transform, PhysicsComponent& physicsComponent) {
-        Log::print(Log::T_INFO, __FUNCTION__, "Entity #" + std::to_string(entity) + 
+    auto view = View::getView(entityManager, transforms, physicsComponents, testComponents);
+    for (auto [entity, transform, physicsComponent, testComponent] : view) {
+        Log::print(Log::T_INFO, __FUNCTION__, "Entity #" + std::to_string(entity.id) + 
             "; Transform data: (" 
                 + std::to_string(transform.position.x) + ", " 
                 + std::to_string(transform.position.y) + ", " 
@@ -75,7 +80,7 @@ int main() {
                 + std::to_string(physicsComponent.velocityVector.y) + ", " 
                 + std::to_string(physicsComponent.velocityVector.z) + 
                 "); Acceleration: " + std::to_string(physicsComponent.acceleration) + "m/s^2)");
-    });
+    }
 
     try {
             // Creates a window
