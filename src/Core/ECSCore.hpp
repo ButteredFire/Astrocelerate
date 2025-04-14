@@ -221,20 +221,15 @@ private:
 		
 			// Queries entities to look for those with the required components
 			requiredMask = buildComponentMask<Components...>();
-			auto& allEntities = entityManager->getActiveEntities();
-			matchingEntities.reserve(allEntities.size()); // Reserve for fast push-back operations
-
-			for (auto& entity : allEntities) {
-				if ((entity.componentMask & requiredMask) == requiredMask) {
-					matchingEntities.push_back(entity);
-				}
-			}
+			auto allEntities = entityManager->getActiveEntities();
+			updateMatchingEntities(allEntities);
 		};
 
 
 		template<typename... IgnoredComponents>
-		inline void ignoreComponents(ComponentArray<IgnoredComponents>&... ignoredArrays) {
-
+		inline void ignoreComponents() {
+			ignoredMask = buildComponentMask<IgnoredComponents...>();
+			updateMatchingEntities(matchingEntities);
 		}
 
 
@@ -243,6 +238,9 @@ private:
 			Iterator(InternalView* view, size_t index) :
 				view(view), index(index) {}
 
+
+			// Dereferencing
+			// This is necessary for compatibility with native range-based loops and structured bindings.
 			auto operator*() {
 				Entity& entity = view->matchingEntities[index];
 
@@ -289,7 +287,35 @@ private:
 
 		std::vector<Entity> matchingEntities;
 		ComponentMask requiredMask;
+		ComponentMask ignoredMask;
 
+
+		/* Updates the list of entities according to filters (e.g., required/ignored masks).
+			@param sourceEntities: The source vector of entities used as data for updating matching entities from.
+		*/
+		inline void updateMatchingEntities(std::vector<Entity>& sourceEntities) {
+			std::vector<Entity> temp;
+			temp.reserve(sourceEntities.size());
+
+			for (auto& entity : sourceEntities) {
+				if (
+					((entity.componentMask & requiredMask) == requiredMask) &&	// Entity mask must match the required mask
+					((entity.componentMask & ignoredMask).none())				// Entity mask must NOT match the ignored mask
+					) {
+
+					temp.push_back(entity);
+				}
+			}
+
+			matchingEntities.swap(temp);
+		}
+
+		
+		/* Creates a component mask.
+			@tparam SpecifiedComponents: Components to be included in the mask.
+			
+			@return The newly created component mask.
+		*/
 		template<typename... SpecifiedComponents>
 		inline ComponentMask& buildComponentMask() {
 			ComponentMask requiredMask;

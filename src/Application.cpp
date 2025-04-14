@@ -92,11 +92,11 @@ int main() {
     }
 
 
-
     Log::print(Log::T_INFO, __FUNCTION__, "2nd:");
     auto view1 = View::getView(entityManager, physicsComponents);
+    view1.ignoreComponents<TestComponent>();
     for (auto [entity, physicsComponent] : view1) {
-        Log::print(Log::T_INFO, __FUNCTION__, "acceleration of entity #" + std::to_string(entity.id) + ": " + std::to_string(physicsComponent.acceleration));
+        Log::print(Log::T_INFO, __FUNCTION__, "Acceleration of entity #" + std::to_string(entity.id) + ": " + std::to_string(physicsComponent.acceleration));
     }
 
     try {
