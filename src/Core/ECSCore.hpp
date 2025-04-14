@@ -220,7 +220,7 @@ private:
 			entityManager(entityManager), componentArrays(std::tie(arrays...)) {
 		
 			// Queries entities to look for those with the required components
-			requiredMask = buildRequiredMask();
+			requiredMask = buildComponentMask<Components...>();
 			auto& allEntities = entityManager->getActiveEntities();
 			matchingEntities.reserve(allEntities.size()); // Reserve for fast push-back operations
 
@@ -230,6 +230,12 @@ private:
 				}
 			}
 		};
+
+
+		template<typename... IgnoredComponents>
+		inline void ignoreComponents(ComponentArray<IgnoredComponents>&... ignoredArrays) {
+
+		}
 
 
 		class Iterator {
@@ -274,7 +280,7 @@ private:
 		
 
 		Iterator begin() { return Iterator(this, 0); }
-		Iterator end() { return Iterator(this, matchingEntities.size()); }
+		Iterator end()   { return Iterator(this, matchingEntities.size()); }
 
 	private:
 		std::shared_ptr<EntityManager> entityManager;
@@ -284,9 +290,10 @@ private:
 		std::vector<Entity> matchingEntities;
 		ComponentMask requiredMask;
 
-		inline ComponentMask& buildRequiredMask() {
+		template<typename... SpecifiedComponents>
+		inline ComponentMask& buildComponentMask() {
 			ComponentMask requiredMask;
-			(requiredMask.set(ComponentTypeID::get<Components>()), ...); // NOTE: This is a fold expression.
+			(requiredMask.set(ComponentTypeID::get<SpecifiedComponents>()), ...);
 			return requiredMask;
 		}
 	};

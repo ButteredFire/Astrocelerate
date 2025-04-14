@@ -31,6 +31,7 @@ int main() {
 
     // Entity manager
     std::shared_ptr<EntityManager> entityManager = std::make_shared<EntityManager>();
+    ServiceLocator::registerService(entityManager);
 
     // Test components
     struct TransformComponent {
@@ -80,6 +81,22 @@ int main() {
                 + std::to_string(physicsComponent.velocityVector.y) + ", " 
                 + std::to_string(physicsComponent.velocityVector.z) + 
                 "); Acceleration: " + std::to_string(physicsComponent.acceleration) + "m/s^2)");
+
+        // Modify physics properties
+        physicsComponent.acceleration = 0.0f;
+    }
+
+    Log::print(Log::T_INFO, __FUNCTION__, "1st:");
+    for (auto [entity, transform, physicsComponent, testComponent] : view) {
+        Log::print(Log::T_INFO, __FUNCTION__, "acceleration of entity #" + std::to_string(entity.id) + ": " + std::to_string(physicsComponent.acceleration));
+    }
+
+
+
+    Log::print(Log::T_INFO, __FUNCTION__, "2nd:");
+    auto view1 = View::getView(entityManager, physicsComponents);
+    for (auto [entity, physicsComponent] : view1) {
+        Log::print(Log::T_INFO, __FUNCTION__, "acceleration of entity #" + std::to_string(entity.id) + ": " + std::to_string(physicsComponent.acceleration));
     }
 
     try {
