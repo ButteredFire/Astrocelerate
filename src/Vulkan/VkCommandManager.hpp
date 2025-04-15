@@ -20,12 +20,18 @@
 #include <imgui/imgui_impl_vulkan.h>
 
 // Local
-#include <Core/ApplicationContext.hpp>
-#include <Shaders/BufferManager.hpp>
-#include <Core/LoggingManager.hpp>
-#include <Core/GarbageCollector.hpp>
-#include <Core/ServiceLocator.hpp>
+#include <Core/ECSCore.hpp>
 #include <Core/Constants.h>
+#include <Core/LoggingManager.hpp>
+#include <Core/ServiceLocator.hpp>
+#include <Core/GarbageCollector.hpp>
+#include <Core/ApplicationContext.hpp>
+
+#include <Engine/Components/RenderComponents.hpp>
+
+#include <Shaders/BufferManager.hpp>
+
+#include <Systems/RenderSystem.hpp>
 
 
 class BufferManager;
@@ -60,10 +66,11 @@ public:
 
 	/* Writes commands into the command buffer to be used for rendering.
 		@param buffer: The buffer to be recorded into.
+		@param renderables: The component array of renderable entities.
 		@param imageIndex: The index of the swap-chain image from which commands are recorded.
 		@param currentFrame: The index of the frame currently being rendered.
 	*/
-	void recordRenderingCommandBuffer(VkCommandBuffer& buffer, uint32_t imageIndex, uint32_t currentFrame);
+	void recordRenderingCommandBuffer(VkCommandBuffer& buffer, ComponentArray<RenderableComponent>& renderables, uint32_t imageIndex, uint32_t currentFrame);
 
 
 	/* Begins recording a single-use/anonymous command buffer for single-time commands.

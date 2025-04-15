@@ -370,6 +370,7 @@ void GraphicsPipeline::createRenderPass() {
 	}
 
 	vkContext.GraphicsPipeline.renderPass = renderPass;
+	vkContext.GraphicsPipeline.subpassCount = renderPassCreateInfo.subpassCount;
 
 	CleanupTask task{};
 	task.caller = __FUNCTION__;

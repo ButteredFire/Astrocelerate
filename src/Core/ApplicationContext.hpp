@@ -184,6 +184,7 @@ struct VulkanContext {
         VkPipeline pipeline = VK_NULL_HANDLE;
         VkPipelineLayout layout = VK_NULL_HANDLE;
         VkRenderPass renderPass = VK_NULL_HANDLE;
+		uint32_t subpassCount = 0;
 
 		std::vector<VkDescriptorSet> uniformBufferDescriptorSets;
     } GraphicsPipeline;

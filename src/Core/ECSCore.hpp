@@ -27,13 +27,13 @@ struct Entity {
 
 	// Defines the == operator for Entity objects to compare based only on ID
 	// (so that there won't be errors like `Entity{0, maskA} != Entity{0, maskB}`, i.e. the same entity but with different masks are treated as separate entities)
-bool operator==(const Entity& lhs, const Entity& rhs) {
+inline bool operator==(const Entity& lhs, const Entity& rhs) {
 	return lhs.id == rhs.id;
 }
 namespace std {
 	template<>
 	struct hash<Entity> {
-		std::size_t operator()(const Entity& e) const noexcept {
+		inline std::size_t operator()(const Entity& e) const noexcept {
 			return std::hash<EntityID>()(e.id);
 		}
 	};
@@ -138,11 +138,11 @@ public:
 		@param component: The component data.
 	*/
 	inline void attach(Entity& entity, const Component& component) {
-		components[entity] = component;
+		ecMap[entity] = component;
+		components.push_back(component);
+
 		entity.componentMask.set(componentID);
 		entityManager->updateEntity(entity);
-
-		Log::print(Log::T_DEBUG, __FUNCTION__, "Attached component #" + std::to_string(componentID) + " to entity #" + std::to_string(entity.id));
 	}
 
 
@@ -154,11 +154,11 @@ public:
 			throw Log::RuntimeException(__FUNCTION__, "Unable to detach entity #" + std::to_string(entity.id) + " from the component array!");
 		}
 
-		components.erase(entity);
+		ecMap.erase(entity);
+		components.erase(std::find(components.begin(), components.end(), ecMap[entity]));
+
 		entity.componentMask.reset(componentID);
 		entityManager->updateEntity(entity);
-
-		Log::print(Log::T_DEBUG, __FUNCTION__, "Detached component #" + std::to_string(componentID) + " from entity #" + std::to_string(entity.id));
 	}
 	
 
@@ -166,7 +166,7 @@ public:
 		@param entity: The entity to be checked.
 	*/
 	inline bool contains(Entity& entity) {
-		return components.find(entity) != components.end();
+		return ecMap.find(entity) != ecMap.end();
 	}
 
 
@@ -178,18 +178,24 @@ public:
 			throw Log::RuntimeException(__FUNCTION__, "Unable to get component from entity #" + std::to_string(entity.id) + ": Entity does not exist!");
 		}
 
-		return components.at(entity);
+		return ecMap.at(entity);
 	}
 
 
+	/* Gets all components in the component array. */
+	inline const std::vector<Component>& getAllComponents() const { return components; }
+
+
 	/* Gets all entity-component mappings. */
-	inline const std::unordered_map<Entity, Component>& getAll() const { return components; };
+	inline const std::unordered_map<Entity, Component>& getECMappings() const { return ecMap; }
 
 private:
 	std::shared_ptr<EntityManager> entityManager;
 
 	const size_t componentID = ComponentTypeID::get<Component>();
-	std::unordered_map<Entity, Component> components;
+	std::unordered_map<Entity, Component> ecMap;
+
+	std::vector<Component> components;
 };
 
 
@@ -226,6 +232,9 @@ private:
 		};
 
 
+		/* Ignores a variable number of components.
+			@tparam IgnoredComponents: The components whose entities having them attached are to be ignored in the view.
+		*/
 		template<typename... IgnoredComponents>
 		inline void ignoreComponents() {
 			ignoredMask = buildComponentMask<IgnoredComponents...>();
@@ -318,9 +327,9 @@ private:
 		*/
 		template<typename... SpecifiedComponents>
 		inline ComponentMask& buildComponentMask() {
-			ComponentMask requiredMask;
-			(requiredMask.set(ComponentTypeID::get<SpecifiedComponents>()), ...);
-			return requiredMask;
+			ComponentMask mask;
+			(mask.set(ComponentTypeID::get<SpecifiedComponents>()), ...);
+			return mask;
 		}
 	};
 };

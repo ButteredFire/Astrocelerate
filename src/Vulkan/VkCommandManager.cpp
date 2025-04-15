@@ -29,7 +29,7 @@ void VkCommandManager::init() {
 }
 
 
-void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, uint32_t imageIndex, uint32_t currentFrame) {
+void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, ComponentArray<RenderableComponent>& renderables, uint32_t imageIndex, uint32_t currentFrame) {
 	// Specifies details about how the passed-in command buffer will be used before beginning
 	VkCommandBufferBeginInfo bufferBeginInfo{};
 	bufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -100,43 +100,16 @@ void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, 
 	scissor.extent = vkContext.SwapChain.extent;
 	vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
 
-	// Bind vertex and index buffers, then draw
-		/* vkCmdDraw parameters (Vulkan specs):
-			- commandBuffer: The command buffer to record the draw commands into
-			- vertexCount: The number of vertices to draw
-			- instanceCount: The number of instances to draw (useful for instanced rendering)
-			- firstVertex: The index of the first vertex to draw. It is used as an offset into the vertex buffer, and defines the lowest value of gl_VertexIndex.
-			- firstInstance: The instance ID of the first instance to draw. It is used as an offset for instanced rendering, and defines the lowest value of gl_InstanceIndex.
-		*/
-	// Vertex buffers
-	VkBuffer vertexBuffers[] = {
-		bufferManager->getVertexBuffer()
-	};
-	VkDeviceSize offsets[] = {
-		0
-	};
-	vkCmdBindVertexBuffers(cmdBuffer, 0, 1, vertexBuffers, offsets);
+	// Processes renderables
+	const uint32_t MAX_SUBPASSES = vkContext.GraphicsPipeline.subpassCount;
+	uint32_t subpassCount = 1;
+	for (auto renderable : renderables.getAllComponents()) {
+		RenderSystem::processRenderable(vkContext, cmdBuffer, renderable);
 
-
-		// Index buffer (note: you can only have 1 index buffer)
-	VkBuffer indexBuffer = bufferManager->getIndexBuffer();
-	vkCmdBindIndexBuffer(cmdBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-
-
-	// Draw call
-		// Binds descriptor sets
-	vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkContext.GraphicsPipeline.layout, 0, 1, &vkContext.GraphicsPipeline.uniformBufferDescriptorSets[currentFrame], 0, nullptr);
-
-
-	// Draws vertices based on the index buffer
-	auto vertexIndices = bufferManager->getVertexIndexData();
-	vkCmdDrawIndexed(cmdBuffer, static_cast<uint32_t>(vertexIndices.size()), 1, 0, 0, 0); // Use vkCmdDrawIndexed instead of vkCmdDraw to draw with the index buffer
-
-
-	// Transition to the ImGui subpass to record ImGui draw commands
-	vkCmdNextSubpass(cmdBuffer, VK_SUBPASS_CONTENTS_INLINE);
-	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmdBuffer);
-
+		if (subpassCount++ < MAX_SUBPASSES)
+			vkCmdNextSubpass(cmdBuffer, VK_SUBPASS_CONTENTS_INLINE);
+		
+	}
 
 	// End the render pass
 	vkCmdEndRenderPass(cmdBuffer);

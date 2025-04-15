@@ -9,6 +9,9 @@ Renderer::Renderer(VulkanContext& context):
     vulkInst(context.vulkanInstance),
     vkContext(context) {
 
+    // TODO: I've just realized that having multiple entity managers (which is very likely) will be problematic for the service locator.
+    globalEntityManager = ServiceLocator::getService<EntityManager>(__FUNCTION__);
+
     swapchainManager = ServiceLocator::getService<VkSwapchainManager>(__FUNCTION__);
     bufferManager = ServiceLocator::getService<BufferManager>(__FUNCTION__);
     graphicsPipeline = ServiceLocator::getService<GraphicsPipeline>(__FUNCTION__);
@@ -30,10 +33,45 @@ void Renderer::update() {
 
 void Renderer::init() {
     imguiRenderer->initializeImGui();
+    initializeRenderables();
+}
+
+
+void Renderer::initializeRenderables() {
+    vertexRenderable = globalEntityManager->createEntity();
+    guiRenderable = globalEntityManager->createEntity();
 }
 
 
 void Renderer::drawFrame() {
+    imguiRenderer->renderFrames();
+
+    // Specifies renderable components
+    ComponentArray<RenderableComponent> renderableComponents(globalEntityManager);
+
+        // Vertex rendering
+    RenderableComponent vertexRenderComponent{};
+    vertexRenderComponent.renderableType = RenderableComponentType::T_RENDERABLE_VERTEX;
+    vertexRenderComponent.vertexBuffers = {
+        bufferManager->getVertexBuffer()
+    };
+    vertexRenderComponent.vertexBufferOffsets = { 0 };
+
+    vertexRenderComponent.indexBuffer = bufferManager->getIndexBuffer();
+    vertexRenderComponent.vertexIndexData = bufferManager->getVertexIndexData();
+
+    vertexRenderComponent.descriptorSet = vkContext.GraphicsPipeline.uniformBufferDescriptorSets[currentFrame];
+
+        // GUI rendering
+    RenderableComponent guiRenderComponent{};
+    guiRenderComponent.renderableType = RenderableComponentType::T_RENDERABLE_GUI;
+    guiRenderComponent.guiDrawData = ImGui::GetDrawData();
+
+
+    renderableComponents.attach(vertexRenderable, vertexRenderComponent);
+    renderableComponents.attach(guiRenderable, guiRenderComponent);
+
+
     /* How a frame is drawn:
     * 1. Wait for the previous frame to finish rendering (i.e., waiting for its fence)
     * 2. After waiting, acquire a new image from the swap-chain for rendering
@@ -76,9 +114,6 @@ void Renderer::drawFrame() {
     }
 
 
-    imguiRenderer->renderFrames();
-
-
     // Records the command buffer
         // Resets the command buffer first to ensure it is able to be recorded
     VkResult cmdBufResetResult = vkResetCommandBuffer(vkContext.CommandObjects.graphicsCmdBuffers[currentFrame], 0);
@@ -87,7 +122,7 @@ void Renderer::drawFrame() {
     }
 
         // Records commands
-    commandManager->recordRenderingCommandBuffer(vkContext.CommandObjects.graphicsCmdBuffers[currentFrame], imageIndex, currentFrame);
+    commandManager->recordRenderingCommandBuffer(vkContext.CommandObjects.graphicsCmdBuffers[currentFrame], renderableComponents, imageIndex, currentFrame);
 
 
         // Updates the uniform buffer

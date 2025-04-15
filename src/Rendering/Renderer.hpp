@@ -35,11 +35,14 @@
 #include <Vulkan/VkSwapchainManager.hpp>
 #include <Vulkan/VkCommandManager.hpp>
 
+#include <Engine/Components/RenderComponents.hpp>
+
 #include <Rendering/UIRenderer.hpp>
 #include <Rendering/GraphicsPipeline.hpp>
 
 #include <Shaders/BufferManager.hpp>
 
+#include <Core/ECSCore.hpp>
 #include <Core/Constants.h>
 #include <Core/LoggingManager.hpp>
 #include <Core/ServiceLocator.hpp>
@@ -62,6 +65,8 @@ private:
 	VkInstance &vulkInst;
 	VulkanContext &vkContext;
 
+	std::shared_ptr<EntityManager> globalEntityManager;
+
 	std::shared_ptr<VkSwapchainManager> swapchainManager;
 	std::shared_ptr<BufferManager> bufferManager;
 	std::shared_ptr<VkCommandManager> commandManager;
@@ -71,6 +76,13 @@ private:
 	std::shared_ptr<UIRenderer> imguiRenderer;
 
 	uint32_t currentFrame = 0;
+
+	Entity vertexRenderable{};
+	Entity guiRenderable{};
+
+
+	/* Creates renderable entities. */
+	void initializeRenderables();
 
 
 	/* Renders a frame. 

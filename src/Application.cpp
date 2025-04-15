@@ -30,74 +30,8 @@ int main() {
     ServiceLocator::registerService(garbageCollector);
 
     // Entity manager
-    std::shared_ptr<EntityManager> entityManager = std::make_shared<EntityManager>();
-    ServiceLocator::registerService(entityManager);
-
-    // Test components
-    struct TransformComponent {
-        glm::vec3 position;
-    };
-
-    struct PhysicsComponent {
-        glm::vec3 velocityVector;
-        float acceleration;
-    };
-
-    struct TestComponent {};
-
-    // Test entities
-    Entity satellite = entityManager->createEntity();
-    Entity launchVehicle = entityManager->createEntity();
-    Entity staticCelestialObject = entityManager->createEntity();
-
-    // Test component arrays
-    ComponentArray<TransformComponent> transforms(entityManager);
-    ComponentArray<PhysicsComponent> physicsComponents(entityManager);
-    ComponentArray<TestComponent> testComponents(entityManager);
-
-    // Entity attachment
-    transforms.attach(satellite, TransformComponent{ {0.0f, 0.0f, 1.0f} });
-    transforms.attach(launchVehicle, TransformComponent{ {5.0f, 8.0f, 3.5f} });
-    transforms.attach(staticCelestialObject, TransformComponent{ {83914.32f, 12514.2134f, 30234.32f} });
-
-    physicsComponents.attach(satellite, PhysicsComponent{ {1.0f, 1.0f, 1.0f}, 1.01f });
-    physicsComponents.attach(launchVehicle, PhysicsComponent{ {0.0f, 1.0f, 0.0f}, 20.0f });
-    physicsComponents.attach(staticCelestialObject, PhysicsComponent{ {0.0f, 0.0f, 0.0f}, 0.0f });
-
-    testComponents.attach(launchVehicle, TestComponent{});
-    testComponents.attach(staticCelestialObject, TestComponent{});
-
-    // Iterating over entities that have the TransformComponent and PhysicsComponent components
-    auto view = View::getView(entityManager, transforms, physicsComponents, testComponents);
-    for (auto [entity, transform, physicsComponent, testComponent] : view) {
-        Log::print(Log::T_INFO, __FUNCTION__, "Entity #" + std::to_string(entity.id) + 
-            "; Transform data: (" 
-                + std::to_string(transform.position.x) + ", " 
-                + std::to_string(transform.position.y) + ", " 
-                + std::to_string(transform.position.z) + 
-
-            "); Physics data: (Velocity vector: (" 
-                + std::to_string(physicsComponent.velocityVector.x) + ", " 
-                + std::to_string(physicsComponent.velocityVector.y) + ", " 
-                + std::to_string(physicsComponent.velocityVector.z) + 
-                "); Acceleration: " + std::to_string(physicsComponent.acceleration) + "m/s^2)");
-
-        // Modify physics properties
-        physicsComponent.acceleration = 0.0f;
-    }
-
-    Log::print(Log::T_INFO, __FUNCTION__, "1st:");
-    for (auto [entity, transform, physicsComponent, testComponent] : view) {
-        Log::print(Log::T_INFO, __FUNCTION__, "acceleration of entity #" + std::to_string(entity.id) + ": " + std::to_string(physicsComponent.acceleration));
-    }
-
-
-    Log::print(Log::T_INFO, __FUNCTION__, "2nd:");
-    auto view1 = View::getView(entityManager, physicsComponents);
-    view1.ignoreComponents<TestComponent>();
-    for (auto [entity, physicsComponent] : view1) {
-        Log::print(Log::T_INFO, __FUNCTION__, "Acceleration of entity #" + std::to_string(entity.id) + ": " + std::to_string(physicsComponent.acceleration));
-    }
+    std::shared_ptr<EntityManager> globalEntityManager = std::make_shared<EntityManager>();
+    ServiceLocator::registerService(globalEntityManager);
 
     try {
             // Creates a window
