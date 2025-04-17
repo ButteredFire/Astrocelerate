@@ -153,5 +153,64 @@ void TextureManager::transitionImageLayout(VulkanContext& vkContext, VkImage ima
 	imgMemBarrier.subresourceRange.baseArrayLayer = 0;
 	imgMemBarrier.subresourceRange.layerCount = 1;
 
+	// Resource accessing: Specifies operations involving the resource that...
+		// ... must happen before the barrier
+	imgMemBarrier.srcAccessMask = 0; // TODO
 
+		// ... must wait for the barrier
+	imgMemBarrier.dstAccessMask = 0; // TODO
+
+
+	// Creates the barrier
+	VkPipelineStageFlags srcStage = 0;
+	VkPipelineStageFlags dstStage = 0;
+
+	vkCmdPipelineBarrier(commandBuffer, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &imgMemBarrier); // TODO
+
+	VkCommandManager::endSingleUseCommandBuffer(vkContext, &cmdInfo, commandBuffer);
+}
+
+
+void TextureManager::copyBufferToImage(VulkanContext& vkContext, VkBuffer& buffer, VkImage& image, uint32_t width, uint32_t height) {
+	SingleUseCommandBufferInfo cmdInfo{};
+	cmdInfo.commandPool = VkCommandManager::createCommandPool(vkContext, vkContext.logicalDevice, vkContext.queueFamilies.graphicsFamily.index.value(), VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
+	cmdInfo.fence = VkSyncManager::createSingleUseFence(vkContext);
+	cmdInfo.usingSingleUseFence = true;
+	cmdInfo.queue = vkContext.queueFamilies.graphicsFamily.deviceQueue;
+
+	VkCommandBuffer commandBuffer = VkCommandManager::beginSingleUseCommandBuffer(vkContext, &cmdInfo);
+
+
+	// Specifies the region of the buffer to copy to the image
+	VkBufferImageCopy region{};
+	region.bufferOffset = 0;		// Byte offset in the buffer at which the pixel values start
+	
+		// Specifies the buffer layout in memory.
+	region.bufferRowLength = 0;
+	region.bufferImageHeight = 0;
+
+		// Specifies the region of the image to copy image the pixels from the buffer to
+	region.imageOffset = { 0, 0, 0 };
+	region.imageExtent = {
+		width,
+		height,
+		1
+	};
+
+	region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	region.imageSubresource.mipLevel = 0;
+	region.imageSubresource.baseArrayLayer = 0;
+	region.imageSubresource.layerCount = 1;
+
+
+	vkCmdCopyBufferToImage(
+		commandBuffer,
+		buffer,
+		image,
+		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,	// The image layout is assumed to be an optimal one for pixel transference.
+		1, &region
+	);
+
+
+	VkCommandManager::endSingleUseCommandBuffer(vkContext, &cmdInfo, commandBuffer);
 }

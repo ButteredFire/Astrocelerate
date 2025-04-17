@@ -29,12 +29,9 @@
 
 #include <Engine/Components/RenderComponents.hpp>
 
-#include <Shaders/BufferManager.hpp>
+#include <Vulkan/VkSyncManager.hpp>
 
 #include <Systems/RenderSystem.hpp>
-
-
-class BufferManager;
 
 
 // A structure that stores the configuration for single-use command buffers
@@ -55,6 +52,30 @@ struct SingleUseCommandBufferInfo {
 	bool autoSubmit = true;					// Automatically submit after ending buffer recording?
 	bool freeAfterSubmit = true;			// Automatically free the buffer after submitting?
 };
+
+
+// A structure that stores command pool creation information.
+struct CommandPoolCreateInfo {
+	VkDevice logicalDevice;					// The logical device from which to create the command pool.
+	uint32_t queueFamilyIndex;				// The index of the queue family for which the command pool is to be created.
+	VkCommandPoolCreateFlags flags;			// The command pool creation flags.
+};
+
+	// Custom equality operator and hash function for CommandPoolCreateInfo to be used as a key in hashmaps
+inline bool operator==(const CommandPoolCreateInfo& lhs, const CommandPoolCreateInfo& rhs) {
+	return (lhs.logicalDevice == rhs.logicalDevice) && (lhs.queueFamilyIndex == rhs.queueFamilyIndex) && (lhs.flags == rhs.flags);
+}
+namespace std {
+	template<>
+	struct hash<CommandPoolCreateInfo> {
+		inline std::size_t operator()(const CommandPoolCreateInfo& info) const noexcept {
+			// Combines the hash values of the members
+			return std::hash<VkDevice>()(info.logicalDevice) ^
+				std::hash<uint32_t>()(info.queueFamilyIndex) ^
+				std::hash<VkCommandPoolCreateFlags>()(info.flags);
+		}
+	};
+}
 
 
 class VkCommandManager {
@@ -93,6 +114,8 @@ public:
 		@param device: The logical device.
 		@param queueFamilyIndex: The index of the queue family for which the command pool is to be created.
 		@param flags (Default: VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT): The command pool flags.
+
+		@return EITHER A new command pool (if the command pool has unique creation parameters), OR an existing command pool (if all of its creation parameters are the same as the ones passed in).
 	*/
 	static VkCommandPool createCommandPool(VulkanContext& vkContext, VkDevice device, uint32_t queueFamilyIndex, VkCommandPoolCreateFlags flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
 
@@ -103,9 +126,7 @@ public:
 private:
 	VulkanContext& vkContext;
 
-	std::shared_ptr<BufferManager> bufferManager;
 	std::shared_ptr<GarbageCollector> garbageCollector;
-
 
 	// Command pools manage the memory that is used to store the buffers
 	// Command buffers are allocated from them
@@ -114,4 +135,7 @@ private:
 
 	VkCommandPool transferCmdPool = VK_NULL_HANDLE;
 	std::vector<VkCommandBuffer> transferCmdBuffers;
+
+	// Primarily used in command pool creation to implicitly return an existing command pool if the creation parameters matches its own.
+	inline static std::unordered_map<CommandPoolCreateInfo, VkCommandPool> cmdPoolMappings;
 };

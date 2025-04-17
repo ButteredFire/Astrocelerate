@@ -8,7 +8,6 @@ VkCommandManager::VkCommandManager(VulkanContext& context):
 	vkContext(context) {
 
 	garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
-	bufferManager = ServiceLocator::getService<BufferManager>(__FUNCTION__);
 
 	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 };
@@ -199,6 +198,16 @@ void VkCommandManager::endSingleUseCommandBuffer(VulkanContext& vkContext, Singl
 
 
 VkCommandPool VkCommandManager::createCommandPool(VulkanContext& vkContext, VkDevice device, uint32_t queueFamilyIndex, VkCommandPoolCreateFlags flags) {
+	CommandPoolCreateInfo createInfo{};
+	createInfo.logicalDevice = device;
+	createInfo.queueFamilyIndex = queueFamilyIndex;
+	createInfo.flags = flags;
+
+	if (cmdPoolMappings.find(createInfo) != cmdPoolMappings.end()) {
+		Log::print(Log::T_WARNING, __FUNCTION__, "The command pool to be created has creation parameters matching those of another pool. The existing command pool will be used.");
+		return cmdPoolMappings[createInfo];
+	}
+
 
 	std::shared_ptr<GarbageCollector> garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
 
@@ -215,6 +224,8 @@ VkCommandPool VkCommandManager::createCommandPool(VulkanContext& vkContext, VkDe
 	if (result != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, "Failed to create command pool!");
 	}
+
+	cmdPoolMappings[createInfo] = commandPool;
 
 	CleanupTask task{};
 	task.caller = __FUNCTION__;

@@ -61,4 +61,14 @@ public:
         @param newLayout: The new image layout.
     */
     static void transitionImageLayout(VulkanContext& vkContext, VkImage image, VkFormat imgFormat, VkImageLayout oldLayout, VkImageLayout newLayout);
+
+
+	/* Copies the contents of a buffer to an image.
+        @param vkContext: The application context.
+		@param buffer: The buffer to be copied from.
+		@param image: The image to be copied to.
+		@param width: The width of the image.
+		@param height: The height of the image.
+    */
+    static void copyBufferToImage(VulkanContext& vkContext, VkBuffer& buffer, VkImage& image, uint32_t width, uint32_t height);
 };
