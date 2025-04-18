@@ -16,6 +16,7 @@
 #include <Vulkan/VkSyncManager.hpp>
 
 #include <Rendering/Renderer.hpp>
+#include <Rendering/TextureManager.hpp>
 #include <Rendering/GraphicsPipeline.hpp>
 
 #include <Shaders/BufferManager.hpp>

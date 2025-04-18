@@ -51,8 +51,14 @@ add_executable(Astrocelerate ${SOURCE_FILES} )
 # Functions
     # Handles connectivity detection
     function(hasInternetConnection isOnline)
+        if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
+            set(PING_COMMAND ping -n 1 8.8.8.8)
+        else()
+            set(PING_COMMAND ping -c 1 8.8.8.8)
+        endif()
+
         execute_process(
-            COMMAND ping -n 1 8.8.8.8
+            COMMAND ${PING_COMMAND}
             RESULT_VARIABLE pingResult
             OUTPUT_QUIET
             ERROR_QUIET
@@ -61,6 +67,25 @@ add_executable(Astrocelerate ${SOURCE_FILES} )
             set(${isOnline} TRUE PARENT_SCOPE)
         else()
             set(${isOnline} FALSE PARENT_SCOPE)
+        endif()
+    endfunction()
+
+
+    # Handles dependency fetching
+    function(FetchDependency depName gitRepo gitTag offlineDir)
+        if (IS_ONLINE)
+            message(STATUS "Fetching ${depName} from online repository: ${gitRepo}")
+            FetchContent_Declare(
+                ${depName}
+                GIT_REPOSITORY ${gitRepo}
+                GIT_TAG ${gitTag}
+            )
+        else()
+            message(STATUS "Using offline source for ${depName}: ${offlineDir}")
+            FetchContent_Declare(
+                ${depName}
+                SOURCE_DIR ${offlineDir}
+            )
         endif()
     endfunction()
 
@@ -81,39 +106,43 @@ find_package(Vulkan REQUIRED)    # Vulkan SDK
 
     if (IS_ONLINE)
         message(STATUS "Machine is connected to the internet. CMake configuration has been set to online mode. Fetching dependencies...")
-        set(GLFW_GIT_REPO "https://github.com/glfw/glfw.git")
-        set(GLM_GIT_REPO "https://github.com/g-truc/glm.git")
-        set(VMA_GIT_REPO "https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git")
     else()
         message(STATUS "No internet connection detected! CMake configuration has been set to offline mode. Loading dependencies from offline cache...")
-        set(GLFW_OFFLINE_SOURCE_DIR "${CMAKE_CURRENT_BINARY_DIR}/_offline_deps_cache/_deps/glfw-src")
-        set(GLM_OFFLINE_SOURCE_DIR "${CMAKE_CURRENT_BINARY_DIR}/_offline_deps_cache/_deps/glm-src")
-        set(VMA_OFFLINE_SOURCE_DIR "${CMAKE_CURRENT_BINARY_DIR}/_offline_deps_cache/_deps/vulkanmemoryallocator-src")
     endif()
 
+        # Online mode: Fetch from remote source
+    set(GLFW_GIT_REPO "https://github.com/glfw/glfw.git")
+    set(GLM_GIT_REPO "https://github.com/g-truc/glm.git")
+    set(VMA_GIT_REPO "https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git")
+
+        # Offline mode: Fetch from local source
+    set(GLFW_OFFLINE_SOURCE_DIR "${CMAKE_CURRENT_BINARY_DIR}/_offline_deps_cache/_deps/glfw-src")
+    set(GLM_OFFLINE_SOURCE_DIR "${CMAKE_CURRENT_BINARY_DIR}/_offline_deps_cache/_deps/glm-src")
+    set(VMA_OFFLINE_SOURCE_DIR "${CMAKE_CURRENT_BINARY_DIR}/_offline_deps_cache/_deps/vulkanmemoryallocator-src")
+    
 
     # GLFW3
-    FetchContent_Declare(
+    fetchDependency(
         glfw
+        ${GLFW_GIT_REPO}
+        master
         ${GLFW_OFFLINE_SOURCE_DIR}
-        GIT_REPOSITORY ${GLFW_GIT_REPO}
-        GIT_TAG master
     )
 
     # GLM
-    FetchContent_Declare(
+    fetchDependency(
         glm
+        ${GLM_GIT_REPO}
+        master
         ${GLM_OFFLINE_SOURCE_DIR}
-        GIT_REPOSITORY ${GLM_GIT_REPO}
-        GIT_TAG master
     )
 
     # VMA
-    FetchContent_Declare(
+    fetchDependency(
         VulkanMemoryAllocator
+        ${VMA_GIT_REPO}
+        master
         ${VMA_OFFLINE_SOURCE_DIR}
-        GIT_REPOSITORY ${VMA_GIT_REPO}
-        GIT_TAG master
     )
 
 

@@ -60,7 +60,18 @@ public:
         @param oldLayout: The old image layout.
         @param newLayout: The new image layout.
     */
-    static void transitionImageLayout(VulkanContext& vkContext, VkImage image, VkFormat imgFormat, VkImageLayout oldLayout, VkImageLayout newLayout);
+    static void switchImageLayout(VulkanContext& vkContext, VkImage image, VkFormat imgFormat, VkImageLayout oldLayout, VkImageLayout newLayout);
+
+
+    /* Defines the pipeline source and destination stages as image layout transition rules.
+        @param srcAccessMask: The source access mask to be defined.
+        @param dstAccessMask: The destination access mask to be defined.
+        @param srcStage: The pipeline source stage to be defined.
+        @param dstStage: The pipeline destination stage to be defined.
+        @param oldLayout: The old image layout.
+        @param newLayout: The new image layout.
+    */
+    static void defineImageLayoutTransitionStages(VkAccessFlags* srcAccessMask, VkAccessFlags* dstAccessMask, VkPipelineStageFlags* srcStage, VkPipelineStageFlags* dstStage, VkImageLayout oldLayout, VkImageLayout newLayout);
 
 
 	/* Copies the contents of a buffer to an image.

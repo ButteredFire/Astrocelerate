@@ -204,7 +204,7 @@ VkCommandPool VkCommandManager::createCommandPool(VulkanContext& vkContext, VkDe
 	createInfo.flags = flags;
 
 	if (cmdPoolMappings.find(createInfo) != cmdPoolMappings.end()) {
-		Log::print(Log::T_WARNING, __FUNCTION__, "The command pool to be created has creation parameters matching those of another pool. The existing command pool will be used.");
+		Log::print(Log::T_WARNING, __FUNCTION__, "The command pool to be created has creation parameters matching those of an existing pool, which will be used instead.");
 		return cmdPoolMappings[createInfo];
 	}
 

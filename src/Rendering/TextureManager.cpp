@@ -4,10 +4,13 @@
 
 
 std::pair<VkImage, VmaAllocation> TextureManager::createTextureImage(VulkanContext& vkContext, const char* imgPath, int channels) {
+	std::shared_ptr<GarbageCollector> garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
+
+	// Get pixel and texture data
 	int textureWidth, textureHeight, textureChannels;
 	stbi_uc* pixels = stbi_load(imgPath, &textureWidth, &textureHeight, &textureChannels, channels);
 
-	// The size of the pixels array is equal to: width * height * bytesPerPixel
+		// The size of the pixels array is equal to: width * height * bytesPerPixel
 	VkDeviceSize imageSize = static_cast<uint64_t>(textureWidth * textureHeight * channels);
 
 	if (!pixels) {
@@ -28,7 +31,6 @@ std::pair<VkImage, VmaAllocation> TextureManager::createTextureImage(VulkanConte
 	bufAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT; // Specify CPU access since we will be mapping the buffer allocation to CPU memory
 
 	BufferManager::createBuffer(vkContext, stagingBuffer, imageSize, stagingBufUsageFlags, stagingBufAllocation, bufAllocInfo);
-
 
 		// Copy pixel data to the buffer
 	void* pixelData;
@@ -58,11 +60,34 @@ std::pair<VkImage, VmaAllocation> TextureManager::createTextureImage(VulkanConte
 	createImage(vkContext, textureImage, textureImageAllocation, textureWidth, textureHeight, 1, imgFormat, imgTiling, imgUsageFlags, imgAllocCreateInfo);
 
 
+	// Copy the staging buffer to the texture image
+		// Transition the image layout to TRANSFER_DST (staging buffer (TRANSFER_SRC) -> image (TRANSFER_DST))
+	switchImageLayout(vkContext, textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+	copyBufferToImage(vkContext, stagingBuffer, textureImage, static_cast<uint32_t>(textureWidth), static_cast<uint32_t>(textureHeight));
+
+
+	// Transition the image layout to SHADER_READ_ONLY so that it can be read by the shader for sampling
+	switchImageLayout(vkContext, textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+
+	// Cleanup
+	CleanupTask imgTask{};
+	imgTask.caller = __FUNCTION__;
+	imgTask.objectNames = { VARIABLE_NAME(textureImageAllocation) };
+	imgTask.vkObjects = { vkContext.vmaAllocator, textureImageAllocation };
+	imgTask.cleanupFunc = [vkContext, textureImage, textureImageAllocation]() {
+		vmaDestroyImage(vkContext.vmaAllocator, textureImage, textureImageAllocation);
+	};
+
+	garbageCollector->createCleanupTask(imgTask);
+
+
 	return { textureImage, textureImageAllocation };
 }
 
 
 void TextureManager::createImage(VulkanContext& vkContext, VkImage& image, VmaAllocation& imgAllocation, uint32_t width, uint32_t height, uint32_t depth, VkFormat imgFormat, VkImageTiling imgTiling, VkImageUsageFlags imgUsageFlags, VmaAllocationCreateInfo& imgAllocCreateInfo) {
+	
 	// Image info
 	VkImageCreateInfo imgCreateInfo{};
 	imgCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -113,7 +138,7 @@ void TextureManager::createImage(VulkanContext& vkContext, VkImage& image, VmaAl
 }
 
 
-void TextureManager::transitionImageLayout(VulkanContext& vkContext, VkImage image, VkFormat imgFormat, VkImageLayout oldLayout, VkImageLayout newLayout) {
+void TextureManager::switchImageLayout(VulkanContext& vkContext, VkImage image, VkFormat imgFormat, VkImageLayout oldLayout, VkImageLayout newLayout) {
 	SingleUseCommandBufferInfo cmdInfo{};
 	cmdInfo.commandPool = VkCommandManager::createCommandPool(vkContext, vkContext.logicalDevice, vkContext.queueFamilies.graphicsFamily.index.value(), VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
 	cmdInfo.fence = VkSyncManager::createSingleUseFence(vkContext);
@@ -155,19 +180,56 @@ void TextureManager::transitionImageLayout(VulkanContext& vkContext, VkImage ima
 
 	// Resource accessing: Specifies operations involving the resource that...
 		// ... must happen before the barrier
-	imgMemBarrier.srcAccessMask = 0; // TODO
+	imgMemBarrier.srcAccessMask = 0;
 
 		// ... must wait for the barrier
-	imgMemBarrier.dstAccessMask = 0; // TODO
+	imgMemBarrier.dstAccessMask = 0;
 
-
-	// Creates the barrier
 	VkPipelineStageFlags srcStage = 0;
 	VkPipelineStageFlags dstStage = 0;
 
-	vkCmdPipelineBarrier(commandBuffer, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &imgMemBarrier); // TODO
+	defineImageLayoutTransitionStages(&imgMemBarrier.srcAccessMask, &imgMemBarrier.dstAccessMask, &srcStage, &dstStage, oldLayout, newLayout);
+
+
+	// Creates the barrier
+	vkCmdPipelineBarrier(commandBuffer, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &imgMemBarrier);
+
 
 	VkCommandManager::endSingleUseCommandBuffer(vkContext, &cmdInfo, commandBuffer);
+}
+
+
+void TextureManager::defineImageLayoutTransitionStages(VkAccessFlags* srcAccessMask, VkAccessFlags* dstAccessMask, VkPipelineStageFlags* srcStage, VkPipelineStageFlags* dstStage, VkImageLayout oldLayout, VkImageLayout newLayout) {
+	// Old layout
+	const bool oldLayoutIsUndefined =			(oldLayout == VK_IMAGE_LAYOUT_UNDEFINED);
+	const bool oldLayoutIsTransferDst =			(oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
+	// New layout
+	const bool newLayoutIsTransferDst =			(newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+	const bool newLayoutIsShaderReadOnly =		(newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+	
+	if (oldLayoutIsUndefined && newLayoutIsTransferDst) {
+		*srcAccessMask = 0;
+		*dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+		*srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		*dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+		return;
+	}
+
+
+	if (oldLayoutIsTransferDst && newLayoutIsShaderReadOnly) {
+		*srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		*dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+		*srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+		*dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+		return;
+	}
+
+
+	throw Log::RuntimeException(__FUNCTION__, "Cannot define stages for image layout transition: Unsupported layout transition!");
 }
 
 

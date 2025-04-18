@@ -56,16 +56,16 @@ int main() {
         swapchainManager->init();
 
 
-            // Buffer manager
-        std::shared_ptr<BufferManager> bufferManager = std::make_shared<BufferManager>(vkContext);
-        ServiceLocator::registerService(bufferManager);
-
-
             // Command manager
         std::shared_ptr<VkCommandManager> commandManager = std::make_shared<VkCommandManager>(vkContext);
         ServiceLocator::registerService(commandManager);
-
         commandManager->init();
+
+        TextureManager::createTextureImage(vkContext, "../../../assets/app/ProposedAppLogo.png");
+
+            // Buffer manager
+        std::shared_ptr<BufferManager> bufferManager = std::make_shared<BufferManager>(vkContext);
+        ServiceLocator::registerService(bufferManager);
         bufferManager->init();
 
 
