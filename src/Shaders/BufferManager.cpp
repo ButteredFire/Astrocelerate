@@ -74,7 +74,7 @@ uint32_t BufferManager::createBuffer(VulkanContext& vkContext, VkBuffer& buffer,
 	bufCreateInfo.sharingMode = VK_SHARING_MODE_CONCURRENT;
 
 		// If the sharing mode is CONCURRENT, we must specify queue families
-	QueueFamilyIndices familyIndices = vkContext.queueFamilies;
+	QueueFamilyIndices familyIndices = vkContext.Device.queueFamilies;
 	uint32_t queueFamilyIndices[] = {
 		familyIndices.graphicsFamily.index.value(),
 		familyIndices.transferFamily.index.value()
@@ -107,16 +107,16 @@ uint32_t BufferManager::createBuffer(VulkanContext& vkContext, VkBuffer& buffer,
 
 void BufferManager::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize deviceSize) {
 	// Uses the transfer queue by default, but if it does not exist, switch to the graphics queue
-	QueueFamilyIndices::QueueFamily queueFamily = vkContext.queueFamilies.transferFamily;
+	QueueFamilyIndices::QueueFamily queueFamily = vkContext.Device.queueFamilies.transferFamily;
 	if (queueFamily.deviceQueue == VK_NULL_HANDLE || !queueFamily.index.has_value()) {
 		Log::print(Log::T_WARNING, __FUNCTION__, "Transfer queue family is not valid. Switching to graphics queue family...");
-		queueFamily = vkContext.queueFamilies.graphicsFamily;
+		queueFamily = vkContext.Device.queueFamilies.graphicsFamily;
 	}
 
 
 	// Begins recording a command buffer to send data to the GPU
 	SingleUseCommandBufferInfo cmdBufInfo{};
-	cmdBufInfo.commandPool = VkCommandManager::createCommandPool(vkContext, vkContext.logicalDevice, queueFamily.index.value(), VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
+	cmdBufInfo.commandPool = VkCommandManager::createCommandPool(vkContext, vkContext.Device.logicalDevice, queueFamily.index.value(), VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
 	cmdBufInfo.fence = VkSyncManager::createSingleUseFence(vkContext);
 	cmdBufInfo.usingSingleUseFence = true;
 	cmdBufInfo.queue = queueFamily.deviceQueue;
@@ -316,7 +316,7 @@ void BufferManager::createUniformBuffers() {
 uint32_t BufferManager::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
 	// Queries info about available memory types on the GPU
 	VkPhysicalDeviceMemoryProperties memoryProperties{};
-	vkGetPhysicalDeviceMemoryProperties(vkContext.physicalDevice, &memoryProperties);
+	vkGetPhysicalDeviceMemoryProperties(vkContext.Device.physicalDevice, &memoryProperties);
 	
 	/* The VkPhysicalDeviceMemoryProperties struct has two arrays:
 	* - memoryHeaps: An array of structures, each describing a memory heap (i.e., distinct memory resources, e.g., VRAM, RAM) from which memory can be allocated. This is useful if we want to know what heap a memory type comes from.

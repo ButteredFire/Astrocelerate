@@ -3,18 +3,41 @@
 #include "TextureManager.hpp"
 
 
-std::pair<VkImage, VmaAllocation> TextureManager::createTextureImage(VulkanContext& vkContext, const char* imgPath, int channels) {
-	std::shared_ptr<GarbageCollector> garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
+TextureManager::TextureManager(VulkanContext& context) :
+	vkContext(context) {
 
+	garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
+
+	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
+}
+
+
+void TextureManager::createTexture(const char* texSource, VkFormat texImgFormat, int channels) {
+	// If the default format is passed, use the default surface format
+	if (texImgFormat == VK_FORMAT_UNDEFINED) {
+		textureImageFormat = vkContext.SwapChain.surfaceFormat.format;
+	}
+	else {
+		textureImageFormat = texImgFormat;
+	}
+
+	createTextureImage(texSource, channels);
+	createTextureImageView();
+	createTextureSampler();
+}
+
+
+
+void TextureManager::createTextureImage(const char* texSource, int channels) {
 	// Get pixel and texture data
 	int textureWidth, textureHeight, textureChannels;
-	stbi_uc* pixels = stbi_load(imgPath, &textureWidth, &textureHeight, &textureChannels, channels);
+	stbi_uc* pixels = stbi_load(texSource, &textureWidth, &textureHeight, &textureChannels, channels);
 
 		// The size of the pixels array is equal to: width * height * bytesPerPixel
 	VkDeviceSize imageSize = static_cast<uint64_t>(textureWidth * textureHeight * channels);
 
 	if (!pixels) {
-		throw Log::RuntimeException(__FUNCTION__, "Failed to create texture image for image path " + enquote(imgPath) + "!");
+		throw Log::RuntimeException(__FUNCTION__, "Failed to create texture image for texture source path " + enquote(texSource) + "!");
 	}
 
 
@@ -30,7 +53,7 @@ std::pair<VkImage, VmaAllocation> TextureManager::createTextureImage(VulkanConte
 	bufAllocInfo.requiredFlags = (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 	bufAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT; // Specify CPU access since we will be mapping the buffer allocation to CPU memory
 
-	BufferManager::createBuffer(vkContext, stagingBuffer, imageSize, stagingBufUsageFlags, stagingBufAllocation, bufAllocInfo);
+	uint32_t stagingBufTaskID = BufferManager::createBuffer(vkContext, stagingBuffer, imageSize, stagingBufUsageFlags, stagingBufAllocation, bufAllocInfo);
 
 		// Copy pixel data to the buffer
 	void* pixelData;
@@ -44,11 +67,7 @@ std::pair<VkImage, VmaAllocation> TextureManager::createTextureImage(VulkanConte
 
 
 	// Create texture image objects
-	VkImage textureImage;
-	VmaAllocation textureImageAllocation;
-
 		// Image
-	VkFormat imgFormat = VK_FORMAT_R8G8B8A8_SRGB;
 	VkImageTiling imgTiling = VK_IMAGE_TILING_OPTIMAL;
 	VkImageUsageFlags imgUsageFlags = (VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
 
@@ -57,17 +76,17 @@ std::pair<VkImage, VmaAllocation> TextureManager::createTextureImage(VulkanConte
 	imgAllocCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
 	imgAllocCreateInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 
-	createImage(vkContext, textureImage, textureImageAllocation, textureWidth, textureHeight, 1, imgFormat, imgTiling, imgUsageFlags, imgAllocCreateInfo);
+	createImage( textureImage, textureImageAllocation, textureWidth, textureHeight, 1, textureImageFormat, imgTiling, imgUsageFlags, imgAllocCreateInfo);
 
 
 	// Copy the staging buffer to the texture image
 		// Transition the image layout to TRANSFER_DST (staging buffer (TRANSFER_SRC) -> image (TRANSFER_DST))
-	switchImageLayout(vkContext, textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-	copyBufferToImage(vkContext, stagingBuffer, textureImage, static_cast<uint32_t>(textureWidth), static_cast<uint32_t>(textureHeight));
+	switchImageLayout(textureImage, textureImageFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+	copyBufferToImage(stagingBuffer, textureImage, static_cast<uint32_t>(textureWidth), static_cast<uint32_t>(textureHeight));
 
 
 	// Transition the image layout to SHADER_READ_ONLY so that it can be read by the shader for sampling
-	switchImageLayout(vkContext, textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	switchImageLayout(textureImage, textureImageFormat, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 
 	// Cleanup
@@ -75,18 +94,126 @@ std::pair<VkImage, VmaAllocation> TextureManager::createTextureImage(VulkanConte
 	imgTask.caller = __FUNCTION__;
 	imgTask.objectNames = { VARIABLE_NAME(textureImageAllocation) };
 	imgTask.vkObjects = { vkContext.vmaAllocator, textureImageAllocation };
-	imgTask.cleanupFunc = [vkContext, textureImage, textureImageAllocation]() {
+	imgTask.cleanupFunc = [this]() {
 		vmaDestroyImage(vkContext.vmaAllocator, textureImage, textureImageAllocation);
 	};
 
 	garbageCollector->createCleanupTask(imgTask);
 
-
-	return { textureImage, textureImageAllocation };
+		// Destroys the staging buffer because we don't need it anymore at this point
+	garbageCollector->executeCleanupTask(stagingBufTaskID);
 }
 
 
-void TextureManager::createImage(VulkanContext& vkContext, VkImage& image, VmaAllocation& imgAllocation, uint32_t width, uint32_t height, uint32_t depth, VkFormat imgFormat, VkImageTiling imgTiling, VkImageUsageFlags imgUsageFlags, VmaAllocationCreateInfo& imgAllocCreateInfo) {
+void TextureManager::createTextureImageView() {
+	std::pair<VkImageView, uint32_t> imageViewProperties = VkSwapchainManager::createImageView(vkContext, textureImage, textureImageFormat);
+	textureImageView = imageViewProperties.first;
+}
+
+
+void TextureManager::createTextureSampler() {
+	VkSamplerCreateInfo samplerCreateInfo{};
+	samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+
+	// Specifies how to interpolate textures if they are magnified/minified (thus solving the oversampling and undersampling problems respectively)
+	samplerCreateInfo.magFilter = VK_FILTER_LINEAR;
+	samplerCreateInfo.minFilter = VK_FILTER_LINEAR;
+
+
+	// Specifies the addressing mode to handle textures when the surface to which they are applied has coordinates that exceed the bounds of the texture (i.e., to handle texture behavior when applied to surfaces with bigger dimensions than its own).
+	// The addressing mode is specified per-axis of the axes (U, V, W) instead of their counterparts (X, Y, Z) (because that's a convention).
+	/* NOTE: Common addressing modes: VK_SAMPLER_ADDRESS_MODE_...
+		- ...REPEAT: The texture repeats itself.
+		- ...MIRRORED_REPEAT: Similar to ...REPEAT, but the texture is mirrored every time it repeats.
+		- ...CLAMP_TO_EDGE: Take the color of the edge closest to the coordinate beyond the texture dimensions.
+		- ...MIRROR_CLAMP_TO_EDGE: Similar to ...CLAMP_TO_EDGE, but instead uses the edge opposite to the closest edge.
+		- ...CLAMP_TO_BORDER: Return a solid color when sampling beyond the dimensions of the texture.
+	*/
+	samplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	samplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	samplerCreateInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+
+
+	// Specifies which color is returned when sampling beyond the image with CLAMP_TO_BORDER addressing mode
+	samplerCreateInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+
+
+	// Specifies whether anisotropy filtering is enabled. 
+	// Enabling it makes textures less blurry/distorted especially when viewed at sharp angles, when stretched across a surface, etc..
+	// However, it may impact performance (although that depends on the filtering level, e.g., 2x, 4x, 8x, 16x)
+	samplerCreateInfo.anisotropyEnable = VK_TRUE;
+	samplerCreateInfo.maxAnisotropy = vkContext.Device.deviceProperties.limits.maxSamplerAnisotropy;
+
+	
+	// Use normalized texture coordinates <=> coordinates are clamped in the [0, 1) range instead of [0, textureWidth) and [0, textureHeight)
+	samplerCreateInfo.unnormalizedCoordinates = VK_FALSE;
+
+
+	// Specifies whether comparison functions are enabled.
+	// Comparison functions are used to compare a sampled value (e.g., depth/stencil value) against a reference value. They are particularly useful in shadow mapping, percentage-closer filtering on shadow maps, depth testing, etc..
+	samplerCreateInfo.compareEnable = VK_FALSE;
+	samplerCreateInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+
+
+	// Specifies mipmapping attributes
+	samplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+	samplerCreateInfo.mipLodBias = 0.0f;
+	samplerCreateInfo.minLod = 0.0f;
+	samplerCreateInfo.maxLod = 0.0f;
+
+
+	VkResult result = vkCreateSampler(vkContext.Device.logicalDevice, &samplerCreateInfo, nullptr, &textureSampler);
+	if (result != VK_SUCCESS) {
+		throw Log::RuntimeException(__FUNCTION__, "Failed to create texture sampler!");
+	}
+
+
+	CleanupTask task{};
+	task.caller = __FUNCTION__;
+	task.objectNames = { VARIABLE_NAME(textureSampler) };
+	task.vkObjects = { vkContext.Device.logicalDevice, textureSampler };
+	task.cleanupFunc = [this]() { vkDestroySampler(vkContext.Device.logicalDevice, textureSampler, nullptr); };
+
+	garbageCollector->createCleanupTask(task);
+}
+
+
+void TextureManager::defineImageLayoutTransitionStages(VkAccessFlags* srcAccessMask, VkAccessFlags* dstAccessMask, VkPipelineStageFlags* srcStage, VkPipelineStageFlags* dstStage, VkImageLayout oldLayout, VkImageLayout newLayout) {
+	// Old layout
+	const bool oldLayoutIsUndefined = (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED);
+	const bool oldLayoutIsTransferDst = (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
+	// New layout
+	const bool newLayoutIsTransferDst = (newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+	const bool newLayoutIsShaderReadOnly = (newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+
+	if (oldLayoutIsUndefined && newLayoutIsTransferDst) {
+		*srcAccessMask = 0;
+		*dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+		*srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		*dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+		return;
+	}
+
+
+	if (oldLayoutIsTransferDst && newLayoutIsShaderReadOnly) {
+		*srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		*dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+		*srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+		*dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+		return;
+	}
+
+
+	throw Log::RuntimeException(__FUNCTION__, "Cannot define stages for image layout transition: Unsupported layout transition!");
+}
+
+
+
+void TextureManager::createImage(VkImage& image, VmaAllocation& imgAllocation, uint32_t width, uint32_t height, uint32_t depth, VkFormat imgFormat, VkImageTiling imgTiling, VkImageUsageFlags imgUsageFlags, VmaAllocationCreateInfo& imgAllocCreateInfo) {
 	
 	// Image info
 	VkImageCreateInfo imgCreateInfo{};
@@ -138,12 +265,12 @@ void TextureManager::createImage(VulkanContext& vkContext, VkImage& image, VmaAl
 }
 
 
-void TextureManager::switchImageLayout(VulkanContext& vkContext, VkImage image, VkFormat imgFormat, VkImageLayout oldLayout, VkImageLayout newLayout) {
+void TextureManager::switchImageLayout(VkImage image, VkFormat imgFormat, VkImageLayout oldLayout, VkImageLayout newLayout) {
 	SingleUseCommandBufferInfo cmdInfo{};
-	cmdInfo.commandPool = VkCommandManager::createCommandPool(vkContext, vkContext.logicalDevice, vkContext.queueFamilies.graphicsFamily.index.value(), VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
+	cmdInfo.commandPool = VkCommandManager::createCommandPool(vkContext, vkContext.Device.logicalDevice, vkContext.Device.queueFamilies.graphicsFamily.index.value(), VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
 	cmdInfo.fence = VkSyncManager::createSingleUseFence(vkContext);
 	cmdInfo.usingSingleUseFence = true;
-	cmdInfo.queue = vkContext.queueFamilies.graphicsFamily.deviceQueue;
+	cmdInfo.queue = vkContext.Device.queueFamilies.graphicsFamily.deviceQueue;
 
 	VkCommandBuffer commandBuffer = VkCommandManager::beginSingleUseCommandBuffer(vkContext, &cmdInfo);
 
@@ -199,46 +326,12 @@ void TextureManager::switchImageLayout(VulkanContext& vkContext, VkImage image, 
 }
 
 
-void TextureManager::defineImageLayoutTransitionStages(VkAccessFlags* srcAccessMask, VkAccessFlags* dstAccessMask, VkPipelineStageFlags* srcStage, VkPipelineStageFlags* dstStage, VkImageLayout oldLayout, VkImageLayout newLayout) {
-	// Old layout
-	const bool oldLayoutIsUndefined =			(oldLayout == VK_IMAGE_LAYOUT_UNDEFINED);
-	const bool oldLayoutIsTransferDst =			(oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-
-	// New layout
-	const bool newLayoutIsTransferDst =			(newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-	const bool newLayoutIsShaderReadOnly =		(newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-	
-	if (oldLayoutIsUndefined && newLayoutIsTransferDst) {
-		*srcAccessMask = 0;
-		*dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-
-		*srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-		*dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-		return;
-	}
-
-
-	if (oldLayoutIsTransferDst && newLayoutIsShaderReadOnly) {
-		*srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-		*dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-		*srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-		*dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-		return;
-	}
-
-
-	throw Log::RuntimeException(__FUNCTION__, "Cannot define stages for image layout transition: Unsupported layout transition!");
-}
-
-
-void TextureManager::copyBufferToImage(VulkanContext& vkContext, VkBuffer& buffer, VkImage& image, uint32_t width, uint32_t height) {
+void TextureManager::copyBufferToImage(VkBuffer& buffer, VkImage& image, uint32_t width, uint32_t height) {
 	SingleUseCommandBufferInfo cmdInfo{};
-	cmdInfo.commandPool = VkCommandManager::createCommandPool(vkContext, vkContext.logicalDevice, vkContext.queueFamilies.graphicsFamily.index.value(), VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
+	cmdInfo.commandPool = VkCommandManager::createCommandPool(vkContext, vkContext.Device.logicalDevice, vkContext.Device.queueFamilies.graphicsFamily.index.value(), VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
 	cmdInfo.fence = VkSyncManager::createSingleUseFence(vkContext);
 	cmdInfo.usingSingleUseFence = true;
-	cmdInfo.queue = vkContext.queueFamilies.graphicsFamily.deviceQueue;
+	cmdInfo.queue = vkContext.Device.queueFamilies.graphicsFamily.deviceQueue;
 
 	VkCommandBuffer commandBuffer = VkCommandManager::beginSingleUseCommandBuffer(vkContext, &cmdInfo);
 

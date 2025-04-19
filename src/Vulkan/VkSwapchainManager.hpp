@@ -49,6 +49,16 @@ public:
 	void recreateSwapchain();
 
 
+	/* Creates an image view.
+		@param vkContext: The application context.
+		@param image: The image to be used.
+		@param imgFormat: The image format.
+
+		@return A pair containing the image view (pair::first), and its cleanup task ID (pair::second).
+	*/
+	static std::pair<VkImageView, uint32_t> createImageView(VulkanContext& vkContext, VkImage& image, VkFormat imgFormat);
+
+
 	/* Queries the properties of a GPU's swap-chain.
 		@param device: The GPU from which to query swap-chain properties.
 		@param surface: The window surface to which swap-chain images are renderered.
@@ -67,7 +77,6 @@ private:
 
 	std::vector<VkImage> images;
 	std::vector<VkImageView> imageViews;
-	VkFormat imageFormat = VkFormat();
 
 	std::vector<VkFramebuffer> imageFrameBuffers;
 

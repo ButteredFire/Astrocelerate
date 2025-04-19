@@ -56,11 +56,11 @@ void UIRenderer::initializeImGui(UIRenderer::Appearance appearance) {
     // Initialization info
     ImGui_ImplVulkan_InitInfo vkInitInfo = {};
     vkInitInfo.Instance = vkContext.vulkanInstance;         // Instance
-    vkInitInfo.PhysicalDevice = vkContext.physicalDevice;   // Physical device
-    vkInitInfo.Device = vkContext.logicalDevice;            // Logical device
+    vkInitInfo.PhysicalDevice = vkContext.Device.physicalDevice;   // Physical device
+    vkInitInfo.Device = vkContext.Device.logicalDevice;            // Logical device
 
     // Queue
-    QueueFamilyIndices familyIndices = vkContext.queueFamilies;
+    QueueFamilyIndices familyIndices = vkContext.Device.queueFamilies;
     vkInitInfo.QueueFamily = familyIndices.graphicsFamily.index.value();
     vkInitInfo.Queue = familyIndices.graphicsFamily.deviceQueue;
 
@@ -132,11 +132,11 @@ void UIRenderer::refreshImGui() {
     int width = 0, height = 0;
     glfwGetFramebufferSize(vkContext.window, &width, &height);
 
-    QueueFamilyIndices familyIndices = vkContext.queueFamilies;
+    QueueFamilyIndices familyIndices = vkContext.Device.queueFamilies;
     uint32_t queueFamily = familyIndices.graphicsFamily.index.value();
 
     ImGui_ImplVulkan_SetMinImageCount(vkContext.SwapChain.minImageCount);
-    //ImGui_ImplVulkanH_CreateOrResizeWindow(vkContext.vulkanInstance, vkContext.physicalDevice, vkContext.logicalDevice, WINDOW, queueFamily, nullptr, width, height, vkContext.minImageCount);
+    //ImGui_ImplVulkanH_CreateOrResizeWindow(vkContext.vulkanInstance, vkContext.Device.physicalDevice, vkContext.Device.logicalDevice, WINDOW, queueFamily, nullptr, width, height, vkContext.minImageCount);
 }
 
 

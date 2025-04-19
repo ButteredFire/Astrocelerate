@@ -75,7 +75,7 @@ void VkDeviceManager::createPhysicalDevice() {
         throw Log::RuntimeException(__FUNCTION__, "Failed to find a GPU that supports required features!");
     }
 
-    vkContext.physicalDevice = GPUPhysicalDevice = physicalDevice;
+    vkContext.Device.physicalDevice = GPUPhysicalDevice = physicalDevice;
 }
 
 
@@ -113,11 +113,15 @@ void VkDeviceManager::createLogicalDevice() {
 
 
     // Specifies the features of the device to be used
-    VkPhysicalDeviceFeatures deviceFeatures{};  // Vulkan 1.0 features (it's unused, but must still be defined anyway because it's used in `VkDeviceCreateInfo`)
+        // Base features
+    VkPhysicalDeviceFeatures deviceFeatures{};
+    deviceFeatures.samplerAnisotropy = VK_TRUE;
 
-    VkPhysicalDeviceVulkan12Features deviceVk12Features{}; // Vulkan 1.2 features
+        // Vulkan 1.2 features
+    VkPhysicalDeviceVulkan12Features deviceVk12Features{};
     deviceVk12Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
     deviceVk12Features.bufferDeviceAddress = VK_TRUE;
+
 
     // Creates the logical device
     VkDeviceCreateInfo deviceInfo{};
@@ -175,8 +179,8 @@ void VkDeviceManager::createLogicalDevice() {
     }
 
 
-    vkContext.logicalDevice = GPULogicalDevice;
-    vkContext.queueFamilies = queueFamilies;
+    vkContext.Device.logicalDevice = GPULogicalDevice;
+    vkContext.Device.queueFamilies = queueFamilies;
 
 
     CleanupTask task{};
@@ -209,6 +213,8 @@ std::vector<PhysicalDeviceScoreProperties> VkDeviceManager::rateGPUSuitability(s
         vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
         vkGetPhysicalDeviceFeatures2(device, &deviceFeatures2); // Vulkan 1.2
 
+        vkContext.Device.deviceProperties = deviceProperties;
+
         // Creates a device rating profile
         PhysicalDeviceScoreProperties deviceRating;
         deviceRating.device = device;
@@ -227,6 +233,9 @@ std::vector<PhysicalDeviceScoreProperties> VkDeviceManager::rateGPUSuitability(s
 
             // If the GPU supports geometry shaders
             (deviceFeatures.geometryShader) &&
+
+            // If the GPU supports anisotropy filtering
+            (deviceFeatures.samplerAnisotropy) &&
 
             // If the GPU supports the buffer device address feature
             (deviceVk12Features.bufferDeviceAddress) &&

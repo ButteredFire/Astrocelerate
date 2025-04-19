@@ -146,9 +146,13 @@ struct VulkanContext {
 
 
     // Devices
-    VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-    VkDevice logicalDevice = VK_NULL_HANDLE;
-	QueueFamilyIndices queueFamilies = QueueFamilyIndices();
+	struct Device {
+		VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+		VkDevice logicalDevice = VK_NULL_HANDLE;
+		QueueFamilyIndices queueFamilies = QueueFamilyIndices();
+
+		VkPhysicalDeviceProperties deviceProperties;
+	} Device;
 
 
     // Swap-chain

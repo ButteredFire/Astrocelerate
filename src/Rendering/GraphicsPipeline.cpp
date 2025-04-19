@@ -106,7 +106,7 @@ void GraphicsPipeline::createGraphicsPipeline() {
 
 	pipelineCreateInfo.layout = pipelineLayout;
 
-	VkResult result = vkCreateGraphicsPipelines(vkContext.logicalDevice, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &graphicsPipeline);
+	VkResult result = vkCreateGraphicsPipelines(vkContext.Device.logicalDevice, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &graphicsPipeline);
 	if (result != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, "Failed to create graphics pipeline!");
 	}
@@ -117,8 +117,8 @@ void GraphicsPipeline::createGraphicsPipeline() {
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(graphicsPipeline) };
-	task.vkObjects = { vkContext.logicalDevice, graphicsPipeline };
-	task.cleanupFunc = [&]() { vkDestroyPipeline(vkContext.logicalDevice, graphicsPipeline, nullptr); };
+	task.vkObjects = { vkContext.Device.logicalDevice, graphicsPipeline };
+	task.cleanupFunc = [&]() { vkDestroyPipeline(vkContext.Device.logicalDevice, graphicsPipeline, nullptr); };
 
 	garbageCollector->createCleanupTask(task);
 }
@@ -134,7 +134,7 @@ void GraphicsPipeline::createPipelineLayout() {
 	createInfo.pushConstantRangeCount = 0;
 	createInfo.pPushConstantRanges = nullptr;
 
-	VkResult result = vkCreatePipelineLayout(vkContext.logicalDevice, &createInfo, nullptr, &pipelineLayout);
+	VkResult result = vkCreatePipelineLayout(vkContext.Device.logicalDevice, &createInfo, nullptr, &pipelineLayout);
 	if (result != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, "Failed to create graphics pipeline layout!");
 	}
@@ -145,8 +145,8 @@ void GraphicsPipeline::createPipelineLayout() {
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(pipelineLayout) };
-	task.vkObjects = { vkContext.logicalDevice, pipelineLayout };
-	task.cleanupFunc = [&]() { vkDestroyPipelineLayout(vkContext.logicalDevice, pipelineLayout, nullptr); };
+	task.vkObjects = { vkContext.Device.logicalDevice, pipelineLayout };
+	task.cleanupFunc = [&]() { vkDestroyPipelineLayout(vkContext.Device.logicalDevice, pipelineLayout, nullptr); };
 
 	garbageCollector->createCleanupTask(task);
 }
@@ -172,7 +172,7 @@ void GraphicsPipeline::createDescriptorSetLayout() {
 	layoutCreateInfo.bindingCount = 1;
 	layoutCreateInfo.pBindings = &layoutBinding;
 
-	VkResult result = vkCreateDescriptorSetLayout(vkContext.logicalDevice, &layoutCreateInfo, nullptr, &uniformBufferDescriptorSetLayout);
+	VkResult result = vkCreateDescriptorSetLayout(vkContext.Device.logicalDevice, &layoutCreateInfo, nullptr, &uniformBufferDescriptorSetLayout);
 	if (result != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, "Failed to create descriptor set layout!");
 	}
@@ -180,8 +180,8 @@ void GraphicsPipeline::createDescriptorSetLayout() {
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(uniformBufferDescriptorSetLayout) };
-	task.vkObjects = { vkContext.logicalDevice, uniformBufferDescriptorSetLayout };
-	task.cleanupFunc = [this]() { vkDestroyDescriptorSetLayout(vkContext.logicalDevice, uniformBufferDescriptorSetLayout, nullptr); };
+	task.vkObjects = { vkContext.Device.logicalDevice, uniformBufferDescriptorSetLayout };
+	task.cleanupFunc = [this]() { vkDestroyDescriptorSetLayout(vkContext.Device.logicalDevice, uniformBufferDescriptorSetLayout, nullptr); };
 
 	garbageCollector->createCleanupTask(task);
 }
@@ -201,7 +201,7 @@ void GraphicsPipeline::createDescriptorPool(std::vector<VkDescriptorPoolSize> po
 	}
 
 
-	VkResult result = vkCreateDescriptorPool(vkContext.logicalDevice, &descPoolCreateInfo, nullptr, &descriptorPool);
+	VkResult result = vkCreateDescriptorPool(vkContext.Device.logicalDevice, &descPoolCreateInfo, nullptr, &descriptorPool);
 	if (result != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, "Failed to create descriptor pool!");
 	}
@@ -210,8 +210,8 @@ void GraphicsPipeline::createDescriptorPool(std::vector<VkDescriptorPoolSize> po
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(descriptorPool) };
-	task.vkObjects = { vkContext.logicalDevice, descriptorPool };
-	task.cleanupFunc = [this, descriptorPool]() { vkDestroyDescriptorPool(vkContext.logicalDevice, descriptorPool, nullptr); };
+	task.vkObjects = { vkContext.Device.logicalDevice, descriptorPool };
+	task.cleanupFunc = [this, descriptorPool]() { vkDestroyDescriptorPool(vkContext.Device.logicalDevice, descriptorPool, nullptr); };
 
 	garbageCollector->createCleanupTask(task);
 }
@@ -231,7 +231,7 @@ void GraphicsPipeline::createDescriptorSets() {
 	// Creates descriptor sets
 	uniformBufferDescriptorSets.resize(descSetLayouts.size());
 	
-	VkResult result = vkAllocateDescriptorSets(vkContext.logicalDevice, &descSetAllocInfo, uniformBufferDescriptorSets.data());
+	VkResult result = vkAllocateDescriptorSets(vkContext.Device.logicalDevice, &descSetAllocInfo, uniformBufferDescriptorSets.data());
 	if (result != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, "Failed to create descriptor sets!");
 	}
@@ -277,7 +277,7 @@ void GraphicsPipeline::createDescriptorSets() {
 
 
 		// Applies the updates
-		vkUpdateDescriptorSets(vkContext.logicalDevice, 1, &descWrite, 0, nullptr);
+		vkUpdateDescriptorSets(vkContext.Device.logicalDevice, 1, &descWrite, 0, nullptr);
 	}
 
 	vkContext.GraphicsPipeline.uniformBufferDescriptorSets = uniformBufferDescriptorSets;
@@ -364,7 +364,7 @@ void GraphicsPipeline::createRenderPass() {
 	renderPassCreateInfo.dependencyCount = (sizeof(dependencies) / sizeof(dependencies[0]));
 	renderPassCreateInfo.pDependencies = dependencies;
 
-	VkResult result = vkCreateRenderPass(vkContext.logicalDevice, &renderPassCreateInfo, nullptr, &renderPass);
+	VkResult result = vkCreateRenderPass(vkContext.Device.logicalDevice, &renderPassCreateInfo, nullptr, &renderPass);
 	if (result != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, "Failed to create render pass!");
 	}
@@ -375,8 +375,8 @@ void GraphicsPipeline::createRenderPass() {
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(renderPass) };
-	task.vkObjects = { vkContext.logicalDevice, renderPass };
-	task.cleanupFunc = [&]() { vkDestroyRenderPass(vkContext.logicalDevice, renderPass, nullptr); };
+	task.vkObjects = { vkContext.Device.logicalDevice, renderPass };
+	task.cleanupFunc = [&]() { vkDestroyRenderPass(vkContext.Device.logicalDevice, renderPass, nullptr); };
 
 	garbageCollector->createCleanupTask(task);
 }
@@ -436,11 +436,11 @@ void GraphicsPipeline::initShaderStage() {
 	vertCleanupTask.objectNames = { VARIABLE_NAME(vertShaderModule) };
 	fragCleanupTask.objectNames = { VARIABLE_NAME(fragShaderModule) };
 
-	vertCleanupTask.vkObjects = { vkContext.logicalDevice, vertShaderModule };
-	fragCleanupTask.vkObjects = { vkContext.logicalDevice, fragShaderModule };
+	vertCleanupTask.vkObjects = { vkContext.Device.logicalDevice, vertShaderModule };
+	fragCleanupTask.vkObjects = { vkContext.Device.logicalDevice, fragShaderModule };
 
-	vertCleanupTask.cleanupFunc = [&]() { vkDestroyShaderModule(vkContext.logicalDevice, vertShaderModule, nullptr); };
-	fragCleanupTask.cleanupFunc = [&]() { vkDestroyShaderModule(vkContext.logicalDevice, fragShaderModule, nullptr); };
+	vertCleanupTask.cleanupFunc = [&]() { vkDestroyShaderModule(vkContext.Device.logicalDevice, vertShaderModule, nullptr); };
+	fragCleanupTask.cleanupFunc = [&]() { vkDestroyShaderModule(vkContext.Device.logicalDevice, fragShaderModule, nullptr); };
 
 	garbageCollector->createCleanupTask(vertCleanupTask);
 	garbageCollector->createCleanupTask(fragCleanupTask);
@@ -568,7 +568,7 @@ VkShaderModule GraphicsPipeline::createShaderModule(const std::vector<char>& byt
 	moduleCreateInfo.pCode = reinterpret_cast<const uint32_t*>(bytecode.data());
 	
 	VkShaderModule shaderModule;
-	VkResult result = vkCreateShaderModule(vkContext.logicalDevice, &moduleCreateInfo, nullptr, &shaderModule);
+	VkResult result = vkCreateShaderModule(vkContext.Device.logicalDevice, &moduleCreateInfo, nullptr, &shaderModule);
 	if (result != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, "Failed to create shader module!");
 	}

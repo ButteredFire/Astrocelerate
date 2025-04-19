@@ -61,7 +61,12 @@ int main() {
         ServiceLocator::registerService(commandManager);
         commandManager->init();
 
-        TextureManager::createTextureImage(vkContext, "../../../assets/app/ProposedAppLogo.png");
+
+            // Texture manager
+        std::shared_ptr<TextureManager> textureManager = std::make_shared<TextureManager>(vkContext);
+        ServiceLocator::registerService(textureManager);
+        textureManager->createTexture("../../../assets/app/ProposedAppLogo.png");
+
 
             // Buffer manager
         std::shared_ptr<BufferManager> bufferManager = std::make_shared<BufferManager>(vkContext);
@@ -97,17 +102,19 @@ int main() {
     catch (const Log::RuntimeException& e) {
         Log::print(e.severity(), e.origin(), e.what());
 
-        if (vkContext.logicalDevice != VK_NULL_HANDLE)
-            vkDeviceWaitIdle(vkContext.logicalDevice);
+        if (vkContext.Device.logicalDevice != VK_NULL_HANDLE)
+            vkDeviceWaitIdle(vkContext.Device.logicalDevice);
 
         garbageCollector->processCleanupStack();
+        Log::print(Log::T_ERROR, WIN_NAME.c_str(), "Program exited with errors.");
 
         boxer::show(e.what(), ("Exception raised from " + std::string(e.origin())).c_str(), boxer::Style::Error, boxer::Buttons::Quit);
         return EXIT_FAILURE;
     }
 
 
-    vkDeviceWaitIdle(vkContext.logicalDevice);
+    vkDeviceWaitIdle(vkContext.Device.logicalDevice);
     garbageCollector->processCleanupStack();
+    Log::print(Log::T_SUCCESS, WIN_NAME.c_str(), "Program exited successfully.");
     return EXIT_SUCCESS;
 }

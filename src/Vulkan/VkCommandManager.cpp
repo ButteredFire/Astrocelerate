@@ -16,9 +16,9 @@ VkCommandManager::~VkCommandManager() {};
 
 
 void VkCommandManager::init() {
-	QueueFamilyIndices familyIndices = vkContext.queueFamilies;
-	graphicsCmdPool = createCommandPool(vkContext, vkContext.logicalDevice, familyIndices.graphicsFamily.index.value());
-	transferCmdPool = createCommandPool(vkContext, vkContext.logicalDevice, familyIndices.transferFamily.index.value());
+	QueueFamilyIndices familyIndices = vkContext.Device.queueFamilies;
+	graphicsCmdPool = createCommandPool(vkContext, vkContext.Device.logicalDevice, familyIndices.graphicsFamily.index.value());
+	transferCmdPool = createCommandPool(vkContext, vkContext.Device.logicalDevice, familyIndices.transferFamily.index.value());
 
 	allocCommandBuffers(graphicsCmdPool, graphicsCmdBuffers);
 	vkContext.CommandObjects.graphicsCmdBuffers = graphicsCmdBuffers;
@@ -129,7 +129,7 @@ VkCommandBuffer VkCommandManager::beginSingleUseCommandBuffer(VulkanContext& vkC
 	cmdBufAllocInfo.commandBufferCount = 1;
 	
 	VkCommandBuffer cmdBuffer;
-	VkResult bufAllocResult = vkAllocateCommandBuffers(vkContext.logicalDevice, &cmdBufAllocInfo, &cmdBuffer);
+	VkResult bufAllocResult = vkAllocateCommandBuffers(vkContext.Device.logicalDevice, &cmdBufAllocInfo, &cmdBuffer);
 	if (bufAllocResult != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, "Failed to allocate single-use command buffer!");
 	}
@@ -185,15 +185,15 @@ void VkCommandManager::endSingleUseCommandBuffer(VulkanContext& vkContext, Singl
 			VkSyncManager::waitForSingleUseFence(vkContext, commandBufInfo->fence);
 		}
 		else {
-			vkWaitForFences(vkContext.logicalDevice, 1, &commandBufInfo->fence, VK_TRUE, UINT64_MAX);
-			vkResetFences(vkContext.logicalDevice, 1, &commandBufInfo->fence);
+			vkWaitForFences(vkContext.Device.logicalDevice, 1, &commandBufInfo->fence, VK_TRUE, UINT64_MAX);
+			vkResetFences(vkContext.Device.logicalDevice, 1, &commandBufInfo->fence);
 		}
 	}
 	else
-		vkDeviceWaitIdle(vkContext.logicalDevice);
+		vkDeviceWaitIdle(vkContext.Device.logicalDevice);
 
 	if (commandBufInfo->freeAfterSubmit)
-		vkFreeCommandBuffers(vkContext.logicalDevice, commandBufInfo->commandPool, 1, &cmdBuffer);
+		vkFreeCommandBuffers(vkContext.Device.logicalDevice, commandBufInfo->commandPool, 1, &cmdBuffer);
 }
 
 
@@ -230,8 +230,8 @@ VkCommandPool VkCommandManager::createCommandPool(VulkanContext& vkContext, VkDe
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(commandPool) };
-	task.vkObjects = { vkContext.logicalDevice, commandPool };
-	task.cleanupFunc = [vkContext, commandPool]() { vkDestroyCommandPool(vkContext.logicalDevice, commandPool, nullptr); };
+	task.vkObjects = { vkContext.Device.logicalDevice, commandPool };
+	task.cleanupFunc = [vkContext, commandPool]() { vkDestroyCommandPool(vkContext.Device.logicalDevice, commandPool, nullptr); };
 
 	garbageCollector->createCleanupTask(task);
 
@@ -253,7 +253,7 @@ void VkCommandManager::allocCommandBuffers(VkCommandPool& commandPool, std::vect
 
 	bufferAllocInfo.commandBufferCount = static_cast<uint32_t>(commandBuffers.size());
 
-	VkResult result = vkAllocateCommandBuffers(vkContext.logicalDevice, &bufferAllocInfo, commandBuffers.data());
+	VkResult result = vkAllocateCommandBuffers(vkContext.Device.logicalDevice, &bufferAllocInfo, commandBuffers.data());
 	if (result != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, "Failed to allocate command buffers!");
 	}
@@ -261,8 +261,8 @@ void VkCommandManager::allocCommandBuffers(VkCommandPool& commandPool, std::vect
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(commandBuffers) };
-	task.vkObjects = { vkContext.logicalDevice, commandPool };
-	task.cleanupFunc = [this, commandPool, commandBuffers]() { vkFreeCommandBuffers(vkContext.logicalDevice, commandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data()); };
+	task.vkObjects = { vkContext.Device.logicalDevice, commandPool };
+	task.cleanupFunc = [this, commandPool, commandBuffers]() { vkFreeCommandBuffers(vkContext.Device.logicalDevice, commandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data()); };
 
 	garbageCollector->createCleanupTask(task);
 }

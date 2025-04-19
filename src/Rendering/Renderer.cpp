@@ -85,14 +85,14 @@ void Renderer::drawFrame() {
 
     // VK_TRUE: Indicates that the vkWaitForFences should wait for all fences.
     // UINT64_MAX: The maximum time to wait (timeout) (in nanoseconds). UINT64_MAX means to wait indefinitely (i.e., to disable the timeout)
-    VkResult waitResult = vkWaitForFences(vkContext.logicalDevice, 1, &vkContext.SyncObjects.inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
+    VkResult waitResult = vkWaitForFences(vkContext.Device.logicalDevice, 1, &vkContext.SyncObjects.inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
     if (waitResult != VK_SUCCESS) {
         throw Log::RuntimeException(__FUNCTION__, "Failed to wait for in-flight fence!");
     }
 
     // Acquires an image from the swap-chain
     uint32_t imageIndex;
-    VkResult imgAcquisitionResult = vkAcquireNextImageKHR(vkContext.logicalDevice, vkContext.SwapChain.swapChain, UINT64_MAX, vkContext.SyncObjects.imageReadySemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+    VkResult imgAcquisitionResult = vkAcquireNextImageKHR(vkContext.Device.logicalDevice, vkContext.SwapChain.swapChain, UINT64_MAX, vkContext.SyncObjects.imageReadySemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
     if (imgAcquisitionResult != VK_SUCCESS) {
         if (imgAcquisitionResult == VK_ERROR_OUT_OF_DATE_KHR || imgAcquisitionResult == VK_SUBOPTIMAL_KHR) {
             swapchainManager->recreateSwapchain();
@@ -108,7 +108,7 @@ void Renderer::drawFrame() {
     // Only reset the fence when we're submitting work
 
     // After waiting, reset fence to unsignaled
-    VkResult resetFenceResult = vkResetFences(vkContext.logicalDevice, 1, &vkContext.SyncObjects.inFlightFences[currentFrame]);
+    VkResult resetFenceResult = vkResetFences(vkContext.Device.logicalDevice, 1, &vkContext.SyncObjects.inFlightFences[currentFrame]);
     if (resetFenceResult != VK_SUCCESS) {
         throw Log::RuntimeException(__FUNCTION__, "Failed to reset fence!");
     }
@@ -160,7 +160,7 @@ void Renderer::drawFrame() {
     submitInfo.signalSemaphoreCount = (sizeof(signalSemaphores) / sizeof(VkSemaphore));
     submitInfo.pSignalSemaphores = signalSemaphores;
 
-    VkQueue graphicsQueue = vkContext.queueFamilies.graphicsFamily.deviceQueue;
+    VkQueue graphicsQueue = vkContext.Device.queueFamilies.graphicsFamily.deviceQueue;
     VkResult submitResult = vkQueueSubmit(graphicsQueue, 1, &submitInfo, vkContext.SyncObjects.inFlightFences[currentFrame]);
     if (submitResult != VK_SUCCESS) {
         throw Log::RuntimeException(__FUNCTION__, "Failed to submit draw command buffer!");
