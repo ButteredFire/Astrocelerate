@@ -87,7 +87,7 @@ public:
 		@param descriptorPool: The descriptor pool to be created.
 		@param createFlags (Default: null): The descriptor pool's create flags.
 	*/
-	void createDescriptorPool(std::vector<VkDescriptorPoolSize> poolSizes, VkDescriptorPool& descriptorPool, VkDescriptorPoolCreateFlags createFlags = VkDescriptorPoolCreateFlags());
+	void createDescriptorPool(uint32_t descriptorSetCount, std::vector<VkDescriptorPoolSize> poolSizes, VkDescriptorPool& descriptorPool, VkDescriptorPoolCreateFlags createFlags = VkDescriptorPoolCreateFlags());
 
 private:
 	VulkanContext& vkContext;
@@ -158,6 +158,10 @@ private:
 
 	/* Initializes the pipeline layout. */
 	void createPipelineLayout();
+
+
+	/* Sets up descriptors. This method is an aggregate of multiple methods pertaining to descriptors. */
+	void setUpDescriptors();
 
 
 	/* Creates a descriptor set layout. */

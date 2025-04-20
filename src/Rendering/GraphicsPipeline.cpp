@@ -42,14 +42,8 @@ void GraphicsPipeline::init() {
 	initShaderStage();
 
 
-	// Create uniform buffer descriptors
-	createDescriptorSetLayout();
-
-	std::vector<VkDescriptorPoolSize> uniformBufDescPoolSize = {
-		{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, static_cast<uint32_t>(SimulationConsts::MAX_FRAMES_IN_FLIGHT)}
-	};
-	createDescriptorPool(uniformBufDescPoolSize, uniformBufferDescriptorPool);
-	createDescriptorSets();
+	// Create descriptors
+	setUpDescriptors();
 
 
 	// Create the pipeline layout
@@ -152,6 +146,18 @@ void GraphicsPipeline::createPipelineLayout() {
 }
 
 
+void GraphicsPipeline::setUpDescriptors() {
+	createDescriptorSetLayout();
+
+	std::vector<VkDescriptorPoolSize> uniformBufDescPoolSize = {
+		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, static_cast<uint32_t>(SimulationConsts::MAX_FRAMES_IN_FLIGHT) },
+		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, static_cast<uint32_t>(SimulationConsts::MAX_FRAMES_IN_FLIGHT) }
+	};
+	createDescriptorPool(2, uniformBufDescPoolSize, uniformBufferDescriptorPool);
+	createDescriptorSets();
+}
+
+
 void GraphicsPipeline::createDescriptorSetLayout() {
 	VkDescriptorSetLayoutBinding layoutBinding{};
 	layoutBinding.binding = ShaderConsts::VERT_BIND_UNIFORM_UBO;
@@ -187,7 +193,7 @@ void GraphicsPipeline::createDescriptorSetLayout() {
 }
 
 
-void GraphicsPipeline::createDescriptorPool(std::vector<VkDescriptorPoolSize> poolSizes, VkDescriptorPool& descriptorPool, VkDescriptorPoolCreateFlags createFlags) {
+void GraphicsPipeline::createDescriptorPool(uint32_t descriptorSetCount, std::vector<VkDescriptorPoolSize> poolSizes, VkDescriptorPool& descriptorPool, VkDescriptorPoolCreateFlags createFlags) {
 	VkDescriptorPoolCreateInfo descPoolCreateInfo{};
 	descPoolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 	descPoolCreateInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
