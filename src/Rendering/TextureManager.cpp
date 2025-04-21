@@ -108,6 +108,7 @@ void TextureManager::createTextureImage(const char* texSource, int channels) {
 void TextureManager::createTextureImageView() {
 	std::pair<VkImageView, uint32_t> imageViewProperties = VkSwapchainManager::createImageView(vkContext, textureImage, textureImageFormat);
 	textureImageView = imageViewProperties.first;
+	vkContext.Texture.imageView = textureImageView;
 }
 
 
@@ -166,6 +167,8 @@ void TextureManager::createTextureSampler() {
 	if (result != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, "Failed to create texture sampler!");
 	}
+	
+	vkContext.Texture.sampler = textureSampler;
 
 
 	CleanupTask task{};
@@ -323,6 +326,7 @@ void TextureManager::switchImageLayout(VkImage image, VkFormat imgFormat, VkImag
 
 
 	VkCommandManager::endSingleUseCommandBuffer(vkContext, &cmdInfo, commandBuffer);
+	vkContext.Texture.imageLayout = newLayout;
 }
 
 

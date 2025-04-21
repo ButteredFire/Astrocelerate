@@ -168,6 +168,14 @@ struct VulkanContext {
 	} SwapChain;
 
 
+	// Textures
+	struct Texture {
+		VkImageLayout imageLayout;
+		VkImageView imageView;
+		VkSampler sampler;
+	} Texture;
+
+
 	// Command objects
 	struct CommandObjects {
         std::vector<VkCommandBuffer> graphicsCmdBuffers;
@@ -190,7 +198,7 @@ struct VulkanContext {
         VkRenderPass renderPass = VK_NULL_HANDLE;
 		uint32_t subpassCount = 0;
 
-		std::vector<VkDescriptorSet> uniformBufferDescriptorSets;
+		std::vector<VkDescriptorSet> descriptorSets;
     } GraphicsPipeline;
 };
 

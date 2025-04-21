@@ -83,11 +83,12 @@ public:
 
 
 	/* Creates a descriptor pool.
+		@param maxDescriptorSetCount: The maximum number of descriptor sets for which the descriptor pool is to be allocated.
 		@param poolSizes: A vector storing descriptor pool sizes. Note that the resulting descriptor pool's max sets value is the cumulative descriptor count of all pool sizes in the vector.
 		@param descriptorPool: The descriptor pool to be created.
 		@param createFlags (Default: null): The descriptor pool's create flags.
 	*/
-	void createDescriptorPool(uint32_t descriptorSetCount, std::vector<VkDescriptorPoolSize> poolSizes, VkDescriptorPool& descriptorPool, VkDescriptorPoolCreateFlags createFlags = VkDescriptorPoolCreateFlags());
+	void createDescriptorPool(uint32_t maxDescriptorSetCount, std::vector<VkDescriptorPoolSize> poolSizes, VkDescriptorPool& descriptorPool, VkDescriptorPoolCreateFlags createFlags = VkDescriptorPoolCreateFlags());
 
 private:
 	VulkanContext& vkContext;
@@ -103,7 +104,7 @@ private:
 	
 	VkPipelineVertexInputStateCreateInfo vertInputState{};
 	VkVertexInputBindingDescription vertBindingDescription = VkVertexInputBindingDescription();
-	std::array<VkVertexInputAttributeDescription, 2> vertAttribDescriptions{};
+	std::vector<VkVertexInputAttributeDescription> vertAttribDescriptions{};
 
 		// Fragment shader
 	std::vector<char> fragShaderBytecode;
@@ -143,9 +144,11 @@ private:
 	VkPipelineTessellationStateCreateInfo tessStateCreateInfo{};
 
 	// Descriptors
-	VkDescriptorSetLayout uniformBufferDescriptorSetLayout = VK_NULL_HANDLE;
-	VkDescriptorPool uniformBufferDescriptorPool = VK_NULL_HANDLE;
-	std::vector<VkDescriptorSet> uniformBufferDescriptorSets;
+	VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
+	VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
+	std::vector<VkDescriptorSet> descriptorSets;
+
+	uint32_t descriptorCount = 0;
 
 	// Pipeline layout
 	VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
@@ -164,8 +167,10 @@ private:
 	void setUpDescriptors();
 
 
-	/* Creates a descriptor set layout. */
-	void createDescriptorSetLayout();
+	/* Creates a descriptor set layout. 
+		@param layoutBindings: A vector of descriptor set layout binings.
+	*/
+	void createDescriptorSetLayout(std::vector<VkDescriptorSetLayoutBinding> layoutBindings);
 
 
 	/* Creates a descriptor set. */

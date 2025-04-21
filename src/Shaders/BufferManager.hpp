@@ -30,8 +30,9 @@
 
 // A structure specifying the properties of a vertex
 struct Vertex {
-	glm::vec3 position;
-	glm::vec3 color;
+	glm::vec3 position;     // Vertex position.
+	glm::vec3 color;        // Vertex color.
+    glm::vec2 texCoord;     // Texture coordinates (a.k.a., UV coordinates) for mapping textures
 };
 
 
@@ -133,7 +134,7 @@ public:
     static VkVertexInputBindingDescription getVertexInputBindingDescription();
 
     /* Gets the vertex attribute descriptions. */
-    static std::array<VkVertexInputAttributeDescription, 2> getVertexAttributeDescriptions();
+    static std::vector<VkVertexInputAttributeDescription> getVertexAttributeDescriptions();
 
 private:
     VulkanContext& vkContext;
@@ -151,21 +152,15 @@ private:
 
 
     const std::vector<Vertex> vertices = {
-        {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},   // 0
-        {{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}},    // 1
-        {{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}},     // 2
-        {{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}},    // 3
-        {{0.0f, 0.0f, 1.0f}, {0.25f, 0.5f, 0.75f}}
+        {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},     // 0
+        {{0.5f, -0.5f, 0.0f},  {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},     // 1
+        {{0.5f, 0.5f, 0.0f},   {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},     // 2
+        {{-0.5f, 0.5f, 0.0f},  {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}      // 3
     };
 
     const std::vector<uint32_t> vertIndices = {
         0, 1, 2,
-        2, 3, 0,
-
-        0, 1, 4,
-        1, 2, 4,
-        2, 3, 4,
-        3, 0, 4
+        2, 3, 0
     };
 
 

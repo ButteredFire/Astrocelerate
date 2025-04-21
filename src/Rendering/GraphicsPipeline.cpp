@@ -122,7 +122,7 @@ void GraphicsPipeline::createPipelineLayout() {
 	VkPipelineLayoutCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	createInfo.setLayoutCount = 1;
-	createInfo.pSetLayouts = &uniformBufferDescriptorSetLayout;
+	createInfo.pSetLayouts = &descriptorSetLayout;
 
 	// Push constants are a way of passing dynamic values to shaders
 	createInfo.pushConstantRangeCount = 0;
@@ -147,53 +147,73 @@ void GraphicsPipeline::createPipelineLayout() {
 
 
 void GraphicsPipeline::setUpDescriptors() {
-	createDescriptorSetLayout();
+	// Setup
+		// Layout bindings
+			// Uniform buffer
+	VkDescriptorSetLayoutBinding uniformBufferLayoutBinding{};
+	uniformBufferLayoutBinding.binding = ShaderConsts::VERT_BIND_UNIFORM_UBO;
+	uniformBufferLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	uniformBufferLayoutBinding.descriptorCount = 1;
+	uniformBufferLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT; // Specifies which shader stages will the UBO(s) be referenced and used (through `VkShaderStageFlagBits` values; see the specification for more information)
+	uniformBufferLayoutBinding.pImmutableSamplers = nullptr;			// Specifies descriptors handling image-sampling
 
-	std::vector<VkDescriptorPoolSize> uniformBufDescPoolSize = {
+
+			// Texture sampler
+	VkDescriptorSetLayoutBinding samplerLayoutBinding{};
+	samplerLayoutBinding.binding = ShaderConsts::FRAG_BIND_UNIFORM_TEXURE_SAMPLER;
+	samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	samplerLayoutBinding.descriptorCount = 1;
+	samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;		// Image sampling happens in the fragment shader, although it can also be used in the vertex shader for specific reasons (e.g., dynamically deforming a grid of vertices via a heightmap)
+	samplerLayoutBinding.pImmutableSamplers = nullptr;
+
+
+
+	// Data organization
+	std::vector<VkDescriptorSetLayoutBinding> layoutBindings = {
+		uniformBufferLayoutBinding,
+		samplerLayoutBinding
+	};
+
+	for (const auto& binding : layoutBindings) { descriptorCount += binding.descriptorCount; }
+
+	std::vector<VkDescriptorPoolSize> poolSize = {
 		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, static_cast<uint32_t>(SimulationConsts::MAX_FRAMES_IN_FLIGHT) },
 		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, static_cast<uint32_t>(SimulationConsts::MAX_FRAMES_IN_FLIGHT) }
 	};
-	createDescriptorPool(2, uniformBufDescPoolSize, uniformBufferDescriptorPool);
+
+
+
+	// Descriptor creation
+	createDescriptorSetLayout(layoutBindings);
+	createDescriptorPool(descriptorCount, poolSize, descriptorPool);
 	createDescriptorSets();
 }
 
 
-void GraphicsPipeline::createDescriptorSetLayout() {
-	VkDescriptorSetLayoutBinding layoutBinding{};
-	layoutBinding.binding = ShaderConsts::VERT_BIND_UNIFORM_UBO;
-	layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-
-	// It is possible for the UBO shader variable to have multiple uniform buffer objects, so we need to specify the number of UBOs in it
-	layoutBinding.descriptorCount = 1;
-
-	// Specifies which shader stages will the UBO(s) be referenced and used (through `VkShaderStageFlagBits` values; see the specification for more information)
-	layoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
-	// Specifies descriptors handling image-sampling
-	layoutBinding.pImmutableSamplers = nullptr;
-
-
+void GraphicsPipeline::createDescriptorSetLayout(std::vector<VkDescriptorSetLayoutBinding> layoutBindings) {
 	VkDescriptorSetLayoutCreateInfo layoutCreateInfo{};
 	layoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	layoutCreateInfo.bindingCount = 1;
-	layoutCreateInfo.pBindings = &layoutBinding;
+	layoutCreateInfo.bindingCount = static_cast<uint32_t>(layoutBindings.size());
+	layoutCreateInfo.pBindings = layoutBindings.data();
 
-	VkResult result = vkCreateDescriptorSetLayout(vkContext.Device.logicalDevice, &layoutCreateInfo, nullptr, &uniformBufferDescriptorSetLayout);
+
+	VkResult result = vkCreateDescriptorSetLayout(vkContext.Device.logicalDevice, &layoutCreateInfo, nullptr, &descriptorSetLayout);
 	if (result != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, "Failed to create descriptor set layout!");
 	}
 
+
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
-	task.objectNames = { VARIABLE_NAME(uniformBufferDescriptorSetLayout) };
-	task.vkObjects = { vkContext.Device.logicalDevice, uniformBufferDescriptorSetLayout };
-	task.cleanupFunc = [this]() { vkDestroyDescriptorSetLayout(vkContext.Device.logicalDevice, uniformBufferDescriptorSetLayout, nullptr); };
+	task.objectNames = { VARIABLE_NAME(descriptorSetLayout) };
+	task.vkObjects = { vkContext.Device.logicalDevice, descriptorSetLayout };
+	task.cleanupFunc = [this]() { vkDestroyDescriptorSetLayout(vkContext.Device.logicalDevice, descriptorSetLayout, nullptr); };
 
 	garbageCollector->createCleanupTask(task);
 }
 
 
-void GraphicsPipeline::createDescriptorPool(uint32_t descriptorSetCount, std::vector<VkDescriptorPoolSize> poolSizes, VkDescriptorPool& descriptorPool, VkDescriptorPoolCreateFlags createFlags) {
+void GraphicsPipeline::createDescriptorPool(uint32_t maxDescriptorSetCount, std::vector<VkDescriptorPoolSize> poolSizes, VkDescriptorPool& descriptorPool, VkDescriptorPoolCreateFlags createFlags) {
 	VkDescriptorPoolCreateInfo descPoolCreateInfo{};
 	descPoolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 	descPoolCreateInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
@@ -201,10 +221,7 @@ void GraphicsPipeline::createDescriptorPool(uint32_t descriptorSetCount, std::ve
 	descPoolCreateInfo.flags = createFlags;
 
 	// Specifies the maximum number of descriptor sets that can be allocated
-	descPoolCreateInfo.maxSets = 0;
-	for (const auto& poolSize : poolSizes) {
-		descPoolCreateInfo.maxSets += poolSize.descriptorCount;
-	}
+	descPoolCreateInfo.maxSets = maxDescriptorSetCount;
 
 
 	VkResult result = vkCreateDescriptorPool(vkContext.Device.logicalDevice, &descPoolCreateInfo, nullptr, &descriptorPool);
@@ -225,68 +242,94 @@ void GraphicsPipeline::createDescriptorPool(uint32_t descriptorSetCount, std::ve
 
 void GraphicsPipeline::createDescriptorSets() {
 	// Creates one descriptor set for every frame in flight (all with the same layout)
-	std::vector<VkDescriptorSetLayout> descSetLayouts(SimulationConsts::MAX_FRAMES_IN_FLIGHT, uniformBufferDescriptorSetLayout);
+	std::vector<VkDescriptorSetLayout> descSetLayouts(SimulationConsts::MAX_FRAMES_IN_FLIGHT, descriptorSetLayout);
 
 	VkDescriptorSetAllocateInfo descSetAllocInfo{};
 	descSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	descSetAllocInfo.descriptorPool = uniformBufferDescriptorPool;
+	descSetAllocInfo.descriptorPool = descriptorPool;
 
 	descSetAllocInfo.descriptorSetCount = static_cast<uint32_t>(descSetLayouts.size());
 	descSetAllocInfo.pSetLayouts = descSetLayouts.data();
 
-	// Creates descriptor sets
-	uniformBufferDescriptorSets.resize(descSetLayouts.size());
+
+	// Allocates descriptor sets
+	descriptorSets.resize(descSetLayouts.size());
 	
-	VkResult result = vkAllocateDescriptorSets(vkContext.Device.logicalDevice, &descSetAllocInfo, uniformBufferDescriptorSets.data());
+	VkResult result = vkAllocateDescriptorSets(vkContext.Device.logicalDevice, &descSetAllocInfo, descriptorSets.data());
 	if (result != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, "Failed to create descriptor sets!");
 	}
 
 
 	// Configures the descriptors within the newly allocated descriptor sets
+	std::vector<VkWriteDescriptorSet> descriptorWrites;
+	descriptorWrites.reserve(descriptorCount);
+
 	for (size_t i = 0; i < descSetLayouts.size(); i++) {
-		// Descriptors handling buffers (including uniform buffers) are configured with the following struct:
+		descriptorWrites.clear();
+
+		// Uniform buffer
 		VkDescriptorBufferInfo descBufInfo{};
-
-		std::vector<VkBuffer> uniformBuffers = bufferManager->getUniformBuffers();
-		descBufInfo.buffer = uniformBuffers[i];
-
+		descBufInfo.buffer = bufferManager->getUniformBuffers()[i];
 		descBufInfo.offset = 0;
 		descBufInfo.range = sizeof(UniformBufferObject); // Note: We can also use VK_WHOLE_SIZE if we want to overwrite the whole buffer (like what we're doing)
 
+
+		// Texture sampler
+		VkDescriptorImageInfo imageInfo{};
+		imageInfo.imageLayout = vkContext.Texture.imageLayout;
+		imageInfo.imageView = vkContext.Texture.imageView;
+		imageInfo.sampler = vkContext.Texture.sampler;
+
+
 		// Updates the configuration for each descriptor
-		VkWriteDescriptorSet descWrite{};
-		descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descWrite.dstSet = uniformBufferDescriptorSets[i];
-		descWrite.dstBinding = ShaderConsts::VERT_BIND_UNIFORM_UBO;
+			// Uniform buffer descriptor write
+		VkWriteDescriptorSet uniformBufferDescWrite{};
+		uniformBufferDescWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		uniformBufferDescWrite.dstSet = descriptorSets[i];
+		uniformBufferDescWrite.dstBinding = ShaderConsts::VERT_BIND_UNIFORM_UBO;
 
-		// Since descriptors can be arrays, we must specify the first descriptor's index to update in the array.
-		// We are not using an array now, so we can leave it at 0.
-		descWrite.dstArrayElement = 0;
+				// Since descriptors can be arrays, we must specify the first descriptor's index to update in the array.
+				// We are not using an array now, so we can leave it at 0.
+		uniformBufferDescWrite.dstArrayElement = 0;
 
+		uniformBufferDescWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		uniformBufferDescWrite.descriptorCount = 1; // Specifies how many array elements to update (refer to `VkWriteDescriptorSet::dstArrayElement`)
 
-		descWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		descWrite.descriptorCount = 1; // Specifies how many array elements to update (refer to `VkWriteDescriptorSet::dstArrayElement`)
-
-
-		/* The descriptor write configuration also needs a reference to its Info struct, and this part depends on the type of descriptor:
+				/* The descriptor write configuration also needs a reference to its Info struct, and this part depends on the type of descriptor:
 		
-			- `VkWriteDescriptorSet::pBufferInfo`: Used for descriptors that refer to buffer data
-			- `VkWriteDescriptorSet::pImageInfo`: Used for descriptors that refer to image data
-			- `VkWriteDescriptorSet::pTexelBufferInfo`: Used for descriptors that refer to buffer views
+					- `VkWriteDescriptorSet::pBufferInfo`: Used for descriptors that refer to buffer data
+					- `VkWriteDescriptorSet::pImageInfo`: Used for descriptors that refer to image data
+					- `VkWriteDescriptorSet::pTexelBufferInfo`: Used for descriptors that refer to buffer views
 
-			We can only choose 1 out of 3.
-		*/
-		descWrite.pBufferInfo = &descBufInfo;
-		//descWrite.pImageInfo = nullptr;
-		//descWrite.pTexelBufferView = nullptr;
+					We can only choose 1 out of 3.
+				*/
+		uniformBufferDescWrite.pBufferInfo = &descBufInfo;
+		//uniformBufferDescWrite.pImageInfo = nullptr;
+		//uniformBufferDescWrite.pTexelBufferView = nullptr;
+
+		descriptorWrites.push_back(uniformBufferDescWrite);
+
+
+		// Texture sampler descriptor write
+		VkWriteDescriptorSet samplerDescWrite{};
+		samplerDescWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		samplerDescWrite.dstSet = descriptorSets[i];
+		samplerDescWrite.dstBinding = ShaderConsts::FRAG_BIND_UNIFORM_TEXURE_SAMPLER;
+		samplerDescWrite.dstArrayElement = 0;
+		samplerDescWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		samplerDescWrite.descriptorCount = 1;
+		samplerDescWrite.pImageInfo = &imageInfo;
+
+		descriptorWrites.push_back(samplerDescWrite);
 
 
 		// Applies the updates
-		vkUpdateDescriptorSets(vkContext.Device.logicalDevice, 1, &descWrite, 0, nullptr);
+		vkUpdateDescriptorSets(vkContext.Device.logicalDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 	}
 
-	vkContext.GraphicsPipeline.uniformBufferDescriptorSets = uniformBufferDescriptorSets;
+
+	vkContext.GraphicsPipeline.descriptorSets = descriptorSets;
 }
 
 

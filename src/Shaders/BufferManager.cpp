@@ -24,6 +24,7 @@ VkVertexInputBindingDescription BufferManager::getVertexInputBindingDescription(
 	VkVertexInputBindingDescription bindingDescription{};
 
 	// Our data is currently packed together in 1 array, so we're only going to have one binding (whose index is 0).
+	// If we had multiple vertex buffers (e.g., one for position, one for color), each buffer would have its own binding index.
 	bindingDescription.binding = 0;
 
 	// Specifies the number of bytes from one entry to the next (i.e., byte stride between consecutive elements in a buffer)
@@ -36,22 +37,40 @@ VkVertexInputBindingDescription BufferManager::getVertexInputBindingDescription(
 }
 
 
-std::array<VkVertexInputAttributeDescription, 2> BufferManager::getVertexAttributeDescriptions() {
+std::vector<VkVertexInputAttributeDescription> BufferManager::getVertexAttributeDescriptions() {
 	// Attribute descriptions specify the type of the attributes passed to the vertex shader, which binding to load them from (and at which offset)
 		// Each vertex attribute (e.g., position, color) must have its own attribute description.
-	std::array<VkVertexInputAttributeDescription, 2> attribDescriptions{};
+		// Each vertex attribute's binding must source its value from the vertex's bindingDescription binding.
+	std::vector<VkVertexInputAttributeDescription> attribDescriptions{};
 
 	// Attribute: Position
-	attribDescriptions[0].binding = 0;
-	attribDescriptions[0].location = ShaderConsts::VERT_LOC_IN_INPOSITION;
-	attribDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT; // R32G32 because `position` is a vec2. If it were a vec3, its format would need to have 3 channels, e.g., R32G32B32_SFLOAT
-	attribDescriptions[0].offset = offsetof(Vertex, position);
+	VkVertexInputAttributeDescription positionAttribDesc{};
+	positionAttribDesc.binding = 0;
+	positionAttribDesc.location = ShaderConsts::VERT_LOC_IN_INPOSITION;
+	positionAttribDesc.format = VK_FORMAT_R32G32_SFLOAT; // R32G32 because `position` is a vec2. If it were a vec3, its format would need to have 3 channels, e.g., R32G32B32_SFLOAT
+	positionAttribDesc.offset = offsetof(Vertex, position);
 
+	attribDescriptions.push_back(positionAttribDesc);
+
+	
 	// Attribute: Color
-	attribDescriptions[1].binding = 0;
-	attribDescriptions[1].location = ShaderConsts::VERT_LOC_IN_INCOLOR;
-	attribDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-	attribDescriptions[1].offset = offsetof(Vertex, color);
+	VkVertexInputAttributeDescription colorAttribDesc{};
+	colorAttribDesc.binding = 0;
+	colorAttribDesc.location = ShaderConsts::VERT_LOC_IN_INCOLOR;
+	colorAttribDesc.format = VK_FORMAT_R32G32B32_SFLOAT;
+	colorAttribDesc.offset = offsetof(Vertex, color);
+
+	attribDescriptions.push_back(colorAttribDesc);
+
+
+	// Attribute: Texture/UV coordinates
+	VkVertexInputAttributeDescription texCoordAttribDesc{};
+	texCoordAttribDesc.binding = 0;
+	texCoordAttribDesc.location = ShaderConsts::VERT_LOC_IN_INTEXTURECOORD;
+	texCoordAttribDesc.format = VK_FORMAT_R32G32_SFLOAT;
+	texCoordAttribDesc.offset = offsetof(Vertex, texCoord);
+
+	attribDescriptions.push_back(texCoordAttribDesc);
 
 
 	return attribDescriptions;

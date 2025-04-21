@@ -37,13 +37,23 @@ namespace ShaderConsts {
 	// Locations
 		// Vertex shader
 	constexpr int VERT_BIND_UNIFORM_UBO = 0;
+
 	constexpr int VERT_LOC_IN_INPOSITION = 0;
 	constexpr int VERT_LOC_IN_INCOLOR = 1;
+	constexpr int VERT_LOC_IN_INTEXTURECOORD = 2;
+
 	constexpr int VERT_LOC_OUT_FRAGCOLOR = 0;
+	constexpr int VERT_LOC_OUT_FRAGTEXTURECOORD = 1;
+
 
 		// Fragment shader
-	constexpr int FRAG_LOC_IN_FRAGCOLOR = 0;
+	constexpr int FRAG_BIND_UNIFORM_TEXURE_SAMPLER = 1;
+
+	constexpr int FRAG_LOC_IN_FRAGCOLOR = VERT_LOC_OUT_FRAGCOLOR;
+	constexpr int FRAG_LOC_IN_FRAGTEXTURECOORD = VERT_LOC_OUT_FRAGTEXTURECOORD;
+
 	constexpr int FRAG_LOC_OUT_OUTCOLOR = 0;
+
 
 	// Compiled shaders
 	constexpr char VERTEX[] = "compiled_shaders/VertexShader.spv";

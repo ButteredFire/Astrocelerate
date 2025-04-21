@@ -60,7 +60,7 @@ void Renderer::drawFrame() {
     vertexRenderComponent.indexBuffer = bufferManager->getIndexBuffer();
     vertexRenderComponent.vertexIndexData = bufferManager->getVertexIndexData();
 
-    vertexRenderComponent.descriptorSet = vkContext.GraphicsPipeline.uniformBufferDescriptorSets[currentFrame];
+    vertexRenderComponent.descriptorSet = vkContext.GraphicsPipeline.descriptorSets[currentFrame];
 
         // GUI rendering
     RenderableComponent guiRenderComponent{};
