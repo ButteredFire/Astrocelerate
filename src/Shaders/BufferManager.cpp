@@ -47,7 +47,7 @@ std::vector<VkVertexInputAttributeDescription> BufferManager::getVertexAttribute
 	VkVertexInputAttributeDescription positionAttribDesc{};
 	positionAttribDesc.binding = 0;
 	positionAttribDesc.location = ShaderConsts::VERT_LOC_IN_INPOSITION;
-	positionAttribDesc.format = VK_FORMAT_R32G32_SFLOAT; // R32G32 because `position` is a vec2. If it were a vec3, its format would need to have 3 channels, e.g., R32G32B32_SFLOAT
+	positionAttribDesc.format = VK_FORMAT_R32G32B32_SFLOAT;
 	positionAttribDesc.offset = offsetof(Vertex, position);
 
 	attribDescriptions.push_back(positionAttribDesc);

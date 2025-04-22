@@ -65,7 +65,7 @@ int main() {
             // Texture manager
         std::shared_ptr<TextureManager> textureManager = std::make_shared<TextureManager>(vkContext);
         ServiceLocator::registerService(textureManager);
-        textureManager->createTexture("../../../assets/app/ProposedAppLogo.png");
+        textureManager->createTexture("../../../assets/app/ExperimentalAppLogo.png");
 
 
             // Buffer manager
