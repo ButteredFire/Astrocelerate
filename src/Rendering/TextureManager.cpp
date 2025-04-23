@@ -76,7 +76,7 @@ void TextureManager::createTextureImage(const char* texSource, int channels) {
 	imgAllocCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
 	imgAllocCreateInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 
-	createImage( textureImage, textureImageAllocation, textureWidth, textureHeight, 1, textureImageFormat, imgTiling, imgUsageFlags, imgAllocCreateInfo);
+	createImage(textureImage, textureImageAllocation, textureWidth, textureHeight, 1, textureImageFormat, imgTiling, imgUsageFlags, imgAllocCreateInfo);
 
 
 	// Copy the staging buffer to the texture image
@@ -100,7 +100,7 @@ void TextureManager::createTextureImage(const char* texSource, int channels) {
 
 	garbageCollector->createCleanupTask(imgTask);
 
-		// Destroys the staging buffer because we don't need it anymore at this point
+		// Destroy the staging buffer at the end as it has served its purpose
 	garbageCollector->executeCleanupTask(stagingBufTaskID);
 }
 
