@@ -6,7 +6,7 @@
 
 
 VkDeviceManager::VkDeviceManager(VulkanContext &context):
-    vulkInst(context.vulkanInstance), vkContext(context) {
+    vulkInst(context.vulkanInstance), m_vkContext(context) {
 
     garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
 
@@ -14,7 +14,7 @@ VkDeviceManager::VkDeviceManager(VulkanContext &context):
         throw Log::RuntimeException(__FUNCTION__, "Cannot initialize device manager: Invalid Vulkan instance!");
     }
 
-    if (vkContext.vkSurface == VK_NULL_HANDLE) {
+    if (m_vkContext.vkSurface == VK_NULL_HANDLE) {
         throw Log::RuntimeException(__FUNCTION__, "Cannot initialize device manager: Invalid Vulkan window surface!");
     }
 
@@ -39,7 +39,7 @@ void VkDeviceManager::init() {
     createLogicalDevice();
 
     // Creates a VMA
-    vmaAllocator = garbageCollector->createVMAllocator(vkContext.vulkanInstance, GPUPhysicalDevice, GPULogicalDevice);
+    vmaAllocator = garbageCollector->createVMAllocator(m_vkContext.vulkanInstance, GPUPhysicalDevice, GPULogicalDevice);
 }
 
 
@@ -75,12 +75,12 @@ void VkDeviceManager::createPhysicalDevice() {
         throw Log::RuntimeException(__FUNCTION__, "Failed to find a GPU that supports required features!");
     }
 
-    vkContext.Device.physicalDevice = GPUPhysicalDevice = physicalDevice;
+    m_vkContext.Device.physicalDevice = GPUPhysicalDevice = physicalDevice;
 }
 
 
 void VkDeviceManager::createLogicalDevice() {
-    QueueFamilyIndices queueFamilies = getQueueFamilies(GPUPhysicalDevice, vkContext.vkSurface);
+    QueueFamilyIndices queueFamilies = getQueueFamilies(GPUPhysicalDevice, m_vkContext.vkSurface);
 
     // Verifies that all queue families exist before proceeding with device creation
     std::vector<QueueFamilyIndices::QueueFamily*> allFamilies = queueFamilies.getAllQueueFamilies();
@@ -154,8 +154,8 @@ void VkDeviceManager::createLogicalDevice() {
 
     // Sets device-specific validation layers
     if (inDebugMode) {
-        deviceInfo.enabledLayerCount = static_cast<uint32_t> (vkContext.enabledValidationLayers.size());
-        deviceInfo.ppEnabledLayerNames = vkContext.enabledValidationLayers.data();
+        deviceInfo.enabledLayerCount = static_cast<uint32_t> (m_vkContext.enabledValidationLayers.size());
+        deviceInfo.ppEnabledLayerNames = m_vkContext.enabledValidationLayers.data();
     }
     else {
         deviceInfo.enabledLayerCount = 0;
@@ -179,8 +179,8 @@ void VkDeviceManager::createLogicalDevice() {
     }
 
 
-    vkContext.Device.logicalDevice = GPULogicalDevice;
-    vkContext.Device.queueFamilies = queueFamilies;
+    m_vkContext.Device.logicalDevice = GPULogicalDevice;
+    m_vkContext.Device.queueFamilies = queueFamilies;
 
 
     CleanupTask task{};
@@ -213,7 +213,7 @@ std::vector<PhysicalDeviceScoreProperties> VkDeviceManager::rateGPUSuitability(s
         vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
         vkGetPhysicalDeviceFeatures2(device, &deviceFeatures2); // Vulkan 1.2
 
-        vkContext.Device.deviceProperties = deviceProperties;
+        m_vkContext.Device.deviceProperties = deviceProperties;
 
         // Creates a device rating profile
         PhysicalDeviceScoreProperties deviceRating;
@@ -221,10 +221,10 @@ std::vector<PhysicalDeviceScoreProperties> VkDeviceManager::rateGPUSuitability(s
         deviceRating.deviceName = deviceProperties.deviceName;
 
         // Creates a list of indices of device-supported queue families for later checking
-        QueueFamilyIndices queueFamilyIndices = getQueueFamilies(device, vkContext.vkSurface);
+        QueueFamilyIndices queueFamilyIndices = getQueueFamilies(device, m_vkContext.vkSurface);
 
         // Creates the GPU's swap-chain properties
-        SwapChainProperties swapChain = VkSwapchainManager::getSwapChainProperties(device, vkContext.vkSurface);
+        SwapChainProperties swapChain = VkSwapchainManager::getSwapChainProperties(device, m_vkContext.vkSurface);
         
         // A "list" of minimum requirements; Variable will collapse to "true" if all are satisfied
         bool meetsMinimumRequirements = (

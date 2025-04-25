@@ -63,19 +63,19 @@ public:
 	static QueueFamilyIndices getQueueFamilies(VkPhysicalDevice& device, VkSurfaceKHR& surface);
 
 private:
-	VkInstance vulkInst = VK_NULL_HANDLE;
-	VulkanContext& vkContext;
-	std::shared_ptr<GarbageCollector> garbageCollector;
+	VkInstance m_vulkInst = VK_NULL_HANDLE;
+	VulkanContext& m_vkContext;
+	std::shared_ptr<GarbageCollector> m_garbageCollector;
 
-	VmaAllocator vmaAllocator = VK_NULL_HANDLE;
+	VmaAllocator m_vmaAllocator = VK_NULL_HANDLE;
 
-	VkPhysicalDevice GPUPhysicalDevice = VK_NULL_HANDLE;
-	VkDevice GPULogicalDevice = VK_NULL_HANDLE;
+	VkPhysicalDevice m_GPUPhysicalDevice = VK_NULL_HANDLE;
+	VkDevice m_GPULogicalDevice = VK_NULL_HANDLE;
 
-	QueueFamilyIndices queueFamilyIndices = QueueFamilyIndices();
+	QueueFamilyIndices m_queueFamilyIndices = QueueFamilyIndices();
 
-	std::vector<const char*> requiredDeviceExtensions;
-	std::vector<PhysicalDeviceScoreProperties> GPUScores;
+	std::vector<const char*> m_requiredDeviceExtensions;
+	std::vector<PhysicalDeviceScoreProperties> m_GPUScores;
 
 	/* Configures a GPU Physical Device by binding it to an appropriate GPU that supports needed features. */
 	void createPhysicalDevice();

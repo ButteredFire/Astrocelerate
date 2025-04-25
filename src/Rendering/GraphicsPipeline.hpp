@@ -91,67 +91,67 @@ public:
 	void createDescriptorPool(uint32_t maxDescriptorSetCount, std::vector<VkDescriptorPoolSize> poolSizes, VkDescriptorPool& descriptorPool, VkDescriptorPoolCreateFlags createFlags = VkDescriptorPoolCreateFlags());
 
 private:
-	VulkanContext& vkContext;
-	std::shared_ptr<GarbageCollector> garbageCollector;
-	std::shared_ptr<BufferManager> bufferManager;
+	VulkanContext& m_vkContext;
+	std::shared_ptr<GarbageCollector> m_garbageCollector;
+	std::shared_ptr<BufferManager> m_bufferManager;
 
-	VkPipeline graphicsPipeline = VK_NULL_HANDLE;
+	VkPipeline m_graphicsPipeline = VK_NULL_HANDLE;
 
 	// Shaders
 		// Vertex shader
-	std::vector<char> vertShaderBytecode;
-	VkShaderModule vertShaderModule = VK_NULL_HANDLE;
+	std::vector<char> m_m_vertShaderBytecode;
+	VkShaderModule m_vertShaderModule = VK_NULL_HANDLE;
 	
-	VkPipelineVertexInputStateCreateInfo vertInputState{};
-	VkVertexInputBindingDescription vertBindingDescription = VkVertexInputBindingDescription();
-	std::vector<VkVertexInputAttributeDescription> vertAttribDescriptions{};
+	VkPipelineVertexInputStateCreateInfo m_vertInputState{};
+	VkVertexInputBindingDescription m_vertBindingDescription = VkVertexInputBindingDescription();
+	std::vector<VkVertexInputAttributeDescription> m_vertAttribDescriptions{};
 
 		// Fragment shader
-	std::vector<char> fragShaderBytecode;
-	VkShaderModule fragShaderModule = VK_NULL_HANDLE;
-	std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
+	std::vector<char> m_m_fragShaderBytecode;
+	VkShaderModule m_m_fragShaderModule = VK_NULL_HANDLE;
+	std::vector<VkPipelineShaderStageCreateInfo> m_shaderStages;
 
 	// Render pass
-	VkRenderPass renderPass = VK_NULL_HANDLE;
+	VkRenderPass m_renderPass = VK_NULL_HANDLE;
 
 	// Dynamic states
-	std::vector<VkDynamicState> dynamicStates;
-	VkPipelineDynamicStateCreateInfo dynamicStateCreateInfo{};
+	std::vector<VkDynamicState> m_dynamicStates;
+	VkPipelineDynamicStateCreateInfo m_dynamicStateCreateInfo{};
 
 	// Assembly state
-	VkPipelineInputAssemblyStateCreateInfo inputAssemblyCreateInfo{};
+	VkPipelineInputAssemblyStateCreateInfo m_inputAssemblyCreateInfo{};
 
 	// Viewport state & scissor rectangle
-	VkViewport viewport{};
-	VkPipelineViewportStateCreateInfo viewportStateCreateInfo{};
+	VkViewport m_viewport{};
+	VkPipelineViewportStateCreateInfo m_viewportStateCreateInfo{};
 
-	VkRect2D scissorRectangle{};
+	VkRect2D m_scissorRectangle{};
 
 	// Rasterization state
-	VkPipelineRasterizationStateCreateInfo rasterizerCreateInfo{};
+	VkPipelineRasterizationStateCreateInfo m_rasterizerCreateInfo{};
 
 	// Multisampling state
-	VkPipelineMultisampleStateCreateInfo multisampleStateCreateInfo{};
+	VkPipelineMultisampleStateCreateInfo m_multisampleStateCreateInfo{};
 
 	// Depth stencil state
-	VkPipelineDepthStencilStateCreateInfo depthStencilStateCreateInfo{};
+	VkPipelineDepthStencilStateCreateInfo m_depthStencilStateCreateInfo{};
 
 	// Color blending state
-	VkPipelineColorBlendAttachmentState colorBlendAttachment{};
-	VkPipelineColorBlendStateCreateInfo colorBlendCreateInfo{};
+	VkPipelineColorBlendAttachmentState m_colorBlendAttachment{};
+	VkPipelineColorBlendStateCreateInfo m_colorBlendCreateInfo{};
 
 	// Tessellation state
-	VkPipelineTessellationStateCreateInfo tessStateCreateInfo{};
+	VkPipelineTessellationStateCreateInfo m_tessStateCreateInfo{};
 
 	// Descriptors
-	VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
-	VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
-	std::vector<VkDescriptorSet> descriptorSets;
+	VkDescriptorSetLayout m_descriptorSetLayout = VK_NULL_HANDLE;
+	VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
+	std::vector<VkDescriptorSet> m_descriptorSets;
 
-	uint32_t descriptorCount = 0;
+	uint32_t m_descriptorCount = 0;
 
 	// Pipeline layout
-	VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
+	VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
 
 
 

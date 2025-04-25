@@ -5,7 +5,7 @@
 
 
 UIRenderer::UIRenderer(VulkanContext& context):
-    vkContext(context) {
+    m_vkContext(context) {
 
     garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
     graphicsPipeline = ServiceLocator::getService<GraphicsPipeline>(__FUNCTION__);
@@ -27,7 +27,7 @@ void UIRenderer::initializeImGui(UIRenderer::Appearance appearance) {
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // IF using Docking Branch
 
     // Setup Platform/Renderer backends
-    ImGui_ImplGlfw_InitForVulkan(vkContext.window, true);
+    ImGui_ImplGlfw_InitForVulkan(m_vkContext.window, true);
 
 
     // Setup Dear ImGui style
@@ -55,12 +55,12 @@ void UIRenderer::initializeImGui(UIRenderer::Appearance appearance) {
 
     // Initialization info
     ImGui_ImplVulkan_InitInfo vkInitInfo = {};
-    vkInitInfo.Instance = vkContext.vulkanInstance;         // Instance
-    vkInitInfo.PhysicalDevice = vkContext.Device.physicalDevice;   // Physical device
-    vkInitInfo.Device = vkContext.Device.logicalDevice;            // Logical device
+    vkInitInfo.Instance = m_vkContext.vulkanInstance;         // Instance
+    vkInitInfo.PhysicalDevice = m_vkContext.Device.physicalDevice;   // Physical device
+    vkInitInfo.Device = m_vkContext.Device.logicalDevice;            // Logical device
 
     // Queue
-    QueueFamilyIndices familyIndices = vkContext.Device.queueFamilies;
+    QueueFamilyIndices familyIndices = m_vkContext.Device.queueFamilies;
     vkInitInfo.QueueFamily = familyIndices.graphicsFamily.index.value();
     vkInitInfo.Queue = familyIndices.graphicsFamily.deviceQueue;
 
@@ -77,12 +77,12 @@ void UIRenderer::initializeImGui(UIRenderer::Appearance appearance) {
 
 
     // Render pass & subpass
-    vkInitInfo.RenderPass = vkContext.GraphicsPipeline.renderPass;
+    vkInitInfo.RenderPass = m_vkContext.GraphicsPipeline.renderPass;
     vkInitInfo.Subpass = 1;
 
     // Image count
-    vkInitInfo.MinImageCount = vkContext.SwapChain.minImageCount; // For some reason, ImGui does not actually use this property
-    vkInitInfo.ImageCount = vkContext.SwapChain.minImageCount;
+    vkInitInfo.MinImageCount = m_vkContext.SwapChain.minImageCount; // For some reason, ImGui does not actually use this property
+    vkInitInfo.ImageCount = m_vkContext.SwapChain.minImageCount;
 
     // Other
     vkInitInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
@@ -130,13 +130,13 @@ void UIRenderer::initializeImGui(UIRenderer::Appearance appearance) {
 
 void UIRenderer::refreshImGui() {
     int width = 0, height = 0;
-    glfwGetFramebufferSize(vkContext.window, &width, &height);
+    glfwGetFramebufferSize(m_vkContext.window, &width, &height);
 
-    QueueFamilyIndices familyIndices = vkContext.Device.queueFamilies;
+    QueueFamilyIndices familyIndices = m_vkContext.Device.queueFamilies;
     uint32_t queueFamily = familyIndices.graphicsFamily.index.value();
 
-    ImGui_ImplVulkan_SetMinImageCount(vkContext.SwapChain.minImageCount);
-    //ImGui_ImplVulkanH_CreateOrResizeWindow(vkContext.vulkanInstance, vkContext.Device.physicalDevice, vkContext.Device.logicalDevice, WINDOW, queueFamily, nullptr, width, height, vkContext.minImageCount);
+    ImGui_ImplVulkan_SetMinImageCount(m_vkContext.SwapChain.minImageCount);
+    //ImGui_ImplVulkanH_CreateOrResizeWindow(m_vkContext.vulkanInstance, m_vkContext.Device.physicalDevice, m_vkContext.Device.logicalDevice, WINDOW, queueFamily, nullptr, width, height, m_vkContext.minImageCount);
 }
 
 

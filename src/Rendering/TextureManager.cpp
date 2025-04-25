@@ -4,7 +4,7 @@
 
 
 TextureManager::TextureManager(VulkanContext& context) :
-	vkContext(context) {
+	m_vkContext(context) {
 
 	garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
 
@@ -15,7 +15,7 @@ TextureManager::TextureManager(VulkanContext& context) :
 void TextureManager::createTexture(const char* texSource, VkFormat texImgFormat, int channels) {
 	// If the default format is passed, use the default surface format
 	if (texImgFormat == VK_FORMAT_UNDEFINED) {
-		textureImageFormat = vkContext.SwapChain.surfaceFormat.format;
+		textureImageFormat = m_vkContext.SwapChain.surfaceFormat.format;
 	}
 	else {
 		textureImageFormat = texImgFormat;
@@ -53,13 +53,13 @@ void TextureManager::createTextureImage(const char* texSource, int channels) {
 	bufAllocInfo.requiredFlags = (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 	bufAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT; // Specify CPU access since we will be mapping the buffer allocation to CPU memory
 
-	uint32_t stagingBufTaskID = BufferManager::createBuffer(vkContext, stagingBuffer, imageSize, stagingBufUsageFlags, stagingBufAllocation, bufAllocInfo);
+	uint32_t stagingBufTaskID = BufferManager::createBuffer(m_vkContext, stagingBuffer, imageSize, stagingBufUsageFlags, stagingBufAllocation, bufAllocInfo);
 
 		// Copy pixel data to the buffer
 	void* pixelData;
-	vmaMapMemory(vkContext.vmaAllocator, stagingBufAllocation, &pixelData);
+	vmaMapMemory(m_vkContext.vmaAllocator, stagingBufAllocation, &pixelData);
 		memcpy(pixelData, pixels, static_cast<size_t>(imageSize));
-	vmaUnmapMemory(vkContext.vmaAllocator, stagingBufAllocation);
+	vmaUnmapMemory(m_vkContext.vmaAllocator, stagingBufAllocation);
 
 
 	// Clean up the `pixels` array
@@ -93,9 +93,9 @@ void TextureManager::createTextureImage(const char* texSource, int channels) {
 	CleanupTask imgTask{};
 	imgTask.caller = __FUNCTION__;
 	imgTask.objectNames = { VARIABLE_NAME(textureImageAllocation) };
-	imgTask.vkObjects = { vkContext.vmaAllocator, textureImageAllocation };
+	imgTask.vkObjects = { m_vkContext.vmaAllocator, textureImageAllocation };
 	imgTask.cleanupFunc = [this]() {
-		vmaDestroyImage(vkContext.vmaAllocator, textureImage, textureImageAllocation);
+		vmaDestroyImage(m_vkContext.vmaAllocator, textureImage, textureImageAllocation);
 	};
 
 	garbageCollector->createCleanupTask(imgTask);
@@ -106,9 +106,9 @@ void TextureManager::createTextureImage(const char* texSource, int channels) {
 
 
 void TextureManager::createTextureImageView() {
-	std::pair<VkImageView, uint32_t> imageViewProperties = VkSwapchainManager::createImageView(vkContext, textureImage, textureImageFormat);
+	std::pair<VkImageView, uint32_t> imageViewProperties = VkSwapchainManager::createImageView(m_vkContext, textureImage, textureImageFormat);
 	textureImageView = imageViewProperties.first;
-	vkContext.Texture.imageView = textureImageView;
+	m_vkContext.Texture.imageView = textureImageView;
 }
 
 
@@ -143,7 +143,7 @@ void TextureManager::createTextureSampler() {
 	// Enabling it makes textures less blurry/distorted especially when viewed at sharp angles, when stretched across a surface, etc..
 	// However, it may impact performance (although that depends on the filtering level, e.g., 2x, 4x, 8x, 16x)
 	samplerCreateInfo.anisotropyEnable = VK_TRUE;
-	samplerCreateInfo.maxAnisotropy = vkContext.Device.deviceProperties.limits.maxSamplerAnisotropy;
+	samplerCreateInfo.maxAnisotropy = m_vkContext.Device.deviceProperties.limits.maxSamplerAnisotropy;
 
 	
 	// Use normalized texture coordinates <=> coordinates are clamped in the [0, 1) range instead of [0, textureWidth) and [0, textureHeight)
@@ -163,19 +163,19 @@ void TextureManager::createTextureSampler() {
 	samplerCreateInfo.maxLod = 0.0f;
 
 
-	VkResult result = vkCreateSampler(vkContext.Device.logicalDevice, &samplerCreateInfo, nullptr, &textureSampler);
+	VkResult result = vkCreateSampler(m_vkContext.Device.logicalDevice, &samplerCreateInfo, nullptr, &textureSampler);
 	if (result != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, "Failed to create texture sampler!");
 	}
 	
-	vkContext.Texture.sampler = textureSampler;
+	m_vkContext.Texture.sampler = textureSampler;
 
 
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(textureSampler) };
-	task.vkObjects = { vkContext.Device.logicalDevice, textureSampler };
-	task.cleanupFunc = [this]() { vkDestroySampler(vkContext.Device.logicalDevice, textureSampler, nullptr); };
+	task.vkObjects = { m_vkContext.Device.logicalDevice, textureSampler };
+	task.cleanupFunc = [this]() { vkDestroySampler(m_vkContext.Device.logicalDevice, textureSampler, nullptr); };
 
 	garbageCollector->createCleanupTask(task);
 }
@@ -261,7 +261,7 @@ void TextureManager::createImage(VkImage& image, VmaAllocation& imgAllocation, u
 	imgCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
 
-	VkResult imgCreateResult = vmaCreateImage(vkContext.vmaAllocator, &imgCreateInfo, &imgAllocCreateInfo, &image, &imgAllocation, nullptr);
+	VkResult imgCreateResult = vmaCreateImage(m_vkContext.vmaAllocator, &imgCreateInfo, &imgAllocCreateInfo, &image, &imgAllocation, nullptr);
 	if (imgCreateResult != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, "Failed to create image!");
 	}
@@ -270,12 +270,12 @@ void TextureManager::createImage(VkImage& image, VmaAllocation& imgAllocation, u
 
 void TextureManager::switchImageLayout(VkImage image, VkFormat imgFormat, VkImageLayout oldLayout, VkImageLayout newLayout) {
 	SingleUseCommandBufferInfo cmdInfo{};
-	cmdInfo.commandPool = VkCommandManager::createCommandPool(vkContext, vkContext.Device.logicalDevice, vkContext.Device.queueFamilies.graphicsFamily.index.value(), VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
-	cmdInfo.fence = VkSyncManager::createSingleUseFence(vkContext);
+	cmdInfo.commandPool = VkCommandManager::createCommandPool(m_vkContext, m_vkContext.Device.logicalDevice, m_vkContext.Device.queueFamilies.graphicsFamily.index.value(), VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
+	cmdInfo.fence = VkSyncManager::createSingleUseFence(m_vkContext);
 	cmdInfo.usingSingleUseFence = true;
-	cmdInfo.queue = vkContext.Device.queueFamilies.graphicsFamily.deviceQueue;
+	cmdInfo.queue = m_vkContext.Device.queueFamilies.graphicsFamily.deviceQueue;
 
-	VkCommandBuffer commandBuffer = VkCommandManager::beginSingleUseCommandBuffer(vkContext, &cmdInfo);
+	VkCommandBuffer commandBuffer = VkCommandManager::beginSingleUseCommandBuffer(m_vkContext, &cmdInfo);
 
 	/* Perform layout transition using an image memory barrier.
 		It is part of Vulkan barriers, which are used for processes like:
@@ -325,19 +325,19 @@ void TextureManager::switchImageLayout(VkImage image, VkFormat imgFormat, VkImag
 	vkCmdPipelineBarrier(commandBuffer, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &imgMemBarrier);
 
 
-	VkCommandManager::endSingleUseCommandBuffer(vkContext, &cmdInfo, commandBuffer);
-	vkContext.Texture.imageLayout = newLayout;
+	VkCommandManager::endSingleUseCommandBuffer(m_vkContext, &cmdInfo, commandBuffer);
+	m_vkContext.Texture.imageLayout = newLayout;
 }
 
 
 void TextureManager::copyBufferToImage(VkBuffer& buffer, VkImage& image, uint32_t width, uint32_t height) {
 	SingleUseCommandBufferInfo cmdInfo{};
-	cmdInfo.commandPool = VkCommandManager::createCommandPool(vkContext, vkContext.Device.logicalDevice, vkContext.Device.queueFamilies.graphicsFamily.index.value(), VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
-	cmdInfo.fence = VkSyncManager::createSingleUseFence(vkContext);
+	cmdInfo.commandPool = VkCommandManager::createCommandPool(m_vkContext, m_vkContext.Device.logicalDevice, m_vkContext.Device.queueFamilies.graphicsFamily.index.value(), VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
+	cmdInfo.fence = VkSyncManager::createSingleUseFence(m_vkContext);
 	cmdInfo.usingSingleUseFence = true;
-	cmdInfo.queue = vkContext.Device.queueFamilies.graphicsFamily.deviceQueue;
+	cmdInfo.queue = m_vkContext.Device.queueFamilies.graphicsFamily.deviceQueue;
 
-	VkCommandBuffer commandBuffer = VkCommandManager::beginSingleUseCommandBuffer(vkContext, &cmdInfo);
+	VkCommandBuffer commandBuffer = VkCommandManager::beginSingleUseCommandBuffer(m_vkContext, &cmdInfo);
 
 
 	// Specifies the region of the buffer to copy to the image
@@ -371,5 +371,5 @@ void TextureManager::copyBufferToImage(VkBuffer& buffer, VkImage& image, uint32_
 	);
 
 
-	VkCommandManager::endSingleUseCommandBuffer(vkContext, &cmdInfo, commandBuffer);
+	VkCommandManager::endSingleUseCommandBuffer(m_vkContext, &cmdInfo, commandBuffer);
 }

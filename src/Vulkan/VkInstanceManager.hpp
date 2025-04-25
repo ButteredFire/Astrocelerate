@@ -96,7 +96,7 @@ public:
 	/* Gets the renderer's currently enabled Vulkan validation layers.
 		@return A vector of type `const char*` that contains the names of currently enabled validation layers.
 	*/
-	inline std::vector<const char*> getEnabledVulkanValidationLayers() const { return enabledValidationLayers; };
+	inline std::vector<const char*> getEnabledVulkanValidationLayers() const { return m_enabledValidationLayers; };
 
 
 	/* Queries supported Vulkan extensions (may differ from machine to machine).
@@ -112,10 +112,10 @@ public:
 
 
 	inline VkInstance getInstance() { 
-		if (vulkInst == VK_NULL_HANDLE) {
+		if (m_vulkInst == VK_NULL_HANDLE) {
 			throw Log::RuntimeException(__FUNCTION__, "Cannot get Vulkan instance: Vulkan has not been initialized!");
 		}
-		return vulkInst;
+		return m_vulkInst;
 	};
 
 
@@ -131,21 +131,21 @@ public:
 	void addVulkanValidationLayers(std::vector<const char*> layers);
 
 private:
-	VkInstance vulkInst = VK_NULL_HANDLE;
-	VulkanContext& vkContext;
-	std::shared_ptr<GarbageCollector> garbageCollector;
-	VkSurfaceKHR windowSurface = VK_NULL_HANDLE;
+	VkInstance m_vulkInst = VK_NULL_HANDLE;
+	VulkanContext& m_vkContext;
+	std::shared_ptr<GarbageCollector> m_garbageCollector;
+	VkSurfaceKHR m_windowSurface = VK_NULL_HANDLE;
 
-	VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
+	VkDebugUtilsMessengerEXT m_debugMessenger = VK_NULL_HANDLE;
 
-	std::vector<const char*> enabledExtensions;
-	std::vector<const char*> enabledValidationLayers;
-	std::unordered_set<const char*> UTIL_enabledExtensionSet; // Purpose: Prevents copying extensions
-	std::unordered_set<const char*> UTIL_enabledValidationLayerSet; // Purpose: Prevents copying duplicate layers
-	std::vector<VkLayerProperties> supportedLayers;
-	std::vector<VkExtensionProperties> supportedExtensions;
-	std::unordered_set<std::string> supportedLayerNames;
-	std::unordered_set<std::string> supportedExtensionNames;
+	std::vector<const char*> m_enabledExtensions;
+	std::vector<const char*> m_enabledValidationLayers;
+	std::unordered_set<const char*> m_UTIL_enabledExtensionSet; // Purpose: Prevents copying extensions
+	std::unordered_set<const char*> m_UTIL_enabledValidationLayerSet; // Purpose: Prevents copying duplicate layers
+	std::vector<VkLayerProperties> m_supportedLayers;
+	std::vector<VkExtensionProperties> m_supportedExtensions;
+	std::unordered_set<std::string> m_supportedLayerNames;
+	std::unordered_set<std::string> m_supportedExtensionNames;
 
 
 	/* Initializes Vulkan. */

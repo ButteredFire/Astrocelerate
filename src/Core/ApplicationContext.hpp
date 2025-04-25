@@ -198,7 +198,7 @@ struct VulkanContext {
         VkRenderPass renderPass = VK_NULL_HANDLE;
 		uint32_t subpassCount = 0;
 
-		std::vector<VkDescriptorSet> descriptorSets;
+		std::vector<VkDescriptorSet> m_descriptorSets;
     } GraphicsPipeline;
 };
 

@@ -5,7 +5,7 @@
 
 
 VkCommandManager::VkCommandManager(VulkanContext& context):
-	vkContext(context) {
+	m_vkContext(context) {
 
 	garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
 
@@ -16,15 +16,15 @@ VkCommandManager::~VkCommandManager() {};
 
 
 void VkCommandManager::init() {
-	QueueFamilyIndices familyIndices = vkContext.Device.queueFamilies;
-	graphicsCmdPool = createCommandPool(vkContext, vkContext.Device.logicalDevice, familyIndices.graphicsFamily.index.value());
-	transferCmdPool = createCommandPool(vkContext, vkContext.Device.logicalDevice, familyIndices.transferFamily.index.value());
+	QueueFamilyIndices familyIndices = m_vkContext.Device.queueFamilies;
+	graphicsCmdPool = createCommandPool(m_vkContext, m_vkContext.Device.logicalDevice, familyIndices.graphicsFamily.index.value());
+	transferCmdPool = createCommandPool(m_vkContext, m_vkContext.Device.logicalDevice, familyIndices.transferFamily.index.value());
 
 	allocCommandBuffers(graphicsCmdPool, graphicsCmdBuffers);
-	vkContext.CommandObjects.graphicsCmdBuffers = graphicsCmdBuffers;
+	m_vkContext.CommandObjects.graphicsCmdBuffers = graphicsCmdBuffers;
 
 	allocCommandBuffers(transferCmdPool, transferCmdBuffers);
-	vkContext.CommandObjects.transferCmdBuffers = transferCmdBuffers;
+	m_vkContext.CommandObjects.transferCmdBuffers = transferCmdBuffers;
 }
 
 
@@ -54,12 +54,12 @@ void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, 
 	// Starts a render pass to start recording the drawing commands
 	VkRenderPassBeginInfo renderPassBeginInfo{};
 	renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	renderPassBeginInfo.renderPass = vkContext.GraphicsPipeline.renderPass;
-	renderPassBeginInfo.framebuffer = vkContext.SwapChain.imageFrameBuffers[imageIndex];
+	renderPassBeginInfo.renderPass = m_vkContext.GraphicsPipeline.renderPass;
+	renderPassBeginInfo.framebuffer = m_vkContext.SwapChain.imageFrameBuffers[imageIndex];
 
 		// Defines the render area (from (0, 0) to (extent.width, extent.height))
 	renderPassBeginInfo.renderArea.offset = { 0, 0 };
-	renderPassBeginInfo.renderArea.extent = vkContext.SwapChain.extent;
+	renderPassBeginInfo.renderArea.extent = m_vkContext.SwapChain.extent;
 
 		// Defines the clear values to use (we must specify this since the color attachment's load operation is VK_ATTACHMENT_LOAD_OP_CLEAR)
 	VkClearValue clearColor{};
@@ -80,15 +80,15 @@ void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, 
 
 
 	// Binds graphics pipeline
-	vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkContext.GraphicsPipeline.pipeline);
+	vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_vkContext.GraphicsPipeline.pipeline);
 
 	// Specify viewport and scissor states (since they're dynamic states)
 		// Viewport
 	VkViewport viewport{};
 	viewport.x = 0.0f;
 	viewport.y = 0.0f;
-	viewport.width = static_cast<float>(vkContext.SwapChain.extent.width);
-	viewport.height = static_cast<float>(vkContext.SwapChain.extent.height);
+	viewport.width = static_cast<float>(m_vkContext.SwapChain.extent.width);
+	viewport.height = static_cast<float>(m_vkContext.SwapChain.extent.height);
 	viewport.minDepth = 0.0f;
 	viewport.maxDepth = 1.0f;
 	vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
@@ -96,14 +96,14 @@ void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, 
 		// Scissor
 	VkRect2D scissor{};
 	scissor.offset = { 0, 0 };
-	scissor.extent = vkContext.SwapChain.extent;
+	scissor.extent = m_vkContext.SwapChain.extent;
 	vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
 
 	// Processes renderables
-	const uint32_t MAX_SUBPASSES = vkContext.GraphicsPipeline.subpassCount;
+	const uint32_t MAX_SUBPASSES = m_vkContext.GraphicsPipeline.subpassCount;
 	uint32_t subpassCount = 1;
 	for (auto renderable : renderables.getAllComponents()) {
-		RenderSystem::processRenderable(vkContext, cmdBuffer, renderable);
+		RenderSystem::processRenderable(m_vkContext, cmdBuffer, renderable);
 
 		if (subpassCount++ < MAX_SUBPASSES)
 			vkCmdNextSubpass(cmdBuffer, VK_SUBPASS_CONTENTS_INLINE);
@@ -121,7 +121,7 @@ void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, 
 }
 
 
-VkCommandBuffer VkCommandManager::beginSingleUseCommandBuffer(VulkanContext& vkContext, SingleUseCommandBufferInfo* commandBufInfo) {
+VkCommandBuffer VkCommandManager::beginSingleUseCommandBuffer(VulkanContext& m_vkContext, SingleUseCommandBufferInfo* commandBufInfo) {
 	VkCommandBufferAllocateInfo cmdBufAllocInfo{};
 	cmdBufAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 	cmdBufAllocInfo.level = commandBufInfo->bufferLevel;
@@ -129,7 +129,7 @@ VkCommandBuffer VkCommandManager::beginSingleUseCommandBuffer(VulkanContext& vkC
 	cmdBufAllocInfo.commandBufferCount = 1;
 	
 	VkCommandBuffer cmdBuffer;
-	VkResult bufAllocResult = vkAllocateCommandBuffers(vkContext.Device.logicalDevice, &cmdBufAllocInfo, &cmdBuffer);
+	VkResult bufAllocResult = vkAllocateCommandBuffers(m_vkContext.Device.logicalDevice, &cmdBufAllocInfo, &cmdBuffer);
 	if (bufAllocResult != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, "Failed to allocate single-use command buffer!");
 	}
@@ -148,7 +148,7 @@ VkCommandBuffer VkCommandManager::beginSingleUseCommandBuffer(VulkanContext& vkC
 }
 
 
-void VkCommandManager::endSingleUseCommandBuffer(VulkanContext& vkContext, SingleUseCommandBufferInfo* commandBufInfo, VkCommandBuffer& cmdBuffer) {
+void VkCommandManager::endSingleUseCommandBuffer(VulkanContext& m_vkContext, SingleUseCommandBufferInfo* commandBufInfo, VkCommandBuffer& cmdBuffer) {
 	VkResult bufEndResult = vkEndCommandBuffer(cmdBuffer);
 	if (bufEndResult != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, "Failed to stop recording single-use command buffer!");
@@ -182,22 +182,22 @@ void VkCommandManager::endSingleUseCommandBuffer(VulkanContext& vkContext, Singl
 	
 	if (commandBufInfo->fence != VK_NULL_HANDLE) {
 		if (commandBufInfo->usingSingleUseFence) {
-			VkSyncManager::waitForSingleUseFence(vkContext, commandBufInfo->fence);
+			VkSyncManager::waitForSingleUseFence(m_vkContext, commandBufInfo->fence);
 		}
 		else {
-			vkWaitForFences(vkContext.Device.logicalDevice, 1, &commandBufInfo->fence, VK_TRUE, UINT64_MAX);
-			vkResetFences(vkContext.Device.logicalDevice, 1, &commandBufInfo->fence);
+			vkWaitForFences(m_vkContext.Device.logicalDevice, 1, &commandBufInfo->fence, VK_TRUE, UINT64_MAX);
+			vkResetFences(m_vkContext.Device.logicalDevice, 1, &commandBufInfo->fence);
 		}
 	}
 	else
-		vkDeviceWaitIdle(vkContext.Device.logicalDevice);
+		vkDeviceWaitIdle(m_vkContext.Device.logicalDevice);
 
 	if (commandBufInfo->freeAfterSubmit)
-		vkFreeCommandBuffers(vkContext.Device.logicalDevice, commandBufInfo->commandPool, 1, &cmdBuffer);
+		vkFreeCommandBuffers(m_vkContext.Device.logicalDevice, commandBufInfo->commandPool, 1, &cmdBuffer);
 }
 
 
-VkCommandPool VkCommandManager::createCommandPool(VulkanContext& vkContext, VkDevice device, uint32_t queueFamilyIndex, VkCommandPoolCreateFlags flags) {
+VkCommandPool VkCommandManager::createCommandPool(VulkanContext& m_vkContext, VkDevice device, uint32_t queueFamilyIndex, VkCommandPoolCreateFlags flags) {
 	CommandPoolCreateInfo createInfo{};
 	createInfo.logicalDevice = device;
 	createInfo.queueFamilyIndex = queueFamilyIndex;
@@ -230,8 +230,8 @@ VkCommandPool VkCommandManager::createCommandPool(VulkanContext& vkContext, VkDe
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(commandPool) };
-	task.vkObjects = { vkContext.Device.logicalDevice, commandPool };
-	task.cleanupFunc = [vkContext, commandPool]() { vkDestroyCommandPool(vkContext.Device.logicalDevice, commandPool, nullptr); };
+	task.vkObjects = { m_vkContext.Device.logicalDevice, commandPool };
+	task.cleanupFunc = [m_vkContext, commandPool]() { vkDestroyCommandPool(m_vkContext.Device.logicalDevice, commandPool, nullptr); };
 
 	garbageCollector->createCleanupTask(task);
 
@@ -253,7 +253,7 @@ void VkCommandManager::allocCommandBuffers(VkCommandPool& commandPool, std::vect
 
 	bufferAllocInfo.commandBufferCount = static_cast<uint32_t>(commandBuffers.size());
 
-	VkResult result = vkAllocateCommandBuffers(vkContext.Device.logicalDevice, &bufferAllocInfo, commandBuffers.data());
+	VkResult result = vkAllocateCommandBuffers(m_vkContext.Device.logicalDevice, &bufferAllocInfo, commandBuffers.data());
 	if (result != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, "Failed to allocate command buffers!");
 	}
@@ -261,8 +261,8 @@ void VkCommandManager::allocCommandBuffers(VkCommandPool& commandPool, std::vect
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(commandBuffers) };
-	task.vkObjects = { vkContext.Device.logicalDevice, commandPool };
-	task.cleanupFunc = [this, commandPool, commandBuffers]() { vkFreeCommandBuffers(vkContext.Device.logicalDevice, commandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data()); };
+	task.vkObjects = { m_vkContext.Device.logicalDevice, commandPool };
+	task.cleanupFunc = [this, commandPool, commandBuffers]() { vkFreeCommandBuffers(m_vkContext.Device.logicalDevice, commandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data()); };
 
 	garbageCollector->createCleanupTask(task);
 }

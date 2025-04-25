@@ -11,15 +11,15 @@
 
 class Window {
 private:
-	const int WIDTH;
-	const int HEIGHT;
-	std::string windowName;
+	const int m_WIDTH;
+	const int m_HEIGHT;
+	std::string m_windowName;
 
-	GLFWwindow *window;
+	GLFWwindow *m_window;
 	
 public:
 	Window(int width, int height, std::string windowName);
 	~Window();
 
-	inline GLFWwindow* getGLFWwindowPtr() { return window; };
+	inline GLFWwindow* getGLFWwindowPtr() { return m_window; };
 };

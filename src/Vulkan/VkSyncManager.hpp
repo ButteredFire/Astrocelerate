@@ -26,29 +26,29 @@ public:
 	void init();
 
 	/* Creates a single-use fence.
-		@param vkContext: The application context.
+		@param m_vkContext: The application context.
 		@param signaled (Default: False): A boolean specifying whether the fence's initial state should be signaled (True), or not (False).
 
 		@return The fence in question.
 	*/
-	static VkFence createSingleUseFence(VulkanContext& vkContext, bool signaled = false);
+	static VkFence createSingleUseFence(VulkanContext& m_vkContext, bool signaled = false);
 
 
 	/* Waits for a single-use fence to be signaled. After waiting, the fence will be destroyed.
-		@param vkContext: The application context.
+		@param m_vkContext: The application context.
 		@param fence: The fence in question.
 		@param timeout: The fence wait time.
 	*/
-	static void waitForSingleUseFence(VulkanContext& vkContext, VkFence& fence, uint64_t timeout = UINT64_MAX);
+	static void waitForSingleUseFence(VulkanContext& m_vkContext, VkFence& fence, uint64_t timeout = UINT64_MAX);
 
 private:
-	VulkanContext& vkContext;
+	VulkanContext& m_vkContext;
 
-	std::shared_ptr<GarbageCollector> garbageCollector;
+	std::shared_ptr<GarbageCollector> m_garbageCollector;
 
-	std::vector<VkSemaphore> imageReadySemaphores;
-	std::vector<VkSemaphore> renderFinishedSemaphores;
-	std::vector<VkFence> inFlightFences;
+	std::vector<VkSemaphore> m_imageReadySemaphores;
+	std::vector<VkSemaphore> m_renderFinishedSemaphores;
+	std::vector<VkFence> m_inFlightFences;
 
 	/* Creates synchronization objects. */
 	void createSyncObjects();

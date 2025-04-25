@@ -13,11 +13,11 @@ public:
 	template<typename T>
 	inline static void registerService(std::shared_ptr<T> service) {
 		std::type_index serviceTypeIdx = std::type_index(typeid(T));
-		if (services.find(serviceTypeIdx) != services.end()) {
+		if (m_services.find(serviceTypeIdx) != m_services.end()) {
 			Log::print(Log::T_WARNING, __FUNCTION__, "Service of type " + enquote(serviceTypeIdx.name()) + " already exists! Overwriting existing service...");
 		}
 
-		services[serviceTypeIdx] = service;
+		m_services[serviceTypeIdx] = service;
 	}
 
 	/* Gets a service from the registry.
@@ -29,8 +29,8 @@ public:
 	template<typename T>
 	inline static std::shared_ptr<T> getService(const char* caller) {
 		std::type_index serviceTypeIdx = std::type_index(typeid(T));
-		auto ptrIt = services.find(serviceTypeIdx);
-		if (ptrIt == services.end()) {
+		auto ptrIt = m_services.find(serviceTypeIdx);
+		if (ptrIt == m_services.end()) {
 			throw Log::RuntimeException(__FUNCTION__, "Failed to find service of type " + enquote(serviceTypeIdx.name()) + "!"
 				+ '\n' + "Service retrieval requested from " + std::string(caller) + ".");
 		}
@@ -40,5 +40,5 @@ public:
 
 
 private:
-	static inline std::unordered_map<std::type_index, std::shared_ptr<void>> services;
+	static inline std::unordered_map<std::type_index, std::shared_ptr<void>> m_services;
 };

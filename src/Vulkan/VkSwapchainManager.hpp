@@ -50,13 +50,13 @@ public:
 
 
 	/* Creates an image view.
-		@param vkContext: The application context.
+		@param m_vkContext: The application context.
 		@param image: The image to be used.
 		@param imgFormat: The image format.
 
 		@return A pair containing the image view (pair::first), and its cleanup task ID (pair::second).
 	*/
-	static std::pair<VkImageView, uint32_t> createImageView(VulkanContext& vkContext, VkImage& image, VkFormat imgFormat);
+	static std::pair<VkImageView, uint32_t> createImageView(VulkanContext& m_vkContext, VkImage& image, VkFormat imgFormat);
 
 
 	/* Queries the properties of a GPU's swap-chain.
@@ -68,17 +68,17 @@ public:
 	static SwapChainProperties getSwapChainProperties(VkPhysicalDevice& device, VkSurfaceKHR& surface);
 
 private:
-	VulkanContext& vkContext;
+	VulkanContext& m_vkContext;
 
-	std::shared_ptr<GarbageCollector> garbageCollector;
-	std::vector<uint32_t> cleanupTaskIDs; // Stores cleanup task IDs (used exclusively in the swap-chain recreation process)
+	std::shared_ptr<GarbageCollector> m_garbageCollector;
+	std::vector<uint32_t> m_cleanupTaskIDs; // Stores cleanup task IDs (used exclusively in the swap-chain recreation process)
 
-	VkSwapchainKHR swapChain = VK_NULL_HANDLE;
+	VkSwapchainKHR m_swapChain = VK_NULL_HANDLE;
 
-	std::vector<VkImage> images;
-	std::vector<VkImageView> imageViews;
+	std::vector<VkImage> m_images;
+	std::vector<VkImageView> m_imageViews;
 
-	std::vector<VkFramebuffer> imageFrameBuffers;
+	std::vector<VkFramebuffer> m_imageFrameBuffers;
 
 
 	/* Creates a swap-chain. */

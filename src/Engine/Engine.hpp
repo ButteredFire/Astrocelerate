@@ -39,7 +39,7 @@ public:
 private:
 	// Global
 	GLFWwindow *window;
-	VulkanContext &vkContext;
+	VulkanContext &m_vkContext;
 
 	Renderer& renderer;
 

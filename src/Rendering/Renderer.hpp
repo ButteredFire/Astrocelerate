@@ -62,23 +62,23 @@ public:
 	void update();
 
 private:
-	VkInstance &vulkInst;
-	VulkanContext &vkContext;
+	VkInstance& m_vulkInst;
+	VulkanContext& m_vkContext;
 
-	std::shared_ptr<EntityManager> globalEntityManager;
+	std::shared_ptr<EntityManager> m_globalEntityManager;
 
-	std::shared_ptr<VkSwapchainManager> swapchainManager;
-	std::shared_ptr<BufferManager> bufferManager;
-	std::shared_ptr<VkCommandManager> commandManager;
+	std::shared_ptr<VkSwapchainManager> m_swapchainManager;
+	std::shared_ptr<BufferManager> m_bufferManager;
+	std::shared_ptr<VkCommandManager> m_commandManager;
 
-	std::shared_ptr<GraphicsPipeline> graphicsPipeline;
+	std::shared_ptr<GraphicsPipeline> m_graphicsPipeline;
 
-	std::shared_ptr<UIRenderer> imguiRenderer;
+	std::shared_ptr<UIRenderer> m_imguiRenderer;
 
-	uint32_t currentFrame = 0;
+	uint32_t m_currentFrame = 0;
 
-	Entity vertexRenderable{};
-	Entity guiRenderable{};
+	Entity m_vertexRenderable{};
+	Entity m_guiRenderable{};
 
 
 	/* Creates renderable entities. */

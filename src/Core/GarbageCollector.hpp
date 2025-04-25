@@ -68,17 +68,17 @@ public:
 	void processCleanupStack();
 
 private:
-	VmaAllocator vmaAllocator = VK_NULL_HANDLE;
-	VulkanContext& vkContext;
+	VmaAllocator m_vmaAllocator = VK_NULL_HANDLE;
+	VulkanContext& m_vkContext;
 
-	std::deque<CleanupTask> cleanupStack;
+	std::deque<CleanupTask> m_cleanupStack;
 
-	std::unordered_map<uint32_t, size_t> idToIdxLookup;  // A hashmap that maps a cleanup task's ID to its index in the cleanup stack
-	uint32_t nextID;  // A counter for generating unique cleanup task IDs
+	std::unordered_map<uint32_t, size_t> m_idToIdxLookup;  // A hashmap that maps a cleanup task's ID to its index in the cleanup stack
+	uint32_t m_nextID;  // A counter for generating unique cleanup task IDs
 
 	// Defines the maximum number of invalid tasks (if invalidTasks exceeds the maximum, we can perform a cleanup on the cleanup stack itself, i.e., remove invalid tasks from the stack and update the ID-to-Index hashmap accordingly)
-	const uint32_t MAX_INVALID_TASKS = 20;
-	uint32_t invalidTaskCount = 0;
+	const uint32_t m_MAX_INVALID_TASKS = 20;
+	uint32_t m_invalidTaskCount = 0;
 
 
 	/* Executes a cleanup task.

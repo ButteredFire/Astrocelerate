@@ -102,32 +102,32 @@ namespace Log {
 	/* Custom RTE exception class that allows for origin specification. */
 	class RuntimeException : public std::exception {
 	public:
-		RuntimeException(const std::string& functionName, const std::string& message, MsgType severity = T_ERROR) : funcName(functionName), exceptionMessage(message), msgType(severity) {}
+		RuntimeException(const std::string& functionName, const std::string& message, MsgType severity = T_ERROR) : m_funcName(functionName), m_exceptionMessage(message), m_msgType(severity) {}
 
 		/* Gets the name of the origin from which the exception was raised. 
 			@return The name of the origin.
 		*/
 		inline const char* origin() const noexcept {
-			return funcName.c_str();
+			return m_funcName.c_str();
 		}
 
 		/* Gets the message's severity.
 			@return The message severity.
 		*/
 		inline const MsgType severity() const noexcept {
-			return msgType;
+			return m_msgType;
 		}
 
 		/* Gets the error message. 
 			@return The error message.
 		*/
 		inline const char* what() const noexcept override {
-			return exceptionMessage.c_str();
+			return m_exceptionMessage.c_str();
 		}
 	
 	private:
-		std::string funcName = "unknown origin";
-		std::string exceptionMessage;
-		MsgType msgType;
+		std::string m_funcName = "unknown origin";
+		std::string m_exceptionMessage;
+		MsgType m_msgType;
 	};
 }

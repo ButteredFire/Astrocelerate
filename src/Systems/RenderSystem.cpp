@@ -4,7 +4,7 @@
 #include "RenderSystem.hpp"
 
 
-void RenderSystem::processRenderable(VulkanContext& vkContext, VkCommandBuffer& cmdBuffer, RenderableComponent& renderable) {
+void RenderSystem::processRenderable(VulkanContext& m_vkContext, VkCommandBuffer& cmdBuffer, RenderableComponent& renderable) {
 	switch (renderable.renderableType) {
 	case RenderableComponentType::T_RENDERABLE_VERTEX:
 		// Bind vertex and index buffers, then draw
@@ -25,7 +25,7 @@ void RenderSystem::processRenderable(VulkanContext& vkContext, VkCommandBuffer& 
 
 		// Draw call
 			// Binds descriptor sets
-		vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkContext.GraphicsPipeline.layout, 0, 1, &renderable.descriptorSet, 0, nullptr);
+		vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_vkContext.GraphicsPipeline.layout, 0, 1, &renderable.descriptorSet, 0, nullptr);
 
 
 		// Draws vertices based on the index buffer

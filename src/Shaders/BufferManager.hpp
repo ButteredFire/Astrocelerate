@@ -83,7 +83,7 @@ public:
 
 
     /* Creates a buffer.
-        @param vkContext: The application context.
+        @param m_vkContext: The application context.
         @param &buffer: The buffer to be created.
         @param bufferSize: The size of the buffer (in bytes).
         @param usageFlags: Flags specifying how the buffer will be used.
@@ -92,7 +92,7 @@ public:
         
         @return The cleanup task ID for the newly created buffer.
     */
-    static uint32_t createBuffer(VulkanContext& vkContext, VkBuffer& buffer, VkDeviceSize bufferSize, VkBufferUsageFlags usageFlags, VmaAllocation& bufferAllocation, VmaAllocationCreateInfo bufferAllocationCreateInfo);
+    static uint32_t createBuffer(VulkanContext& m_vkContext, VkBuffer& buffer, VkDeviceSize bufferSize, VkBufferUsageFlags usageFlags, VmaAllocation& bufferAllocation, VmaAllocationCreateInfo bufferAllocationCreateInfo);
 
 
     /* Copies the contents from a source buffer to a destination buffer.
@@ -110,24 +110,24 @@ public:
 
 
     /* Gets the vertex buffer. */
-    inline const VkBuffer& getVertexBuffer() const { return vertexBuffer; }
+    inline const VkBuffer& getVertexBuffer() const { return m_vertexBuffer; }
 
     /* Gets the vertex data. */
-    inline const std::vector<Vertex> getVertexData() const { return vertices; }
+    inline const std::vector<Vertex> getVertexData() const { return m_vertices; }
 
 
     /* Gets the index buffer. */
-    inline const VkBuffer& getIndexBuffer() const { return indexBuffer; }
+    inline const VkBuffer& getIndexBuffer() const { return m_indexBuffer; }
 
     /* Gets the vertex index data. */
-    inline const std::vector<uint32_t> getVertexIndexData() const { return vertIndices; }
+    inline const std::vector<uint32_t> getVertexIndexData() const { return m_vertIndices; }
 
 
     /* Gets the uniform buffers */
-    inline const std::vector<VkBuffer>& getUniformBuffers() const { return uniformBuffers; };
+    inline const std::vector<VkBuffer>& getUniformBuffers() const { return m_uniformBuffers; };
 
     /* Gets the uniform buffer allocations */
-    inline const std::vector<VmaAllocation>& getUniformBuffersAllocations() const { return uniformBuffersAllocations; };
+    inline const std::vector<VmaAllocation>& getUniformBuffersAllocations() const { return m_uniformBuffersAllocations; };
 
 
     /* Gets the vertex input binding description. */
@@ -137,21 +137,21 @@ public:
     static std::vector<VkVertexInputAttributeDescription> getVertexAttributeDescriptions();
 
 private:
-    VulkanContext& vkContext;
-    std::shared_ptr<GarbageCollector> garbageCollector;
+    VulkanContext& m_vkContext;
+    std::shared_ptr<GarbageCollector> m_garbageCollector;
     
-    VkBuffer vertexBuffer = VK_NULL_HANDLE;
-    VmaAllocation vertexBufferAllocation = VK_NULL_HANDLE;
+    VkBuffer m_vertexBuffer = VK_NULL_HANDLE;
+    VmaAllocation m_vertexBufferAllocation = VK_NULL_HANDLE;
 
-    VkBuffer indexBuffer = VK_NULL_HANDLE;
-    VmaAllocation indexBufferAllocation = VK_NULL_HANDLE;
+    VkBuffer m_indexBuffer = VK_NULL_HANDLE;
+    VmaAllocation m_indexBufferAllocation = VK_NULL_HANDLE;
 
-    std::vector<VkBuffer> uniformBuffers;
-    std::vector<VmaAllocation> uniformBuffersAllocations;
-    std::vector<void*> uniformBuffersMappedData;
+    std::vector<VkBuffer> m_uniformBuffers;
+    std::vector<VmaAllocation> m_uniformBuffersAllocations;
+    std::vector<void*> m_uniformBuffersMappedData;
 
 
-    const std::vector<Vertex> vertices = {
+    const std::vector<Vertex> m_vertices = {
         {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},     // 0
         {{0.5f, -0.5f, 0.0f},  {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},     // 1
         {{0.5f, 0.5f, 0.0f},   {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},     // 2
@@ -163,7 +163,7 @@ private:
         {{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}      // 7
     };
 
-    const std::vector<uint32_t> vertIndices = {
+    const std::vector<uint32_t> m_vertIndices = {
         0, 1, 2, 2, 3, 0,
         4, 5, 6, 6, 7, 4
     };

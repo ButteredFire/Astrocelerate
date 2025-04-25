@@ -47,17 +47,17 @@ public:
     static void defineImageLayoutTransitionStages(VkAccessFlags* srcAccessMask, VkAccessFlags* dstAccessMask, VkPipelineStageFlags* srcStage, VkPipelineStageFlags* dstStage, VkImageLayout oldLayout, VkImageLayout newLayout);
 
 private:
-    VulkanContext& vkContext;
+    VulkanContext& m_vkContext;
 
-    std::shared_ptr<GarbageCollector> garbageCollector;
+    std::shared_ptr<GarbageCollector> m_garbageCollector;
 
-    VkImage textureImage = VK_NULL_HANDLE;
-    VkFormat textureImageFormat = VkFormat();
-    VmaAllocation textureImageAllocation = VK_NULL_HANDLE;
+    VkImage m_textureImage = VK_NULL_HANDLE;
+    VkFormat m_textureImageFormat = VkFormat();
+    VmaAllocation m_textureImageAllocation = VK_NULL_HANDLE;
 
-    VkImageView textureImageView = VK_NULL_HANDLE;
+    VkImageView m_textureImageView = VK_NULL_HANDLE;
 
-    VkSampler textureSampler = VK_NULL_HANDLE;
+    VkSampler m_textureSampler = VK_NULL_HANDLE;
 
 
     /* Creates a texture image. 

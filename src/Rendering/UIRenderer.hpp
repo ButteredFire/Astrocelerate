@@ -58,13 +58,13 @@ public:
 	void updateAppearance(UIRenderer::Appearance appearance);
 
 private:
-	VulkanContext& vkContext;
-	UIRenderer::Appearance currentAppearance = Appearance::IMGUI_APPEARANCE_DARK_MODE;
+	VulkanContext& m_vkContext;
+	UIRenderer::Appearance m_currentAppearance = Appearance::IMGUI_APPEARANCE_DARK_MODE;
 
-	std::shared_ptr<GarbageCollector> garbageCollector;
-	std::shared_ptr<GraphicsPipeline> graphicsPipeline;
+	std::shared_ptr<GarbageCollector> m_garbageCollector;
+	std::shared_ptr<GraphicsPipeline> m_graphicsPipeline;
 
-	ImFont* font = nullptr;
-	VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
-	bool showDemoWindow = true;
+	ImFont* m_pFont = nullptr;
+	VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
+	bool m_showDemoWindow = true;
 };

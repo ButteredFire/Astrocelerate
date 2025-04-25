@@ -99,42 +99,42 @@ public:
 
 		@return The command buffer in question.
 	*/
-	static VkCommandBuffer beginSingleUseCommandBuffer(VulkanContext& vkContext, SingleUseCommandBufferInfo* commandBufInfo);
+	static VkCommandBuffer beginSingleUseCommandBuffer(VulkanContext& m_vkContext, SingleUseCommandBufferInfo* commandBufInfo);
 
 
 	/* Stops recording a single-use/anonymous command buffer and submit its data to the GPU.
 		@param commandBufInfo: The command buffer configuration.
 		@param cmdBuffer: The command buffer.
 	*/
-	static void endSingleUseCommandBuffer(VulkanContext& vkContext, SingleUseCommandBufferInfo* commandBufInfo, VkCommandBuffer& cmdBuffer);
+	static void endSingleUseCommandBuffer(VulkanContext& m_vkContext, SingleUseCommandBufferInfo* commandBufInfo, VkCommandBuffer& cmdBuffer);
 
 
 	/* Creates a command pool.
-		@param vkContext: The application context.
+		@param m_vkContext: The application context.
 		@param device: The logical device.
 		@param queueFamilyIndex: The index of the queue family for which the command pool is to be created.
 		@param flags (Default: VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT): The command pool flags.
 
 		@return EITHER A new command pool (if the command pool has unique creation parameters), OR an existing command pool (if all of its creation parameters are the same as the ones passed in).
 	*/
-	static VkCommandPool createCommandPool(VulkanContext& vkContext, VkDevice device, uint32_t queueFamilyIndex, VkCommandPoolCreateFlags flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
+	static VkCommandPool createCommandPool(VulkanContext& m_vkContext, VkDevice device, uint32_t queueFamilyIndex, VkCommandPoolCreateFlags flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
 
 
 	/* Allocates a command buffer vector. */
 	void allocCommandBuffers(VkCommandPool& commandPool, std::vector<VkCommandBuffer>& commandBuffers);
 
 private:
-	VulkanContext& vkContext;
+	VulkanContext& m_vkContext;
 
-	std::shared_ptr<GarbageCollector> garbageCollector;
+	std::shared_ptr<GarbageCollector> m_garbageCollector;
 
 	// Command pools manage the memory that is used to store the buffers
 	// Command buffers are allocated from them
-	VkCommandPool graphicsCmdPool = VK_NULL_HANDLE;
-	std::vector<VkCommandBuffer> graphicsCmdBuffers;
+	VkCommandPool m_graphicsCmdPool = VK_NULL_HANDLE;
+	std::vector<VkCommandBuffer> m_graphicsCmdBuffers;
 
-	VkCommandPool transferCmdPool = VK_NULL_HANDLE;
-	std::vector<VkCommandBuffer> transferCmdBuffers;
+	VkCommandPool m_transferCmdPool = VK_NULL_HANDLE;
+	std::vector<VkCommandBuffer> m_transferCmdBuffers;
 
 	// Primarily used in command pool creation to implicitly return an existing command pool if the creation parameters matches its own.
 	inline static std::unordered_map<CommandPoolCreateInfo, VkCommandPool> cmdPoolMappings;

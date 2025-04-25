@@ -1,7 +1,7 @@
 #include "BufferManager.hpp"
 
 BufferManager::BufferManager(VulkanContext& context):
-	vkContext(context) {
+	m_vkContext(context) {
 
 	garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
 
@@ -77,7 +77,7 @@ std::vector<VkVertexInputAttributeDescription> BufferManager::getVertexAttribute
 }
 
 
-uint32_t BufferManager::createBuffer(VulkanContext& vkContext, VkBuffer& buffer, VkDeviceSize bufferSize, VkBufferUsageFlags usageFlags, VmaAllocation& bufferAllocation, VmaAllocationCreateInfo bufferAllocationCreateInfo) {
+uint32_t BufferManager::createBuffer(VulkanContext& m_vkContext, VkBuffer& buffer, VkDeviceSize bufferSize, VkBufferUsageFlags usageFlags, VmaAllocation& bufferAllocation, VmaAllocationCreateInfo bufferAllocationCreateInfo) {
 
 	std::shared_ptr<GarbageCollector> garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
 
@@ -93,7 +93,7 @@ uint32_t BufferManager::createBuffer(VulkanContext& vkContext, VkBuffer& buffer,
 	bufCreateInfo.sharingMode = VK_SHARING_MODE_CONCURRENT;
 
 		// If the sharing mode is CONCURRENT, we must specify queue families
-	QueueFamilyIndices familyIndices = vkContext.Device.queueFamilies;
+	QueueFamilyIndices familyIndices = m_vkContext.Device.queueFamilies;
 	uint32_t queueFamilyIndices[] = {
 		familyIndices.graphicsFamily.index.value(),
 		familyIndices.transferFamily.index.value()
@@ -105,7 +105,7 @@ uint32_t BufferManager::createBuffer(VulkanContext& vkContext, VkBuffer& buffer,
 	bufCreateInfo.flags = 0;
 
 
-	VkResult bufCreateResult = vmaCreateBuffer(vkContext.vmaAllocator, &bufCreateInfo, &bufferAllocationCreateInfo, &buffer, &bufferAllocation, nullptr);
+	VkResult bufCreateResult = vmaCreateBuffer(m_vkContext.vmaAllocator, &bufCreateInfo, &bufferAllocationCreateInfo, &buffer, &bufferAllocation, nullptr);
 	if (bufCreateResult != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, "Failed to create buffer!");
 	}
@@ -114,8 +114,8 @@ uint32_t BufferManager::createBuffer(VulkanContext& vkContext, VkBuffer& buffer,
 	CleanupTask bufTask{};
 	bufTask.caller = __FUNCTION__;
 	bufTask.objectNames = { VARIABLE_NAME(buffer) };
-	bufTask.vkObjects = { vkContext.vmaAllocator, buffer, bufferAllocation };
-	bufTask.cleanupFunc = [vkContext, buffer, bufferAllocation]() { vmaDestroyBuffer(vkContext.vmaAllocator, buffer, bufferAllocation); };
+	bufTask.vkObjects = { m_vkContext.vmaAllocator, buffer, bufferAllocation };
+	bufTask.cleanupFunc = [m_vkContext, buffer, bufferAllocation]() { vmaDestroyBuffer(m_vkContext.vmaAllocator, buffer, bufferAllocation); };
 
 	uint32_t bufferTaskID = garbageCollector->createCleanupTask(bufTask);
 
@@ -126,21 +126,21 @@ uint32_t BufferManager::createBuffer(VulkanContext& vkContext, VkBuffer& buffer,
 
 void BufferManager::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize deviceSize) {
 	// Uses the transfer queue by default, but if it does not exist, switch to the graphics queue
-	QueueFamilyIndices::QueueFamily queueFamily = vkContext.Device.queueFamilies.transferFamily;
+	QueueFamilyIndices::QueueFamily queueFamily = m_vkContext.Device.queueFamilies.transferFamily;
 	if (queueFamily.deviceQueue == VK_NULL_HANDLE || !queueFamily.index.has_value()) {
 		Log::print(Log::T_WARNING, __FUNCTION__, "Transfer queue family is not valid. Switching to graphics queue family...");
-		queueFamily = vkContext.Device.queueFamilies.graphicsFamily;
+		queueFamily = m_vkContext.Device.queueFamilies.graphicsFamily;
 	}
 
 
 	// Begins recording a command buffer to send data to the GPU
 	SingleUseCommandBufferInfo cmdBufInfo{};
-	cmdBufInfo.commandPool = VkCommandManager::createCommandPool(vkContext, vkContext.Device.logicalDevice, queueFamily.index.value(), VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
-	cmdBufInfo.fence = VkSyncManager::createSingleUseFence(vkContext);
+	cmdBufInfo.commandPool = VkCommandManager::createCommandPool(m_vkContext, m_vkContext.Device.logicalDevice, queueFamily.index.value(), VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
+	cmdBufInfo.fence = VkSyncManager::createSingleUseFence(m_vkContext);
 	cmdBufInfo.usingSingleUseFence = true;
 	cmdBufInfo.queue = queueFamily.deviceQueue;
 
-	VkCommandBuffer commandBuffer = VkCommandManager::beginSingleUseCommandBuffer(vkContext, &cmdBufInfo);
+	VkCommandBuffer commandBuffer = VkCommandManager::beginSingleUseCommandBuffer(m_vkContext, &cmdBufInfo);
 
 
 	// Copies the data
@@ -153,7 +153,7 @@ void BufferManager::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceS
 
 
 	// Stops recording the command buffer and submits recorded data to the GPU
-	VkCommandManager::endSingleUseCommandBuffer(vkContext, &cmdBufInfo, commandBuffer);
+	VkCommandManager::endSingleUseCommandBuffer(m_vkContext, &cmdBufInfo, commandBuffer);
 }
 
 
@@ -184,7 +184,7 @@ void BufferManager::updateUniformBuffer(uint32_t currentImage) {
 
 	// glm::perspective(fieldOfView, aspectRatio, nearClipPlane, farClipPlane);
 	constexpr float fieldOfView = glm::radians(60.0f);
-	float aspectRatio = static_cast<float>(vkContext.SwapChain.extent.width / vkContext.SwapChain.extent.height);
+	float aspectRatio = static_cast<float>(m_vkContext.SwapChain.extent.width / m_vkContext.SwapChain.extent.height);
 	float nearClipPlane = 0.1f;
 	float farClipPlane = 10.0f;
 
@@ -245,13 +245,13 @@ void BufferManager::writeDataToGPUBuffer(const void* data, VkBuffer& buffer, VkD
 	*/
 	stagingBufAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
 
-	uint32_t stagingBufTaskID = createBuffer(vkContext, stagingBuffer, bufferSize, stagingBufUsage, stagingBufAllocation, stagingBufAllocInfo);
+	uint32_t stagingBufTaskID = createBuffer(m_vkContext, stagingBuffer, bufferSize, stagingBufUsage, stagingBufAllocation, stagingBufAllocInfo);
 
 	// Copies data to the staging buffer
 	void* mappedData;
-	vmaMapMemory(vkContext.vmaAllocator, stagingBufAllocation, &mappedData);	// Maps the buffer memory into CPU-accessible memory so that we can write data to it
+	vmaMapMemory(m_vkContext.vmaAllocator, stagingBufAllocation, &mappedData);	// Maps the buffer memory into CPU-accessible memory so that we can write data to it
 	memcpy(mappedData, data, static_cast<size_t>(bufferSize));	// Copies the data to the mapped buffer memory
-	vmaUnmapMemory(vkContext.vmaAllocator, stagingBufAllocation);		// Unmaps the mapped buffer memory
+	vmaUnmapMemory(m_vkContext.vmaAllocator, stagingBufAllocation);		// Unmaps the mapped buffer memory
 
 
 	// Copies the contents from the staging buffer to the destination buffer
@@ -273,7 +273,7 @@ void BufferManager::createVertexBuffer() {
 	vertBufAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE; // PREFERS fast device-local memory
 	vertBufAllocInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT; // FORCES device-local memory
 	
-	createBuffer(vkContext, vertexBuffer, bufferSize, vertBufUsage, vertexBufferAllocation, vertBufAllocInfo);
+	createBuffer(m_vkContext, vertexBuffer, bufferSize, vertBufUsage, vertexBufferAllocation, vertBufAllocInfo);
 
 	writeDataToGPUBuffer(vertices.data(), vertexBuffer, bufferSize);
 }
@@ -289,7 +289,7 @@ void BufferManager::createIndexBuffer() {
 	indexBufAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE; // PREFERS fast device-local memory
 	indexBufAllocInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT; // FORCES device-local memory
 
-	createBuffer(vkContext, indexBuffer, bufferSize, indexBufUsage, indexBufferAllocation, indexBufAllocInfo);
+	createBuffer(m_vkContext, indexBuffer, bufferSize, indexBufUsage, indexBufferAllocation, indexBufAllocInfo);
 
 	writeDataToGPUBuffer(vertIndices.data(), indexBuffer, bufferSize);
 }
@@ -311,21 +311,21 @@ void BufferManager::createUniformBuffers() {
 		uniformBufAllocInfo.requiredFlags = (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 		uniformBufAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
 		
-		createBuffer(vkContext, uniformBuffers[i], bufferSize, uniformBufUsageFlags, uniformBuffersAllocations[i], uniformBufAllocInfo);
+		createBuffer(m_vkContext, uniformBuffers[i], bufferSize, uniformBufUsageFlags, uniformBuffersAllocations[i], uniformBufAllocInfo);
 
 		// Maps the buffer allocation post-creation to get a pointer to the CPU memory block on which we can later write data
 		/*
 		The buffer allocation stays mapped to the pointer for the application's whole lifetime.
 		This technique is called "persistent mapping". We use it here because, as aforementioned, the UBOs are updated with new data every single frame, and mapping them alone costs a little performance, much less every frame.
 		*/
-		vmaMapMemory(vkContext.vmaAllocator, uniformBuffersAllocations[i], &uniformBuffersMappedData[i]);
+		vmaMapMemory(m_vkContext.vmaAllocator, uniformBuffersAllocations[i], &uniformBuffersMappedData[i]);
 
 		VmaAllocation uniformBufAlloc = uniformBuffersAllocations[i];
 		CleanupTask task{};
 		task.caller = __FUNCTION__;
 		task.objectNames = { VARIABLE_NAME(uniformBuffersAllocations) };
-		task.vkObjects = { vkContext.vmaAllocator, uniformBufAlloc };
-		task.cleanupFunc = [this, uniformBufAlloc]() { vmaUnmapMemory(vkContext.vmaAllocator, uniformBufAlloc); };
+		task.vkObjects = { m_vkContext.vmaAllocator, uniformBufAlloc };
+		task.cleanupFunc = [this, uniformBufAlloc]() { vmaUnmapMemory(m_vkContext.vmaAllocator, uniformBufAlloc); };
 
 		garbageCollector->createCleanupTask(task);
 	}
@@ -335,7 +335,7 @@ void BufferManager::createUniformBuffers() {
 uint32_t BufferManager::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
 	// Queries info about available memory types on the GPU
 	VkPhysicalDeviceMemoryProperties memoryProperties{};
-	vkGetPhysicalDeviceMemoryProperties(vkContext.Device.physicalDevice, &memoryProperties);
+	vkGetPhysicalDeviceMemoryProperties(m_vkContext.Device.physicalDevice, &memoryProperties);
 	
 	/* The VkPhysicalDeviceMemoryProperties struct has two arrays:
 	* - memoryHeaps: An array of structures, each describing a memory heap (i.e., distinct memory resources, e.g., VRAM, RAM) from which memory can be allocated. This is useful if we want to know what heap a memory type comes from.

@@ -5,7 +5,7 @@
 
 
 VkSyncManager::VkSyncManager(VulkanContext& context):
-	vkContext(context) {
+	m_vkContext(context) {
 
 	garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
 
@@ -21,7 +21,7 @@ void VkSyncManager::init() {
 }
 
 
-VkFence VkSyncManager::createSingleUseFence(VulkanContext& vkContext, bool signaled) {
+VkFence VkSyncManager::createSingleUseFence(VulkanContext& m_vkContext, bool signaled) {
 	VkFenceCreateInfo fenceCreateInfo{};
 	fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 	
@@ -29,7 +29,7 @@ VkFence VkSyncManager::createSingleUseFence(VulkanContext& vkContext, bool signa
 		fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 	
 	VkFence fence;
-	VkResult result = vkCreateFence(vkContext.Device.logicalDevice, &fenceCreateInfo, nullptr, &fence);
+	VkResult result = vkCreateFence(m_vkContext.Device.logicalDevice, &fenceCreateInfo, nullptr, &fence);
 	if (result != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, "Failed to create single-use fence!");
 	}
@@ -38,13 +38,13 @@ VkFence VkSyncManager::createSingleUseFence(VulkanContext& vkContext, bool signa
 }
 
 
-void VkSyncManager::waitForSingleUseFence(VulkanContext& vkContext, VkFence& fence, uint64_t timeout) {
-	VkResult result = vkWaitForFences(vkContext.Device.logicalDevice, 1, &fence, VK_TRUE, timeout);
+void VkSyncManager::waitForSingleUseFence(VulkanContext& m_vkContext, VkFence& fence, uint64_t timeout) {
+	VkResult result = vkWaitForFences(m_vkContext.Device.logicalDevice, 1, &fence, VK_TRUE, timeout);
 	if (result != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, "Failed to wait for single-use fence!");
 	}
 	
-	vkDestroyFence(vkContext.Device.logicalDevice, fence, nullptr);
+	vkDestroyFence(m_vkContext.Device.logicalDevice, fence, nullptr);
 }
 
 
@@ -89,9 +89,9 @@ void VkSyncManager::createSyncObjects() {
 	fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
 	for (size_t i = 0; i < SimulationConsts::MAX_FRAMES_IN_FLIGHT; i++) {
-		VkResult imageSemaphoreCreateResult = vkCreateSemaphore(vkContext.Device.logicalDevice, &semaphoreCreateInfo, nullptr, &imageReadySemaphores[i]);
-		VkResult renderSemaphoreCreateResult = vkCreateSemaphore(vkContext.Device.logicalDevice, &semaphoreCreateInfo, nullptr, &renderFinishedSemaphores[i]);
-		VkResult inFlightFenceCreateResult = vkCreateFence(vkContext.Device.logicalDevice, &fenceCreateInfo, nullptr, &inFlightFences[i]);
+		VkResult imageSemaphoreCreateResult = vkCreateSemaphore(m_vkContext.Device.logicalDevice, &semaphoreCreateInfo, nullptr, &imageReadySemaphores[i]);
+		VkResult renderSemaphoreCreateResult = vkCreateSemaphore(m_vkContext.Device.logicalDevice, &semaphoreCreateInfo, nullptr, &renderFinishedSemaphores[i]);
+		VkResult inFlightFenceCreateResult = vkCreateFence(m_vkContext.Device.logicalDevice, &fenceCreateInfo, nullptr, &inFlightFences[i]);
 
 		if (imageSemaphoreCreateResult != VK_SUCCESS || renderSemaphoreCreateResult != VK_SUCCESS) {
 			throw Log::RuntimeException(__FUNCTION__, "Failed to create semaphores for a frame!");
@@ -108,17 +108,17 @@ void VkSyncManager::createSyncObjects() {
 		CleanupTask syncObjTask{};
 		syncObjTask.caller = __FUNCTION__;
 		syncObjTask.objectNames = { VARIABLE_NAME(imageReadySemaphore), VARIABLE_NAME(renderFinishedSemaphore), VARIABLE_NAME(inFlightFence) };
-		syncObjTask.vkObjects = { vkContext.Device.logicalDevice, imageReadySemaphore, renderFinishedSemaphore, inFlightFence };
+		syncObjTask.vkObjects = { m_vkContext.Device.logicalDevice, imageReadySemaphore, renderFinishedSemaphore, inFlightFence };
 		syncObjTask.cleanupFunc = [this, imageReadySemaphore, renderFinishedSemaphore, inFlightFence]() {
-			vkDestroySemaphore(vkContext.Device.logicalDevice, imageReadySemaphore, nullptr);
-			vkDestroySemaphore(vkContext.Device.logicalDevice, renderFinishedSemaphore, nullptr);
-			vkDestroyFence(vkContext.Device.logicalDevice, inFlightFence, nullptr); 
+			vkDestroySemaphore(m_vkContext.Device.logicalDevice, imageReadySemaphore, nullptr);
+			vkDestroySemaphore(m_vkContext.Device.logicalDevice, renderFinishedSemaphore, nullptr);
+			vkDestroyFence(m_vkContext.Device.logicalDevice, inFlightFence, nullptr); 
 		};
 
 		garbageCollector->createCleanupTask(syncObjTask);
 	}
 
-	vkContext.SyncObjects.imageReadySemaphores = imageReadySemaphores;
-	vkContext.SyncObjects.renderFinishedSemaphores = renderFinishedSemaphores;
-	vkContext.SyncObjects.inFlightFences = inFlightFences;
+	m_vkContext.SyncObjects.imageReadySemaphores = imageReadySemaphores;
+	m_vkContext.SyncObjects.renderFinishedSemaphores = renderFinishedSemaphores;
+	m_vkContext.SyncObjects.inFlightFences = inFlightFences;
 }

@@ -5,7 +5,7 @@
 #include "VkInstanceManager.hpp"
 
 VkInstanceManager::VkInstanceManager(VulkanContext& context):
-    vkContext(context) {
+    m_vkContext(context) {
     
     garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
 
@@ -143,7 +143,7 @@ void VkInstanceManager::createVulkanInstance() {
         throw Log::RuntimeException(__FUNCTION__, "Failed to create Vulkan instance!");
     }
 
-    vkContext.vulkanInstance = vulkInst;
+    m_vkContext.vulkanInstance = vulkInst;
 
     CleanupTask task{};
     task.caller = __FUNCTION__;
@@ -161,12 +161,12 @@ void VkInstanceManager::createSurface() {
     * because it depends on window system details (meaning that the creation structs vary across platforms,
     * e.g., VkWin32SurfaceCreateInfoKHR for Windows).
     */
-    VkResult result = glfwCreateWindowSurface(vulkInst, vkContext.window, nullptr, &windowSurface);
+    VkResult result = glfwCreateWindowSurface(vulkInst, m_vkContext.window, nullptr, &windowSurface);
     if (result != VK_SUCCESS) {
         throw Log::RuntimeException(__FUNCTION__, "Failed to create Vulkan window surface!");
     }
 
-    vkContext.vkSurface = windowSurface;
+    m_vkContext.vkSurface = windowSurface;
 
     CleanupTask task{};
     task.caller = __FUNCTION__;
@@ -255,5 +255,5 @@ void VkInstanceManager::addVulkanValidationLayers(std::vector<const char*> layer
         }
     }
 
-    vkContext.enabledValidationLayers = enabledValidationLayers;
+    m_vkContext.enabledValidationLayers = enabledValidationLayers;
 }
