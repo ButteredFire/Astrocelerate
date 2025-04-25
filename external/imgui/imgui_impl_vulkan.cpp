@@ -1046,7 +1046,7 @@ bool ImGui_ImplVulkan_CreateDeviceObjects()
     {
         VkDescriptorSetLayoutBinding binding[1] = {};
         binding[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        binding[0].m_descriptorCount = 1;
+        binding[0].descriptorCount = 1;
         binding[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
         VkDescriptorSetLayoutCreateInfo info = {};
         info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -1297,7 +1297,7 @@ VkDescriptorSet ImGui_ImplVulkan_AddTexture(VkSampler sampler, VkImageView image
         VkWriteDescriptorSet write_desc[1] = {};
         write_desc[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         write_desc[0].dstSet = descriptor_set;
-        write_desc[0].m_descriptorCount = 1;
+        write_desc[0].descriptorCount = 1;
         write_desc[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         write_desc[0].pImageInfo = desc_image;
         vkUpdateDescriptorSets(v->Device, 1, write_desc, 0, nullptr);

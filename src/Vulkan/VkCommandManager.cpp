@@ -7,7 +7,7 @@
 VkCommandManager::VkCommandManager(VulkanContext& context):
 	m_vkContext(context) {
 
-	garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
+	m_garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
 
 	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 };
@@ -17,14 +17,14 @@ VkCommandManager::~VkCommandManager() {};
 
 void VkCommandManager::init() {
 	QueueFamilyIndices familyIndices = m_vkContext.Device.queueFamilies;
-	graphicsCmdPool = createCommandPool(m_vkContext, m_vkContext.Device.logicalDevice, familyIndices.graphicsFamily.index.value());
-	transferCmdPool = createCommandPool(m_vkContext, m_vkContext.Device.logicalDevice, familyIndices.transferFamily.index.value());
+	m_graphicsCmdPool = createCommandPool(m_vkContext, m_vkContext.Device.logicalDevice, familyIndices.graphicsFamily.index.value());
+	m_transferCmdPool = createCommandPool(m_vkContext, m_vkContext.Device.logicalDevice, familyIndices.transferFamily.index.value());
 
-	allocCommandBuffers(graphicsCmdPool, graphicsCmdBuffers);
-	m_vkContext.CommandObjects.graphicsCmdBuffers = graphicsCmdBuffers;
+	allocCommandBuffers(m_graphicsCmdPool, m_graphicsCmdBuffers);
+	m_vkContext.CommandObjects.graphicsCmdBuffers = m_graphicsCmdBuffers;
 
-	allocCommandBuffers(transferCmdPool, transferCmdBuffers);
-	m_vkContext.CommandObjects.transferCmdBuffers = transferCmdBuffers;
+	allocCommandBuffers(m_transferCmdPool, m_transferCmdBuffers);
+	m_vkContext.CommandObjects.transferCmdBuffers = m_transferCmdBuffers;
 }
 
 
@@ -209,7 +209,7 @@ VkCommandPool VkCommandManager::createCommandPool(VulkanContext& m_vkContext, Vk
 	}
 
 
-	std::shared_ptr<GarbageCollector> garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
+	std::shared_ptr<GarbageCollector> m_garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
 
 	VkCommandPoolCreateInfo poolCreateInfo{};
 	poolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -229,11 +229,11 @@ VkCommandPool VkCommandManager::createCommandPool(VulkanContext& m_vkContext, Vk
 
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
-	task.objectNames = { VARIABLE_NAME(commandPool) };
+	task.objectNames = { VARIABLE_NAME(m_commandPool) };
 	task.vkObjects = { m_vkContext.Device.logicalDevice, commandPool };
 	task.cleanupFunc = [m_vkContext, commandPool]() { vkDestroyCommandPool(m_vkContext.Device.logicalDevice, commandPool, nullptr); };
 
-	garbageCollector->createCleanupTask(task);
+	m_garbageCollector->createCleanupTask(task);
 
 	return commandPool;
 }
@@ -260,9 +260,9 @@ void VkCommandManager::allocCommandBuffers(VkCommandPool& commandPool, std::vect
 
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
-	task.objectNames = { VARIABLE_NAME(commandBuffers) };
+	task.objectNames = { VARIABLE_NAME(m_commandBuffers) };
 	task.vkObjects = { m_vkContext.Device.logicalDevice, commandPool };
 	task.cleanupFunc = [this, commandPool, commandBuffers]() { vkFreeCommandBuffers(m_vkContext.Device.logicalDevice, commandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data()); };
 
-	garbageCollector->createCleanupTask(task);
+	m_garbageCollector->createCleanupTask(task);
 }

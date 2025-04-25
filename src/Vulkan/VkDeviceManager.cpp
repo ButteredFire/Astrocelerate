@@ -6,11 +6,11 @@
 
 
 VkDeviceManager::VkDeviceManager(VulkanContext &context):
-    vulkInst(context.vulkanInstance), m_vkContext(context) {
+    m_vulkInst(context.vulkanInstance), m_vkContext(context) {
 
-    garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
+    m_garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
 
-    if (vulkInst == VK_NULL_HANDLE) {
+    if (m_vulkInst == VK_NULL_HANDLE) {
         throw Log::RuntimeException(__FUNCTION__, "Cannot initialize device manager: Invalid Vulkan instance!");
     }
 
@@ -28,7 +28,7 @@ VkDeviceManager::~VkDeviceManager() {}
 
 void VkDeviceManager::init() {
     // Initializes required GPU extensions
-    requiredDeviceExtensions = {
+    m_requiredDeviceExtensions = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
         VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME
     };
@@ -39,14 +39,14 @@ void VkDeviceManager::init() {
     createLogicalDevice();
 
     // Creates a VMA
-    vmaAllocator = garbageCollector->createVMAllocator(m_vkContext.vulkanInstance, GPUPhysicalDevice, GPULogicalDevice);
+    m_vmaAllocator = m_garbageCollector->createVMAllocator(m_vkContext.vulkanInstance, m_GPUPhysicalDevice, m_GPULogicalDevice);
 }
 
 
 void VkDeviceManager::createPhysicalDevice() {
     // Queries available Vulkan-supported GPUs
     uint32_t physDeviceCount = 0;
-    vkEnumeratePhysicalDevices(vulkInst, &physDeviceCount, nullptr);
+    vkEnumeratePhysicalDevices(m_vulkInst, &physDeviceCount, nullptr);
 
     if (physDeviceCount == 0) {
         throw Log::RuntimeException(__FUNCTION__, "This machine does not have Vulkan-supported GPUs!");
@@ -54,18 +54,18 @@ void VkDeviceManager::createPhysicalDevice() {
 
     VkPhysicalDevice physicalDevice = nullptr;
     std::vector<VkPhysicalDevice> physicalDevices(physDeviceCount);
-    vkEnumeratePhysicalDevices(vulkInst, &physDeviceCount, physicalDevices.data());
+    vkEnumeratePhysicalDevices(m_vulkInst, &physDeviceCount, physicalDevices.data());
 
     // Finds the most suitable GPU that supports Astrocelerate's features through GPU scoring
-    GPUScores = rateGPUSuitability(physicalDevices);
-    PhysicalDeviceScoreProperties bestDevice = *std::max_element(GPUScores.begin(), GPUScores.end(), ScoreComparator);
+    m_GPUScores = rateGPUSuitability(physicalDevices);
+    PhysicalDeviceScoreProperties bestDevice = *std::max_element(m_GPUScores.begin(), m_GPUScores.end(), ScoreComparator);
 
     physicalDevice = bestDevice.device;
     bool isDeviceCompatible = bestDevice.isCompatible;
     uint32_t physicalDeviceScore = bestDevice.optionalScore;
 
     //std::cout << "\nFinal GPU evaluation:\n";
-    //for (auto& score : GPUScores)
+    //for (auto& score : m_GPUScores)
     //    std::cout << "\t(GPU: " << enquoteCOUT(score.deviceName) << "; Compatible: " << std::boolalpha << score.isCompatible << "; Optional Score: " << score.optionalScore << ")\n";
 
     Log::print(Log::T_INFO, __FUNCTION__, ("Selected GPU " + enquote(bestDevice.deviceName)));
@@ -75,12 +75,12 @@ void VkDeviceManager::createPhysicalDevice() {
         throw Log::RuntimeException(__FUNCTION__, "Failed to find a GPU that supports required features!");
     }
 
-    m_vkContext.Device.physicalDevice = GPUPhysicalDevice = physicalDevice;
+    m_vkContext.Device.physicalDevice = m_GPUPhysicalDevice = physicalDevice;
 }
 
 
 void VkDeviceManager::createLogicalDevice() {
-    QueueFamilyIndices queueFamilies = getQueueFamilies(GPUPhysicalDevice, m_vkContext.vkSurface);
+    QueueFamilyIndices queueFamilies = getQueueFamilies(m_GPUPhysicalDevice, m_vkContext.vkSurface);
 
     // Verifies that all queue families exist before proceeding with device creation
     std::vector<QueueFamilyIndices::QueueFamily*> allFamilies = queueFamilies.getAllQueueFamilies();
@@ -149,8 +149,8 @@ void VkDeviceManager::createLogicalDevice() {
     */
 
     // Sets device-specific extensions
-    deviceInfo.enabledExtensionCount = static_cast<uint32_t>(requiredDeviceExtensions.size());
-    deviceInfo.ppEnabledExtensionNames = requiredDeviceExtensions.data();
+    deviceInfo.enabledExtensionCount = static_cast<uint32_t>(m_requiredDeviceExtensions.size());
+    deviceInfo.ppEnabledExtensionNames = m_requiredDeviceExtensions.data();
 
     // Sets device-specific validation layers
     if (inDebugMode) {
@@ -161,7 +161,7 @@ void VkDeviceManager::createLogicalDevice() {
         deviceInfo.enabledLayerCount = 0;
     }
 
-    VkResult result = vkCreateDevice(GPUPhysicalDevice, &deviceInfo, nullptr, &GPULogicalDevice);
+    VkResult result = vkCreateDevice(m_GPUPhysicalDevice, &deviceInfo, nullptr, &m_GPULogicalDevice);
     if (result != VK_SUCCESS) {
         throw Log::RuntimeException(__FUNCTION__, "Unable to create GPU logical device!");
     }
@@ -169,7 +169,7 @@ void VkDeviceManager::createLogicalDevice() {
     // Populates each (available) family's device queue
     std::vector<QueueFamilyIndices::QueueFamily*> availableFamilies = queueFamilies.getAvailableQueueFamilies(allFamilies);
     for (auto& family : availableFamilies)
-        vkGetDeviceQueue(GPULogicalDevice, family->index.value(), 0, &family->deviceQueue);
+        vkGetDeviceQueue(m_GPULogicalDevice, family->index.value(), 0, &family->deviceQueue);
 
         // If graphics queue family supports presentation operations (i.e., the presentation queue is not separate),
         // then set the presentation family's index and VkQueue to be the same as the graphics family's.
@@ -179,22 +179,22 @@ void VkDeviceManager::createLogicalDevice() {
     }
 
 
-    m_vkContext.Device.logicalDevice = GPULogicalDevice;
+    m_vkContext.Device.logicalDevice = m_GPULogicalDevice;
     m_vkContext.Device.queueFamilies = queueFamilies;
 
 
     CleanupTask task{};
     task.caller = __FUNCTION__;
-    task.objectNames = { VARIABLE_NAME(GPULogicalDevice) };
-    task.vkObjects = { GPULogicalDevice };
-    task.cleanupFunc = [this]() { vkDestroyDevice(GPULogicalDevice, nullptr); };
+    task.objectNames = { VARIABLE_NAME(m_GPULogicalDevice) };
+    task.vkObjects = { m_GPULogicalDevice };
+    task.cleanupFunc = [this]() { vkDestroyDevice(m_GPULogicalDevice, nullptr); };
 
-    garbageCollector->createCleanupTask(task);
+    m_garbageCollector->createCleanupTask(task);
 }
 
 
 std::vector<PhysicalDeviceScoreProperties> VkDeviceManager::rateGPUSuitability(std::vector<VkPhysicalDevice>& physicalDevices) {
-    std::vector<PhysicalDeviceScoreProperties> GPUScores;
+    std::vector<PhysicalDeviceScoreProperties> m_GPUScores;
     // Grades each device
     for (VkPhysicalDevice& device : physicalDevices) {
         // Queries basic device properties and optional features (e.g., 64-bit floats for accurate physics computations)
@@ -241,7 +241,7 @@ std::vector<PhysicalDeviceScoreProperties> VkDeviceManager::rateGPUSuitability(s
             (deviceVk12Features.bufferDeviceAddress) &&
 
             // If the GPU supports required device extensions
-            (checkDeviceExtensionSupport(device, requiredDeviceExtensions)) &&
+            (checkDeviceExtensionSupport(device, m_requiredDeviceExtensions)) &&
 
             // If the GPU has a graphics queue family
             (queueFamilyIndices.graphicsFamily.index.has_value()) &&
@@ -262,7 +262,7 @@ std::vector<PhysicalDeviceScoreProperties> VkDeviceManager::rateGPUSuitability(s
 
         if (!meetsMinimumRequirements) {
             deviceRating.isCompatible = false;
-            GPUScores.push_back(deviceRating);
+            m_GPUScores.push_back(deviceRating);
             continue;
         }
 
@@ -283,10 +283,10 @@ std::vector<PhysicalDeviceScoreProperties> VkDeviceManager::rateGPUSuitability(s
         }
 
         // Adds device rating to the list
-        GPUScores.push_back(deviceRating);
+        m_GPUScores.push_back(deviceRating);
     }
 
-    return GPUScores;
+    return m_GPUScores;
 }
 
 

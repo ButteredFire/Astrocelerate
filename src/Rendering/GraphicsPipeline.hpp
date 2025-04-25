@@ -99,7 +99,7 @@ private:
 
 	// Shaders
 		// Vertex shader
-	std::vector<char> m_m_vertShaderBytecode;
+	std::vector<char> m_vertShaderBytecode;
 	VkShaderModule m_vertShaderModule = VK_NULL_HANDLE;
 	
 	VkPipelineVertexInputStateCreateInfo m_vertInputState{};
@@ -107,8 +107,8 @@ private:
 	std::vector<VkVertexInputAttributeDescription> m_vertAttribDescriptions{};
 
 		// Fragment shader
-	std::vector<char> m_m_fragShaderBytecode;
-	VkShaderModule m_m_fragShaderModule = VK_NULL_HANDLE;
+	std::vector<char> m_fragShaderBytecode;
+	VkShaderModule m_fragShaderModule = VK_NULL_HANDLE;
 	std::vector<VkPipelineShaderStageCreateInfo> m_shaderStages;
 
 	// Render pass

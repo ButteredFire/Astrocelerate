@@ -25,14 +25,14 @@ VmaAllocator GarbageCollector::createVMAllocator(VkInstance& instance, VkPhysica
 
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
-	task.objectNames = { VARIABLE_NAME(vmaAllocator) };
-	task.vkObjects = { vmaAllocator };
-	task.cleanupFunc = [this]() { vmaDestroyAllocator(vmaAllocator); };
+	task.objectNames = { VARIABLE_NAME(m_vmaAllocator) };
+	task.vkObjects = { m_vmaAllocator };
+	task.cleanupFunc = [this]() { vmaDestroyAllocator(m_vmaAllocator); };
 
 	createCleanupTask(task);
 
-	m_vkContext.vmaAllocator = vmaAllocator;
-	return vmaAllocator;
+	m_vkContext.vmaAllocator = m_vmaAllocator;
+	return m_vmaAllocator;
 }
 
 
@@ -155,7 +155,7 @@ void GarbageCollector::optimizeStack() {
 			m_cleanupStack[i - displacement] = m_cleanupStack[i];
 
 			while (locDisplacement > 0) {
-				idToIdxLookup.erase(i - locDisplacement);
+				m_idToIdxLookup.erase(i - locDisplacement);
 				locDisplacement--;
 			}
 		}

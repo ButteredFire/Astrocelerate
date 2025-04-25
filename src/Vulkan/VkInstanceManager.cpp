@@ -7,7 +7,7 @@
 VkInstanceManager::VkInstanceManager(VulkanContext& context):
     m_vkContext(context) {
     
-    garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
+    m_garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
 
     Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
@@ -26,24 +26,24 @@ void VkInstanceManager::init() {
 void VkInstanceManager::initVulkan() {
     // Sets up Vulkan extensions and validation layers
         // Caches supported extensions and layers
-    supportedExtensions = getSupportedVulkanExtensions();
-    supportedLayers = getSupportedVulkanValidationLayers();
-    Log::print(Log::T_INFO, __FUNCTION__, ("Supported extensions: " + std::to_string(supportedExtensions.size())));
-    Log::print(Log::T_INFO, __FUNCTION__, ("Supported layers: " + std::to_string(supportedLayers.size())));
+    m_supportedExtensions = getSupportedVulkanExtensions();
+    m_supportedLayers = getSupportedVulkanValidationLayers();
+    Log::print(Log::T_INFO, __FUNCTION__, ("Supported extensions: " + std::to_string(m_supportedExtensions.size())));
+    Log::print(Log::T_INFO, __FUNCTION__, ("Supported layers: " + std::to_string(m_supportedLayers.size())));
 
     // Caches supported extension and validation layers for O(1) verification of extensions/layers to be added later
-    for (const auto& extension : supportedExtensions)
-        supportedExtensionNames.insert(extension.extensionName);
+    for (const auto& extension : m_supportedExtensions)
+        m_supportedExtensionNames.insert(extension.extensionName);
 
-    for (const auto& layer : supportedLayers)
-        supportedLayerNames.insert(layer.layerName);
+    for (const auto& layer : m_supportedLayers)
+        m_supportedLayerNames.insert(layer.layerName);
 
     /* Rationale behind reserving:
     * The number of supported extensions/layers is constant. Therefore, we can reserve a fixed (maximum) block of memory
     * for enabled extensions/layers vectors to prevent O(n) vector reallocations.
     */
-    enabledExtensions.reserve(supportedExtensions.size());
-    enabledValidationLayers.reserve(supportedLayers.size());
+    m_enabledExtensions.reserve(m_supportedExtensions.size());
+    m_enabledValidationLayers.reserve(m_supportedLayers.size());
 
     // Sets validation layers to be bound to a Vulkan instance
     addVulkanValidationLayers({
@@ -68,19 +68,19 @@ void VkInstanceManager::createDebugMessenger() {
     VkDebugUtilsMessengerCreateInfoEXT createInfo;
     populateDebugMessengerCreateInfo(createInfo);
 
-    VkResult result = createDebugUtilsMessengerEXT(vulkInst, &createInfo, nullptr, &debugMessenger);
+    VkResult result = createDebugUtilsMessengerEXT(m_vulkInst, &createInfo, nullptr, &m_debugMessenger);
     if (result != VK_SUCCESS) {
         throw Log::RuntimeException(__FUNCTION__, "Failed to create debug messenger!");
     }
 
     CleanupTask task{};
     task.caller = __FUNCTION__;
-    task.objectNames = { VARIABLE_NAME(debugMessenger) };
-    task.vkObjects = { vulkInst, debugMessenger };
-    task.cleanupFunc = [&]() { destroyDebugUtilsMessengerEXT(vulkInst, debugMessenger, nullptr); };
+    task.objectNames = { VARIABLE_NAME(m_debugMessenger) };
+    task.vkObjects = { m_vulkInst, m_debugMessenger };
+    task.cleanupFunc = [&]() { destroyDebugUtilsMessengerEXT(m_vulkInst, m_debugMessenger, nullptr); };
     task.cleanupConditions = { inDebugMode };
 
-    garbageCollector->createCleanupTask(task);
+    m_garbageCollector->createCleanupTask(task);
 }
 
 
@@ -106,7 +106,7 @@ void VkInstanceManager::createVulkanInstance() {
     uint32_t glfwExtensionCount = 0;
     const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
-        // Copies GLFW extensions into enabledExtensions
+        // Copies GLFW extensions into m_enabledExtensions
     for (uint32_t i = 0; i < glfwExtensionCount; i++)
         addVulkanExtensions({ glfwExtensions[i] });
 
@@ -114,19 +114,19 @@ void VkInstanceManager::createVulkanInstance() {
     if (inDebugMode)
         addVulkanExtensions({ VK_EXT_DEBUG_UTILS_EXTENSION_NAME });
 
-    if (verifyVulkanExtensions(enabledExtensions) == false) {
-        enabledExtensions.clear();
+    if (verifyVulkanExtensions(m_enabledExtensions) == false) {
+        m_enabledExtensions.clear();
         throw Log::RuntimeException(__FUNCTION__, "GLFW Instance Extensions contain invalid or unsupported extensions!");
     }
 
-    instanceInfo.enabledExtensionCount = static_cast<uint32_t>(enabledExtensions.size());
-    instanceInfo.ppEnabledExtensionNames = enabledExtensions.data();
+    instanceInfo.enabledExtensionCount = static_cast<uint32_t>(m_enabledExtensions.size());
+    instanceInfo.ppEnabledExtensionNames = m_enabledExtensions.data();
 
     // Configures global validation layers
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
     if (inDebugMode) {
-        instanceInfo.enabledLayerCount = static_cast<uint32_t>(enabledValidationLayers.size());
-        instanceInfo.ppEnabledLayerNames = enabledValidationLayers.data();
+        instanceInfo.enabledLayerCount = static_cast<uint32_t>(m_enabledValidationLayers.size());
+        instanceInfo.ppEnabledLayerNames = m_enabledValidationLayers.data();
 
         populateDebugMessengerCreateInfo(debugCreateInfo);
         instanceInfo.pNext = reinterpret_cast<VkDebugUtilsMessengerCreateInfoEXT*>(&debugCreateInfo);
@@ -138,20 +138,20 @@ void VkInstanceManager::createVulkanInstance() {
 
     // Creates a Vulkan instance from the instance information configured above
     // and initializes the member VkInstance variable
-    VkResult result = vkCreateInstance(&instanceInfo, nullptr, &vulkInst);
+    VkResult result = vkCreateInstance(&instanceInfo, nullptr, &m_vulkInst);
     if (result != VK_SUCCESS) {
         throw Log::RuntimeException(__FUNCTION__, "Failed to create Vulkan instance!");
     }
 
-    m_vkContext.vulkanInstance = vulkInst;
+    m_vkContext.vulkanInstance = m_vulkInst;
 
     CleanupTask task{};
     task.caller = __FUNCTION__;
-    task.objectNames = { VARIABLE_NAME(vulkInst) };
-    task.vkObjects = { vulkInst };
-    task.cleanupFunc = [&]() { vkDestroyInstance(vulkInst, nullptr); };
+    task.objectNames = { VARIABLE_NAME(m_vulkInst) };
+    task.vkObjects = { m_vulkInst };
+    task.cleanupFunc = [&]() { vkDestroyInstance(m_vulkInst, nullptr); };
 
-    garbageCollector->createCleanupTask(task);
+    m_garbageCollector->createCleanupTask(task);
 }
 
 
@@ -161,27 +161,27 @@ void VkInstanceManager::createSurface() {
     * because it depends on window system details (meaning that the creation structs vary across platforms,
     * e.g., VkWin32SurfaceCreateInfoKHR for Windows).
     */
-    VkResult result = glfwCreateWindowSurface(vulkInst, m_vkContext.window, nullptr, &windowSurface);
+    VkResult result = glfwCreateWindowSurface(m_vulkInst, m_vkContext.window, nullptr, &m_windowSurface);
     if (result != VK_SUCCESS) {
         throw Log::RuntimeException(__FUNCTION__, "Failed to create Vulkan window surface!");
     }
 
-    m_vkContext.vkSurface = windowSurface;
+    m_vkContext.vkSurface = m_windowSurface;
 
     CleanupTask task{};
     task.caller = __FUNCTION__;
-    task.objectNames = { VARIABLE_NAME(windowSurface) };
-    task.vkObjects = { vulkInst, windowSurface };
-    task.cleanupFunc = [this]() { vkDestroySurfaceKHR(vulkInst, windowSurface, nullptr); };
+    task.objectNames = { VARIABLE_NAME(m_windowSurface) };
+    task.vkObjects = { m_vulkInst, m_windowSurface };
+    task.cleanupFunc = [this]() { vkDestroySurfaceKHR(m_vulkInst, m_windowSurface, nullptr); };
 
-    garbageCollector->createCleanupTask(task);
+    m_garbageCollector->createCleanupTask(task);
 }
 
 
 bool VkInstanceManager::verifyVulkanExtensions(std::vector<const char*> extensions) {
     bool allOK = true;
     for (const auto& ext : extensions) {
-        if (supportedExtensionNames.count(ext) == 0) {
+        if (m_supportedExtensionNames.count(ext) == 0) {
             allOK = false;
             Log::print(Log::T_ERROR, __FUNCTION__, ("Vulkan extension " + enquote(ext) + " is either invalid or unsupported!"));
         }
@@ -195,7 +195,7 @@ bool VkInstanceManager::verifyVulkanExtensions(std::vector<const char*> extensio
 bool VkInstanceManager::verifyVulkanValidationLayers(std::vector<const char*>& layers) {
     bool allOK = true;
     for (const auto& layer : layers) {
-        if (supportedLayerNames.count(layer) == 0) {
+        if (m_supportedLayerNames.count(layer) == 0) {
             allOK = false;
             Log::print(Log::T_ERROR, __FUNCTION__, ("Vulkan validation layer " + enquote(layer) + " is either invalid or unsupported!"));
         }
@@ -209,10 +209,10 @@ std::vector<VkExtensionProperties> VkInstanceManager::getSupportedVulkanExtensio
     uint32_t extensionCount = 0;
     vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr); // First get the no. of supported extensions
 
-    std::vector<VkExtensionProperties> supportedExtensions(extensionCount);
-    vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, supportedExtensions.data()); // Then call the function again to fill the vector
+    std::vector<VkExtensionProperties> m_supportedExtensions(extensionCount);
+    vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, m_supportedExtensions.data()); // Then call the function again to fill the vector
     // Fun fact: vector.data() == &vector[0] (Hint: 3rd parameter, vkEnumerateInstanceExtensionProperties function)
-    return supportedExtensions;
+    return m_supportedExtensions;
 }
 
 
@@ -220,10 +220,10 @@ std::vector<VkLayerProperties> VkInstanceManager::getSupportedVulkanValidationLa
     uint32_t layerCount = 0;
     vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
 
-    std::vector<VkLayerProperties> supportedLayers(layerCount);
-    vkEnumerateInstanceLayerProperties(&layerCount, supportedLayers.data());
+    std::vector<VkLayerProperties> m_supportedLayers(layerCount);
+    vkEnumerateInstanceLayerProperties(&layerCount, m_supportedLayers.data());
 
-    return supportedLayers;
+    return m_supportedLayers;
 }
 
 
@@ -233,10 +233,10 @@ void VkInstanceManager::addVulkanExtensions(std::vector<const char*> extensions)
     }
 
     for (const auto& ext : extensions) {
-        if (UTIL_enabledExtensionSet.count(ext) == 0) {
+        if (m_UTIL_enabledExtensionSet.count(ext) == 0) {
             Log::print(Log::T_DEBUG, __FUNCTION__, ("Extension " + enquote(ext) + " verified. Enabling..."));
-            enabledExtensions.push_back(ext);
-            UTIL_enabledExtensionSet.insert(ext);
+            m_enabledExtensions.push_back(ext);
+            m_UTIL_enabledExtensionSet.insert(ext);
         }
     }
 }
@@ -248,12 +248,12 @@ void VkInstanceManager::addVulkanValidationLayers(std::vector<const char*> layer
     }
 
     for (const auto& layer : layers) {
-        if (UTIL_enabledValidationLayerSet.count(layer) == 0) {
+        if (m_UTIL_enabledValidationLayerSet.count(layer) == 0) {
             Log::print(Log::T_DEBUG, __FUNCTION__, ("Validation layer " + enquote(layer) + " verified. Enabling..."));
-            enabledValidationLayers.push_back(layer);
-            UTIL_enabledValidationLayerSet.insert(layer);
+            m_enabledValidationLayers.push_back(layer);
+            m_UTIL_enabledValidationLayerSet.insert(layer);
         }
     }
 
-    m_vkContext.enabledValidationLayers = enabledValidationLayers;
+    m_vkContext.enabledValidationLayers = m_enabledValidationLayers;
 }

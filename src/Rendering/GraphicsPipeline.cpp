@@ -17,7 +17,7 @@ GraphicsPipeline::~GraphicsPipeline() {}
 void GraphicsPipeline::init() {
 	// Set up fixed-function states
 		// Dynamic states
-	m_dynamicStages = {
+	m_dynamicStates = {
 		VK_DYNAMIC_STATE_VIEWPORT,
 		VK_DYNAMIC_STATE_SCISSOR
 	};
@@ -98,21 +98,21 @@ void GraphicsPipeline::createGraphicsPipeline() {
 	pipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
 	pipelineCreateInfo.basePipelineIndex = -1;
 
-	pipelineCreateInfo.layout = pipelineLayout;
+	pipelineCreateInfo.layout = m_pipelineLayout;
 
-	VkResult result = vkCreateGraphicsPipelines(m_vkContext.Device.logicalDevice, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &graphicsPipeline);
+	VkResult result = vkCreateGraphicsPipelines(m_vkContext.Device.logicalDevice, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &m_graphicsPipeline);
 	if (result != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, "Failed to create graphics pipeline!");
 	}
 
-	m_vkContext.GraphicsPipeline.pipeline = graphicsPipeline;
+	m_vkContext.GraphicsPipeline.pipeline = m_graphicsPipeline;
 
 
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
-	task.objectNames = { VARIABLE_NAME(graphicsPipeline) };
-	task.vkObjects = { m_vkContext.Device.logicalDevice, graphicsPipeline };
-	task.cleanupFunc = [&]() { vkDestroyPipeline(m_vkContext.Device.logicalDevice, graphicsPipeline, nullptr); };
+	task.objectNames = { VARIABLE_NAME(m_graphicsPipeline) };
+	task.vkObjects = { m_vkContext.Device.logicalDevice, m_graphicsPipeline };
+	task.cleanupFunc = [this]() { vkDestroyPipeline(m_vkContext.Device.logicalDevice, m_graphicsPipeline, nullptr); };
 
 	m_garbageCollector->createCleanupTask(task);
 }
@@ -122,25 +122,25 @@ void GraphicsPipeline::createPipelineLayout() {
 	VkPipelineLayoutCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	createInfo.setLayoutCount = 1;
-	createInfo.pSetLayouts = &descriptorSetLayout;
+	createInfo.pSetLayouts = &m_descriptorSetLayout;
 
 	// Push constants are a way of passing dynamic values to shaders
 	createInfo.pushConstantRangeCount = 0;
 	createInfo.pPushConstantRanges = nullptr;
 
-	VkResult result = vkCreatePipelineLayout(m_vkContext.Device.logicalDevice, &createInfo, nullptr, &pipelineLayout);
+	VkResult result = vkCreatePipelineLayout(m_vkContext.Device.logicalDevice, &createInfo, nullptr, &m_pipelineLayout);
 	if (result != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, "Failed to create graphics pipeline layout!");
 	}
 
-	m_vkContext.GraphicsPipeline.layout = pipelineLayout;
+	m_vkContext.GraphicsPipeline.layout = m_pipelineLayout;
 	
 
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
-	task.objectNames = { VARIABLE_NAME(pipelineLayout) };
-	task.vkObjects = { m_vkContext.Device.logicalDevice, pipelineLayout };
-	task.cleanupFunc = [&]() { vkDestroyPipelineLayout(m_vkContext.Device.logicalDevice, pipelineLayout, nullptr); };
+	task.objectNames = { VARIABLE_NAME(m_pipelineLayout) };
+	task.vkObjects = { m_vkContext.Device.logicalDevice, m_pipelineLayout };
+	task.cleanupFunc = [&]() { vkDestroyPipelineLayout(m_vkContext.Device.logicalDevice, m_pipelineLayout, nullptr); };
 
 	m_garbageCollector->createCleanupTask(task);
 }
@@ -153,7 +153,7 @@ void GraphicsPipeline::setUpDescriptors() {
 	VkDescriptorSetLayoutBinding uniformBufferLayoutBinding{};
 	uniformBufferLayoutBinding.binding = ShaderConsts::VERT_BIND_UNIFORM_UBO;
 	uniformBufferLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	uniformBufferLayoutBinding.m_descriptorCount = 1;
+	uniformBufferLayoutBinding.descriptorCount = 1;
 	uniformBufferLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT; // Specifies which shader stages will the UBO(s) be referenced and used (through `VkShaderStageFlagBits` values; see the specification for more information)
 	uniformBufferLayoutBinding.pImmutableSamplers = nullptr;			// Specifies descriptors handling image-sampling
 
@@ -162,7 +162,7 @@ void GraphicsPipeline::setUpDescriptors() {
 	VkDescriptorSetLayoutBinding samplerLayoutBinding{};
 	samplerLayoutBinding.binding = ShaderConsts::FRAG_BIND_UNIFORM_TEXURE_SAMPLER;
 	samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	samplerLayoutBinding.m_descriptorCount = 1;
+	samplerLayoutBinding.descriptorCount = 1;
 	samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;		// Image sampling happens in the fragment shader, although it can also be used in the vertex shader for specific reasons (e.g., dynamically deforming a grid of vertices via a heightmap)
 	samplerLayoutBinding.pImmutableSamplers = nullptr;
 
@@ -174,7 +174,7 @@ void GraphicsPipeline::setUpDescriptors() {
 		samplerLayoutBinding
 	};
 
-	for (const auto& binding : layoutBindings) { m_descriptorCount += binding.m_descriptorCount; }
+	for (const auto& binding : layoutBindings) { m_descriptorCount += binding.descriptorCount; }
 
 	std::vector<VkDescriptorPoolSize> poolSize = {
 		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, static_cast<uint32_t>(SimulationConsts::MAX_FRAMES_IN_FLIGHT) },
@@ -185,7 +185,7 @@ void GraphicsPipeline::setUpDescriptors() {
 
 	// Descriptor creation
 	createDescriptorSetLayout(layoutBindings);
-	createDescriptorPool(m_descriptorCount, poolSize, descriptorPool);
+	createDescriptorPool(m_descriptorCount, poolSize, m_descriptorPool);
 	createDescriptorSets();
 }
 
@@ -197,7 +197,7 @@ void GraphicsPipeline::createDescriptorSetLayout(std::vector<VkDescriptorSetLayo
 	layoutCreateInfo.pBindings = layoutBindings.data();
 
 
-	VkResult result = vkCreateDescriptorSetLayout(m_vkContext.Device.logicalDevice, &layoutCreateInfo, nullptr, &descriptorSetLayout);
+	VkResult result = vkCreateDescriptorSetLayout(m_vkContext.Device.logicalDevice, &layoutCreateInfo, nullptr, &m_descriptorSetLayout);
 	if (result != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, "Failed to create descriptor set layout!");
 	}
@@ -205,9 +205,9 @@ void GraphicsPipeline::createDescriptorSetLayout(std::vector<VkDescriptorSetLayo
 
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
-	task.objectNames = { VARIABLE_NAME(descriptorSetLayout) };
-	task.vkObjects = { m_vkContext.Device.logicalDevice, descriptorSetLayout };
-	task.cleanupFunc = [this]() { vkDestroyDescriptorSetLayout(m_vkContext.Device.logicalDevice, descriptorSetLayout, nullptr); };
+	task.objectNames = { VARIABLE_NAME(m_descriptorSetLayout) };
+	task.vkObjects = { m_vkContext.Device.logicalDevice, m_descriptorSetLayout };
+	task.cleanupFunc = [this]() { vkDestroyDescriptorSetLayout(m_vkContext.Device.logicalDevice, m_descriptorSetLayout, nullptr); };
 
 	m_garbageCollector->createCleanupTask(task);
 }
@@ -232,7 +232,7 @@ void GraphicsPipeline::createDescriptorPool(uint32_t maxDescriptorSetCount, std:
 	
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
-	task.objectNames = { VARIABLE_NAME(descriptorPool) };
+	task.objectNames = { VARIABLE_NAME(m_descriptorPool) };
 	task.vkObjects = { m_vkContext.Device.logicalDevice, descriptorPool };
 	task.cleanupFunc = [this, descriptorPool]() { vkDestroyDescriptorPool(m_vkContext.Device.logicalDevice, descriptorPool, nullptr); };
 
@@ -242,11 +242,11 @@ void GraphicsPipeline::createDescriptorPool(uint32_t maxDescriptorSetCount, std:
 
 void GraphicsPipeline::createDescriptorSets() {
 	// Creates one descriptor set for every frame in flight (all with the same layout)
-	std::vector<VkDescriptorSetLayout> descSetLayouts(SimulationConsts::MAX_FRAMES_IN_FLIGHT, descriptorSetLayout);
+	std::vector<VkDescriptorSetLayout> descSetLayouts(SimulationConsts::MAX_FRAMES_IN_FLIGHT, m_descriptorSetLayout);
 
 	VkDescriptorSetAllocateInfo descSetAllocInfo{};
 	descSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	descSetAllocInfo.descriptorPool = descriptorPool;
+	descSetAllocInfo.descriptorPool = m_descriptorPool;
 
 	descSetAllocInfo.descriptorSetCount = static_cast<uint32_t>(descSetLayouts.size());
 	descSetAllocInfo.pSetLayouts = descSetLayouts.data();
@@ -294,7 +294,7 @@ void GraphicsPipeline::createDescriptorSets() {
 		uniformBufferDescWrite.dstArrayElement = 0;
 
 		uniformBufferDescWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		uniformBufferDescWrite.m_descriptorCount = 1; // Specifies how many array elements to update (refer to `VkWriteDescriptorSet::dstArrayElement`)
+		uniformBufferDescWrite.descriptorCount = 1; // Specifies how many array elements to update (refer to `VkWriteDescriptorSet::dstArrayElement`)
 
 				/* The descriptor write configuration also needs a reference to its Info struct, and this part depends on the type of descriptor:
 		
@@ -318,7 +318,7 @@ void GraphicsPipeline::createDescriptorSets() {
 		samplerDescWrite.dstBinding = ShaderConsts::FRAG_BIND_UNIFORM_TEXURE_SAMPLER;
 		samplerDescWrite.dstArrayElement = 0;
 		samplerDescWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		samplerDescWrite.m_descriptorCount = 1;
+		samplerDescWrite.descriptorCount = 1;
 		samplerDescWrite.pImageInfo = &imageInfo;
 
 		descriptorWrites.push_back(samplerDescWrite);
@@ -418,7 +418,7 @@ void GraphicsPipeline::createRenderPass() {
 		throw Log::RuntimeException(__FUNCTION__, "Failed to create render pass!");
 	}
 
-	m_vkContext.GraphicsPipeline.m_renderPass = m_renderPass;
+	m_vkContext.GraphicsPipeline.renderPass = m_renderPass;
 	m_vkContext.GraphicsPipeline.subpassCount = m_renderPassCreateInfo.subpassCount;
 
 	CleanupTask task{};
@@ -469,26 +469,26 @@ void GraphicsPipeline::initShaderStage() {
 	m_vertInputState.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 	// Describes binding, i.e., spacing between the data and whether the data is per-vertex or per-instance
 		// Gets vertex input binding and attribute descriptions
-	vertBindingDescription = BufferManager::getVertexInputBindingDescription();
-	vertAttribDescriptions = BufferManager::getVertexAttributeDescriptions();
+	m_vertBindingDescription = BufferManager::getVertexInputBindingDescription();
+	m_vertAttribDescriptions = BufferManager::getVertexAttributeDescriptions();
 
 	m_vertInputState.vertexBindingDescriptionCount = 1;
-	m_vertInputState.pVertexBindingDescriptions = &vertBindingDescription;
+	m_vertInputState.pVertexBindingDescriptions = &m_vertBindingDescription;
 
-	m_vertInputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertAttribDescriptions.size());
-	m_vertInputState.pVertexAttributeDescriptions = vertAttribDescriptions.data();
+	m_vertInputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(m_vertAttribDescriptions.size());
+	m_vertInputState.pVertexAttributeDescriptions = m_vertAttribDescriptions.data();
 
 
 	CleanupTask vertCleanupTask{}, fragCleanupTask{};
 	vertCleanupTask.caller = fragCleanupTask.caller = __FUNCTION__;
 
-	vertCleanupTask.objectNames = { VARIABLE_NAME(vertShaderModule) };
+	vertCleanupTask.objectNames = { VARIABLE_NAME(m_vertShaderModule) };
 	fragCleanupTask.objectNames = { VARIABLE_NAME(m_fragShaderModule) };
 
-	vertCleanupTask.vkObjects = { m_vkContext.Device.logicalDevice, vertShaderModule };
+	vertCleanupTask.vkObjects = { m_vkContext.Device.logicalDevice, m_vertShaderModule };
 	fragCleanupTask.vkObjects = { m_vkContext.Device.logicalDevice, m_fragShaderModule };
 
-	vertCleanupTask.cleanupFunc = [&]() { vkDestroyShaderModule(m_vkContext.Device.logicalDevice, vertShaderModule, nullptr); };
+	vertCleanupTask.cleanupFunc = [&]() { vkDestroyShaderModule(m_vkContext.Device.logicalDevice, m_vertShaderModule, nullptr); };
 	fragCleanupTask.cleanupFunc = [&]() { vkDestroyShaderModule(m_vkContext.Device.logicalDevice, m_fragShaderModule, nullptr); };
 
 	m_garbageCollector->createCleanupTask(vertCleanupTask);
@@ -498,8 +498,8 @@ void GraphicsPipeline::initShaderStage() {
 
 void GraphicsPipeline::initDynamicStates() {
 	m_dynamicStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-	m_dynamicStateCreateInfo.dynamicStateCount = static_cast<uint32_t>(m_dynamicStages.size());
-	m_dynamicStateCreateInfo.pDynamicStates = m_dynamicStages.data();
+	m_dynamicStateCreateInfo.dynamicStateCount = static_cast<uint32_t>(m_dynamicStates.size());
+	m_dynamicStateCreateInfo.pDynamicStates = m_dynamicStates.data();
 }
 
 
@@ -511,22 +511,22 @@ void GraphicsPipeline::initInputAssemblyState() {
 
 
 void GraphicsPipeline::initViewportState() {
-	viewport.x = viewport.y = 0.0f;
-	viewport.width = static_cast<float>(m_vkContext.SwapChain.extent.width);
-	viewport.height = static_cast<float>(m_vkContext.SwapChain.extent.height);
-	viewport.minDepth = 0.0f;
-	viewport.maxDepth = 1.0f;
+	m_viewport.x = m_viewport.y = 0.0f;
+	m_viewport.width = static_cast<float>(m_vkContext.SwapChain.extent.width);
+	m_viewport.height = static_cast<float>(m_vkContext.SwapChain.extent.height);
+	m_viewport.minDepth = 0.0f;
+	m_viewport.maxDepth = 1.0f;
 
 	// Since we want to draw the entire framebuffer, we'll specify a scissor rectangle that covers it entirely (i.e., that has the same extent as the swap chain's)
 	// If we want to (re)draw only a partial part of the framebuffer from (a, b) to (x, y), we'll specify the offset as {a, b} and extent as {x, y}
-	scissorRectangle.offset = { 0, 0 };
-	scissorRectangle.extent = m_vkContext.SwapChain.extent;
+	m_scissorRectangle.offset = { 0, 0 };
+	m_scissorRectangle.extent = m_vkContext.SwapChain.extent;
 
-	// NOTE: We don't need to specify pViewports and pScissors since the viewport was set as a dynamic state. Therefore, we only need to specify the viewport and scissor counts at pipeline creation time. The actual objects can be set up later at drawing time.
+	// NOTE: We don't need to specify pViewports and pScissors since the m_viewport was set as a dynamic state. Therefore, we only need to specify the m_viewport and scissor counts at pipeline creation time. The actual objects can be set up later at drawing time.
 	m_viewportStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-	//m_viewportStateCreateInfo.pViewports = &viewport;
+	//m_viewportStateCreateInfo.pViewports = &m_viewport;
 	m_viewportStateCreateInfo.viewportCount = 1;
-	//m_viewportStateCreateInfo.pScissors = &scissorRectangle;
+	//m_viewportStateCreateInfo.pScissors = &m_scissorRectangle;
 	m_viewportStateCreateInfo.scissorCount = 1;
 }
 
@@ -573,30 +573,30 @@ void GraphicsPipeline::initMultisamplingState() {
 
 void GraphicsPipeline::initDepthStencilState() {
 	// TODO: Finish depth stencil state structure and include it in createGraphicsPipeline()
-	depthStencilStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+	m_depthStencilStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
 }
 
 
 void GraphicsPipeline::initColorBlendingState() {
 	// ColorBlendAttachmentState contains the configuration per attached framebuffer
-	colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-	colorBlendAttachment.blendEnable = VK_TRUE;
+	m_colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+	m_colorBlendAttachment.blendEnable = VK_TRUE;
 
 	// Alpha blending implementation (requires blendEnable to be TRUE)
-	colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-	colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-	colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+	m_colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+	m_colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+	m_colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
 
-	colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-	colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-	colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+	m_colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+	m_colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+	m_colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
 
 	// ColorBlendStateCreateInfo references the array of structures for all of the framebuffers and allows us to set blend constants that we can use as blend factors.
 	m_colorBlendCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
 	m_colorBlendCreateInfo.logicOpEnable = VK_FALSE;
 	m_colorBlendCreateInfo.logicOp = VK_LOGIC_OP_COPY;
 	m_colorBlendCreateInfo.attachmentCount = 1;
-	m_colorBlendCreateInfo.pAttachments = &colorBlendAttachment;
+	m_colorBlendCreateInfo.pAttachments = &m_colorBlendAttachment;
 	m_colorBlendCreateInfo.blendConstants[0] = 0.0f;
 	m_colorBlendCreateInfo.blendConstants[1] = 0.0f;
 	m_colorBlendCreateInfo.blendConstants[2] = 0.0f;
@@ -605,8 +605,8 @@ void GraphicsPipeline::initColorBlendingState() {
 
 
 void GraphicsPipeline::initTessellationState() {
-	tessStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO;
-	tessStateCreateInfo.patchControlPoints = 3; // Number of control points per patch (e.g., 3 for triangles)
+	m_tessStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO;
+	m_tessStateCreateInfo.patchControlPoints = 3; // Number of control points per patch (e.g., 3 for triangles)
 }
 
 

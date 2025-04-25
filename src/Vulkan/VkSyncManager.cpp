@@ -7,7 +7,7 @@
 VkSyncManager::VkSyncManager(VulkanContext& context):
 	m_vkContext(context) {
 
-	garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
+	m_garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
 
 	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 };
@@ -74,9 +74,9 @@ void VkSyncManager::createSyncObjects() {
 		*
 		* Fences must be reset manually to put them back into the unsignaled state. This is because fences are used to control the execution of the host, and so the host gets to decide when to reset the fence. Contrast this to semaphores which are used to order work on the GPU without the host being involved.
 	*/
-	imageReadySemaphores.resize(SimulationConsts::MAX_FRAMES_IN_FLIGHT);
-	renderFinishedSemaphores.resize(SimulationConsts::MAX_FRAMES_IN_FLIGHT);
-	inFlightFences.resize(SimulationConsts::MAX_FRAMES_IN_FLIGHT);
+	m_imageReadySemaphores.resize(SimulationConsts::MAX_FRAMES_IN_FLIGHT);
+	m_renderFinishedSemaphores.resize(SimulationConsts::MAX_FRAMES_IN_FLIGHT);
+	m_inFlightFences.resize(SimulationConsts::MAX_FRAMES_IN_FLIGHT);
 
 	VkSemaphoreCreateInfo semaphoreCreateInfo{};
 	semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -89,9 +89,9 @@ void VkSyncManager::createSyncObjects() {
 	fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
 	for (size_t i = 0; i < SimulationConsts::MAX_FRAMES_IN_FLIGHT; i++) {
-		VkResult imageSemaphoreCreateResult = vkCreateSemaphore(m_vkContext.Device.logicalDevice, &semaphoreCreateInfo, nullptr, &imageReadySemaphores[i]);
-		VkResult renderSemaphoreCreateResult = vkCreateSemaphore(m_vkContext.Device.logicalDevice, &semaphoreCreateInfo, nullptr, &renderFinishedSemaphores[i]);
-		VkResult inFlightFenceCreateResult = vkCreateFence(m_vkContext.Device.logicalDevice, &fenceCreateInfo, nullptr, &inFlightFences[i]);
+		VkResult imageSemaphoreCreateResult = vkCreateSemaphore(m_vkContext.Device.logicalDevice, &semaphoreCreateInfo, nullptr, &m_imageReadySemaphores[i]);
+		VkResult renderSemaphoreCreateResult = vkCreateSemaphore(m_vkContext.Device.logicalDevice, &semaphoreCreateInfo, nullptr, &m_renderFinishedSemaphores[i]);
+		VkResult inFlightFenceCreateResult = vkCreateFence(m_vkContext.Device.logicalDevice, &fenceCreateInfo, nullptr, &m_inFlightFences[i]);
 
 		if (imageSemaphoreCreateResult != VK_SUCCESS || renderSemaphoreCreateResult != VK_SUCCESS) {
 			throw Log::RuntimeException(__FUNCTION__, "Failed to create semaphores for a frame!");
@@ -101,13 +101,13 @@ void VkSyncManager::createSyncObjects() {
 			throw Log::RuntimeException(__FUNCTION__, "Failed to create in-flight fence for a frame!");
 		}
 
-		VkSemaphore imageReadySemaphore = imageReadySemaphores[i];
-		VkSemaphore renderFinishedSemaphore = renderFinishedSemaphores[i];
-		VkFence inFlightFence = inFlightFences[i];
+		VkSemaphore imageReadySemaphore = m_imageReadySemaphores[i];
+		VkSemaphore renderFinishedSemaphore = m_renderFinishedSemaphores[i];
+		VkFence inFlightFence = m_inFlightFences[i];
 
 		CleanupTask syncObjTask{};
 		syncObjTask.caller = __FUNCTION__;
-		syncObjTask.objectNames = { VARIABLE_NAME(imageReadySemaphore), VARIABLE_NAME(renderFinishedSemaphore), VARIABLE_NAME(inFlightFence) };
+		syncObjTask.objectNames = { VARIABLE_NAME(m_imageReadySemaphore), VARIABLE_NAME(m_renderFinishedSemaphore), VARIABLE_NAME(m_inFlightFence) };
 		syncObjTask.vkObjects = { m_vkContext.Device.logicalDevice, imageReadySemaphore, renderFinishedSemaphore, inFlightFence };
 		syncObjTask.cleanupFunc = [this, imageReadySemaphore, renderFinishedSemaphore, inFlightFence]() {
 			vkDestroySemaphore(m_vkContext.Device.logicalDevice, imageReadySemaphore, nullptr);
@@ -115,10 +115,10 @@ void VkSyncManager::createSyncObjects() {
 			vkDestroyFence(m_vkContext.Device.logicalDevice, inFlightFence, nullptr); 
 		};
 
-		garbageCollector->createCleanupTask(syncObjTask);
+		m_garbageCollector->createCleanupTask(syncObjTask);
 	}
 
-	m_vkContext.SyncObjects.imageReadySemaphores = imageReadySemaphores;
-	m_vkContext.SyncObjects.renderFinishedSemaphores = renderFinishedSemaphores;
-	m_vkContext.SyncObjects.inFlightFences = inFlightFences;
+	m_vkContext.SyncObjects.imageReadySemaphores = m_imageReadySemaphores;
+	m_vkContext.SyncObjects.renderFinishedSemaphores = m_renderFinishedSemaphores;
+	m_vkContext.SyncObjects.inFlightFences = m_inFlightFences;
 }

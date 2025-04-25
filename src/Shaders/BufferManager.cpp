@@ -3,7 +3,7 @@
 BufferManager::BufferManager(VulkanContext& context):
 	m_vkContext(context) {
 
-	garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
+	m_garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
 
 	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
@@ -19,7 +19,7 @@ void BufferManager::init() {
 
 
 VkVertexInputBindingDescription BufferManager::getVertexInputBindingDescription() {
-	// A vertex binding describes at which rate to load data from memory throughout the vertices.
+	// A vertex binding describes at which rate to load data from memory throughout the m_vertices.
 		// It specifies the number of bytes between data entries and whether to move to the next data entry after each vertex or after each instance.
 	VkVertexInputBindingDescription bindingDescription{};
 
@@ -79,7 +79,7 @@ std::vector<VkVertexInputAttributeDescription> BufferManager::getVertexAttribute
 
 uint32_t BufferManager::createBuffer(VulkanContext& m_vkContext, VkBuffer& buffer, VkDeviceSize bufferSize, VkBufferUsageFlags usageFlags, VmaAllocation& bufferAllocation, VmaAllocationCreateInfo bufferAllocationCreateInfo) {
 
-	std::shared_ptr<GarbageCollector> garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
+	std::shared_ptr<GarbageCollector> m_garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
 
 	// Creates the buffer
 	VkBufferCreateInfo bufCreateInfo{};
@@ -113,11 +113,11 @@ uint32_t BufferManager::createBuffer(VulkanContext& m_vkContext, VkBuffer& buffe
 
 	CleanupTask bufTask{};
 	bufTask.caller = __FUNCTION__;
-	bufTask.objectNames = { VARIABLE_NAME(buffer) };
+	bufTask.objectNames = { VARIABLE_NAME(m_buffer) };
 	bufTask.vkObjects = { m_vkContext.vmaAllocator, buffer, bufferAllocation };
 	bufTask.cleanupFunc = [m_vkContext, buffer, bufferAllocation]() { vmaDestroyBuffer(m_vkContext.vmaAllocator, buffer, bufferAllocation); };
 
-	uint32_t bufferTaskID = garbageCollector->createCleanupTask(bufTask);
+	uint32_t bufferTaskID = m_garbageCollector->createCleanupTask(bufTask);
 
 
 	return bufferTaskID;
@@ -200,7 +200,7 @@ void BufferManager::updateUniformBuffer(uint32_t currentImage) {
 
 
 	// Copies the contents in the uniform buffer object to the uniform buffer's data
-	memcpy(uniformBuffersMappedData[currentImage], &UBO, sizeof(UBO));
+	memcpy(m_uniformBuffersMappedData[currentImage], &UBO, sizeof(UBO));
 }
 
 
@@ -259,12 +259,12 @@ void BufferManager::writeDataToGPUBuffer(const void* data, VkBuffer& buffer, VkD
 
 
 	// The staging buffer has done its job, so we can safely destroy it afterwards
-	garbageCollector->executeCleanupTask(stagingBufTaskID);
+	m_garbageCollector->executeCleanupTask(stagingBufTaskID);
 }
 
 
 void BufferManager::createVertexBuffer() {
-	VkDeviceSize bufferSize = (sizeof(vertices[0]) * vertices.size());
+	VkDeviceSize bufferSize = (sizeof(m_vertices[0]) * m_vertices.size());
 	VkBufferUsageFlags vertBufUsage = (VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
 
 	// NOTE: By default, the VMA will attempt to allocate memory in the preferred type (GPU/CPU), but may fall back to other types should it not be available/suitable (hence "AUTO_PREFER").
@@ -273,14 +273,14 @@ void BufferManager::createVertexBuffer() {
 	vertBufAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE; // PREFERS fast device-local memory
 	vertBufAllocInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT; // FORCES device-local memory
 	
-	createBuffer(m_vkContext, vertexBuffer, bufferSize, vertBufUsage, vertexBufferAllocation, vertBufAllocInfo);
+	createBuffer(m_vkContext, m_vertexBuffer, bufferSize, vertBufUsage, m_vertexBufferAllocation, vertBufAllocInfo);
 
-	writeDataToGPUBuffer(vertices.data(), vertexBuffer, bufferSize);
+	writeDataToGPUBuffer(m_vertices.data(), m_vertexBuffer, bufferSize);
 }
 
 
 void BufferManager::createIndexBuffer() {
-	VkDeviceSize bufferSize = (sizeof(vertIndices[0]) * vertIndices.size());
+	VkDeviceSize bufferSize = (sizeof(m_vertIndices[0]) * m_vertIndices.size());
 	VkBufferUsageFlags indexBufUsage = (VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
 
 	// NOTE: By default, the VMA will attempt to allocate memory in the preferred type (GPU/CPU), but may fall back to other types should it not be available/suitable (hence "AUTO_PREFER").
@@ -289,9 +289,9 @@ void BufferManager::createIndexBuffer() {
 	indexBufAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE; // PREFERS fast device-local memory
 	indexBufAllocInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT; // FORCES device-local memory
 
-	createBuffer(m_vkContext, indexBuffer, bufferSize, indexBufUsage, indexBufferAllocation, indexBufAllocInfo);
+	createBuffer(m_vkContext, m_indexBuffer, bufferSize, indexBufUsage, m_indexBufferAllocation, indexBufAllocInfo);
 
-	writeDataToGPUBuffer(vertIndices.data(), indexBuffer, bufferSize);
+	writeDataToGPUBuffer(m_vertIndices.data(), m_indexBuffer, bufferSize);
 }
 
 
@@ -299,9 +299,9 @@ void BufferManager::createUniformBuffers() {
 	// NOTE: Since new data is copied to the UBOs every frame, we should not use staging buffers since they add overhead and thus degrade performance
 	VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
-	uniformBuffers.resize(SimulationConsts::MAX_FRAMES_IN_FLIGHT);
-	uniformBuffersAllocations.resize(SimulationConsts::MAX_FRAMES_IN_FLIGHT);
-	uniformBuffersMappedData.resize(SimulationConsts::MAX_FRAMES_IN_FLIGHT);
+	m_uniformBuffers.resize(SimulationConsts::MAX_FRAMES_IN_FLIGHT);
+	m_uniformBuffersAllocations.resize(SimulationConsts::MAX_FRAMES_IN_FLIGHT);
+	m_uniformBuffersMappedData.resize(SimulationConsts::MAX_FRAMES_IN_FLIGHT);
 
 	VkBufferUsageFlags uniformBufUsageFlags = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 
@@ -311,23 +311,23 @@ void BufferManager::createUniformBuffers() {
 		uniformBufAllocInfo.requiredFlags = (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 		uniformBufAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
 		
-		createBuffer(m_vkContext, uniformBuffers[i], bufferSize, uniformBufUsageFlags, uniformBuffersAllocations[i], uniformBufAllocInfo);
+		createBuffer(m_vkContext, m_uniformBuffers[i], bufferSize, uniformBufUsageFlags, m_uniformBuffersAllocations[i], uniformBufAllocInfo);
 
 		// Maps the buffer allocation post-creation to get a pointer to the CPU memory block on which we can later write data
 		/*
 		The buffer allocation stays mapped to the pointer for the application's whole lifetime.
 		This technique is called "persistent mapping". We use it here because, as aforementioned, the UBOs are updated with new data every single frame, and mapping them alone costs a little performance, much less every frame.
 		*/
-		vmaMapMemory(m_vkContext.vmaAllocator, uniformBuffersAllocations[i], &uniformBuffersMappedData[i]);
+		vmaMapMemory(m_vkContext.vmaAllocator, m_uniformBuffersAllocations[i], &m_uniformBuffersMappedData[i]);
 
-		VmaAllocation uniformBufAlloc = uniformBuffersAllocations[i];
+		VmaAllocation uniformBufAlloc = m_uniformBuffersAllocations[i];
 		CleanupTask task{};
 		task.caller = __FUNCTION__;
-		task.objectNames = { VARIABLE_NAME(uniformBuffersAllocations) };
+		task.objectNames = { VARIABLE_NAME(m_uniformBuffersAllocations) };
 		task.vkObjects = { m_vkContext.vmaAllocator, uniformBufAlloc };
 		task.cleanupFunc = [this, uniformBufAlloc]() { vmaUnmapMemory(m_vkContext.vmaAllocator, uniformBufAlloc); };
 
-		garbageCollector->createCleanupTask(task);
+		m_garbageCollector->createCleanupTask(task);
 	}
 }
 

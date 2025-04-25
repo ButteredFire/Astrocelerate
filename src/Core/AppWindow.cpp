@@ -4,7 +4,7 @@
 #include "AppWindow.hpp"
 
 Window::Window(int width, int height, std::string windowName)
-    : WIDTH(width), HEIGHT(height), windowName(windowName) {
+    : m_WIDTH(width), m_HEIGHT(height), m_windowName(windowName) {
 
     glfwInit();
     // Explicitly tell GLFW not to create an OpenGL context (since we're using Vulkan)
@@ -12,11 +12,11 @@ Window::Window(int width, int height, std::string windowName)
     // Disables window from being resized post-creation (to support custom window resizing logic)
     //glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-    window = glfwCreateWindow(width, height, windowName.c_str(), nullptr, nullptr);
+    m_window = glfwCreateWindow(width, height, windowName.c_str(), nullptr, nullptr);
 }
 
 Window::~Window() {
-    glfwDestroyWindow(window);
+    glfwDestroyWindow(m_window);
     glfwTerminate();
 }
 

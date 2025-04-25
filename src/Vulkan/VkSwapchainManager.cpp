@@ -111,7 +111,7 @@ std::pair<VkImageView, uint32_t> VkSwapchainManager::createImageView(VulkanConte
 
     CleanupTask task{};
     task.caller = __FUNCTION__;
-    task.objectNames = { VARIABLE_NAME(imageView) };
+    task.objectNames = { VARIABLE_NAME(m_imageView) };
     task.vkObjects = { m_vkContext.Device.logicalDevice, imageView };
     task.cleanupFunc = [m_vkContext, imageView]() { vkDestroyImageView(m_vkContext.Device.logicalDevice, imageView, nullptr); };
 
@@ -272,7 +272,7 @@ void VkSwapchainManager::createFrameBuffers() {
 
         CleanupTask task{};
         task.caller = __FUNCTION__;
-        task.objectNames = { VARIABLE_NAME(framebuffer) };
+        task.objectNames = { VARIABLE_NAME(m_framebuffer) };
         task.vkObjects = { m_vkContext.Device.logicalDevice, framebuffer };
         task.cleanupFunc = [this, framebuffer]() { vkDestroyFramebuffer(m_vkContext.Device.logicalDevice, framebuffer, nullptr); };
 

@@ -7,8 +7,8 @@
 UIRenderer::UIRenderer(VulkanContext& context):
     m_vkContext(context) {
 
-    garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
-    graphicsPipeline = ServiceLocator::getService<GraphicsPipeline>(__FUNCTION__);
+    m_garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
+    m_graphicsPipeline = ServiceLocator::getService<GraphicsPipeline>(__FUNCTION__);
 
 	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
@@ -72,8 +72,8 @@ void UIRenderer::initializeImGui(UIRenderer::Appearance appearance) {
         { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE }
     };
     VkDescriptorPoolCreateFlags imgui_DescPoolCreateFlags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-    graphicsPipeline->createDescriptorPool(1, imgui_PoolSizes, descriptorPool, imgui_DescPoolCreateFlags);
-    vkInitInfo.DescriptorPool = descriptorPool;
+    m_graphicsPipeline->createDescriptorPool(1, imgui_PoolSizes, m_descriptorPool, imgui_DescPoolCreateFlags);
+    vkInitInfo.DescriptorPool = m_descriptorPool;
 
 
     // Render pass & subpass
@@ -97,12 +97,12 @@ void UIRenderer::initializeImGui(UIRenderer::Appearance appearance) {
     ImGui_ImplVulkan_Init(&vkInitInfo);
 
 
-    // Loads font
-    font = io.Fonts->AddFontFromMemoryTTF((void*)DefaultFontData, static_cast<int>(DefaultFontLength), 20.0f);
+    // Loads m_pFont
+    m_pFont = io.Fonts->AddFontFromMemoryTTF((void*)DefaultFontData, static_cast<int>(DefaultFontLength), 20.0f);
 
-    // Default to Imgui's default font if loading from memory fails
-    if (font == nullptr) {
-        font = io.Fonts->AddFontDefault();
+    // Default to Imgui's default m_pFont if loading from memory fails
+    if (m_pFont == nullptr) {
+        m_pFont = io.Fonts->AddFontDefault();
     }
 
     ImGui_ImplVulkan_CreateFontsTexture();
@@ -112,8 +112,8 @@ void UIRenderer::initializeImGui(UIRenderer::Appearance appearance) {
     //ImGui_ImplVulkan_DestroyFontUploadObjects();
 
     // Implements custom style
-    currentAppearance = appearance;
-    updateAppearance(currentAppearance);
+    m_currentAppearance = appearance;
+    updateAppearance(m_currentAppearance);
 
 
     CleanupTask task{};
@@ -124,7 +124,7 @@ void UIRenderer::initializeImGui(UIRenderer::Appearance appearance) {
         ImGui_ImplVulkan_Shutdown();
     };
 
-    garbageCollector->createCleanupTask(task);
+    m_garbageCollector->createCleanupTask(task);
 }
 
 
@@ -145,7 +145,7 @@ void UIRenderer::renderFrames() {
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    ImGui::PushFont(font);
+    ImGui::PushFont(m_pFont);
     
 
     ImGui::ShowDemoWindow();
