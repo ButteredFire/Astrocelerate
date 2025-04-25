@@ -56,8 +56,8 @@ namespace ShaderConsts {
 
 
 	// Compiled shaders
-	constexpr char VERTEX[] = "compiled_shaders/VertexShader.spv";
-	constexpr char FRAGMENT[] = "compiled_shaders/FragmentShader.spv";
+	inline const std::string VERTEX = std::string(APP_BINARY_DIR) + std::string("/compiled_shaders/VertexShader.spv");
+	inline const std::string FRAGMENT = std::string(APP_BINARY_DIR) + std::string("/compiled_shaders/FragmentShader.spv");
 }
 
 // Window properties

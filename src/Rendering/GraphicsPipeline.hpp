@@ -27,48 +27,64 @@
 
 
 /* Reads a file in binary mode.
-	@param fileName: The name of the file to be read.
-	@param workingDirectory (optional): The path to the file. By default, it is set to the current working directory (according to std::filesystem::current_path()).
-	@param defaultWorkingDirectory (optional): The path to which the working directory will reset after reading the file. In case workingDirectory is specified, the current path (i.e., std::filesystem::current_path()) is changed to it. Therefore, if you have set the working directory to something other than the default value (at compilation time) prior to invoking this function, you must specify defaultWorkingDirectory to it.
+	@param filePath: The path to the file to be read. If file path is relative, you must specify the working directory.
+	@param workingDirectory (optional): The path to the file. By default, it is set to the binary directory. It is optional, but must be specified if the provided file path is relative.
 
 	@return A byte array (vector of type char) containing the file's content.
 */
-static inline std::vector<char> readFile(const std::string& fileName, const std::string& workingDirectory = std::filesystem::current_path().string(), const std::string& defaultWorkingDirectory = DEFAULT_WORKING_DIR) {
-	// Changes the current working directory to the specified one (if provided)
-	std::filesystem::path workingDirPath = workingDirectory; // Converts string to filesystem::path
-	std::filesystem::current_path(workingDirPath);
+static inline std::vector<char> readFile(const std::string& filePath, std::string workingDirectory = "") {
+	if (filePath.empty()) {
+		throw Log::RuntimeException(__FUNCTION__, "File path is empty!");
+	}
+
+	// Joins the working directory and the file
+	std::filesystem::path workingDir = workingDirectory;
+	std::filesystem::path pathToFile = filePath;
+
+	std::filesystem::path absoluteFilePath;
+	if (workingDirectory.empty()) {
+		absoluteFilePath = pathToFile;
+	}
+	else {
+		// Treats filePath as relative
+		pathToFile = pathToFile.relative_path();
+		absoluteFilePath = workingDir / pathToFile;
+	}
+
 
 	// Reads the file to an ifstream
 	// Flag std::ios::ate means "Start reading from the end of the file". Doing so allows us to use the read position to determine the file size and allocate a buffer.
 	// Flag std::ios::binary means "Read the file as a binary file (to avoid text transformations)"
-	std::ifstream file(fileName, std::ios::ate | std::ios::binary);
+	std::ifstream file(absoluteFilePath, std::ios::ate | std::ios::binary);
 
 	// If file cannot open
 	if (!file.is_open()) {
-		throw Log::RuntimeException(__FUNCTION__, "Failed to open file " + enquote(fileName) + "!"
-			+ "\n" + "The file may not be in the directory " + enquote(workingDirectory) + '.'
-			+ "\n" + "To change the working directory, please specify the full path to the file."
+		std::string relativePathErrMsg = " The file may not be in the directory " + enquote(workingDirectory) + '.'
+			+ "\n" + "To change the working directory, please specify the full path to the file.";
+
+		throw Log::RuntimeException(__FUNCTION__, "Failed to open file " + enquote(absoluteFilePath.string()) + "!"
+			+ ((!workingDirectory.empty())? relativePathErrMsg : "")
 		);
 	}
+
 
 	// Allocates a buffer using the current reading position
 	size_t fileSize = static_cast<size_t>(file.tellg());
 	std::vector<char> buffer(fileSize);
 
+
 	// Seeks back to the beginning of the file and reads all of the bytes at once
 	file.seekg(0);
 	file.read(buffer.data(), fileSize);
 
+
 	// If file is incomplete/not read successfully
 	if (!file) {
-		throw Log::RuntimeException(__FUNCTION__, "Failed to read file " + enquote(fileName) + "!");
+		throw Log::RuntimeException(__FUNCTION__, "Failed to read file " + enquote(filePath) + "!");
 	}
 
 	file.close();
 
-	// Revert working directory to the default/current one
-	std::filesystem::path defaultDirPath = defaultWorkingDirectory;
-	std::filesystem::current_path(defaultDirPath);
 
 	return buffer;
 }

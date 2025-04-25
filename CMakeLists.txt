@@ -9,6 +9,10 @@ project(Astrocelerate)
     set(APP_VERSION "v0.1-alpha")
     add_compile_definitions(APP_VERSION="${APP_VERSION}")
 
+    # Specify source/binary file directories
+    add_compile_definitions(APP_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+    add_compile_definitions(APP_BINARY_DIR="${CMAKE_CURRENT_BINARY_DIR}")
+
     # Specify VMA version
     set(VMA_VERSION 1002000) # 1.2.0  (Form: ABBBCCC -> A = major, BBB = minor, CCC = patch); The VMA version must match that of the Vulkan version, i.e., VULKAN_VERSION
     add_compile_definitions(VMA_VULKAN_VERSION=VMA_VERSION)
