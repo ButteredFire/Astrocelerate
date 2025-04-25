@@ -3,8 +3,9 @@ cls
 python "scripts/GenerateDirectories.py" "src" "external" "assets"
 
 mkdir build
+cd build
 
-cmake build -G "Visual Studio 17 2022"
-cmake --build build --config Release
+cmake ../ -G "Visual Studio 17 2022"
+cmake --build . --config Release
 
 pause
