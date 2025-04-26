@@ -7,8 +7,7 @@
 #include <GLFW/glfw3.h>
 
 // GLM
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
+#include <glm_config.hpp>
 
 #include <chrono>
 
@@ -83,7 +82,7 @@ public:
 
 
     /* Creates a buffer.
-        @param m_vkContext: The application context.
+        @param vkContext: The application context.
         @param &buffer: The buffer to be created.
         @param bufferSize: The size of the buffer (in bytes).
         @param usageFlags: Flags specifying how the buffer will be used.
@@ -92,7 +91,7 @@ public:
         
         @return The cleanup task ID for the newly created buffer.
     */
-    static uint32_t createBuffer(VulkanContext& m_vkContext, VkBuffer& buffer, VkDeviceSize bufferSize, VkBufferUsageFlags usageFlags, VmaAllocation& bufferAllocation, VmaAllocationCreateInfo bufferAllocationCreateInfo);
+    static uint32_t createBuffer(VulkanContext& vkContext, VkBuffer& buffer, VkDeviceSize bufferSize, VkBufferUsageFlags usageFlags, VmaAllocation& bufferAllocation, VmaAllocationCreateInfo bufferAllocationCreateInfo);
 
 
     /* Copies the contents from a source buffer to a destination buffer.

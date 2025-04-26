@@ -99,25 +99,26 @@ public:
 
 		@return The command buffer in question.
 	*/
-	static VkCommandBuffer beginSingleUseCommandBuffer(VulkanContext& m_vkContext, SingleUseCommandBufferInfo* commandBufInfo);
+	static VkCommandBuffer beginSingleUseCommandBuffer(VulkanContext& vkContext, SingleUseCommandBufferInfo* commandBufInfo);
 
 
 	/* Stops recording a single-use/anonymous command buffer and submit its data to the GPU.
+		@param vkContext: The application context.
 		@param commandBufInfo: The command buffer configuration.
 		@param cmdBuffer: The command buffer.
 	*/
-	static void endSingleUseCommandBuffer(VulkanContext& m_vkContext, SingleUseCommandBufferInfo* commandBufInfo, VkCommandBuffer& cmdBuffer);
+	static void endSingleUseCommandBuffer(VulkanContext& vkContext, SingleUseCommandBufferInfo* commandBufInfo, VkCommandBuffer& cmdBuffer);
 
 
 	/* Creates a command pool.
-		@param m_vkContext: The application context.
+		@param vkContext: The application context.
 		@param device: The logical device.
 		@param queueFamilyIndex: The index of the queue family for which the command pool is to be created.
 		@param flags (Default: VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT): The command pool flags.
 
 		@return EITHER A new command pool (if the command pool has unique creation parameters), OR an existing command pool (if all of its creation parameters are the same as the ones passed in).
 	*/
-	static VkCommandPool createCommandPool(VulkanContext& m_vkContext, VkDevice device, uint32_t queueFamilyIndex, VkCommandPoolCreateFlags flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
+	static VkCommandPool createCommandPool(VulkanContext& vkContext, VkDevice device, uint32_t queueFamilyIndex, VkCommandPoolCreateFlags flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
 
 
 	/* Allocates a command buffer vector. */

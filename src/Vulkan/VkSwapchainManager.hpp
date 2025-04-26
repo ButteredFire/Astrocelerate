@@ -32,6 +32,7 @@ typedef struct SwapChainProperties {
 	std::vector<VkPresentModeKHR> presentModes;
 } SwapChainProperties;
 
+
 class VkSwapchainManager {
 public:
 	VkSwapchainManager(VulkanContext& context);
@@ -50,13 +51,15 @@ public:
 
 
 	/* Creates an image view.
-		@param m_vkContext: The application context.
+		@param vkContext: The application context.
 		@param image: The image to be used.
+		@param imageView: The image view to be created.
 		@param imgFormat: The image format.
+		@param imgAspectFlags: The image aspect flags specifying which aspect(s) of the image are to be included in the image view.
 
-		@return A pair containing the image view (pair::first), and its cleanup task ID (pair::second).
+		@return The image view's cleanup task ID.
 	*/
-	static std::pair<VkImageView, uint32_t> createImageView(VulkanContext& m_vkContext, VkImage& image, VkFormat imgFormat);
+	static uint32_t createImageView(VulkanContext& vkContext, VkImage& image, VkImageView& imageView, VkFormat imgFormat, VkImageAspectFlags imgAspectFlags);
 
 
 	/* Queries the properties of a GPU's swap-chain.

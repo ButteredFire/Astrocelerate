@@ -43,6 +43,9 @@ std::vector<VkVertexInputAttributeDescription> BufferManager::getVertexAttribute
 		// Each vertex attribute's binding must source its value from the vertex's bindingDescription binding.
 	std::vector<VkVertexInputAttributeDescription> attribDescriptions{};
 
+	size_t vertexAttribCount = 3;
+	attribDescriptions.reserve(vertexAttribCount);
+
 	// Attribute: Position
 	VkVertexInputAttributeDescription positionAttribDesc{};
 	positionAttribDesc.binding = 0;
@@ -77,7 +80,7 @@ std::vector<VkVertexInputAttributeDescription> BufferManager::getVertexAttribute
 }
 
 
-uint32_t BufferManager::createBuffer(VulkanContext& m_vkContext, VkBuffer& buffer, VkDeviceSize bufferSize, VkBufferUsageFlags usageFlags, VmaAllocation& bufferAllocation, VmaAllocationCreateInfo bufferAllocationCreateInfo) {
+uint32_t BufferManager::createBuffer(VulkanContext& vkContext, VkBuffer& buffer, VkDeviceSize bufferSize, VkBufferUsageFlags usageFlags, VmaAllocation& bufferAllocation, VmaAllocationCreateInfo bufferAllocationCreateInfo) {
 
 	std::shared_ptr<GarbageCollector> m_garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
 
@@ -93,7 +96,7 @@ uint32_t BufferManager::createBuffer(VulkanContext& m_vkContext, VkBuffer& buffe
 	bufCreateInfo.sharingMode = VK_SHARING_MODE_CONCURRENT;
 
 		// If the sharing mode is CONCURRENT, we must specify queue families
-	QueueFamilyIndices familyIndices = m_vkContext.Device.queueFamilies;
+	QueueFamilyIndices familyIndices = vkContext.Device.queueFamilies;
 	uint32_t queueFamilyIndices[] = {
 		familyIndices.graphicsFamily.index.value(),
 		familyIndices.transferFamily.index.value()
@@ -105,7 +108,7 @@ uint32_t BufferManager::createBuffer(VulkanContext& m_vkContext, VkBuffer& buffe
 	bufCreateInfo.flags = 0;
 
 
-	VkResult bufCreateResult = vmaCreateBuffer(m_vkContext.vmaAllocator, &bufCreateInfo, &bufferAllocationCreateInfo, &buffer, &bufferAllocation, nullptr);
+	VkResult bufCreateResult = vmaCreateBuffer(vkContext.vmaAllocator, &bufCreateInfo, &bufferAllocationCreateInfo, &buffer, &bufferAllocation, nullptr);
 	if (bufCreateResult != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, "Failed to create buffer!");
 	}
@@ -114,8 +117,8 @@ uint32_t BufferManager::createBuffer(VulkanContext& m_vkContext, VkBuffer& buffe
 	CleanupTask bufTask{};
 	bufTask.caller = __FUNCTION__;
 	bufTask.objectNames = { VARIABLE_NAME(m_buffer) };
-	bufTask.vkObjects = { m_vkContext.vmaAllocator, buffer, bufferAllocation };
-	bufTask.cleanupFunc = [m_vkContext, buffer, bufferAllocation]() { vmaDestroyBuffer(m_vkContext.vmaAllocator, buffer, bufferAllocation); };
+	bufTask.vkObjects = { vkContext.vmaAllocator, buffer, bufferAllocation };
+	bufTask.cleanupFunc = [vkContext, buffer, bufferAllocation]() { vmaDestroyBuffer(vkContext.vmaAllocator, buffer, bufferAllocation); };
 
 	uint32_t bufferTaskID = m_garbageCollector->createCleanupTask(bufTask);
 

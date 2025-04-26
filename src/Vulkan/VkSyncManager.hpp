@@ -26,20 +26,20 @@ public:
 	void init();
 
 	/* Creates a single-use fence.
-		@param m_vkContext: The application context.
+		@param vkContext: The application context.
 		@param signaled (Default: False): A boolean specifying whether the fence's initial state should be signaled (True), or not (False).
 
 		@return The fence in question.
 	*/
-	static VkFence createSingleUseFence(VulkanContext& m_vkContext, bool signaled = false);
+	static VkFence createSingleUseFence(VulkanContext& vkContext, bool signaled = false);
 
 
 	/* Waits for a single-use fence to be signaled. After waiting, the fence will be destroyed.
-		@param m_vkContext: The application context.
+		@param vkContext: The application context.
 		@param fence: The fence in question.
 		@param timeout: The fence wait time.
 	*/
-	static void waitForSingleUseFence(VulkanContext& m_vkContext, VkFence& fence, uint64_t timeout = UINT64_MAX);
+	static void waitForSingleUseFence(VulkanContext& vkContext, VkFence& fence, uint64_t timeout = UINT64_MAX);
 
 private:
 	VulkanContext& m_vkContext;

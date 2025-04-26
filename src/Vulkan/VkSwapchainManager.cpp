@@ -62,7 +62,7 @@ void VkSwapchainManager::recreateSwapchain() {
 }
 
 
-std::pair<VkImageView, uint32_t> VkSwapchainManager::createImageView(VulkanContext& m_vkContext, VkImage& image, VkFormat imgFormat) {
+uint32_t VkSwapchainManager::createImageView(VulkanContext& vkContext, VkImage& image, VkImageView& imageView, VkFormat imgFormat, VkImageAspectFlags imgAspectFlags) {
     std::shared_ptr<GarbageCollector> m_garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
 
     VkImageViewCreateInfo viewCreateInfo{};
@@ -95,15 +95,14 @@ std::pair<VkImageView, uint32_t> VkSwapchainManager::createImageView(VulkanConte
     viewCreateInfo.components = colorMappingStruct;
 
     // Specifies the image's purpose and which part of it should be accessed
-    viewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT; // Images will be used as color targets
+    viewCreateInfo.subresourceRange.aspectMask = imgAspectFlags; // Images will be used as color targets
     viewCreateInfo.subresourceRange.baseMipLevel = 0; // Images will have no mipmapping levels
     viewCreateInfo.subresourceRange.levelCount = 1;
     viewCreateInfo.subresourceRange.baseArrayLayer = 0; // Images will have no multiple layers
     viewCreateInfo.subresourceRange.layerCount = 1;
 
-    VkImageView imageView;
 
-    VkResult result = vkCreateImageView(m_vkContext.Device.logicalDevice, &viewCreateInfo, nullptr, &imageView);
+    VkResult result = vkCreateImageView(vkContext.Device.logicalDevice, &viewCreateInfo, nullptr, &imageView);
     if (result != VK_SUCCESS) {
         throw Log::RuntimeException(__FUNCTION__, "Failed to create image view!");
     }
@@ -111,14 +110,14 @@ std::pair<VkImageView, uint32_t> VkSwapchainManager::createImageView(VulkanConte
 
     CleanupTask task{};
     task.caller = __FUNCTION__;
-    task.objectNames = { VARIABLE_NAME(m_imageView) };
-    task.vkObjects = { m_vkContext.Device.logicalDevice, imageView };
-    task.cleanupFunc = [m_vkContext, imageView]() { vkDestroyImageView(m_vkContext.Device.logicalDevice, imageView, nullptr); };
+    task.objectNames = { VARIABLE_NAME(imageView) };
+    task.vkObjects = { vkContext.Device.logicalDevice, imageView };
+    task.cleanupFunc = [vkContext, imageView]() { vkDestroyImageView(vkContext.Device.logicalDevice, imageView, nullptr); };
 
     uint32_t imageViewTaskID = m_garbageCollector->createCleanupTask(task);
 
 
-    return { imageView, imageViewTaskID };
+    return imageViewTaskID;
 }
 
 
@@ -233,10 +232,9 @@ void VkSwapchainManager::createImageViews() {
     m_imageViews.resize(m_images.size());
 
     for (size_t i = 0; i < m_images.size(); i++) {
-        std::pair<VkImageView, uint32_t> imageViewProperties = createImageView(m_vkContext, m_images[i], m_vkContext.SwapChain.surfaceFormat.format);
+        uint32_t viewCleanupID = createImageView(m_vkContext, m_images[i], m_imageViews[i], m_vkContext.SwapChain.surfaceFormat.format, VK_IMAGE_ASPECT_COLOR_BIT);
 
-        m_imageViews[i] = imageViewProperties.first;
-        m_cleanupTaskIDs.push_back(imageViewProperties.second);
+        m_cleanupTaskIDs.push_back(viewCleanupID);
     }
 }
 

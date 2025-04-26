@@ -76,38 +76,26 @@ void TextureManager::createTextureImage(const char* texSource, int channels) {
 	imgAllocCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
 	imgAllocCreateInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 
-	createImage(m_textureImage, m_textureImageAllocation, textureWidth, textureHeight, 1, m_textureImageFormat, imgTiling, imgUsageFlags, imgAllocCreateInfo);
+	createImage(m_vkContext, m_textureImage, m_textureImageAllocation, textureWidth, textureHeight, 1, m_textureImageFormat, imgTiling, imgUsageFlags, imgAllocCreateInfo);
 
 
 	// Copy the staging buffer to the texture image
 		// Transition the image layout to TRANSFER_DST (staging buffer (TRANSFER_SRC) -> image (TRANSFER_DST))
-	switchImageLayout(m_textureImage, m_textureImageFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+	switchImageLayout(m_vkContext, m_textureImage, m_textureImageFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 	copyBufferToImage(stagingBuffer, m_textureImage, static_cast<uint32_t>(textureWidth), static_cast<uint32_t>(textureHeight));
 
 
 	// Transition the image layout to SHADER_READ_ONLY so that it can be read by the shader for sampling
-	switchImageLayout(m_textureImage, m_textureImageFormat, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	switchImageLayout(m_vkContext, m_textureImage, m_textureImageFormat, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 
-	// Cleanup
-	CleanupTask imgTask{};
-	imgTask.caller = __FUNCTION__;
-	imgTask.objectNames = { VARIABLE_NAME(m_textureImageAllocation) };
-	imgTask.vkObjects = { m_vkContext.vmaAllocator, m_textureImageAllocation };
-	imgTask.cleanupFunc = [this]() {
-		vmaDestroyImage(m_vkContext.vmaAllocator, m_textureImage, m_textureImageAllocation);
-	};
-
-	m_garbageCollector->createCleanupTask(imgTask);
-
-		// Destroy the staging buffer at the end as it has served its purpose
+	// Destroy the staging buffer at the end as it has served its purpose
 	m_garbageCollector->executeCleanupTask(stagingBufTaskID);
 }
 
 
 void TextureManager::createTextureImageView() {
-	std::pair<VkImageView, uint32_t> imageViewProperties = VkSwapchainManager::createImageView(m_vkContext, m_textureImage, m_textureImageFormat);
-	m_textureImageView = imageViewProperties.first;
+	VkSwapchainManager::createImageView(m_vkContext, m_textureImage, m_textureImageView, m_textureImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
 	m_vkContext.Texture.imageView = m_textureImageView;
 }
 
@@ -181,43 +169,9 @@ void TextureManager::createTextureSampler() {
 }
 
 
-void TextureManager::defineImageLayoutTransitionStages(VkAccessFlags* srcAccessMask, VkAccessFlags* dstAccessMask, VkPipelineStageFlags* srcStage, VkPipelineStageFlags* dstStage, VkImageLayout oldLayout, VkImageLayout newLayout) {
-	// Old layout
-	const bool oldLayoutIsUndefined = (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED);
-	const bool oldLayoutIsTransferDst = (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+void TextureManager::createImage(VulkanContext& vkContext, VkImage& image, VmaAllocation& imgAllocation, uint32_t width, uint32_t height, uint32_t depth, VkFormat imgFormat, VkImageTiling imgTiling, VkImageUsageFlags imgUsageFlags, VmaAllocationCreateInfo& imgAllocCreateInfo) {
+	std::shared_ptr<GarbageCollector> garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
 
-	// New layout
-	const bool newLayoutIsTransferDst = (newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-	const bool newLayoutIsShaderReadOnly = (newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-
-	if (oldLayoutIsUndefined && newLayoutIsTransferDst) {
-		*srcAccessMask = 0;
-		*dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-
-		*srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-		*dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-		return;
-	}
-
-
-	if (oldLayoutIsTransferDst && newLayoutIsShaderReadOnly) {
-		*srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-		*dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-		*srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-		*dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-		return;
-	}
-
-
-	throw Log::RuntimeException(__FUNCTION__, "Cannot define stages for image layout transition: Unsupported layout transition!");
-}
-
-
-
-void TextureManager::createImage(VkImage& image, VmaAllocation& imgAllocation, uint32_t width, uint32_t height, uint32_t depth, VkFormat imgFormat, VkImageTiling imgTiling, VkImageUsageFlags imgUsageFlags, VmaAllocationCreateInfo& imgAllocCreateInfo) {
-	
 	// Image info
 	VkImageCreateInfo imgCreateInfo{};
 	imgCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -261,21 +215,32 @@ void TextureManager::createImage(VkImage& image, VmaAllocation& imgAllocation, u
 	imgCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
 
-	VkResult imgCreateResult = vmaCreateImage(m_vkContext.vmaAllocator, &imgCreateInfo, &imgAllocCreateInfo, &image, &imgAllocation, nullptr);
+	VkResult imgCreateResult = vmaCreateImage(vkContext.vmaAllocator, &imgCreateInfo, &imgAllocCreateInfo, &image, &imgAllocation, nullptr);
 	if (imgCreateResult != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, "Failed to create image!");
 	}
+
+
+	CleanupTask imgTask{};
+	imgTask.caller = __FUNCTION__;
+	imgTask.objectNames = { VARIABLE_NAME(imgAllocation) };
+	imgTask.vkObjects = { vkContext.vmaAllocator, imgAllocation };
+	imgTask.cleanupFunc = [vkContext, image, imgAllocation]() {
+		vmaDestroyImage(vkContext.vmaAllocator, image, imgAllocation);
+	};
+
+	garbageCollector->createCleanupTask(imgTask);
 }
 
 
-void TextureManager::switchImageLayout(VkImage image, VkFormat imgFormat, VkImageLayout oldLayout, VkImageLayout newLayout) {
+void TextureManager::switchImageLayout(VulkanContext& vkContext, VkImage image, VkFormat imgFormat, VkImageLayout oldLayout, VkImageLayout newLayout) {
 	SingleUseCommandBufferInfo cmdInfo{};
-	cmdInfo.commandPool = VkCommandManager::createCommandPool(m_vkContext, m_vkContext.Device.logicalDevice, m_vkContext.Device.queueFamilies.graphicsFamily.index.value(), VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
-	cmdInfo.fence = VkSyncManager::createSingleUseFence(m_vkContext);
+	cmdInfo.commandPool = VkCommandManager::createCommandPool(vkContext, vkContext.Device.logicalDevice, vkContext.Device.queueFamilies.graphicsFamily.index.value(), VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
+	cmdInfo.fence = VkSyncManager::createSingleUseFence(vkContext);
 	cmdInfo.usingSingleUseFence = true;
-	cmdInfo.queue = m_vkContext.Device.queueFamilies.graphicsFamily.deviceQueue;
+	cmdInfo.queue = vkContext.Device.queueFamilies.graphicsFamily.deviceQueue;
 
-	VkCommandBuffer commandBuffer = VkCommandManager::beginSingleUseCommandBuffer(m_vkContext, &cmdInfo);
+	VkCommandBuffer commandBuffer = VkCommandManager::beginSingleUseCommandBuffer(vkContext, &cmdInfo);
 
 	/* Perform layout transition using an image memory barrier.
 		It is part of Vulkan barriers, which are used for processes like:
@@ -299,12 +264,21 @@ void TextureManager::switchImageLayout(VkImage image, VkFormat imgFormat, VkImag
 	// Specifies image properties
 	imgMemBarrier.image = image;
 	imgMemBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		
-		// Image does not have multiple mipmapping levels
+
+	if (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
+		imgMemBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+
+		if (GraphicsPipeline::formatHasStencilComponent(imgFormat)) {
+			imgMemBarrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+		}
+	}
+
+
+	// Image does not have multiple mipmapping levels
 	imgMemBarrier.subresourceRange.baseMipLevel = 0;
 	imgMemBarrier.subresourceRange.levelCount = 1;
 
-		// Image is not an array, i.e., only having one layer
+	// Image is not an array, i.e., only having one layer
 	imgMemBarrier.subresourceRange.baseArrayLayer = 0;
 	imgMemBarrier.subresourceRange.layerCount = 1;
 
@@ -312,7 +286,7 @@ void TextureManager::switchImageLayout(VkImage image, VkFormat imgFormat, VkImag
 		// ... must happen before the barrier
 	imgMemBarrier.srcAccessMask = 0;
 
-		// ... must wait for the barrier
+	// ... must wait for the barrier
 	imgMemBarrier.dstAccessMask = 0;
 
 	VkPipelineStageFlags srcStage = 0;
@@ -325,8 +299,56 @@ void TextureManager::switchImageLayout(VkImage image, VkFormat imgFormat, VkImag
 	vkCmdPipelineBarrier(commandBuffer, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &imgMemBarrier);
 
 
-	VkCommandManager::endSingleUseCommandBuffer(m_vkContext, &cmdInfo, commandBuffer);
-	m_vkContext.Texture.imageLayout = newLayout;
+	VkCommandManager::endSingleUseCommandBuffer(vkContext, &cmdInfo, commandBuffer);
+	vkContext.Texture.imageLayout = newLayout;
+}
+
+
+void TextureManager::defineImageLayoutTransitionStages(VkAccessFlags* srcAccessMask, VkAccessFlags* dstAccessMask, VkPipelineStageFlags* srcStage, VkPipelineStageFlags* dstStage, VkImageLayout oldLayout, VkImageLayout newLayout) {
+	// Old layout
+	const bool oldLayoutIsUndefined = (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED);
+	const bool oldLayoutIsTransferDst = (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
+	// New layout
+	const bool newLayoutIsTransferDst = (newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+	const bool newLayoutIsShaderReadOnly = (newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	const bool newLayoutIsDepthStencilAttachment = (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+
+
+	if (oldLayoutIsUndefined && newLayoutIsTransferDst) {
+		*srcAccessMask = 0;
+		*dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+		*srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		*dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+	}
+
+
+	else if (oldLayoutIsUndefined && newLayoutIsDepthStencilAttachment) {
+		*srcAccessMask = 0;
+		*dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+		*srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		*dstStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+
+		/* NOTE:
+			- The reading happens in the EARLY_FRAGMENT_TESTS stage and the writing happens in the LATE_FRAGMENT_TESTS stage.
+			- Advice: Pick the earliest pipeline stage specified in the access mask (in this case, it's the reading stage) so that the resource is available as early as possible.
+		*/
+	}
+
+
+	else if (oldLayoutIsTransferDst && newLayoutIsShaderReadOnly) {
+		*srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		*dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+		*srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+		*dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+	}
+
+
+	else
+		throw Log::RuntimeException(__FUNCTION__, "Cannot define stages for image layout transition: Unsupported layout transition!");
 }
 
 

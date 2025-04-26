@@ -23,10 +23,10 @@ int main() {
     std::cout << "Project " << WIN_NAME << ", version " << APP_VERSION << ". Copyright 2025 Duong Duy Nhat Minh.\n";
 
     // Binds members in the VulkanInstanceContext struct to their corresponding active Vulkan objects
-    VulkanContext m_vkContext{};
+    VulkanContext vkContext{};
 
     // Creates a memory manager
-    std::shared_ptr<GarbageCollector> garbageCollector = std::make_shared<GarbageCollector>(m_vkContext);
+    std::shared_ptr<GarbageCollector> garbageCollector = std::make_shared<GarbageCollector>(vkContext);
     ServiceLocator::registerService(garbageCollector);
 
     // Entity manager
@@ -37,45 +37,45 @@ int main() {
             // Creates a window
         Window window(WIN_WIDTH, WIN_HEIGHT, WIN_NAME);
         GLFWwindow *windowPtr = window.getGLFWwindowPtr();
-        m_vkContext.window = windowPtr;
+        vkContext.window = windowPtr;
 
 
             // Instance manager
-        VkInstanceManager instanceManager(m_vkContext);
+        VkInstanceManager instanceManager(vkContext);
         instanceManager.init();
 
 
             // Device manager
-        VkDeviceManager deviceManager(m_vkContext);
+        VkDeviceManager deviceManager(vkContext);
         deviceManager.init();
 
 
             // Swap-chain manager
-        std::shared_ptr<VkSwapchainManager> swapchainManager = std::make_shared<VkSwapchainManager>(m_vkContext);
+        std::shared_ptr<VkSwapchainManager> swapchainManager = std::make_shared<VkSwapchainManager>(vkContext);
         ServiceLocator::registerService(swapchainManager);
         swapchainManager->init();
 
 
             // Command manager
-        std::shared_ptr<VkCommandManager> commandManager = std::make_shared<VkCommandManager>(m_vkContext);
+        std::shared_ptr<VkCommandManager> commandManager = std::make_shared<VkCommandManager>(vkContext);
         ServiceLocator::registerService(commandManager);
         commandManager->init();
 
 
             // Texture manager
-        std::shared_ptr<TextureManager> textureManager = std::make_shared<TextureManager>(m_vkContext);
+        std::shared_ptr<TextureManager> textureManager = std::make_shared<TextureManager>(vkContext);
         ServiceLocator::registerService(textureManager);
         textureManager->createTexture((std::string(APP_SOURCE_DIR) + std::string("/assets/app/ExperimentalAppLogo.png")).c_str());
 
 
             // Buffer manager
-        std::shared_ptr<BufferManager> m_bufferManager = std::make_shared<BufferManager>(m_vkContext);
+        std::shared_ptr<BufferManager> m_bufferManager = std::make_shared<BufferManager>(vkContext);
         ServiceLocator::registerService(m_bufferManager);
         m_bufferManager->init();
 
 
             // Graphics pipeline
-        std::shared_ptr<GraphicsPipeline> graphicsPipeline = std::make_shared<GraphicsPipeline>(m_vkContext);
+        std::shared_ptr<GraphicsPipeline> graphicsPipeline = std::make_shared<GraphicsPipeline>(vkContext);
         ServiceLocator::registerService(graphicsPipeline);
         graphicsPipeline->init();
 
@@ -83,27 +83,27 @@ int main() {
 
 
             // Synchronization manager
-        std::shared_ptr<VkSyncManager> syncManager = std::make_shared<VkSyncManager>(m_vkContext);
+        std::shared_ptr<VkSyncManager> syncManager = std::make_shared<VkSyncManager>(vkContext);
         ServiceLocator::registerService(syncManager);
         syncManager->init();
 
 
             // Renderers
-        std::shared_ptr<UIRenderer> uiRenderer = std::make_shared<UIRenderer>(m_vkContext);
+        std::shared_ptr<UIRenderer> uiRenderer = std::make_shared<UIRenderer>(vkContext);
         ServiceLocator::registerService(uiRenderer);
 
-        Renderer renderer(m_vkContext);
+        Renderer renderer(vkContext);
         renderer.init();
 
 
-        Engine engine(windowPtr, m_vkContext, renderer);
+        Engine engine(windowPtr, vkContext, renderer);
         engine.run();
     }
     catch (const Log::RuntimeException& e) {
         Log::print(e.severity(), e.origin(), e.what());
 
-        if (m_vkContext.Device.logicalDevice != VK_NULL_HANDLE)
-            vkDeviceWaitIdle(m_vkContext.Device.logicalDevice);
+        if (vkContext.Device.logicalDevice != VK_NULL_HANDLE)
+            vkDeviceWaitIdle(vkContext.Device.logicalDevice);
 
         garbageCollector->processCleanupStack();
         Log::print(Log::T_ERROR, WIN_NAME.c_str(), "Program exited with errors.");
@@ -113,7 +113,7 @@ int main() {
     }
 
 
-    vkDeviceWaitIdle(m_vkContext.Device.logicalDevice);
+    vkDeviceWaitIdle(vkContext.Device.logicalDevice);
     garbageCollector->processCleanupStack();
     Log::print(Log::T_SUCCESS, WIN_NAME.c_str(), "Program exited successfully.");
     return EXIT_SUCCESS;

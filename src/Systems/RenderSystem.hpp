@@ -15,5 +15,5 @@
 
 class RenderSystem {
 public:
-	static void processRenderable(VulkanContext& m_vkContext, VkCommandBuffer& cmdBuffer, RenderableComponent& renderable);
+	static void processRenderable(VulkanContext& vkContext, VkCommandBuffer& cmdBuffer, RenderableComponent& renderable);
 };

@@ -60,6 +60,7 @@ namespace ShaderConsts {
 	inline const std::string FRAGMENT = std::string(APP_BINARY_DIR) + std::string("/compiled_shaders/FragmentShader.spv");
 }
 
+
 // Window properties
 namespace WindowConsts {
 	constexpr int DEFAULT_WINDOW_WIDTH = 1200;

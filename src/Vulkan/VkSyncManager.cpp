@@ -21,7 +21,7 @@ void VkSyncManager::init() {
 }
 
 
-VkFence VkSyncManager::createSingleUseFence(VulkanContext& m_vkContext, bool signaled) {
+VkFence VkSyncManager::createSingleUseFence(VulkanContext& vkContext, bool signaled) {
 	VkFenceCreateInfo fenceCreateInfo{};
 	fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 	
@@ -29,7 +29,7 @@ VkFence VkSyncManager::createSingleUseFence(VulkanContext& m_vkContext, bool sig
 		fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 	
 	VkFence fence;
-	VkResult result = vkCreateFence(m_vkContext.Device.logicalDevice, &fenceCreateInfo, nullptr, &fence);
+	VkResult result = vkCreateFence(vkContext.Device.logicalDevice, &fenceCreateInfo, nullptr, &fence);
 	if (result != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, "Failed to create single-use fence!");
 	}
@@ -38,13 +38,13 @@ VkFence VkSyncManager::createSingleUseFence(VulkanContext& m_vkContext, bool sig
 }
 
 
-void VkSyncManager::waitForSingleUseFence(VulkanContext& m_vkContext, VkFence& fence, uint64_t timeout) {
-	VkResult result = vkWaitForFences(m_vkContext.Device.logicalDevice, 1, &fence, VK_TRUE, timeout);
+void VkSyncManager::waitForSingleUseFence(VulkanContext& vkContext, VkFence& fence, uint64_t timeout) {
+	VkResult result = vkWaitForFences(vkContext.Device.logicalDevice, 1, &fence, VK_TRUE, timeout);
 	if (result != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, "Failed to wait for single-use fence!");
 	}
 	
-	vkDestroyFence(m_vkContext.Device.logicalDevice, fence, nullptr);
+	vkDestroyFence(vkContext.Device.logicalDevice, fence, nullptr);
 }
 
 

@@ -121,7 +121,7 @@ void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, 
 }
 
 
-VkCommandBuffer VkCommandManager::beginSingleUseCommandBuffer(VulkanContext& m_vkContext, SingleUseCommandBufferInfo* commandBufInfo) {
+VkCommandBuffer VkCommandManager::beginSingleUseCommandBuffer(VulkanContext& vkContext, SingleUseCommandBufferInfo* commandBufInfo) {
 	VkCommandBufferAllocateInfo cmdBufAllocInfo{};
 	cmdBufAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 	cmdBufAllocInfo.level = commandBufInfo->bufferLevel;
@@ -129,7 +129,7 @@ VkCommandBuffer VkCommandManager::beginSingleUseCommandBuffer(VulkanContext& m_v
 	cmdBufAllocInfo.commandBufferCount = 1;
 	
 	VkCommandBuffer cmdBuffer;
-	VkResult bufAllocResult = vkAllocateCommandBuffers(m_vkContext.Device.logicalDevice, &cmdBufAllocInfo, &cmdBuffer);
+	VkResult bufAllocResult = vkAllocateCommandBuffers(vkContext.Device.logicalDevice, &cmdBufAllocInfo, &cmdBuffer);
 	if (bufAllocResult != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, "Failed to allocate single-use command buffer!");
 	}
@@ -148,7 +148,7 @@ VkCommandBuffer VkCommandManager::beginSingleUseCommandBuffer(VulkanContext& m_v
 }
 
 
-void VkCommandManager::endSingleUseCommandBuffer(VulkanContext& m_vkContext, SingleUseCommandBufferInfo* commandBufInfo, VkCommandBuffer& cmdBuffer) {
+void VkCommandManager::endSingleUseCommandBuffer(VulkanContext& vkContext, SingleUseCommandBufferInfo* commandBufInfo, VkCommandBuffer& cmdBuffer) {
 	VkResult bufEndResult = vkEndCommandBuffer(cmdBuffer);
 	if (bufEndResult != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, "Failed to stop recording single-use command buffer!");
@@ -182,22 +182,22 @@ void VkCommandManager::endSingleUseCommandBuffer(VulkanContext& m_vkContext, Sin
 	
 	if (commandBufInfo->fence != VK_NULL_HANDLE) {
 		if (commandBufInfo->usingSingleUseFence) {
-			VkSyncManager::waitForSingleUseFence(m_vkContext, commandBufInfo->fence);
+			VkSyncManager::waitForSingleUseFence(vkContext, commandBufInfo->fence);
 		}
 		else {
-			vkWaitForFences(m_vkContext.Device.logicalDevice, 1, &commandBufInfo->fence, VK_TRUE, UINT64_MAX);
-			vkResetFences(m_vkContext.Device.logicalDevice, 1, &commandBufInfo->fence);
+			vkWaitForFences(vkContext.Device.logicalDevice, 1, &commandBufInfo->fence, VK_TRUE, UINT64_MAX);
+			vkResetFences(vkContext.Device.logicalDevice, 1, &commandBufInfo->fence);
 		}
 	}
 	else
-		vkDeviceWaitIdle(m_vkContext.Device.logicalDevice);
+		vkDeviceWaitIdle(vkContext.Device.logicalDevice);
 
 	if (commandBufInfo->freeAfterSubmit)
-		vkFreeCommandBuffers(m_vkContext.Device.logicalDevice, commandBufInfo->commandPool, 1, &cmdBuffer);
+		vkFreeCommandBuffers(vkContext.Device.logicalDevice, commandBufInfo->commandPool, 1, &cmdBuffer);
 }
 
 
-VkCommandPool VkCommandManager::createCommandPool(VulkanContext& m_vkContext, VkDevice device, uint32_t queueFamilyIndex, VkCommandPoolCreateFlags flags) {
+VkCommandPool VkCommandManager::createCommandPool(VulkanContext& vkContext, VkDevice device, uint32_t queueFamilyIndex, VkCommandPoolCreateFlags flags) {
 	CommandPoolCreateInfo createInfo{};
 	createInfo.logicalDevice = device;
 	createInfo.queueFamilyIndex = queueFamilyIndex;
@@ -230,8 +230,8 @@ VkCommandPool VkCommandManager::createCommandPool(VulkanContext& m_vkContext, Vk
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(m_commandPool) };
-	task.vkObjects = { m_vkContext.Device.logicalDevice, commandPool };
-	task.cleanupFunc = [m_vkContext, commandPool]() { vkDestroyCommandPool(m_vkContext.Device.logicalDevice, commandPool, nullptr); };
+	task.vkObjects = { vkContext.Device.logicalDevice, commandPool };
+	task.cleanupFunc = [vkContext, commandPool]() { vkDestroyCommandPool(vkContext.Device.logicalDevice, commandPool, nullptr); };
 
 	m_garbageCollector->createCleanupTask(task);
 

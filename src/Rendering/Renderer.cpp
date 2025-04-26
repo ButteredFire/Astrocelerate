@@ -90,6 +90,7 @@ void Renderer::drawFrame() {
         throw Log::RuntimeException(__FUNCTION__, "Failed to wait for in-flight fence!");
     }
 
+
     // Acquires an image from the swap-chain
     uint32_t imageIndex;
     VkResult imgAcquisitionResult = vkAcquireNextImageKHR(m_vkContext.Device.logicalDevice, m_vkContext.SwapChain.swapChain, UINT64_MAX, m_vkContext.SyncObjects.imageReadySemaphores[m_currentFrame], VK_NULL_HANDLE, &imageIndex);
@@ -104,6 +105,7 @@ void Renderer::drawFrame() {
             throw Log::RuntimeException(__FUNCTION__, "Failed to acquire an image from the swap-chain!\nThe current image index in this frame is: " + std::to_string(imageIndex));
         }
     }
+
 
     // Only reset the fence when we're submitting work
 

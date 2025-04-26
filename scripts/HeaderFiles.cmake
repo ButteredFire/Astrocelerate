@@ -11,6 +11,7 @@ set(HEADER_FILES
 	"external/imgui/imstb_truetype.h"
 	"external/stb/stb_image.h"
 	"external/termcolor/termcolor.hpp"
+	"src/glm_config.hpp"
 	"src/IncludesRefs.h"
 	"src/Core/ApplicationContext.hpp"
 	"src/Core/AppWindow.hpp"

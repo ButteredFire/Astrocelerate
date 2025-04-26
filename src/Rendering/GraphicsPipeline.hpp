@@ -18,12 +18,16 @@
 
 // Local
 #include <Vulkan/VkInstanceManager.hpp>
-#include <Core/ApplicationContext.hpp>
+
 #include <Shaders/BufferManager.hpp>
-#include <Core/LoggingManager.hpp>
+
+#include <Core/ApplicationContext.hpp>
 #include <Core/GarbageCollector.hpp>
+#include <Core/LoggingManager.hpp>
 #include <Core/ServiceLocator.hpp>
 #include <Core/Constants.h>
+
+#include <Rendering/TextureManager.hpp>
 
 
 /* Reads a file in binary mode.
@@ -106,6 +110,13 @@ public:
 	*/
 	void createDescriptorPool(uint32_t maxDescriptorSetCount, std::vector<VkDescriptorPoolSize> poolSizes, VkDescriptorPool& descriptorPool, VkDescriptorPoolCreateFlags createFlags = VkDescriptorPoolCreateFlags());
 
+
+	/* Does the (depth) format contain a stencil component? */
+	inline static bool formatHasStencilComponent(VkFormat format) {
+		return (format == VK_FORMAT_D32_SFLOAT_S8_UINT) ||
+			   (format == VK_FORMAT_D24_UNORM_S8_UINT);
+	}
+
 private:
 	VulkanContext& m_vkContext;
 	std::shared_ptr<GarbageCollector> m_garbageCollector;
@@ -155,6 +166,11 @@ private:
 	// Color blending state
 	VkPipelineColorBlendAttachmentState m_colorBlendAttachment{};
 	VkPipelineColorBlendStateCreateInfo m_colorBlendCreateInfo{};
+
+	// Depth buffering
+	VkImage m_depthImage = VK_NULL_HANDLE;
+	VmaAllocation m_depthImageAllocation = VK_NULL_HANDLE;
+	VkImageView m_depthImageView = VK_NULL_HANDLE;
 
 	// Tessellation state
 	VkPipelineTessellationStateCreateInfo m_tessStateCreateInfo{};
@@ -255,6 +271,20 @@ private:
 		After a fragment shader has returned a color, it needs to be combined with the color that is already in the framebuffer. This transformation is known as color blending.
 	*/
 	void initColorBlendingState();
+
+
+	/* Creates depth buffering resources. */
+	void initDepthBufferingResources();
+
+
+	/* Finds a supported and appropriate depth image format.
+		@param formats: The list of formats from which to find the format of best fit.
+		@param imgTiling: The image tiling mode, used to determine format support.
+		@param formatFeatures: The format's required features, used to determine the best format.
+
+		@return The most suitable format for depth images.
+	*/
+	VkFormat getBestDepthImageFormat(const std::vector<VkFormat>& formats, VkImageTiling imgTiling, VkFormatFeatureFlagBits formatFeatures);
 
 
 	/* Initializes tessellation state. 

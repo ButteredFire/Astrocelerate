@@ -35,6 +35,8 @@ void GraphicsPipeline::init() {
 
 	initColorBlendingState();		// Blending state
 
+	initDepthBufferingResources();	// Depth buffering image and view
+
 	initTessellationState();		// Tessellation state
 
 
@@ -603,6 +605,61 @@ void GraphicsPipeline::initColorBlendingState() {
 	m_colorBlendCreateInfo.blendConstants[3] = 0.0f;
 }
 
+
+void GraphicsPipeline::initDepthBufferingResources() {
+	// Specifies depth image data
+	VkImageTiling imgTiling = VK_IMAGE_TILING_OPTIMAL;
+	VkImageUsageFlags imgUsage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+	VkImageAspectFlags imgAspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
+
+	uint32_t imgWidth = m_vkContext.SwapChain.extent.width;
+	uint32_t imgHeight = m_vkContext.SwapChain.extent.height;
+	uint32_t imgDepth = 1;
+	
+	VkFormat depthFormat = getBestDepthImageFormat(
+		{ VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },
+		imgTiling,
+		VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
+	);
+
+	bool hasStencilComponent = formatHasStencilComponent(depthFormat);
+
+
+	// Creates a depth image
+	VmaAllocationCreateInfo imgAllocInfo{};
+	imgAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+	imgAllocInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+
+	TextureManager::createImage(m_vkContext, m_depthImage, m_depthImageAllocation, imgWidth, imgHeight, imgDepth, depthFormat, imgTiling, imgUsage, imgAllocInfo);
+
+
+	// Creates a depth image view
+	VkSwapchainManager::createImageView(m_vkContext, m_depthImage, m_depthImageView, depthFormat, imgAspectFlags);
+
+
+	// Explicitly transitions the layout of the depth image to a depth attachment.
+	// This is not necessary, since it will be done in the render pass anyway. This is rather being explicit for the sake of being explicit. 
+	TextureManager::switchImageLayout(m_vkContext, m_depthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+}
+
+
+VkFormat GraphicsPipeline::getBestDepthImageFormat(const std::vector<VkFormat>& formats, VkImageTiling imgTiling, VkFormatFeatureFlagBits formatFeatures) {
+	for (const auto& format : formats) {
+		VkFormatProperties formatProperties{};
+		vkGetPhysicalDeviceFormatProperties(m_vkContext.Device.physicalDevice, format, &formatProperties);
+
+		if (imgTiling == VK_IMAGE_TILING_LINEAR && (formatProperties.linearTilingFeatures & formatFeatures) == formatFeatures) {
+			return format;
+		}
+
+		if (imgTiling == VK_IMAGE_TILING_OPTIMAL && (formatProperties.optimalTilingFeatures & formatFeatures) == formatFeatures) {
+			return format;
+		}
+	}
+
+
+	throw Log::RuntimeException(__FUNCTION__, "Failed to find a suitable depth image format!");
+}
 
 void GraphicsPipeline::initTessellationState() {
 	m_tessStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO;
