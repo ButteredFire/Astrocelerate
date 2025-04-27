@@ -61,13 +61,24 @@ void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, 
 	renderPassBeginInfo.renderArea.offset = { 0, 0 };
 	renderPassBeginInfo.renderArea.extent = m_vkContext.SwapChain.extent;
 
-		// Defines the clear values to use (we must specify this since the color attachment's load operation is VK_ATTACHMENT_LOAD_OP_CLEAR)
-	VkClearValue clearColor{};
-	clearColor.color = { 0.0f, 0.0f, 0.0f, 1.0f }; // (0, 0, 0, 1) -> Black;
-	clearColor.depthStencil = VkClearDepthStencilValue(); // Null for now (if depth stencil is implemented, you must also specify the color attachment load and store operations before specifying the clear value here)
+		// Defines the clear values to use
+			// Color (we must specify this since the color attachment's load operation is VK_ATTACHMENT_LOAD_OP_CLEAR)
+	VkClearValue clearValue{};
+	clearValue.color = { 0.0f, 0.0f, 0.0f, 1.0f }; // (0, 0, 0, 1) -> Black
+	clearValue.depthStencil = VkClearDepthStencilValue(); // Null for now (if depth stencil is implemented, you must also specify the color attachment load and store operations before specifying the clear value here)
 
-	renderPassBeginInfo.clearValueCount = 1;
-	renderPassBeginInfo.pClearValues = &clearColor;
+			// Depth-stencil
+	VkClearValue depthStencilClearValue{};
+	depthStencilClearValue.depthStencil.depth = 1.0f;
+	depthStencilClearValue.depthStencil.stencil = 0;
+
+	VkClearValue clearValues[] = {
+		clearValue,
+		depthStencilClearValue
+	};
+
+	renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(sizeof(clearValues) / sizeof(clearValues[0]));
+	renderPassBeginInfo.pClearValues = clearValues;
 
 		/* The final parameter controls how the drawing commands within the render pass will be provided. It can have 2 values: VK_SUBPASS_...
 			...CONTENTS_INLINE: The render pass commands will be embedded in the primary command buffer itself and no secondary command buffers will be executed
@@ -209,7 +220,7 @@ VkCommandPool VkCommandManager::createCommandPool(VulkanContext& vkContext, VkDe
 	}
 
 
-	std::shared_ptr<GarbageCollector> m_garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
+	std::shared_ptr<GarbageCollector> garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
 
 	VkCommandPoolCreateInfo poolCreateInfo{};
 	poolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -233,7 +244,7 @@ VkCommandPool VkCommandManager::createCommandPool(VulkanContext& vkContext, VkDe
 	task.vkObjects = { vkContext.Device.logicalDevice, commandPool };
 	task.cleanupFunc = [vkContext, commandPool]() { vkDestroyCommandPool(vkContext.Device.logicalDevice, commandPool, nullptr); };
 
-	m_garbageCollector->createCleanupTask(task);
+	garbageCollector->createCleanupTask(task);
 
 	return commandPool;
 }

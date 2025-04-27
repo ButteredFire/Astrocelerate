@@ -277,14 +277,20 @@ private:
 	void initDepthBufferingResources();
 
 
-	/* Finds a supported and appropriate depth image format.
+	/* Gets the most suitable image format for depth images.
+		@return The most suitable image format.
+	*/
+	VkFormat getBestDepthImageFormat();
+
+
+	/* Finds a supported image format.
 		@param formats: The list of formats from which to find the format of best fit.
 		@param imgTiling: The image tiling mode, used to determine format support.
 		@param formatFeatures: The format's required features, used to determine the best format.
 
-		@return The most suitable format for depth images.
+		@return The most suitable supported image format.
 	*/
-	VkFormat getBestDepthImageFormat(const std::vector<VkFormat>& formats, VkImageTiling imgTiling, VkFormatFeatureFlagBits formatFeatures);
+	VkFormat findSuppportedFormat(const std::vector<VkFormat>& formats, VkImageTiling imgTiling, VkFormatFeatureFlagBits formatFeatures);
 
 
 	/* Initializes tessellation state. 

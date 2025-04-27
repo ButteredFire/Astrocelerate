@@ -85,8 +85,10 @@ void TextureManager::createTextureImage(const char* texSource, int channels) {
 	copyBufferToImage(stagingBuffer, m_textureImage, static_cast<uint32_t>(textureWidth), static_cast<uint32_t>(textureHeight));
 
 
-	// Transition the image layout to SHADER_READ_ONLY so that it can be read by the shader for sampling
+	// Transition the image layout to the final SHADER_READ_ONLY layout so that it can be read by the shader for sampling
 	switchImageLayout(m_vkContext, m_textureImage, m_textureImageFormat, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+	m_vkContext.Texture.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 
 	// Destroy the staging buffer at the end as it has served its purpose
@@ -300,7 +302,6 @@ void TextureManager::switchImageLayout(VulkanContext& vkContext, VkImage image, 
 
 
 	VkCommandManager::endSingleUseCommandBuffer(vkContext, &cmdInfo, commandBuffer);
-	vkContext.Texture.imageLayout = newLayout;
 }
 
 

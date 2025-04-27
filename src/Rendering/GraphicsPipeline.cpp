@@ -75,7 +75,7 @@ void GraphicsPipeline::createGraphicsPipeline() {
 	pipelineCreateInfo.pViewportState = &m_viewportStateCreateInfo;
 	pipelineCreateInfo.pRasterizationState = &m_rasterizerCreateInfo;
 	pipelineCreateInfo.pMultisampleState = &m_multisampleStateCreateInfo;
-	pipelineCreateInfo.pDepthStencilState = nullptr;
+	pipelineCreateInfo.pDepthStencilState = &m_depthStencilStateCreateInfo;
 	pipelineCreateInfo.pColorBlendState = &m_colorBlendCreateInfo;
 	pipelineCreateInfo.pTessellationState = nullptr;
 	pipelineCreateInfo.pVertexInputState = &m_vertInputState;
@@ -336,14 +336,18 @@ void GraphicsPipeline::createDescriptorSets() {
 
 
 void GraphicsPipeline::createRenderPass() {
-	// Main rendering
+	// Main attachments
+		// Color attachment
 	VkAttachmentDescription mainColorAttachment{};
 	mainColorAttachment.format = m_vkContext.SwapChain.surfaceFormat.format;
 	mainColorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;				// Use 1 sample since multisampling is not enabled yet
+
 	mainColorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;	// The render area will be cleared to a uniform value on every render pass instantiation. Since the render pass is run for every frame in our case, we effectively "refresh" the render area.
 	mainColorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
 	mainColorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	mainColorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
 	mainColorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED; // Vulkan is free to discard any previous contents (which is fine because we are clearing it anyway)
 	mainColorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
@@ -353,32 +357,59 @@ void GraphicsPipeline::createRenderPass() {
 	mainColorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 	
+		// Depth attachment
+	VkAttachmentDescription depthAttachment{};
+	depthAttachment.format = getBestDepthImageFormat();
+	depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+
+	depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+	depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+	depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+
+	VkAttachmentReference depthAttachmentRef{};
+	depthAttachmentRef.attachment = 1;
+	depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+
+	
+	// Subpasses
+		// Main subpass
 	VkSubpassDescription mainSubpass{};
 	mainSubpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 	mainSubpass.colorAttachmentCount = 1;
 	mainSubpass.pColorAttachments = &mainColorAttachmentRef;
-
-	
-	VkSubpassDependency mainDependency{};
-	mainDependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-	mainDependency.dstSubpass = 0;
-	mainDependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	mainDependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	mainDependency.srcAccessMask = 0;
-	mainDependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+	mainSubpass.pDepthStencilAttachment = &depthAttachmentRef;
 
 
-
-	// Dear ImGui
-		// NOTE: Dear Imgui uses the same color attachment as the main one, since Vulkan only allows for 1 color attachment per render pass.
-		// If Dear Imgui has its own render pass, then its color attachment's load operation must be LOAD_OP_LOAD because it needs to load the existing image from the main render pass.
-		// However, here, Dear Imgui is a subpass, so it automatically inherits the color atachment contents from the previous subpass (which is the main one). Therefore, we don't need to specify its load operation. 
+		// ImGui subpass
+			/* NOTE: Dear Imgui uses the same color attachment as the main one, since Vulkan only allows for 1 color attachment per render pass.
+				If Dear Imgui has its own render pass, then its color attachment's load operation must be LOAD_OP_LOAD because it needs to load the existing image from the main render pass.
+				However, here, Dear Imgui is a subpass, so it automatically inherits the color atachment contents from the previous subpass (which is the main one). Therefore, we don't need to specify its load operation.
+			*/
 	VkSubpassDescription imguiSubpass{};
 	imguiSubpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 	imguiSubpass.colorAttachmentCount = 1;
 	imguiSubpass.pColorAttachments = &mainColorAttachmentRef;
 
 
+	// Dependencies
+		// EXTERNAL -> Main
+	VkSubpassDependency mainDependency{};
+	mainDependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+	mainDependency.dstSubpass = 0;
+	mainDependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+	mainDependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+	mainDependency.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+	mainDependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+
+		// Main -> ImGui
 	VkSubpassDependency mainToImguiDependency{};
 	mainToImguiDependency.srcSubpass = mainDependency.dstSubpass;
 	mainToImguiDependency.dstSubpass = 1;
@@ -390,7 +421,8 @@ void GraphicsPipeline::createRenderPass() {
 
 	// Creates render pass
 	VkAttachmentDescription attachments[] = {
-		mainColorAttachment
+		mainColorAttachment,
+		depthAttachment
 	};
 
 	VkSubpassDescription subpasses[] = {
@@ -406,13 +438,13 @@ void GraphicsPipeline::createRenderPass() {
 	VkRenderPassCreateInfo m_renderPassCreateInfo{};
 	m_renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
 
-	m_renderPassCreateInfo.attachmentCount = (sizeof(attachments) / sizeof(attachments[0]));
+	m_renderPassCreateInfo.attachmentCount = static_cast<uint32_t>(sizeof(attachments) / sizeof(attachments[0]));
 	m_renderPassCreateInfo.pAttachments = attachments;
 
-	m_renderPassCreateInfo.subpassCount = (sizeof(subpasses) / sizeof(subpasses[0]));
+	m_renderPassCreateInfo.subpassCount = static_cast<uint32_t>(sizeof(subpasses) / sizeof(subpasses[0]));
 	m_renderPassCreateInfo.pSubpasses = subpasses;
 
-	m_renderPassCreateInfo.dependencyCount = (sizeof(dependencies) / sizeof(dependencies[0]));
+	m_renderPassCreateInfo.dependencyCount = static_cast<uint32_t>(sizeof(dependencies) / sizeof(dependencies[0]));
 	m_renderPassCreateInfo.pDependencies = dependencies;
 
 	VkResult result = vkCreateRenderPass(m_vkContext.Device.logicalDevice, &m_renderPassCreateInfo, nullptr, &m_renderPass);
@@ -427,7 +459,7 @@ void GraphicsPipeline::createRenderPass() {
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(m_renderPass) };
 	task.vkObjects = { m_vkContext.Device.logicalDevice, m_renderPass };
-	task.cleanupFunc = [&]() { vkDestroyRenderPass(m_vkContext.Device.logicalDevice, m_renderPass, nullptr); };
+	task.cleanupFunc = [this]() { vkDestroyRenderPass(m_vkContext.Device.logicalDevice, m_renderPass, nullptr); };
 
 	m_garbageCollector->createCleanupTask(task);
 }
@@ -574,8 +606,23 @@ void GraphicsPipeline::initMultisamplingState() {
 
 
 void GraphicsPipeline::initDepthStencilState() {
-	// TODO: Finish depth stencil state structure and include it in createGraphicsPipeline()
 	m_depthStencilStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+
+	// Specifies if the depth of new fragments should be compared to the depth buffer to see if they should be discarded
+	m_depthStencilStateCreateInfo.depthTestEnable = VK_TRUE;
+
+	// Specifies if the new depth of fragments that pass the depth test should actually be written to the depth buffer
+	m_depthStencilStateCreateInfo.depthWriteEnable = VK_TRUE;
+
+	m_depthStencilStateCreateInfo.depthCompareOp = VK_COMPARE_OP_LESS;
+
+	m_depthStencilStateCreateInfo.depthBoundsTestEnable = VK_FALSE;
+	m_depthStencilStateCreateInfo.minDepthBounds = 0.0f; // Optional
+	m_depthStencilStateCreateInfo.maxDepthBounds = 1.0f; // Optional
+
+	m_depthStencilStateCreateInfo.stencilTestEnable = VK_FALSE;
+	m_depthStencilStateCreateInfo.front = {}; // Optional
+	m_depthStencilStateCreateInfo.back = {}; // Optional
 }
 
 
@@ -616,11 +663,7 @@ void GraphicsPipeline::initDepthBufferingResources() {
 	uint32_t imgHeight = m_vkContext.SwapChain.extent.height;
 	uint32_t imgDepth = 1;
 	
-	VkFormat depthFormat = getBestDepthImageFormat(
-		{ VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },
-		imgTiling,
-		VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
-	);
+	VkFormat depthFormat = getBestDepthImageFormat();
 
 	bool hasStencilComponent = formatHasStencilComponent(depthFormat);
 
@@ -635,6 +678,7 @@ void GraphicsPipeline::initDepthBufferingResources() {
 
 	// Creates a depth image view
 	VkSwapchainManager::createImageView(m_vkContext, m_depthImage, m_depthImageView, depthFormat, imgAspectFlags);
+	m_vkContext.GraphicsPipeline.depthImageView = m_depthImageView;
 
 
 	// Explicitly transitions the layout of the depth image to a depth attachment.
@@ -643,7 +687,21 @@ void GraphicsPipeline::initDepthBufferingResources() {
 }
 
 
-VkFormat GraphicsPipeline::getBestDepthImageFormat(const std::vector<VkFormat>& formats, VkImageTiling imgTiling, VkFormatFeatureFlagBits formatFeatures) {
+VkFormat GraphicsPipeline::getBestDepthImageFormat() {
+	std::vector<VkFormat> candidates = {
+		VK_FORMAT_D32_SFLOAT,
+		VK_FORMAT_D32_SFLOAT_S8_UINT,
+		VK_FORMAT_D24_UNORM_S8_UINT
+	};
+
+	VkImageTiling imgTiling = VK_IMAGE_TILING_OPTIMAL;
+	VkFormatFeatureFlagBits formatFeatures = VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
+
+	return findSuppportedFormat(candidates, imgTiling, formatFeatures);
+}
+
+
+VkFormat GraphicsPipeline::findSuppportedFormat(const std::vector<VkFormat>& formats, VkImageTiling imgTiling, VkFormatFeatureFlagBits formatFeatures) {
 	for (const auto& format : formats) {
 		VkFormatProperties formatProperties{};
 		vkGetPhysicalDeviceFormatProperties(m_vkContext.Device.physicalDevice, format, &formatProperties);
@@ -658,8 +716,9 @@ VkFormat GraphicsPipeline::getBestDepthImageFormat(const std::vector<VkFormat>& 
 	}
 
 
-	throw Log::RuntimeException(__FUNCTION__, "Failed to find a suitable depth image format!");
+	throw Log::RuntimeException(__FUNCTION__, "Failed to find a suitable image format!");
 }
+
 
 void GraphicsPipeline::initTessellationState() {
 	m_tessStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO;

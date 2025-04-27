@@ -248,7 +248,8 @@ void VkSwapchainManager::createFrameBuffers() {
         }
 
         VkImageView attachments[] = {
-            m_imageViews[i]
+            m_imageViews[i],
+            m_vkContext.GraphicsPipeline.depthImageView
         };
 
         VkFramebufferCreateInfo bufferCreateInfo{};
