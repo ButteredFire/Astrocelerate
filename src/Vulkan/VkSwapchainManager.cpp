@@ -38,6 +38,8 @@ void VkSwapchainManager::init() {
 void VkSwapchainManager::recreateSwapchain() {
     Log::print(Log::T_INFO, __FUNCTION__, "Recreating swap-chain...");
 
+    std::shared_ptr<EventDispatcher> eventDispatcher = ServiceLocator::getService<EventDispatcher>(__FUNCTION__);
+
     // If the window is minimized (i.e., (width, height) = (0, 0), pause the window until it is in the foreground again
     int width = 0, height = 0;
     glfwGetFramebufferSize(m_vkContext.window, &width, &height);
@@ -58,6 +60,9 @@ void VkSwapchainManager::recreateSwapchain() {
 
 
     init();
+
+    eventDispatcher->publish(EventTypes::SwapchainRecreationEvent{});
+
     createFrameBuffers();
 }
 

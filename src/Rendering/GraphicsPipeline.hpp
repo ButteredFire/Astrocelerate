@@ -26,6 +26,7 @@
 #include <Core/LoggingManager.hpp>
 #include <Core/ServiceLocator.hpp>
 #include <Core/Constants.h>
+#include <Core/EventDispatcher.hpp>
 
 #include <Rendering/TextureManager.hpp>
 
@@ -109,6 +110,10 @@ public:
 		@param createFlags (Default: null): The descriptor pool's create flags.
 	*/
 	void createDescriptorPool(uint32_t maxDescriptorSetCount, std::vector<VkDescriptorPoolSize> poolSizes, VkDescriptorPool& descriptorPool, VkDescriptorPoolCreateFlags createFlags = VkDescriptorPoolCreateFlags());
+
+
+	/* Creates depth buffering resources. */
+	void initDepthBufferingResources();
 
 
 	/* Does the (depth) format contain a stencil component? */
@@ -271,10 +276,6 @@ private:
 		After a fragment shader has returned a color, it needs to be combined with the color that is already in the framebuffer. This transformation is known as color blending.
 	*/
 	void initColorBlendingState();
-
-
-	/* Creates depth buffering resources. */
-	void initDepthBufferingResources();
 
 
 	/* Gets the most suitable image format for depth images.

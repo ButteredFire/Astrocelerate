@@ -17,6 +17,8 @@ set(HEADER_FILES
 	"src/Core/AppWindow.hpp"
 	"src/Core/Constants.h"
 	"src/Core/ECSCore.hpp"
+	"src/Core/EventDispatcher.hpp"
+	"src/Core/EventTypes.hpp"
 	"src/Core/GarbageCollector.hpp"
 	"src/Core/LoggingManager.hpp"
 	"src/Core/ServiceLocator.hpp"

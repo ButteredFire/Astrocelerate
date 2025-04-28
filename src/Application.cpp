@@ -8,6 +8,7 @@
 #include <Core/ECSCore.hpp>
 #include <Core/GarbageCollector.hpp>
 #include <Core/ApplicationContext.hpp>
+#include <Core/EventDispatcher.hpp>
 
 #include <iostream>
 #include <stdexcept>
@@ -24,6 +25,10 @@ int main() {
 
     // Binds members in the VulkanInstanceContext struct to their corresponding active Vulkan objects
     VulkanContext vkContext{};
+
+    // Event dispatcher
+    std::shared_ptr<EventDispatcher> eventDispatcher = std::make_shared<EventDispatcher>();
+    ServiceLocator::registerService(eventDispatcher);
 
     // Creates a memory manager
     std::shared_ptr<GarbageCollector> garbageCollector = std::make_shared<GarbageCollector>(vkContext);

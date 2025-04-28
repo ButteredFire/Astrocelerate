@@ -9,6 +9,15 @@ GraphicsPipeline::GraphicsPipeline(VulkanContext& context):
 	m_garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
 	m_bufferManager = ServiceLocator::getService<BufferManager>(__FUNCTION__);
 
+
+	std::shared_ptr<EventDispatcher> eventDispatcher = ServiceLocator::getService<EventDispatcher>(__FUNCTION__);
+	eventDispatcher->subscribe<EventTypes::SwapchainRecreationEvent>(
+		[this](const EventTypes::SwapchainRecreationEvent& event) {
+			this->initDepthBufferingResources();
+		}
+	);
+
+
 	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
 

@@ -23,6 +23,9 @@
 #include <Core/ServiceLocator.hpp>
 #include <Core/Constants.h>
 #include <Core/ApplicationContext.hpp>
+#include <Core/EventDispatcher.hpp>
+
+//#include<Rendering/GraphicsPipeline.hpp>
 
 
 // A structure that manages properties of a swap chain.
