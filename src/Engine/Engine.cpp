@@ -5,10 +5,9 @@
 
 
 
-Engine::Engine(GLFWwindow *w, VulkanContext& context, Renderer& rendererInstance):
+Engine::Engine(GLFWwindow *w, VulkanContext& context):
     window(w),
-    m_vkContext(context),
-    renderer(rendererInstance) {
+    m_vkContext(context) {
 
     if (!isPointerValid(window)) {
         throw Log::RuntimeException(__FUNCTION__, "Engine crashed: Invalid window context!");
@@ -27,6 +26,7 @@ Engine::~Engine() {
 
 /* Starts the engine. */ 
 void Engine::run() {
+    m_renderer = ServiceLocator::getService<Renderer>(__FUNCTION__);
     update();
 }
 
@@ -35,7 +35,7 @@ void Engine::run() {
 void Engine::update() {
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
-        renderer.update();
+        m_renderer->update();
     }
 
     // All of the operations in Renderer::drawFrame are asynchronous. That means that when we exit the loop in mainLoop, drawing and presentation operations may still be going on. Cleaning up resources while that is happening is a bad idea.

@@ -6,13 +6,13 @@
 GraphicsPipeline::GraphicsPipeline(VulkanContext& context):
 	m_vkContext(context) {
 
+	m_eventDispatcher = ServiceLocator::getService<EventDispatcher>(__FUNCTION__);
 	m_garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
 	m_bufferManager = ServiceLocator::getService<BufferManager>(__FUNCTION__);
 
 
-	std::shared_ptr<EventDispatcher> eventDispatcher = ServiceLocator::getService<EventDispatcher>(__FUNCTION__);
-	eventDispatcher->subscribe<EventTypes::SwapchainRecreationEvent>(
-		[this](const EventTypes::SwapchainRecreationEvent& event) {
+	m_eventDispatcher->subscribe<EventTypes::SwapchainRecreation>(
+		[this](const EventTypes::SwapchainRecreation& event) {
 			this->initDepthBufferingResources();
 		}
 	);
@@ -67,6 +67,10 @@ void GraphicsPipeline::init() {
 
 	// Create the graphics pipeline
 	createGraphicsPipeline();
+
+
+	// Post-initialization: Data is ready to be used for framebuffer creation
+	m_eventDispatcher->publish(EventTypes::InitFrameBuffers{});
 }
 
 
@@ -623,15 +627,24 @@ void GraphicsPipeline::initDepthStencilState() {
 	// Specifies if the new depth of fragments that pass the depth test should actually be written to the depth buffer
 	m_depthStencilStateCreateInfo.depthWriteEnable = VK_TRUE;
 
+
+	// Specifies the depth comparison operator that is performed to determine whether to keep or discard a fragment.
+	// VK_COMPARE_OP_LESS means "lower depth = closer". In other words, the depth value of new fragments should be LESS since they are closer to the camera, and thus they will overwrite the existing fragments.
 	m_depthStencilStateCreateInfo.depthCompareOp = VK_COMPARE_OP_LESS;
 
-	m_depthStencilStateCreateInfo.depthBoundsTestEnable = VK_FALSE;
-	m_depthStencilStateCreateInfo.minDepthBounds = 0.0f; // Optional
-	m_depthStencilStateCreateInfo.maxDepthBounds = 1.0f; // Optional
 
+	// Configures depth bound testing (optional). It allows you to only keep fragments that fall within the specified depth range.
+	// We won't be using this for now.
+	m_depthStencilStateCreateInfo.depthBoundsTestEnable = VK_FALSE;
+	m_depthStencilStateCreateInfo.minDepthBounds = 0.0f;
+	m_depthStencilStateCreateInfo.maxDepthBounds = 1.0f;
+
+
+
+	// Configures stencil buffer operations.
 	m_depthStencilStateCreateInfo.stencilTestEnable = VK_FALSE;
-	m_depthStencilStateCreateInfo.front = {}; // Optional
-	m_depthStencilStateCreateInfo.back = {}; // Optional
+	m_depthStencilStateCreateInfo.front = {};
+	m_depthStencilStateCreateInfo.back = {};
 }
 
 

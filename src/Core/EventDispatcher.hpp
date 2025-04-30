@@ -22,7 +22,7 @@ public:
 
 	template<typename EventType>
 	using EventHandler = std::function<void(const EventType&)>;
-
+	
 
 	/* Subscribes to an event type.
 		@tparam EventType: The event type.

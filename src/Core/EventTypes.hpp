@@ -6,12 +6,19 @@
 
 namespace EventTypes {
 	enum Identifier {
-		EVENT_ID_SWAPCHAIN_RECREATION
+		EVENT_ID_SWAPCHAIN_RECREATION,
+		EVENT_ID_INIT_FRAMEBUFFERS
 	};
 
 
-	/* Swapchain recreation event. */
-	struct SwapchainRecreationEvent {
+	/* Used when the swapchain is recreated. */
+	struct SwapchainRecreation {
 		const Identifier eventType = Identifier::EVENT_ID_SWAPCHAIN_RECREATION;
+	};
+
+
+	/* Used when data required to initialize framebuffers is available (usually after graphics pipeline intiialization). */
+	struct InitFrameBuffers {
+		const Identifier eventType = Identifier::EVENT_ID_INIT_FRAMEBUFFERS;
 	};
 }

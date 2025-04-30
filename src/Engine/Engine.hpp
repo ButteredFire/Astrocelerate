@@ -30,22 +30,19 @@
 
 class Engine {
 public:
-	Engine(GLFWwindow *w, VulkanContext &context, Renderer& rendererInstance);
+	Engine(GLFWwindow *w, VulkanContext &context);
 	~Engine();
 
-	// Engine
 	void run();
 
 private:
-	// Global
 	GLFWwindow *window;
 	VulkanContext &m_vkContext;
 
-	Renderer& renderer;
+	std::shared_ptr<Renderer> m_renderer;
 
 template<typename T>
 	static inline bool isPointerValid(T *ptr) { return ptr != nullptr; };
 	
-	// Engine
 	void update();
 };

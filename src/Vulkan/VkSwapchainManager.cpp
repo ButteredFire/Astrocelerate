@@ -6,6 +6,7 @@
 VkSwapchainManager::VkSwapchainManager(VulkanContext& context):
     m_vkContext(context) {
 
+    m_eventDispatcher = ServiceLocator::getService<EventDispatcher>(__FUNCTION__);
     m_garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
 
     if (m_vkContext.Device.physicalDevice == VK_NULL_HANDLE) {
@@ -17,6 +18,15 @@ VkSwapchainManager::VkSwapchainManager(VulkanContext& context):
     }
 
     m_swapChain = m_vkContext.SwapChain.swapChain;
+
+
+    // Initializes framebuffers after graphics pipeline initialization
+    m_eventDispatcher->subscribe<EventTypes::InitFrameBuffers>(
+        [this](const EventTypes::InitFrameBuffers& event) {
+            this->createFrameBuffers();
+        }
+    );
+
 
     Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
@@ -37,8 +47,6 @@ void VkSwapchainManager::init() {
 
 void VkSwapchainManager::recreateSwapchain() {
     Log::print(Log::T_INFO, __FUNCTION__, "Recreating swap-chain...");
-
-    std::shared_ptr<EventDispatcher> eventDispatcher = ServiceLocator::getService<EventDispatcher>(__FUNCTION__);
 
     // If the window is minimized (i.e., (width, height) = (0, 0), pause the window until it is in the foreground again
     int width = 0, height = 0;
@@ -61,7 +69,7 @@ void VkSwapchainManager::recreateSwapchain() {
 
     init();
 
-    eventDispatcher->publish(EventTypes::SwapchainRecreationEvent{});
+    m_eventDispatcher->publish(EventTypes::SwapchainRecreation{});
 
     createFrameBuffers();
 }

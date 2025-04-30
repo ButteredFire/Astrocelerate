@@ -76,6 +76,7 @@ public:
 private:
 	VulkanContext& m_vkContext;
 
+	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 	std::shared_ptr<GarbageCollector> m_garbageCollector;
 	std::vector<uint32_t> m_cleanupTaskIDs; // Stores cleanup task IDs (used exclusively in the swap-chain recreation process)
 

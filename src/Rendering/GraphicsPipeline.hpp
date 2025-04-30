@@ -124,6 +124,8 @@ public:
 
 private:
 	VulkanContext& m_vkContext;
+
+	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 	std::shared_ptr<GarbageCollector> m_garbageCollector;
 	std::shared_ptr<BufferManager> m_bufferManager;
 
@@ -265,9 +267,20 @@ private:
 	void initMultisamplingState();
 
 
-	/* Initializes depth stencil testing. 
-		TODO: FINISH FUNCTION
-		Depth stencil testing is disabled for now. To enable it, change the framebuffer attachment stencilLoadOp and stencilStoreOp in createRenderPass(), and add the depth stencil state create info struct to createGraphicsPipeline()
+	/* Initializes depth-stencil testing.
+		Depth-stencil testing is used to determine how fragments (i.e., "potential pixels") are rendered based on their depth and stencil values.
+		This process ensures that objects closer to the camera are rendered correctly, and hides fragments that are (logically) obfuscated in 3D space (e.g., overlapping fragments -> choose to only render fragments closer to the camera -> create depth).
+
+		Specifically:
+			- Depth testing:
+				+ Purpose: Ensures that only the closest fragments to the camera are rendered.
+				+ Under the hood: Each fragment has a depth value (i.e., the z-coordinate) that is compared against the depth buffer (a per-pixel storage of depth values). Based on the comparison (e.g., less-than, greater-than), the fragment is either kept or discarded.
+				+ Common use: Creates depth by preventing objects behind other objects (from the camera perspective) from being drawn over them. 
+
+			- Stencil testing:
+				+ Purpose: Controls whether a fragment should be drawn based on stencil buffer values.
+				+ Under the hood: The stencil buffer stores integer values for each pixel. A stencil test compares those values against a reference value using a specified operation (e.g., equal, not-equal). If the fragment "passes" the test, it gets rendered. Otherwise, it is discarded.
+				+ Common use: Enables effects such as masking, outlining, rendering specific regions of the screen, etc..
 	*/
 	void initDepthStencilState();
 

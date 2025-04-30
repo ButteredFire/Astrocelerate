@@ -84,8 +84,6 @@ int main() {
         ServiceLocator::registerService(graphicsPipeline);
         graphicsPipeline->init();
 
-        swapchainManager->createFrameBuffers(); // Only possible when it has a valid render pass (which must first be created in the graphics pipeline)
-
 
             // Synchronization manager
         std::shared_ptr<VkSyncManager> syncManager = std::make_shared<VkSyncManager>(vkContext);
@@ -97,11 +95,12 @@ int main() {
         std::shared_ptr<UIRenderer> uiRenderer = std::make_shared<UIRenderer>(vkContext);
         ServiceLocator::registerService(uiRenderer);
 
-        Renderer renderer(vkContext);
-        renderer.init();
+        std::shared_ptr<Renderer> renderer = std::make_shared<Renderer>(vkContext);
+        ServiceLocator::registerService(renderer);
+        renderer->init();
 
 
-        Engine engine(windowPtr, vkContext, renderer);
+        Engine engine(windowPtr, vkContext);
         engine.run();
     }
     catch (const Log::RuntimeException& e) {
