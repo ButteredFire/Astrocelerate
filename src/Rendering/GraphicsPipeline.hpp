@@ -21,12 +21,14 @@
 
 #include <Shaders/BufferManager.hpp>
 
-#include <Core/ApplicationContext.hpp>
+#include <CoreStructs/ApplicationContext.hpp>
 #include <Core/GarbageCollector.hpp>
 #include <Core/LoggingManager.hpp>
 #include <Core/ServiceLocator.hpp>
 #include <Core/Constants.h>
 #include <Core/EventDispatcher.hpp>
+
+#include <CoreStructs/Geometry.hpp>
 
 #include <Rendering/TextureManager.hpp>
 

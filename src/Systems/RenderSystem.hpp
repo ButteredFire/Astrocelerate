@@ -9,11 +9,11 @@
 
 // Local
 #include <Core/ECSCore.hpp>
-#include <Core/ApplicationContext.hpp>
+#include <CoreStructs/ApplicationContext.hpp>
 
 #include <Engine/Components/RenderComponents.hpp>
 
 class RenderSystem {
 public:
-	static void processRenderable(VulkanContext& vkContext, VkCommandBuffer& cmdBuffer, RenderableComponent& renderable);
+	static void processRenderable(VulkanContext& vkContext, VkCommandBuffer& cmdBuffer, Component::Renderable& renderable);
 };

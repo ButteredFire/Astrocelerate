@@ -12,24 +12,22 @@
 #include <imgui/imgui_impl_glfw.h>
 #include <imgui/imgui_impl_vulkan.h>
 
+#include <Engine/Components/ComponentTypes.hpp>
 
-// Renderable component types
-enum class RenderableComponentType {
-    T_RENDERABLE_VERTEX,
-    T_RENDERABLE_GUI
-};
 
-// Entities with this component can be rendered.
-struct RenderableComponent {
-    RenderableComponentType renderableType;             // The renderable type.
-    
-    // Vertex rendering
-    std::vector<VkBuffer> vertexBuffers;                // A vector of vertex buffers.
-    std::vector<VkDeviceSize> vertexBufferOffsets;      // A vector of vertex buffer offsets corresponding to their vertex buffers.
-    VkBuffer indexBuffer = VK_NULL_HANDLE;              // The index buffer.
-    std::vector<uint32_t> vertexIndexData;              // Vertex index data for the index buffer.
-    VkDescriptorSet descriptorSet = VK_NULL_HANDLE;     // The descriptor set to be used in vertex rendering.
+namespace Component {
+    struct Renderable {
+        ComponentType::Renderable type;             // The renderable type.
 
-    // GUI rendering
-    ImDrawData* guiDrawData = nullptr;                  // The ImGui draw data.
-};
+        // Vertex rendering
+        std::vector<VkBuffer> vertexBuffers;                // A vector of vertex buffers.
+        std::vector<VkDeviceSize> vertexBufferOffsets;      // A vector of vertex buffer offsets corresponding to their vertex buffers.
+        VkBuffer indexBuffer = VK_NULL_HANDLE;              // The index buffer.
+        std::vector<uint32_t> vertexIndexData;              // Vertex index data for the index buffer.
+        VkDescriptorSet descriptorSet = VK_NULL_HANDLE;     // The descriptor set to be used in vertex rendering.
+        
+
+        // GUI rendering
+        ImDrawData* guiDrawData = nullptr;                  // The ImGui draw data.
+    };
+}

@@ -11,8 +11,8 @@ GraphicsPipeline::GraphicsPipeline(VulkanContext& context):
 	m_bufferManager = ServiceLocator::getService<BufferManager>(__FUNCTION__);
 
 
-	m_eventDispatcher->subscribe<EventTypes::SwapchainRecreation>(
-		[this](const EventTypes::SwapchainRecreation& event) {
+	m_eventDispatcher->subscribe<Event::SwapchainRecreation>(
+		[this](const Event::SwapchainRecreation& event) {
 			this->initDepthBufferingResources();
 		}
 	);
@@ -70,7 +70,7 @@ void GraphicsPipeline::init() {
 
 
 	// Post-initialization: Data is ready to be used for framebuffer creation
-	m_eventDispatcher->publish(EventTypes::InitFrameBuffers{});
+	m_eventDispatcher->publish(Event::InitFrameBuffers{});
 }
 
 
@@ -516,8 +516,8 @@ void GraphicsPipeline::initShaderStage() {
 	m_vertInputState.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 	// Describes binding, i.e., spacing between the data and whether the data is per-vertex or per-instance
 		// Gets vertex input binding and attribute descriptions
-	m_vertBindingDescription = BufferManager::getVertexInputBindingDescription();
-	m_vertAttribDescriptions = BufferManager::getVertexAttributeDescriptions();
+	m_vertBindingDescription = Vertex::getVertexInputBindingDescription();
+	m_vertAttribDescriptions = Vertex::getVertexAttributeDescriptions();
 
 	m_vertInputState.vertexBindingDescriptionCount = 1;
 	m_vertInputState.pVertexBindingDescriptions = &m_vertBindingDescription;

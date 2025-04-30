@@ -21,8 +21,8 @@ VkSwapchainManager::VkSwapchainManager(VulkanContext& context):
 
 
     // Initializes framebuffers after graphics pipeline initialization
-    m_eventDispatcher->subscribe<EventTypes::InitFrameBuffers>(
-        [this](const EventTypes::InitFrameBuffers& event) {
+    m_eventDispatcher->subscribe<Event::InitFrameBuffers>(
+        [this](const Event::InitFrameBuffers& event) {
             this->createFrameBuffers();
         }
     );
@@ -69,7 +69,7 @@ void VkSwapchainManager::recreateSwapchain() {
 
     init();
 
-    m_eventDispatcher->publish(EventTypes::SwapchainRecreation{});
+    m_eventDispatcher->publish(Event::SwapchainRecreation{});
 
     createFrameBuffers();
 }

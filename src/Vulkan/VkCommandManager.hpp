@@ -25,7 +25,7 @@
 #include <Core/LoggingManager.hpp>
 #include <Core/ServiceLocator.hpp>
 #include <Core/GarbageCollector.hpp>
-#include <Core/ApplicationContext.hpp>
+#include <CoreStructs/ApplicationContext.hpp>
 
 #include <Engine/Components/RenderComponents.hpp>
 
@@ -91,7 +91,7 @@ public:
 		@param imageIndex: The index of the swap-chain image from which commands are recorded.
 		@param currentFrame: The index of the frame currently being rendered.
 	*/
-	void recordRenderingCommandBuffer(VkCommandBuffer& buffer, ComponentArray<RenderableComponent>& renderables, uint32_t imageIndex, uint32_t currentFrame);
+	void recordRenderingCommandBuffer(VkCommandBuffer& buffer, ComponentArray<Component::Renderable>& renderables, uint32_t imageIndex, uint32_t currentFrame);
 
 
 	/* Begins recording a single-use/anonymous command buffer for single-time commands.

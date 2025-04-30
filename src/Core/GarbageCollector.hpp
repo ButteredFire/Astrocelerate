@@ -9,7 +9,7 @@
 #include <variant>
 #include <functional>
 
-#include <Core/ApplicationContext.hpp>
+#include <CoreStructs/ApplicationContext.hpp>
 #include <Core/LoggingManager.hpp>
 
 

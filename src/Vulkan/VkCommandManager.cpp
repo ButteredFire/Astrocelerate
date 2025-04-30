@@ -28,7 +28,7 @@ void VkCommandManager::init() {
 }
 
 
-void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, ComponentArray<RenderableComponent>& renderables, uint32_t imageIndex, uint32_t currentFrame) {
+void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, ComponentArray<Component::Renderable>& renderables, uint32_t imageIndex, uint32_t currentFrame) {
 	// Specifies details about how the passed-in command buffer will be used before beginning
 	VkCommandBufferBeginInfo bufferBeginInfo{};
 	bufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;

@@ -4,9 +4,9 @@
 #include "RenderSystem.hpp"
 
 
-void RenderSystem::processRenderable(VulkanContext& vkContext, VkCommandBuffer& cmdBuffer, RenderableComponent& renderable) {
-	switch (renderable.renderableType) {
-	case RenderableComponentType::T_RENDERABLE_VERTEX:
+void RenderSystem::processRenderable(VulkanContext& vkContext, VkCommandBuffer& cmdBuffer, Component::Renderable& renderable) {
+	switch (renderable.type) {
+	case ComponentType::Renderable::T_RENDERABLE_VERTEX:
 		// Bind vertex and index buffers, then draw
 		/* vkCmdDraw parameters (Vulkan specs):
 			- commandBuffer: The command buffer to record the draw commands into
@@ -33,7 +33,7 @@ void RenderSystem::processRenderable(VulkanContext& vkContext, VkCommandBuffer& 
 
 		break;
 
-	case RenderableComponentType::T_RENDERABLE_GUI:
+	case ComponentType::Renderable::T_RENDERABLE_GUI:
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmdBuffer);
 
 		break;

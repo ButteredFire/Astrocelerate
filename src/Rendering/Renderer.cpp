@@ -47,11 +47,11 @@ void Renderer::drawFrame() {
     m_imguiRenderer->renderFrames();
 
     // Specifies renderable components
-    ComponentArray<RenderableComponent> renderableComponents(m_globalEntityManager);
+    ComponentArray<Component::Renderable> renderableComponents(m_globalEntityManager);
 
         // Vertex rendering
-    RenderableComponent vertexRenderComponent{};
-    vertexRenderComponent.renderableType = RenderableComponentType::T_RENDERABLE_VERTEX;
+    Component::Renderable vertexRenderComponent{};
+    vertexRenderComponent.type = ComponentType::Renderable::T_RENDERABLE_VERTEX;
     vertexRenderComponent.vertexBuffers = {
         m_bufferManager->getVertexBuffer()
     };
@@ -63,8 +63,8 @@ void Renderer::drawFrame() {
     vertexRenderComponent.descriptorSet = m_vkContext.GraphicsPipeline.m_descriptorSets[m_currentFrame];
 
         // GUI rendering
-    RenderableComponent guiRenderComponent{};
-    guiRenderComponent.renderableType = RenderableComponentType::T_RENDERABLE_GUI;
+    Component::Renderable guiRenderComponent{};
+    guiRenderComponent.type = ComponentType::Renderable::T_RENDERABLE_GUI;
     guiRenderComponent.guiDrawData = ImGui::GetDrawData();
 
 

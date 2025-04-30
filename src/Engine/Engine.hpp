@@ -24,7 +24,7 @@
 #include <Core/AppWindow.hpp>
 #include <Core/Constants.h>
 #include <Core/LoggingManager.hpp>
-#include <Core/ApplicationContext.hpp>
+#include <CoreStructs/ApplicationContext.hpp>
 
 
 

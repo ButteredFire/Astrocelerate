@@ -7,7 +7,7 @@
 #include <Core/Constants.h>
 #include <Core/ECSCore.hpp>
 #include <Core/GarbageCollector.hpp>
-#include <Core/ApplicationContext.hpp>
+#include <CoreStructs/ApplicationContext.hpp>
 #include <Core/EventDispatcher.hpp>
 
 #include <iostream>
@@ -30,13 +30,17 @@ int main() {
     std::shared_ptr<EventDispatcher> eventDispatcher = std::make_shared<EventDispatcher>();
     ServiceLocator::registerService(eventDispatcher);
 
-    // Creates a memory manager
+    // Garbage collector
     std::shared_ptr<GarbageCollector> garbageCollector = std::make_shared<GarbageCollector>(vkContext);
     ServiceLocator::registerService(garbageCollector);
 
     // Entity manager
     std::shared_ptr<EntityManager> globalEntityManager = std::make_shared<EntityManager>();
     ServiceLocator::registerService(globalEntityManager);
+
+    // Texture manager
+    std::shared_ptr<TextureManager> textureManager = std::make_shared<TextureManager>(vkContext);
+    ServiceLocator::registerService(textureManager);
 
     try {
             // Creates a window
@@ -67,11 +71,11 @@ int main() {
         commandManager->init();
 
 
-            // Texture manager
-        std::shared_ptr<TextureManager> textureManager = std::make_shared<TextureManager>(vkContext);
-        ServiceLocator::registerService(textureManager);
-        textureManager->createTexture((std::string(APP_SOURCE_DIR) + std::string("/assets/app/ExperimentalAppLogo.png")).c_str());
+        //textureManager->createTexture((std::string(APP_SOURCE_DIR) + std::string("/assets/app/ExperimentalAppLogo.png")).c_str());
+        //textureManager->createTexture((std::string(APP_SOURCE_DIR) + std::string("/assets/Models/Spacecraft/SpaceX_Starship/textures/")).c_str());
 
+        textureManager->createTexture((std::string(APP_SOURCE_DIR) + std::string("/assets/Models/TestModel/viking_room.png")).c_str());
+        
 
             // Buffer manager
         std::shared_ptr<BufferManager> m_bufferManager = std::make_shared<BufferManager>(vkContext);

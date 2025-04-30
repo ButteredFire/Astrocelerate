@@ -22,7 +22,7 @@
 #include <Core/GarbageCollector.hpp>
 #include <Core/ServiceLocator.hpp>
 #include <Core/Constants.h>
-#include <Core/ApplicationContext.hpp>
+#include <CoreStructs/ApplicationContext.hpp>
 #include <Core/EventDispatcher.hpp>
 
 //#include<Rendering/GraphicsPipeline.hpp>

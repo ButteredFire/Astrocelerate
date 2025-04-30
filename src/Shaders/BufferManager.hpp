@@ -21,18 +21,16 @@
 #include <Vulkan/VkCommandManager.hpp>
 #include <Vulkan/VkSyncManager.hpp>
 
-#include <Core/ApplicationContext.hpp>
+#include <CoreStructs/ApplicationContext.hpp>
 #include <Core/LoggingManager.hpp>
 #include <Core/GarbageCollector.hpp>
 #include <Core/ServiceLocator.hpp>
 
+#include <CoreStructs/Geometry.hpp>
 
-// A structure specifying the properties of a vertex
-struct Vertex {
-	glm::vec3 position;     // Vertex position.
-	glm::vec3 color;        // Vertex color.
-    glm::vec2 texCoord;     // Texture coordinates (a.k.a., UV coordinates) for mapping textures
-};
+#include <Engine/Components/ModelComponents.hpp>
+
+#include <Utils/ModelLoader.hpp>
 
 
 /* VERY IMPORTANT EXPLANATION BEHIND alignas(...) PER STRUCT MEMBER: "Alignment requirements"
@@ -128,13 +126,6 @@ public:
     /* Gets the uniform buffer allocations */
     inline const std::vector<VmaAllocation>& getUniformBuffersAllocations() const { return m_uniformBuffersAllocations; };
 
-
-    /* Gets the vertex input binding description. */
-    static VkVertexInputBindingDescription getVertexInputBindingDescription();
-
-    /* Gets the vertex attribute descriptions. */
-    static std::vector<VkVertexInputAttributeDescription> getVertexAttributeDescriptions();
-
 private:
     VulkanContext& m_vkContext;
     std::shared_ptr<GarbageCollector> m_garbageCollector;
@@ -150,22 +141,9 @@ private:
     std::vector<void*> m_uniformBuffersMappedData;
 
 
-    const std::vector<Vertex> m_vertices = {
-        {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},     // 0
-        {{0.5f, -0.5f, 0.0f},  {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},     // 1
-        {{0.5f, 0.5f, 0.0f},   {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},     // 2
-        {{-0.5f, 0.5f, 0.0f},  {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},     // 3
+    std::vector<Vertex> m_vertices = {};
 
-        {{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},    // 4
-        {{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},     // 5
-        {{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},      // 6
-        {{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}      // 7
-    };
-
-    const std::vector<uint32_t> m_vertIndices = {
-        0, 1, 2, 2, 3, 0,
-        4, 5, 6, 6, 7, 4
-    };
+    std::vector<uint32_t> m_vertIndices = {};
 
 
     /* Writes data to a buffer that is allocated in GPU (device-local) memory.

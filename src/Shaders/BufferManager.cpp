@@ -12,71 +12,17 @@ BufferManager::~BufferManager() {}
 
 
 void BufferManager::init() {
+	//Component::Mesh mesh = ModelLoader::loadModel((std::string(APP_SOURCE_DIR) + std::string("/assets/Models/Spacecraft/SpaceX_Starship/Starship.obj")), ModelLoader::FileType::T_OBJ);
+
+	Component::Mesh mesh = ModelLoader::loadModel((std::string(APP_SOURCE_DIR) + std::string("/assets/Models/TestModel/viking_room.obj")), ModelLoader::FileType::T_OBJ);
+	
+	
+	m_vertices = mesh.vertices;
+	m_vertIndices = mesh.indices;
+
 	createVertexBuffer();
 	createIndexBuffer();
 	createUniformBuffers();
-}
-
-
-VkVertexInputBindingDescription BufferManager::getVertexInputBindingDescription() {
-	// A vertex binding describes at which rate to load data from memory throughout the m_vertices.
-		// It specifies the number of bytes between data entries and whether to move to the next data entry after each vertex or after each instance.
-	VkVertexInputBindingDescription bindingDescription{};
-
-	// Our data is currently packed together in 1 array, so we're only going to have one binding (whose index is 0).
-	// If we had multiple vertex buffers (e.g., one for position, one for color), each buffer would have its own binding index.
-	bindingDescription.binding = 0;
-
-	// Specifies the number of bytes from one entry to the next (i.e., byte stride between consecutive elements in a buffer)
-	bindingDescription.stride = sizeof(Vertex);
-
-	// Specifies how to move to the next entry
-	bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX; // Move to the next entry after each vertex (for per-vertex data); for instanced rendering, use INPUT_RATE_INSTANCE
-
-	return bindingDescription;
-}
-
-
-std::vector<VkVertexInputAttributeDescription> BufferManager::getVertexAttributeDescriptions() {
-	// Attribute descriptions specify the type of the attributes passed to the vertex shader, which binding to load them from (and at which offset)
-		// Each vertex attribute (e.g., position, color) must have its own attribute description.
-		// Each vertex attribute's binding must source its value from the vertex's bindingDescription binding.
-	std::vector<VkVertexInputAttributeDescription> attribDescriptions{};
-
-	size_t vertexAttribCount = 3;
-	attribDescriptions.reserve(vertexAttribCount);
-
-	// Attribute: Position
-	VkVertexInputAttributeDescription positionAttribDesc{};
-	positionAttribDesc.binding = 0;
-	positionAttribDesc.location = ShaderConsts::VERT_LOC_IN_INPOSITION;
-	positionAttribDesc.format = VK_FORMAT_R32G32B32_SFLOAT;
-	positionAttribDesc.offset = offsetof(Vertex, position);
-
-	attribDescriptions.push_back(positionAttribDesc);
-
-	
-	// Attribute: Color
-	VkVertexInputAttributeDescription colorAttribDesc{};
-	colorAttribDesc.binding = 0;
-	colorAttribDesc.location = ShaderConsts::VERT_LOC_IN_INCOLOR;
-	colorAttribDesc.format = VK_FORMAT_R32G32B32_SFLOAT;
-	colorAttribDesc.offset = offsetof(Vertex, color);
-
-	attribDescriptions.push_back(colorAttribDesc);
-
-
-	// Attribute: Texture/UV coordinates
-	VkVertexInputAttributeDescription texCoordAttribDesc{};
-	texCoordAttribDesc.binding = 0;
-	texCoordAttribDesc.location = ShaderConsts::VERT_LOC_IN_INTEXTURECOORD;
-	texCoordAttribDesc.format = VK_FORMAT_R32G32_SFLOAT;
-	texCoordAttribDesc.offset = offsetof(Vertex, texCoord);
-
-	attribDescriptions.push_back(texCoordAttribDesc);
-
-
-	return attribDescriptions;
 }
 
 
@@ -178,7 +124,7 @@ void BufferManager::updateUniformBuffer(uint32_t currentImage) {
 
 
 	// glm::lookAt(eyePosition, centerPosition, upAxis);
-	glm::vec3 eyePosition = glm::vec3(1.0f, 1.0f, 1.0f);
+	glm::vec3 eyePosition = glm::vec3(2.0f, 2.0f, 2.0f);
 	glm::vec3 centerPosition = glm::vec3(0.0f, 0.0f, 0.0f);
 	glm::vec3 upAxis = glm::vec3(0.0f, 0.0f, 1.0f);
 	

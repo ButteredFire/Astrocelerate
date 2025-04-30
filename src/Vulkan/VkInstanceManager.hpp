@@ -22,7 +22,7 @@
 #include <Core/LoggingManager.hpp>
 #include <Core/GarbageCollector.hpp>
 #include <Core/ServiceLocator.hpp>
-#include <Core/ApplicationContext.hpp>
+#include <CoreStructs/ApplicationContext.hpp>
 #include <Core/Constants.h>
 
 

@@ -19,7 +19,7 @@
 #include <Core/Constants.h>
 #include <Core/LoggingManager.hpp>
 #include <Core/ServiceLocator.hpp>
-#include <Core/ApplicationContext.hpp>
+#include <CoreStructs/ApplicationContext.hpp>
 
 #include <Rendering/GraphicsPipeline.hpp>
 

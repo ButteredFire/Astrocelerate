@@ -1,10 +1,11 @@
-/* EventTypes.hpp - Defines event types for the event bus.
+/* EventTypes.hpp - Defines event types for the event dispatcher.
 */
 
 #pragma once
 
 
-namespace EventTypes {
+/* Event types for the event dispatcher. */
+namespace Event {
 	enum Identifier {
 		EVENT_ID_SWAPCHAIN_RECREATION,
 		EVENT_ID_INIT_FRAMEBUFFERS

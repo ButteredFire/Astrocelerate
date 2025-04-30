@@ -17,7 +17,7 @@
 // Other
 #include <Core/Constants.h>
 #include <Core/LoggingManager.hpp>
-#include <Core/ApplicationContext.hpp>
+#include <CoreStructs/ApplicationContext.hpp>
 #include <Core/GarbageCollector.hpp>
 
 #include <Shaders/BufferManager.hpp>

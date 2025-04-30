@@ -11,7 +11,7 @@
 #include <iostream>
 
 // Local
-#include <Core/ApplicationContext.hpp>
+#include <CoreStructs/ApplicationContext.hpp>
 #include <Core/LoggingManager.hpp>
 #include <Core/GarbageCollector.hpp>
 #include <Core/ServiceLocator.hpp>
