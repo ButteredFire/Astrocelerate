@@ -26,6 +26,7 @@
 #include <Core/LoggingManager.hpp>
 #include <CoreStructs/ApplicationContext.hpp>
 
+#include <Systems/Time.hpp>
 
 
 class Engine {

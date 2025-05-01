@@ -31,6 +31,7 @@
 #include <Engine/Components/ModelComponents.hpp>
 
 #include <Utils/ModelLoader.hpp>
+#include <Utils/FilePathUtils.hpp>
 
 
 /* VERY IMPORTANT EXPLANATION BEHIND alignas(...) PER STRUCT MEMBER: "Alignment requirements"

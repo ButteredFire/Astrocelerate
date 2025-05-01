@@ -14,7 +14,9 @@ BufferManager::~BufferManager() {}
 void BufferManager::init() {
 	//Component::Mesh mesh = ModelLoader::loadModel((std::string(APP_SOURCE_DIR) + std::string("/assets/Models/Spacecraft/SpaceX_Starship/Starship.obj")), ModelLoader::FileType::T_OBJ);
 
-	Component::Mesh mesh = ModelLoader::loadModel((std::string(APP_SOURCE_DIR) + std::string("/assets/Models/TestModel/viking_room.obj")), ModelLoader::FileType::T_OBJ);
+	//std::string modelPath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models", "Spacecraft/SpaceX_Starship/Starship.obj");
+	std::string modelPath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models", "TestModels/Cube/Cube.obj");
+	Component::Mesh mesh = ModelLoader::loadModel(modelPath, ModelLoader::FileType::T_OBJ);
 	
 	
 	m_vertices = mesh.vertices;
@@ -124,7 +126,7 @@ void BufferManager::updateUniformBuffer(uint32_t currentImage) {
 
 
 	// glm::lookAt(eyePosition, centerPosition, upAxis);
-	glm::vec3 eyePosition = glm::vec3(2.0f, 2.0f, 2.0f);
+	glm::vec3 eyePosition = glm::vec3(1.0f, 1.0f, 1.0f) * 4.0f;
 	glm::vec3 centerPosition = glm::vec3(0.0f, 0.0f, 0.0f);
 	glm::vec3 upAxis = glm::vec3(0.0f, 0.0f, 1.0f);
 	

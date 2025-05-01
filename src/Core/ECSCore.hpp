@@ -208,13 +208,13 @@ public:
 		@return A view of the component arrays.
 	*/
 	template<typename... Components>
-	static auto getView(std::shared_ptr<EntityManager> entityManager, ComponentArray<Components>&... arrays) {
-		constexpr size_t argCount = sizeof...(arrays);
+	static auto getView(std::shared_ptr<EntityManager> entityManager) {
+		constexpr size_t argCount = sizeof...(Components);
 		if (argCount == 0) {
 			throw Log::RuntimeException(__FUNCTION__, "No components are passed into view!");
 		}
 		
-		return InternalView<Components...>(entityManager, arrays...);
+		return InternalView<Components...>(entityManager);
 	}
 
 private:
@@ -222,8 +222,8 @@ private:
 	template<typename... Components>
 	class InternalView {
 	public:
-		InternalView(std::shared_ptr<EntityManager> entityManager, ComponentArray<Components>&... arrays) :
-			entityManager(entityManager), componentArrays(std::tie(arrays...)) {
+		InternalView(std::shared_ptr<EntityManager> entityManager) :
+			entityManager(entityManager) {
 		
 			// Queries entities to look for those with the required components
 			requiredMask = buildComponentMask<Components...>();
@@ -253,11 +253,11 @@ private:
 			auto operator*() {
 				Entity& entity = view->matchingEntities[index];
 
-				auto generateTuple = [&](ComponentArray<Components>&... arrays) {
-					return std::tuple<Entity&, Components&...>(entity, arrays.getComponent(entity)...);
+				auto generateTuple = [&](Components&... components) {
+					return std::tuple<Entity&, Components&...>(entity, components...);
 				};
 
-				return std::apply(generateTuple, view->componentArrays);
+				return std::apply(generateTuple, view->matchingEntityComponents);
 			}
 
 
@@ -291,8 +291,6 @@ private:
 
 	private:
 		std::shared_ptr<EntityManager> entityManager;
-
-		std::tuple<ComponentArray<Components>&...> componentArrays;
 
 		std::vector<Entity> matchingEntities;
 		ComponentMask requiredMask;

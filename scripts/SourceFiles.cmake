@@ -20,6 +20,7 @@ set(SOURCE_FILES
 	"src/Rendering/TextureManager.cpp"
 	"src/Rendering/UIRenderer.cpp"
 	"src/Shaders/BufferManager.cpp"
+	"src/Systems/PhysicsSystem.cpp"
 	"src/Systems/RenderSystem.cpp"
 	"src/Utils/ModelLoader.cpp"
 	"src/Vulkan/VkCommandManager.cpp"

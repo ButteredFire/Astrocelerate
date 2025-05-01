@@ -35,6 +35,9 @@ void Engine::run() {
 void Engine::update() {
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
+
+        Time::UpdateDeltaTime();
+        
         m_renderer->update();
     }
 

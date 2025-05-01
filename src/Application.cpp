@@ -7,8 +7,11 @@
 #include <Core/Constants.h>
 #include <Core/ECSCore.hpp>
 #include <Core/GarbageCollector.hpp>
-#include <CoreStructs/ApplicationContext.hpp>
 #include <Core/EventDispatcher.hpp>
+
+#include <CoreStructs/ApplicationContext.hpp>
+
+#include <Engine/Components/PhysicsComponents.hpp>
 
 #include <Utils/FilePathUtils.hpp>
 
@@ -75,7 +78,7 @@ int main() {
 
         //textureManager->createTexture((std::string(APP_SOURCE_DIR) + std::string("/assets/app/ExperimentalAppLogo.png")).c_str());
         //textureManager->createTexture((std::string(APP_SOURCE_DIR) + std::string("/assets/Models/Spacecraft/SpaceX_Starship/textures/")).c_str());
-        std::string path = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models", "TestModel", "viking_room.png");
+        std::string path = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models", "TestModels/Cube/Textures/BaseColor.png");
         textureManager->createTexture(path.c_str());
 
 

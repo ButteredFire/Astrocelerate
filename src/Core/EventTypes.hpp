@@ -8,7 +8,8 @@
 namespace Event {
 	enum Identifier {
 		EVENT_ID_SWAPCHAIN_RECREATION,
-		EVENT_ID_INIT_FRAMEBUFFERS
+		EVENT_ID_INIT_FRAMEBUFFERS,
+		EVENT_ID_UPDATE_RIGID_BODIES
 	};
 
 
@@ -21,5 +22,11 @@ namespace Event {
 	/* Used when data required to initialize framebuffers is available (usually after graphics pipeline intiialization). */
 	struct InitFrameBuffers {
 		const Identifier eventType = Identifier::EVENT_ID_INIT_FRAMEBUFFERS;
+	};
+
+
+	/* Used when rigid bodies need to be updated. */
+	struct UpdateRigidBodies {
+		const Identifier eventType = Identifier::EVENT_ID_UPDATE_RIGID_BODIES;
 	};
 }
