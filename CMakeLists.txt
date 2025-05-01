@@ -55,23 +55,25 @@ add_executable(Astrocelerate ${SOURCE_FILES} )
 # Functions
     # Handles connectivity detection
     function(hasInternetConnection isOnline)
-        if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
-            set(PING_COMMAND ping -n 1 8.8.8.8)
-        else()
-            set(PING_COMMAND ping -c 1 8.8.8.8)
-        endif()
+        set(TEST_URL "https://www.google.com/robots.txt")
+        set(TEMP_FILE "${CMAKE_BINARY_DIR}/internet_test.txt")
 
-        execute_process(
-            COMMAND ${PING_COMMAND}
-            RESULT_VARIABLE pingResult
-            OUTPUT_QUIET
-            ERROR_QUIET
+        file(DOWNLOAD
+            ${TEST_URL}
+            ${TEMP_FILE}
+            TIMEOUT 5
+            STATUS downloadStatus
         )
-        if(pingResult EQUAL 0)
+
+        list(GET downloadStatus 0 statusCode)
+
+        if(statusCode EQUAL 0)
             set(${isOnline} TRUE PARENT_SCOPE)
         else()
             set(${isOnline} FALSE PARENT_SCOPE)
         endif()
+
+        file(REMOVE ${TEMP_FILE})
     endfunction()
 
 
