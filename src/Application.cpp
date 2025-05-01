@@ -10,6 +10,8 @@
 #include <CoreStructs/ApplicationContext.hpp>
 #include <Core/EventDispatcher.hpp>
 
+#include <Utils/FilePathUtils.hpp>
+
 #include <iostream>
 #include <stdexcept>
 #include <cstdlib>
@@ -73,9 +75,9 @@ int main() {
 
         //textureManager->createTexture((std::string(APP_SOURCE_DIR) + std::string("/assets/app/ExperimentalAppLogo.png")).c_str());
         //textureManager->createTexture((std::string(APP_SOURCE_DIR) + std::string("/assets/Models/Spacecraft/SpaceX_Starship/textures/")).c_str());
+        std::string path = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models", "TestModel", "viking_room.png");
+        textureManager->createTexture(path.c_str());
 
-        textureManager->createTexture((std::string(APP_SOURCE_DIR) + std::string("/assets/Models/TestModel/viking_room.png")).c_str());
-        
 
             // Buffer manager
         std::shared_ptr<BufferManager> m_bufferManager = std::make_shared<BufferManager>(vkContext);

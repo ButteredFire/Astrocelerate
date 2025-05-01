@@ -36,6 +36,7 @@ set(HEADER_FILES
 	"src/Shaders/BufferManager.hpp"
 	"src/Systems/RenderSystem.hpp"
 	"src/Utils/ColorUtils.hpp"
+	"src/Utils/FilePathUtils.hpp"
 	"src/Utils/ModelLoader.hpp"
 	"src/Vulkan/VkCommandManager.hpp"
 	"src/Vulkan/VkDeviceManager.hpp"
