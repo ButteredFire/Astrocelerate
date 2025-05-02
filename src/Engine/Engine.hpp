@@ -21,10 +21,16 @@
 
 #include <Shaders/BufferManager.hpp>
 
+#include <Core/ECS.hpp>
 #include <Core/AppWindow.hpp>
 #include <Core/Constants.h>
 #include <Core/LoggingManager.hpp>
+
 #include <CoreStructs/ApplicationContext.hpp>
+
+#include <Engine/Components/ModelComponents.hpp>
+#include <Engine/Components/RenderComponents.hpp>
+#include <Engine/Components/PhysicsComponents.hpp>
 
 #include <Systems/Time.hpp>
 
@@ -34,12 +40,15 @@ public:
 	Engine(GLFWwindow *w, VulkanContext &context);
 	~Engine();
 
+	void initComponents();
+
 	void run();
 
 private:
 	GLFWwindow *window;
 	VulkanContext &m_vkContext;
 
+	std::shared_ptr<Registry> m_registry;
 	std::shared_ptr<Renderer> m_renderer;
 
 template<typename T>

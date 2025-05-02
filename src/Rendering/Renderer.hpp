@@ -42,7 +42,7 @@
 
 #include <Shaders/BufferManager.hpp>
 
-#include <Core/ECSCore.hpp>
+#include <Core/ECS.hpp>
 #include <Core/Constants.h>
 #include <Core/LoggingManager.hpp>
 #include <Core/ServiceLocator.hpp>
@@ -65,7 +65,7 @@ private:
 	VkInstance& m_vulkInst;
 	VulkanContext& m_vkContext;
 
-	std::shared_ptr<EntityManager> m_globalEntityManager;
+	std::shared_ptr<Registry> m_globalRegistry;
 
 	std::shared_ptr<VkSwapchainManager> m_swapchainManager;
 	std::shared_ptr<BufferManager> m_bufferManager;

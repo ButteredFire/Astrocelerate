@@ -18,6 +18,5 @@ public:
 	void updateRigidBodies();
 
 private:
-	std::shared_ptr<EntityManager> entityManager;
 	std::shared_ptr<EventDispatcher> eventDispatcher;
 };

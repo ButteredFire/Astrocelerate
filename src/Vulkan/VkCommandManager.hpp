@@ -20,7 +20,7 @@
 #include <imgui/imgui_impl_vulkan.h>
 
 // Local
-#include <Core/ECSCore.hpp>
+#include <Core/ECS.hpp>
 #include <Core/Constants.h>
 #include <Core/LoggingManager.hpp>
 #include <Core/ServiceLocator.hpp>

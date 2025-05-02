@@ -5,7 +5,6 @@
 
 
 PhysicsSystem::PhysicsSystem() {
-	entityManager = ServiceLocator::getService<EntityManager>(__FUNCTION__);
 	eventDispatcher = ServiceLocator::getService<EventDispatcher>(__FUNCTION__);
 
 	eventDispatcher->subscribe<Event::UpdateRigidBodies>(

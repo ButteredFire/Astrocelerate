@@ -5,7 +5,7 @@
 #include <Engine/Engine.hpp>
 #include <Core/ServiceLocator.hpp>
 #include <Core/Constants.h>
-#include <Core/ECSCore.hpp>
+#include <Core/ECS.hpp>
 #include <Core/GarbageCollector.hpp>
 #include <Core/EventDispatcher.hpp>
 
@@ -39,9 +39,66 @@ int main() {
     std::shared_ptr<GarbageCollector> garbageCollector = std::make_shared<GarbageCollector>(vkContext);
     ServiceLocator::registerService(garbageCollector);
 
-    // Entity manager
-    std::shared_ptr<EntityManager> globalEntityManager = std::make_shared<EntityManager>();
-    ServiceLocator::registerService(globalEntityManager);
+    // ECS Registry
+    std::shared_ptr<Registry> globalRegistry = std::make_shared<Registry>();
+    ServiceLocator::registerService(globalRegistry);
+
+
+
+
+    Entity satellite = globalRegistry->createEntity();
+    Entity starship = globalRegistry->createEntity();
+    Entity earth = globalRegistry->createEntity();
+
+
+    globalRegistry->initComponentArray<Component::RigidBody>();
+
+    Component::RigidBody satelliteRB = {
+        glm::vec3(1.0f),
+        glm::vec3(1.0f),
+        glm::vec3(1.0f),
+        10.0f
+    };
+
+    Component::RigidBody starshipRB = {
+        glm::vec3(1.0f) * 2.0f,
+        glm::vec3(1.0f) * 2.0f,
+        glm::vec3(1.0f) * 2.0f,
+        5e6
+    };
+
+    Component::RigidBody earthRB = {
+        glm::vec3(1.0f) * 3.0f,
+        glm::vec3(1.0f) * 3.0f,
+        glm::vec3(1.0f) * 3.0f,
+        (5.972 * 10e24)
+    };
+
+    globalRegistry->addComponent(satellite, satelliteRB);
+    globalRegistry->addComponent(starship, starshipRB);
+    globalRegistry->addComponent(earth, earthRB);
+
+
+    struct Dummy {
+        int test = 0;
+    };
+
+    Dummy instance = {
+        1e2
+    };
+
+    globalRegistry->initComponentArray<Dummy>();
+    globalRegistry->addComponent(starship, instance);
+
+
+    auto view = globalRegistry->getView<Dummy>();
+
+    for (auto [entity, dummy] : view) {
+        //Log::print(Log::T_WARNING, __FUNCTION__, "Entity #" + std::to_string(entity) + ": Mass = " + std::to_string(rb.mass));
+
+        Log::print(Log::T_WARNING, __FUNCTION__, "Entity #" + std::to_string(entity) + ": Test = " + std::to_string(dummy.test));
+    }
+
 
     // Texture manager
     std::shared_ptr<TextureManager> textureManager = std::make_shared<TextureManager>(vkContext);
@@ -110,7 +167,8 @@ int main() {
 
 
         Engine engine(windowPtr, vkContext);
-        engine.run();
+        engine.initComponents();
+        //engine.run();
     }
     catch (const Log::RuntimeException& e) {
         Log::print(e.severity(), e.origin(), e.what());

@@ -16,6 +16,7 @@ set(HEADER_FILES
 	"src/IncludesRefs.h"
 	"src/Core/AppWindow.hpp"
 	"src/Core/Constants.h"
+	"src/Core/ECS.hpp"
 	"src/Core/ECSCore.hpp"
 	"src/Core/EventDispatcher.hpp"
 	"src/Core/EventTypes.hpp"

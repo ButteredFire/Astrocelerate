@@ -9,6 +9,8 @@ Engine::Engine(GLFWwindow *w, VulkanContext& context):
     window(w),
     m_vkContext(context) {
 
+    m_registry = ServiceLocator::getService<Registry>(__FUNCTION__);
+
     if (!isPointerValid(window)) {
         throw Log::RuntimeException(__FUNCTION__, "Engine crashed: Invalid window context!");
     }
@@ -21,6 +23,19 @@ Engine::~Engine() {
     // Frees up all associated memory.
     glfwDestroyWindow(window);
     glfwTerminate();
+}
+
+
+void Engine::initComponents() {
+    /* ModelComponents.hpp */
+    m_registry->initComponentArray<Component::Mesh>();
+    m_registry->initComponentArray<Component::Material>();
+
+    /* RenderComponents.hpp */
+    m_registry->initComponentArray<Component::Renderable>();
+
+    /* PhysicsComponents.hpp */
+    m_registry->initComponentArray<Component::RigidBody>();
 }
 
 
