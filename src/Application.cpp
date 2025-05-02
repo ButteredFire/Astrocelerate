@@ -45,55 +45,61 @@ int main() {
 
 
 
+    //    // ECS architecture test
+    //Entity satellite = globalRegistry->createEntity();
+    //Entity starship = globalRegistry->createEntity();
+    //Entity earth = globalRegistry->createEntity();
 
-    Entity satellite = globalRegistry->createEntity();
-    Entity starship = globalRegistry->createEntity();
-    Entity earth = globalRegistry->createEntity();
 
+    //globalRegistry->initComponentArray<Component::RigidBody>();
 
-    globalRegistry->initComponentArray<Component::RigidBody>();
+    //Component::RigidBody satelliteRB = {
+    //    glm::vec3(1.0f),
+    //    glm::vec3(1.0f),
+    //    glm::vec3(1.0f),
+    //    10.0f
+    //};
 
-    Component::RigidBody satelliteRB = {
-        glm::vec3(1.0f),
-        glm::vec3(1.0f),
-        glm::vec3(1.0f),
-        10.0f
-    };
+    //Component::RigidBody starshipRB = {
+    //    glm::vec3(1.0f) * 2.0f,
+    //    glm::vec3(1.0f) * 2.0f,
+    //    glm::vec3(1.0f) * 2.0f,
+    //    5e6
+    //};
 
-    Component::RigidBody starshipRB = {
-        glm::vec3(1.0f) * 2.0f,
-        glm::vec3(1.0f) * 2.0f,
-        glm::vec3(1.0f) * 2.0f,
-        5e6
-    };
+    //Component::RigidBody earthRB = {
+    //    glm::vec3(1.0f) * 3.0f,
+    //    glm::vec3(1.0f) * 3.0f,
+    //    glm::vec3(1.0f) * 3.0f,
+    //    (5.972 * 10e24)
+    //};
 
-    Component::RigidBody earthRB = {
-        glm::vec3(1.0f) * 3.0f,
-        glm::vec3(1.0f) * 3.0f,
-        glm::vec3(1.0f) * 3.0f,
-        (5.972 * 10e24)
-    };
+    //globalRegistry->addComponent(satellite.id, satelliteRB);
+    //globalRegistry->addComponent(starship.id, starshipRB);
+    //globalRegistry->addComponent(earth.id, earthRB);
 
-    globalRegistry->addComponent(satellite, satelliteRB);
-    globalRegistry->addComponent(starship, starshipRB);
-    globalRegistry->addComponent(earth, earthRB);
+    //auto view = globalRegistry->getView<Component::RigidBody>();
 
-    auto view = globalRegistry->getView<Component::RigidBody>();
-
-    for (auto [entity, rb] : view) {
-        Log::print(Log::T_WARNING, __FUNCTION__, "Entity #" + std::to_string(entity) + ": Mass = " + std::to_string(rb.mass));
-    }
+    //for (auto [entity, rb] : view) {
+    //    Log::print(Log::T_WARNING, __FUNCTION__, "Entity #" + std::to_string(entity) + ": Mass = " + std::to_string(rb.mass));
+    //}
 
 
     // Texture manager
     std::shared_ptr<TextureManager> textureManager = std::make_shared<TextureManager>(vkContext);
     ServiceLocator::registerService(textureManager);
 
+
     try {
+        // Pipeline initialization
             // Creates a window
         Window window(WIN_WIDTH, WIN_HEIGHT, WIN_NAME);
         GLFWwindow *windowPtr = window.getGLFWwindowPtr();
         vkContext.window = windowPtr;
+
+        
+        Engine engine(windowPtr, vkContext);
+        engine.initComponents();
 
 
             // Instance manager
@@ -142,10 +148,6 @@ int main() {
         syncManager->init();
 
 
-        Engine engine(windowPtr, vkContext);
-        engine.initComponents();
-
-
             // Renderers
         std::shared_ptr<UIRenderer> uiRenderer = std::make_shared<UIRenderer>(vkContext);
         ServiceLocator::registerService(uiRenderer);
@@ -159,6 +161,8 @@ int main() {
         std::shared_ptr<RenderSystem> renderSystem = std::make_shared<RenderSystem>(vkContext);
         ServiceLocator::registerService(renderSystem);
 
+        std::shared_ptr<PhysicsSystem> physicsSystem = std::make_shared<PhysicsSystem>();
+        ServiceLocator::registerService(physicsSystem);
 
         engine.run();
     }
@@ -171,7 +175,16 @@ int main() {
         garbageCollector->processCleanupStack();
         Log::print(Log::T_ERROR, WIN_NAME.c_str(), "Program exited with errors.");
 
-        boxer::show(e.what(), ("Exception raised from " + std::string(e.origin())).c_str(), boxer::Style::Error, boxer::Buttons::Quit);
+        std::string errOrigin = "Origin: " + std::string(e.origin()) + "\n";
+        std::string errLine = "Line: " + std::to_string(e.errorLine()) + "\n";
+
+        std::string msgType;
+        Log::logColor(e.severity(), msgType, false);
+        std::string severity = "Exception type: " + msgType + "\n";
+
+        std::string title = "Exception raised from " + std::string(e.origin());
+
+        boxer::show((errOrigin + errLine + severity + "\n" + std::string(e.what())).c_str(), title.c_str(), boxer::Style::Error, boxer::Buttons::Quit);
         return EXIT_FAILURE;
     }
 

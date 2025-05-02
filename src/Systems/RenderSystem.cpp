@@ -65,7 +65,7 @@ void RenderSystem::processRenderable(const VkCommandBuffer& cmdBuffer, Component
 		break;
 	
 	default:
-		throw Log::RuntimeException(__FUNCTION__, "Unable to process unknown renderable!");
+		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Unable to process unknown renderable!");
 		break;
 	}
 }

@@ -21,17 +21,22 @@
 #include <Vulkan/VkCommandManager.hpp>
 #include <Vulkan/VkSyncManager.hpp>
 
-#include <CoreStructs/ApplicationContext.hpp>
+#include <Core/ECS.hpp>
 #include <Core/LoggingManager.hpp>
-#include <Core/GarbageCollector.hpp>
 #include <Core/ServiceLocator.hpp>
+#include <Core/EventDispatcher.hpp>
+#include <Core/GarbageCollector.hpp>
 
 #include <CoreStructs/Geometry.hpp>
+#include <CoreStructs/ApplicationContext.hpp>
 
 #include <Engine/Components/ModelComponents.hpp>
+#include <Engine/Components/PhysicsComponents.hpp>
 
 #include <Utils/ModelLoader.hpp>
 #include <Utils/FilePathUtils.hpp>
+
+#include <Systems/Time.hpp>
 
 
 /* VERY IMPORTANT EXPLANATION BEHIND alignas(...) PER STRUCT MEMBER: "Alignment requirements"
@@ -129,7 +134,13 @@ public:
 
 private:
     VulkanContext& m_vkContext;
+
+    std::shared_ptr<Registry> m_registry;
+    std::shared_ptr<EventDispatcher> m_eventDispatcher;
     std::shared_ptr<GarbageCollector> m_garbageCollector;
+
+    Entity m_UBOEntity;
+    Component::RigidBody m_UBORigidBody{};
     
     VkBuffer m_vertexBuffer = VK_NULL_HANDLE;
     VmaAllocation m_vertexBufferAllocation = VK_NULL_HANDLE;

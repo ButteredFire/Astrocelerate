@@ -32,7 +32,7 @@ namespace FilePathUtils {
 	*/
 	inline std::vector<char> readFile(const std::string& filePath, std::string workingDirectory = "") {
 		if (filePath.empty()) {
-			throw Log::RuntimeException(__FUNCTION__, "File path is empty!");
+			throw Log::RuntimeException(__FUNCTION__, __LINE__, "File path is empty!");
 		}
 
 		// Joins the working directory and the file
@@ -60,7 +60,7 @@ namespace FilePathUtils {
 			std::string relativePathErrMsg = " The file may not be in the directory " + enquote(workingDirectory) + '.'
 				+ "\n" + "To change the working directory, please specify the full path to the file.";
 
-			throw Log::RuntimeException(__FUNCTION__, "Failed to open file " + enquote(absoluteFilePath.string()) + "!"
+			throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to open file " + enquote(absoluteFilePath.string()) + "!"
 				+ ((!workingDirectory.empty()) ? relativePathErrMsg : "")
 			);
 		}
@@ -78,7 +78,7 @@ namespace FilePathUtils {
 
 		// If file is incomplete/not read successfully
 		if (!file) {
-			throw Log::RuntimeException(__FUNCTION__, "Failed to read file " + enquote(filePath) + "!");
+			throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to read file " + enquote(filePath) + "!");
 		}
 
 		file.close();

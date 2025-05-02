@@ -61,8 +61,8 @@ void Renderer::initializeRenderables() {
     //m_guiRenderComponent.guiDrawData = ImGui::GetDrawData();
 
 
-    m_globalRegistry->addComponent(m_vertexRenderable, m_vertexRenderComponent);
-    m_globalRegistry->addComponent(m_guiRenderable, m_guiRenderComponent);
+    m_globalRegistry->addComponent(m_vertexRenderable.id, m_vertexRenderComponent);
+    m_globalRegistry->addComponent(m_guiRenderable.id, m_guiRenderComponent);
 }
 
 
@@ -72,8 +72,8 @@ void Renderer::drawFrame() {
     m_vertexRenderComponent.descriptorSet = m_vkContext.GraphicsPipeline.m_descriptorSets[m_currentFrame];
     m_guiRenderComponent.guiDrawData = ImGui::GetDrawData();
 
-    m_globalRegistry->updateComponent(m_vertexRenderable, m_vertexRenderComponent);
-    m_globalRegistry->updateComponent(m_guiRenderable, m_guiRenderComponent);
+    m_globalRegistry->updateComponent(m_vertexRenderable.id, m_vertexRenderComponent);
+    m_globalRegistry->updateComponent(m_guiRenderable.id, m_guiRenderComponent);
 
     /*
     
@@ -121,7 +121,7 @@ void Renderer::drawFrame() {
     // UINT64_MAX: The maximum time to wait (timeout) (in nanoseconds). UINT64_MAX means to wait indefinitely (i.e., to disable the timeout)
     VkResult waitResult = vkWaitForFences(m_vkContext.Device.logicalDevice, 1, &m_vkContext.SyncObjects.inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
     if (waitResult != VK_SUCCESS) {
-        throw Log::RuntimeException(__FUNCTION__, "Failed to wait for in-flight fence!");
+        throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to wait for in-flight fence!");
     }
 
 
@@ -136,7 +136,7 @@ void Renderer::drawFrame() {
         }
 
         else {
-            throw Log::RuntimeException(__FUNCTION__, "Failed to acquire an image from the swap-chain!\nThe current image index in this frame is: " + std::to_string(imageIndex));
+            throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to acquire an image from the swap-chain!\nThe current image index in this frame is: " + std::to_string(imageIndex));
         }
     }
 
@@ -146,7 +146,7 @@ void Renderer::drawFrame() {
     // After waiting, reset fence to unsignaled
     VkResult resetFenceResult = vkResetFences(m_vkContext.Device.logicalDevice, 1, &m_vkContext.SyncObjects.inFlightFences[m_currentFrame]);
     if (resetFenceResult != VK_SUCCESS) {
-        throw Log::RuntimeException(__FUNCTION__, "Failed to reset fence!");
+        throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to reset fence!");
     }
 
 
@@ -154,7 +154,7 @@ void Renderer::drawFrame() {
         // Resets the command buffer first to ensure it is able to be recorded
     VkResult cmdBufResetResult = vkResetCommandBuffer(m_vkContext.CommandObjects.graphicsCmdBuffers[m_currentFrame], 0);
     if (cmdBufResetResult != VK_SUCCESS) {
-        throw Log::RuntimeException(__FUNCTION__, "Failed to reset command buffer!");
+        throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to reset command buffer!");
     }
 
         // Records commands
@@ -199,7 +199,7 @@ void Renderer::drawFrame() {
     VkQueue graphicsQueue = m_vkContext.Device.queueFamilies.graphicsFamily.deviceQueue;
     VkResult submitResult = vkQueueSubmit(graphicsQueue, 1, &submitInfo, m_vkContext.SyncObjects.inFlightFences[m_currentFrame]);
     if (submitResult != VK_SUCCESS) {
-        throw Log::RuntimeException(__FUNCTION__, "Failed to submit draw command buffer!");
+        throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to submit draw command buffer!");
     }
 
 
@@ -231,7 +231,7 @@ void Renderer::drawFrame() {
             return;
         }
         else {
-            throw Log::RuntimeException(__FUNCTION__, "Failed to present swap-chain image!");
+            throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to present swap-chain image!");
         }
     }
 

@@ -5,11 +5,20 @@
 
 
 PhysicsSystem::PhysicsSystem() {
-	eventDispatcher = ServiceLocator::getService<EventDispatcher>(__FUNCTION__);
 
-	eventDispatcher->subscribe<Event::UpdateRigidBodies>(
+	m_registry = ServiceLocator::getService<Registry>(__FUNCTION__);
+	m_eventDispatcher = ServiceLocator::getService<EventDispatcher>(__FUNCTION__);
+
+	m_eventDispatcher->subscribe<Event::UpdateRigidBodies>(
 		[this](const Event::UpdateRigidBodies& event) {
-			this->updateRigidBodies();
+			auto view = m_registry->getView<Component::RigidBody>();
+
+			for (auto [entityID, rb] : view) {
+				Component::RigidBody copy = rb;
+				this->updateRigidBody(copy);
+
+				m_registry->updateComponent(entityID, copy);
+			}
 		}
 	);
 	
@@ -17,6 +26,9 @@ PhysicsSystem::PhysicsSystem() {
 }
 
 
-void PhysicsSystem::updateRigidBodies() {
-	//auto view = View::getView(entityManager, );
+void PhysicsSystem::updateRigidBody(Component::RigidBody& rigidBody) {
+	float dt = Time::GetDeltaTime();
+
+	rigidBody.position += rigidBody.velocity * dt;
+	rigidBody.velocity += rigidBody.acceleration * dt;
 }

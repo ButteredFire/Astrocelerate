@@ -37,7 +37,7 @@ void TextureManager::createTextureImage(const char* texSource, int channels) {
 	VkDeviceSize imageSize = static_cast<uint64_t>(textureWidth * textureHeight * channels);
 
 	if (!pixels) {
-		throw Log::RuntimeException(__FUNCTION__, "Failed to create texture image for texture source path " + enquote(texSource) + "!");
+		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create texture image for texture source path " + enquote(texSource) + "!");
 	}
 
 
@@ -155,7 +155,7 @@ void TextureManager::createTextureSampler() {
 
 	VkResult result = vkCreateSampler(m_vkContext.Device.logicalDevice, &samplerCreateInfo, nullptr, &m_textureSampler);
 	if (result != VK_SUCCESS) {
-		throw Log::RuntimeException(__FUNCTION__, "Failed to create texture sampler!");
+		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create texture sampler!");
 	}
 	
 	m_vkContext.Texture.sampler = m_textureSampler;
@@ -219,7 +219,7 @@ void TextureManager::createImage(VulkanContext& vkContext, VkImage& image, VmaAl
 
 	VkResult imgCreateResult = vmaCreateImage(vkContext.vmaAllocator, &imgCreateInfo, &imgAllocCreateInfo, &image, &imgAllocation, nullptr);
 	if (imgCreateResult != VK_SUCCESS) {
-		throw Log::RuntimeException(__FUNCTION__, "Failed to create image!");
+		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create image!");
 	}
 
 
@@ -349,7 +349,7 @@ void TextureManager::defineImageLayoutTransitionStages(VkAccessFlags* srcAccessM
 
 
 	else
-		throw Log::RuntimeException(__FUNCTION__, "Cannot define stages for image layout transition: Unsupported layout transition!");
+		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Cannot define stages for image layout transition: Unsupported layout transition!");
 }
 
 

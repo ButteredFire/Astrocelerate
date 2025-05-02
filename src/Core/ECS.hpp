@@ -24,7 +24,7 @@ public:
 	*/
 	inline Entity createEntity() {
 		if (m_availableIDs.size() == 0) {
-			throw Log::RuntimeException(__FUNCTION__, "Cannot create new entity: Entity count has reached the limit of " + std::to_string(MAX_ENTITIES) + " entities!");
+			throw Log::RuntimeException(__FUNCTION__, __LINE__, "Cannot create new entity: Entity count has reached the limit of " + std::to_string(MAX_ENTITIES) + " entities!");
 		}
 
 		EntityID newID = m_availableIDs.front();
@@ -45,7 +45,12 @@ public:
 	/* Destroys an entity.
 		@param entity: The entity to be destroyed.
 	*/
-	inline void destroyEntity(Entity& entity) {
+	inline void destroyEntity(Entity entity) {
+		if (m_entityToIndexMap.find(entity.id) == m_entityToIndexMap.end()) {
+			Log::print(Log::T_WARNING, __FUNCTION__, "Cannot destroy entity #" + std::to_string(entity.id) + " as it does not exist.");
+			return;
+		}
+
 		size_t currentIndex = entity.id;
 		size_t lastIndex = (m_activeEntityIDs.size() - 1);
 
@@ -71,15 +76,15 @@ public:
 	inline std::vector<ComponentMask>& getAllComponentMasks() { return m_componentMasks; }
 
 	/* Sets an entity's component mask.
-		@param entity: The entity whose component mask needs to be set.
+		@param entityID: The ID of the entity whose component mask needs to be set.
 		@param mask: The mask to set the entity's component mask to.
 	*/
-	inline void setComponentMask(Entity& entity, ComponentMask mask) {
-		m_componentMasks[entity.id] = mask;
+	inline void setComponentMask(EntityID entityID, ComponentMask mask) {
+		m_componentMasks[entityID] = mask;
 	}
 
 
-	inline const ComponentMask& getComponentMask(Entity& entity) const { return m_componentMasks[entity.id]; }
+	inline const ComponentMask& getComponentMask(EntityID entityID) const { return m_componentMasks[entityID]; }
 
 private:
 	std::queue<EntityID> m_availableIDs;
@@ -125,6 +130,10 @@ public:
 	std::shared_ptr<ComponentArray<Component>> getComponentArray() {
 		const char* typeName = typeid(Component).name();
 
+		if (m_componentArrays.find(typeName) == m_componentArrays.end()) {
+			throw Log::RuntimeException(__FUNCTION__, __LINE__, "Cannot get component array of type " + enquote(typeName) + ": Component array does not exist!\nMake sure to initialize the component array first before performing operations on it.");
+		}
+
 		// static_pointer_cast is like static_cast, but for shared pointers.
 		return std::static_pointer_cast<ComponentArray<Component>>(m_componentArrays[typeName]);
 	}
@@ -133,59 +142,59 @@ public:
 	/* Adds a component to a component array. 
 		@tparam Component: The component type of the component array.
 		
-		@param entity: The entity owning the component instance to be added.
+		@param entityID: The ID of the entity owning the component instance to be added.
 		@param component: The component instance.
 	*/
 	template<typename Component>
-	inline void addComponent(Entity& entity, Component& component) {
-		getComponentArray<Component>()->insert(entity, component);
+	inline void addComponent(EntityID entityID, Component component) {
+		getComponentArray<Component>()->insert(entityID, component);
 	}
 
 
 	/* Updates an existing component in a component array.
-		@param entity: The entity owning the component to be updated.
+		@param entityID: The ID of the entity owning the component to be updated.
 		@param component: The new component data.
 	*/
 	template<typename Component>
-	inline void updateComponent(Entity& entity, Component& component) {
-		getComponentArray<Component>()->updateComponent(entity, component);
+	inline void updateComponent(EntityID entityID, Component component) {
+		getComponentArray<Component>()->updateComponent(entityID, component);
 	}
 
 
 	/* Removes a component from a component array.
 		@tparam Component: The component type of the component array.
 
-		@param entity: The entity owning the component instance to be removed.
+		@param entityID: The ID of the entity owning the component instance to be removed.
 	*/
 	template<typename Component>
-	inline void removeComponent(Entity& entity) {
-		getComponentArray<Component>()->erase(entity);
+	inline void removeComponent(EntityID entityID) {
+		getComponentArray<Component>()->erase(entityID);
 	}
 
 
 	/* Gets a component from a component array.
 		@tparam Component: The component type of the component array.
 
-		@param entity: The entity owning the requested component.
+		@param entityID: The ID of the entity owning the requested component.
 
 		@return The requested component.
 	*/
 	template<typename Component>
-	inline Component& getComponent(Entity& entity) {
-		return getComponentArray<Component>()->getComponent(entity.id);
+	inline Component& getComponent(EntityID entityID) {
+		return getComponentArray<Component>()->getComponent(entityID);
 	}
 
 
 	/* Checks whether a component exists in the component array.
 		@tparam Component: The component type of the component array.
 
-		@param entity: The entity owning the component to be checked.
+		@param entity: The ID of the entity owning the component to be checked.
 	
 		@return True if the component exists, otherwise False.
 	*/
 	template<typename Component>
-	inline bool containsComponent(Entity& entity) {
-		return getComponentArray<Component>()->contains(entity);
+	inline bool containsComponent(EntityID entityID) {
+		return getComponentArray<Component>()->contains(entityID);
 	}
 
 private:
@@ -231,11 +240,11 @@ public:
 			// Dereferencing
 			// This is necessary for compatibility with native range-based loops and structured bindings.
 			auto operator*() {
-				EntityID& entity = view->m_matchingEntities[index];
+				EntityID entityID = view->m_matchingEntities[index];
 		
-				return std::tuple<EntityID&, Components&...>(
-					entity,
-					view->componentManager.getComponentArray<Components>()->getComponent(entity)...
+				return std::tuple<EntityID, Components...>(
+					entityID,
+					view->componentManager.getComponentArray<Components>()->getComponent(entityID)...
 				);
 			}
 		
@@ -341,31 +350,41 @@ public:
 
 
 	template<typename Component>
-	inline void addComponent(Entity& entity, Component& component) {
-		componentManager.addComponent<Component>(entity, component);
+	inline void addComponent(EntityID entityID, Component component) {
+		componentManager.addComponent<Component>(entityID, component);
 
-		ComponentMask mask = entityManager.getComponentMask(entity);
+		ComponentMask mask = entityManager.getComponentMask(entityID);
 		mask.set(ComponentTypeID::get<Component>());
 
-		entityManager.setComponentMask(entity, mask);
+		entityManager.setComponentMask(entityID, mask);
 	}
 
 
 	template<typename Component>
-	inline void updateComponent(Entity& entity, Component& component) {
-		componentManager.updateComponent(entity, component);
+	inline void removeComponent(EntityID entityID) {
+		componentManager.removeComponent(entityID);
 	}
 
 
 	template<typename Component>
-	inline Component& getComponent(Entity& entity) {
-		return componentManager.getComponent<Component>(entity);
+	inline void updateComponent(EntityID entityID, Component component) {
+		componentManager.updateComponent(entityID, component);
 	}
 
 
+    template<typename Component>
+    inline Component& getComponent(EntityID entityID) {
+       if (!componentManager.containsComponent<Component>(entityID)) {
+           throw Log::RuntimeException(__FUNCTION__, __LINE__, "Entity #" + std::to_string(entityID) + " does not have the requested component!");
+       }
+
+       return componentManager.getComponent<Component>(entityID);
+    }
+
+
 	template<typename Component>
-	inline bool hasComponent(Entity& entity) {
-		return componentManager.containsComponent<Component>(entity);
+	inline bool hasComponent(EntityID entityID) {
+		return componentManager.containsComponent<Component>(entityID);
 	}
 
 
@@ -373,7 +392,7 @@ public:
 	auto getView() {
 		constexpr size_t argCount = sizeof...(Components);
 		if (argCount == 0) {
-			throw Log::RuntimeException(__FUNCTION__, "No components are passed into view!");
+			throw Log::RuntimeException(__FUNCTION__, __LINE__, "No components are passed into view!");
 		}
 
 		return InternalView<Components...>(entityManager, componentManager);

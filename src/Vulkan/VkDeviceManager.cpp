@@ -11,11 +11,11 @@ VkDeviceManager::VkDeviceManager(VulkanContext &context):
     m_garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
 
     if (m_vulkInst == VK_NULL_HANDLE) {
-        throw Log::RuntimeException(__FUNCTION__, "Cannot initialize device manager: Invalid Vulkan instance!");
+        throw Log::RuntimeException(__FUNCTION__, __LINE__, "Cannot initialize device manager: Invalid Vulkan instance!");
     }
 
     if (m_vkContext.vkSurface == VK_NULL_HANDLE) {
-        throw Log::RuntimeException(__FUNCTION__, "Cannot initialize device manager: Invalid Vulkan window surface!");
+        throw Log::RuntimeException(__FUNCTION__, __LINE__, "Cannot initialize device manager: Invalid Vulkan window surface!");
     }
 
     Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
@@ -49,7 +49,7 @@ void VkDeviceManager::createPhysicalDevice() {
     vkEnumeratePhysicalDevices(m_vulkInst, &physDeviceCount, nullptr);
 
     if (physDeviceCount == 0) {
-        throw Log::RuntimeException(__FUNCTION__, "This machine does not have Vulkan-supported GPUs!");
+        throw Log::RuntimeException(__FUNCTION__, __LINE__, "This machine does not have Vulkan-supported GPUs!");
     }
 
     VkPhysicalDevice physicalDevice = nullptr;
@@ -72,7 +72,7 @@ void VkDeviceManager::createPhysicalDevice() {
     //std::cout << "Most suitable GPU: (GPU: " << enquoteCOUT(bestDevice.deviceName) << "; Compatible: " << std::boolalpha << isDeviceCompatible << "; Optional Score: " << physicalDeviceScore << ")\n\n";
 
     if (physicalDevice == nullptr || !isDeviceCompatible) {
-        throw Log::RuntimeException(__FUNCTION__, "Failed to find a GPU that supports required features!");
+        throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to find a GPU that supports required features!");
     }
 
     m_vkContext.Device.physicalDevice = m_GPUPhysicalDevice = physicalDevice;
@@ -86,7 +86,7 @@ void VkDeviceManager::createLogicalDevice() {
     std::vector<QueueFamilyIndices::QueueFamily*> allFamilies = queueFamilies.getAllQueueFamilies();
     for (const auto &family : allFamilies)
         if (!queueFamilies.familyExists(*family)) {
-            throw Log::RuntimeException(__FUNCTION__, "Unable to create logical device: " + (family->deviceName) + " is non-existent!");
+            throw Log::RuntimeException(__FUNCTION__, __LINE__, "Unable to create logical device: " + (family->deviceName) + " is non-existent!");
         }
 
     // Queues must have a priority in [0.0; 1.0], which influences the scheduling of command buffer execution.
@@ -163,7 +163,7 @@ void VkDeviceManager::createLogicalDevice() {
 
     VkResult result = vkCreateDevice(m_GPUPhysicalDevice, &deviceInfo, nullptr, &m_GPULogicalDevice);
     if (result != VK_SUCCESS) {
-        throw Log::RuntimeException(__FUNCTION__, "Unable to create GPU logical device!");
+        throw Log::RuntimeException(__FUNCTION__, __LINE__, "Unable to create GPU logical device!");
     }
 
     // Populates each (available) family's device queue

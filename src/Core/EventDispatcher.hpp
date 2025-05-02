@@ -44,21 +44,20 @@ public:
 	/* Publishes an event.
 		@tparam EventType: The event type.
 		@param event: The event to be published.
+		@param suppressLogs: Whether to suppress any output logs (True), or not (False).
 	*/
 	template<typename EventType>
 	inline void publish(const EventType& event, bool suppressLogs = false) {
 		std::type_index eventTypeIndex = std::type_index(typeid(EventType));
 
 		if (m_subscribers.find(eventTypeIndex) == m_subscribers.end()) {
-			Log::print(Log::T_WARNING, __FUNCTION__, "Failed to find event type: Event type does not exist!");
-			return;
+			throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to find event of type " + enquote(typeid(EventType).name()) + ": Event does not exist!");
 		}
 
 		std::vector<HandlerCallback> callbacks = m_subscribers[eventTypeIndex];
 
 		if (callbacks.size() == 0) {
-			Log::print(Log::T_WARNING, __FUNCTION__, "There are no subscribers to this event!");
-			return;
+			throw Log::RuntimeException(__FUNCTION__, __LINE__, "There are no subscribers to the event of type " + enquote(typeid(EventType).name()) + "!");
 		}
 
 		for (auto& callback : callbacks) {

@@ -16,7 +16,7 @@ Component::Mesh ModelLoader::loadModel(const std::string& filePath, FileType fil
 		bool loadSuccessful = tinyobj::LoadObj(&attributes, &shapes, &materials, &warnings, &errors, filePath.c_str());
 
 		if (!loadSuccessful) {
-			throw Log::RuntimeException(__FUNCTION__, (warnings + errors));
+			throw Log::RuntimeException(__FUNCTION__, __LINE__, (warnings + errors));
 		}
 
 		// Combines all faces in the file into a single model
@@ -52,7 +52,7 @@ Component::Mesh ModelLoader::loadModel(const std::string& filePath, FileType fil
 	}
 	
 	default:
-		throw Log::RuntimeException(__FUNCTION__, "Failed to load model: Invalid file type!");
+		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to load model: Invalid file type!");
 		break;
 	}
 

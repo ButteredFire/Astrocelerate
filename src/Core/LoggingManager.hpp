@@ -42,37 +42,39 @@ namespace Log {
 		T_SUCCESS
 	};
 
-	/* Outputs a color to the output stream based on message type. */
-	static void logColor(MsgType type, std::string& msgType) {
+	/* Outputs a color to the output stream based on message type.
+		Optionally, set outputColor to False to get the message type (as a string).
+	*/
+	static void logColor(MsgType type, std::string& msgType, bool outputColor = true) {
 		switch (type) {
 			case T_VERBOSE:
 				msgType = "VERBOSE";
-				std::cout << termcolor::bright_grey;
+				if (outputColor) std::cout << termcolor::bright_grey;
 				break;
 
 			case T_DEBUG:
 				msgType = "DEBUG";
-				std::cout << termcolor::bright_grey;
+				if (outputColor) std::cout << termcolor::bright_grey;
 				break;
 
 			case T_INFO:
 				msgType = "INFO";
-				std::cout << termcolor::white;
+				if (outputColor) std::cout << termcolor::white;
 				break;
 
 			case T_WARNING:
 				msgType = "WARNING";
-				std::cout << termcolor::yellow;
+				if (outputColor) std::cout << termcolor::yellow;
 				break;
 
 			case T_ERROR:
 				msgType = "ERROR";
-				std::cout << termcolor::red;
+				if (outputColor) std::cout << termcolor::red;
 				break;
 
 			case T_FATAL:
 				msgType = "FATAL";
-				std::cout << termcolor::white << termcolor::on_red;
+				if (outputColor) std::cout << termcolor::white << termcolor::on_red;
 				break;
 
 			case T_SUCCESS:
@@ -97,18 +99,25 @@ namespace Log {
 
 		std::cout << "[" << msgType << " @ " << caller << "]: " << message << ((newline) ? "\n" : "") << termcolor::reset;
 	}
-
+	
 
 	/* Custom RTE exception class that allows for origin specification. */
 	class RuntimeException : public std::exception {
 	public:
-		RuntimeException(const std::string& functionName, const std::string& message, MsgType severity = T_ERROR) : m_funcName(functionName), m_exceptionMessage(message), m_msgType(severity) {}
+		RuntimeException(const std::string& functionName, const int errLine, const std::string& message, MsgType severity = T_ERROR) : m_funcName(functionName), errLine(errLine), m_exceptionMessage(message), m_msgType(severity) {}
 
 		/* Gets the name of the origin from which the exception was raised. 
 			@return The name of the origin.
 		*/
 		inline const char* origin() const noexcept {
 			return m_funcName.c_str();
+		}
+
+		/* Gets the source code line on which the exception was thrown.
+			@return The line.
+		*/
+		inline const int errorLine() const noexcept {
+			return errLine;
 		}
 
 		/* Gets the message's severity.
@@ -127,6 +136,7 @@ namespace Log {
 	
 	private:
 		std::string m_funcName = "unknown origin";
+		int errLine;
 		std::string m_exceptionMessage;
 		MsgType m_msgType;
 	};

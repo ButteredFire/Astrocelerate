@@ -31,7 +31,7 @@ public:
 		std::type_index serviceTypeIdx = std::type_index(typeid(T));
 		auto ptrIt = m_services.find(serviceTypeIdx);
 		if (ptrIt == m_services.end()) {
-			throw Log::RuntimeException(__FUNCTION__, "Failed to find service of type " + enquote(serviceTypeIdx.name()) + "!"
+			throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to find service of type " + enquote(serviceTypeIdx.name()) + "!"
 				+ '\n' + "Service retrieval requested from " + std::string(caller) + ".");
 		}
 

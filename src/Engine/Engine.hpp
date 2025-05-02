@@ -33,6 +33,8 @@
 #include <Engine/Components/PhysicsComponents.hpp>
 
 #include <Systems/Time.hpp>
+#include <Systems/RenderSystem.hpp>
+#include <Systems/PhysicsSystem.hpp>
 
 
 class Engine {

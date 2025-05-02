@@ -48,7 +48,7 @@ void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, 
 	// NOTE: vkBeginCommandBuffer will implicitly reset the framebuffer if it has already been recorded before
 	VkResult beginCmdBufferResult = vkBeginCommandBuffer(cmdBuffer, &bufferBeginInfo);
 	if (beginCmdBufferResult != VK_SUCCESS) {
-		throw Log::RuntimeException(__FUNCTION__, "Failed to start recording command buffer!");
+		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to start recording command buffer!");
 	}
 
 
@@ -133,7 +133,7 @@ void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, 
 	// Stop recording the command buffer
 	VkResult endCmdBufferResult = vkEndCommandBuffer(cmdBuffer);
 	if (endCmdBufferResult != VK_SUCCESS) {
-		throw Log::RuntimeException(__FUNCTION__, "Failed to record command buffer!");
+		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to record command buffer!");
 	}
 }
 
@@ -148,7 +148,7 @@ VkCommandBuffer VkCommandManager::beginSingleUseCommandBuffer(VulkanContext& vkC
 	VkCommandBuffer cmdBuffer;
 	VkResult bufAllocResult = vkAllocateCommandBuffers(vkContext.Device.logicalDevice, &cmdBufAllocInfo, &cmdBuffer);
 	if (bufAllocResult != VK_SUCCESS) {
-		throw Log::RuntimeException(__FUNCTION__, "Failed to allocate single-use command buffer!");
+		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to allocate single-use command buffer!");
 	}
 
 	VkCommandBufferBeginInfo cmdBufBeginInfo{};
@@ -158,7 +158,7 @@ VkCommandBuffer VkCommandManager::beginSingleUseCommandBuffer(VulkanContext& vkC
 
 	VkResult bufBeginResult = vkBeginCommandBuffer(cmdBuffer, &cmdBufBeginInfo);
 	if (bufBeginResult != VK_SUCCESS) {
-		throw Log::RuntimeException(__FUNCTION__, "Failed to start recording single-use command buffer!");
+		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to start recording single-use command buffer!");
 	}
 
 	return cmdBuffer;
@@ -168,7 +168,7 @@ VkCommandBuffer VkCommandManager::beginSingleUseCommandBuffer(VulkanContext& vkC
 void VkCommandManager::endSingleUseCommandBuffer(VulkanContext& vkContext, SingleUseCommandBufferInfo* commandBufInfo, VkCommandBuffer& cmdBuffer) {
 	VkResult bufEndResult = vkEndCommandBuffer(cmdBuffer);
 	if (bufEndResult != VK_SUCCESS) {
-		throw Log::RuntimeException(__FUNCTION__, "Failed to stop recording single-use command buffer!");
+		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to stop recording single-use command buffer!");
 	}
 
 
@@ -194,7 +194,7 @@ void VkCommandManager::endSingleUseCommandBuffer(VulkanContext& vkContext, Singl
 
 	VkResult submitResult = vkQueueSubmit(commandBufInfo->queue, 1, &submitInfo, commandBufInfo->fence);
 	if (submitResult != VK_SUCCESS) {
-		throw Log::RuntimeException(__FUNCTION__, "Failed to submit recorded data from single-use command buffer!");
+		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to submit recorded data from single-use command buffer!");
 	}
 	
 	if (commandBufInfo->fence != VK_NULL_HANDLE) {
@@ -239,7 +239,7 @@ VkCommandPool VkCommandManager::createCommandPool(VulkanContext& vkContext, VkDe
 	VkCommandPool commandPool;
 	VkResult result = vkCreateCommandPool(device, &poolCreateInfo, nullptr, &commandPool);
 	if (result != VK_SUCCESS) {
-		throw Log::RuntimeException(__FUNCTION__, "Failed to create command pool!");
+		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create command pool!");
 	}
 
 	cmdPoolMappings[createInfo] = commandPool;
@@ -272,7 +272,7 @@ void VkCommandManager::allocCommandBuffers(VkCommandPool& commandPool, std::vect
 
 	VkResult result = vkAllocateCommandBuffers(m_vkContext.Device.logicalDevice, &bufferAllocInfo, commandBuffers.data());
 	if (result != VK_SUCCESS) {
-		throw Log::RuntimeException(__FUNCTION__, "Failed to allocate command buffers!");
+		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to allocate command buffers!");
 	}
 
 	CleanupTask task{};

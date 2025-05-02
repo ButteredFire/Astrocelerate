@@ -41,7 +41,7 @@ void UIRenderer::initializeImGui(UIRenderer::Appearance appearance) {
         break;
 
     default:
-        throw Log::RuntimeException(__FUNCTION__, "Unable to initialize ImGui: Invalid appearance value!");
+        throw Log::RuntimeException(__FUNCTION__, __LINE__, "Unable to initialize ImGui: Invalid appearance value!");
     }
 
 
@@ -90,7 +90,7 @@ void UIRenderer::initializeImGui(UIRenderer::Appearance appearance) {
 
     vkInitInfo.CheckVkResultFn = [](VkResult result) {
         if (result != VK_SUCCESS) {
-            throw Log::RuntimeException(__FUNCTION__, "An error occurred while setting up or running Dear Imgui!");
+            throw Log::RuntimeException(__FUNCTION__, __LINE__, "An error occurred while setting up or running Dear Imgui!");
         }
     };
 
@@ -235,7 +235,7 @@ void UIRenderer::updateAppearance(UIRenderer::Appearance appearance) {
         break;
 
     default:
-        throw Log::RuntimeException(__FUNCTION__, "Cannot update ImGui appearance: Invalid appearance value!");
+        throw Log::RuntimeException(__FUNCTION__, __LINE__, "Cannot update ImGui appearance: Invalid appearance value!");
         break;
     }
 }

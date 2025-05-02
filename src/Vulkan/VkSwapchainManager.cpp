@@ -10,11 +10,11 @@ VkSwapchainManager::VkSwapchainManager(VulkanContext& context):
     m_garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
 
     if (m_vkContext.Device.physicalDevice == VK_NULL_HANDLE) {
-        throw Log::RuntimeException(__FUNCTION__, "Cannot initialize swap-chain manager: The GPU's physical device handle is null!");
+        throw Log::RuntimeException(__FUNCTION__, __LINE__, "Cannot initialize swap-chain manager: The GPU's physical device handle is null!");
     }
 
     if (m_vkContext.Device.logicalDevice == VK_NULL_HANDLE) {
-        throw Log::RuntimeException(__FUNCTION__, "Cannot initialize swap-chain manager: The GPU's logical device handle is null!");
+        throw Log::RuntimeException(__FUNCTION__, __LINE__, "Cannot initialize swap-chain manager: The GPU's logical device handle is null!");
     }
 
     m_swapChain = m_vkContext.SwapChain.swapChain;
@@ -117,7 +117,7 @@ uint32_t VkSwapchainManager::createImageView(VulkanContext& vkContext, VkImage& 
 
     VkResult result = vkCreateImageView(vkContext.Device.logicalDevice, &viewCreateInfo, nullptr, &imageView);
     if (result != VK_SUCCESS) {
-        throw Log::RuntimeException(__FUNCTION__, "Failed to create image view!");
+        throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create image view!");
     }
 
 
@@ -209,7 +209,7 @@ void VkSwapchainManager::createSwapChain() {
     // Creates a VkSwapchainKHR object
     VkResult result = vkCreateSwapchainKHR(m_vkContext.Device.logicalDevice, &swapChainCreateInfo, nullptr, &m_swapChain);
     if (result != VK_SUCCESS) {
-        throw Log::RuntimeException(__FUNCTION__, "Failed to create swap-chain!");
+        throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create swap-chain!");
     }
 
     // Saves swap-chain properties
@@ -238,7 +238,7 @@ void VkSwapchainManager::createSwapChain() {
 
 void VkSwapchainManager::createImageViews() {
 	if (m_images.empty()) {
-		throw Log::RuntimeException(__FUNCTION__, "Cannot create image views: Swap-chain contains no m_images to process!");
+		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Cannot create image views: Swap-chain contains no m_images to process!");
 	}
 
     m_imageViews.clear();
@@ -257,7 +257,7 @@ void VkSwapchainManager::createFrameBuffers() {
 
     for (size_t i = 0; i < m_imageFrameBuffers.size(); i++) {
         if (m_imageViews[i] == VK_NULL_HANDLE) {
-            throw Log::RuntimeException(__FUNCTION__, "Cannot read null image view!");
+            throw Log::RuntimeException(__FUNCTION__, __LINE__, "Cannot read null image view!");
         }
 
         VkImageView attachments[] = {
@@ -277,7 +277,7 @@ void VkSwapchainManager::createFrameBuffers() {
 
         VkResult result = vkCreateFramebuffer(m_vkContext.Device.logicalDevice, &bufferCreateInfo, nullptr, &m_imageFrameBuffers[i]);
         if (result != VK_SUCCESS) {
-            throw Log::RuntimeException(__FUNCTION__, "Failed to create frame buffer for image #" + std::to_string(i) + "!");
+            throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create frame buffer for image #" + std::to_string(i) + "!");
         }
 
         VkFramebuffer framebuffer = m_imageFrameBuffers[i];
@@ -330,7 +330,7 @@ SwapChainProperties VkSwapchainManager::getSwapChainProperties(VkPhysicalDevice&
 
 VkSurfaceFormatKHR VkSwapchainManager::getBestSurfaceFormat(std::vector<VkSurfaceFormatKHR>& formats) {
     if (formats.empty()) {
-        throw Log::RuntimeException(__FUNCTION__, "Unable to get surface formats from an empty vector!");
+        throw Log::RuntimeException(__FUNCTION__, __LINE__, "Unable to get surface formats from an empty vector!");
     }
 
     for (const auto& format : formats) {

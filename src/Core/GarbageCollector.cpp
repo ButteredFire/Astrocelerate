@@ -20,7 +20,7 @@ VmaAllocator GarbageCollector::createVMAllocator(VkInstance& instance, VkPhysica
 
 	VkResult result = vmaCreateAllocator(&allocatorCreateInfo, &m_vmaAllocator);
 	if (result != VK_SUCCESS) {
-		throw Log::RuntimeException(__FUNCTION__, "Failed to create Vulkan Memory Allocator!");
+		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create Vulkan Memory Allocator!");
 	}
 
 	CleanupTask task{};
@@ -54,7 +54,7 @@ CleanupTask& GarbageCollector::modifyCleanupTask(uint32_t taskID) {
 		return m_cleanupStack[m_idToIdxLookup.at(taskID)];
 	}
 	catch (const std::exception& e) {
-		throw Log::RuntimeException(__FUNCTION__, "Task ID " + enquote(std::to_string(taskID)) + " is invalid!\nOriginal exception message: " + std::string(e.what()));
+		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Task ID " + enquote(std::to_string(taskID)) + " is invalid!\nOriginal exception message: " + std::string(e.what()));
 	}
 }
 
@@ -65,7 +65,7 @@ bool GarbageCollector::executeCleanupTask(uint32_t taskID) {
 		return executeTask(task, taskID);
 	}
 	catch (const std::exception& e) {
-		throw Log::RuntimeException(__FUNCTION__, "Task ID " + enquote(std::to_string(taskID)) + " is invalid!\nOriginal exception message: " + std::string(e.what()));
+		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Task ID " + enquote(std::to_string(taskID)) + " is invalid!\nOriginal exception message: " + std::string(e.what()));
 	}
 }
 

@@ -54,10 +54,10 @@ public:
 	~ComponentArray() = default;
 
 	/* Inserts an entity into the component array.
-		@param entity: The entity to be attached.
+		@param entityID: The ID of the entity to be attached.
 		@param component: The component data.
 	*/
-	inline void insert(Entity& entity, Component& component) {
+	inline void insert(EntityID entityID, Component component) {
 		/* Flow of entity insertion:
 		
 			High-level flow:
@@ -66,27 +66,27 @@ public:
 
 			Implementation:
 				+ Add component to components
-				+ Add entity.id to entityIDs
-				+ Map (entity.id in entityToArrayIndexMap) to arraySize
+				+ Add entityID to entityIDs
+				+ Map (entityID in entityToArrayIndexMap) to arraySize
 				+ arraySize += 1
 		*/
 
-		if (m_entityToArrayIndexMap.find(entity.id) != m_entityToArrayIndexMap.end()) {
-			throw Log::RuntimeException(__FUNCTION__, "Cannot insert entity into component array: Entity already exists! (Entity ID: " + std::to_string(entity.id) + ")");
+		if (m_entityToArrayIndexMap.find(entityID) != m_entityToArrayIndexMap.end()) {
+			throw Log::RuntimeException(__FUNCTION__, __LINE__, "Cannot insert entity into component array: Entity already exists! (Entity ID: " + std::to_string(entityID) + ")");
 		}
 
 		size_t newSize = arraySize++;
 		
 		m_components.push_back(component);
-		m_entityIDs.push_back(entity.id);
-		m_entityToArrayIndexMap[entity.id] = newSize;
+		m_entityIDs.push_back(entityID);
+		m_entityToArrayIndexMap[entityID] = newSize;
 	}
 
 
 	/* Erases an entity from the component array.
-		@param entity: The entity to be detached.
+		@param entityID: The ID of the entity to be detached.
 	*/
-	inline void erase(Entity& entity) {
+	inline void erase(EntityID entityID) {
 		/* Flow of entity erasure:
 
 			High-level flow: Swap specified entity's position with last entity's position.
@@ -106,10 +106,10 @@ public:
 				+ Delete ("last entity", "last entity" index) pair from entity-to-index map.
 		*/
 
-		if (m_entityToArrayIndexMap.find(entity.id) == m_entityToArrayIndexMap.end())
+		if (m_entityToArrayIndexMap.find(entityID) == m_entityToArrayIndexMap.end())
 			return;
 
-		size_t currentIndex = m_entityToArrayIndexMap[entity.id];
+		size_t currentIndex = m_entityToArrayIndexMap[entityID];
 		size_t lastIndex = arraySize - 1;
 
 		std::swap(m_components[currentIndex], m_components[lastIndex]);
@@ -126,41 +126,41 @@ public:
 
 		m_components.pop_back();
 		m_entityIDs.pop_back();
-		m_entityToArrayIndexMap.erase(entity.id);
+		m_entityToArrayIndexMap.erase(entityID);
 
 		arraySize--;
 	}
 
 
 	/* Updates a component in the component array.
-		@param entity: The entity owning the component to be updated.
+		@param entityID: The ID of the entity owning the component to be updated.
 		@param component: The new component data.
 	*/
-	inline void updateComponent(Entity& entity, Component& component) {
-		if (m_entityToArrayIndexMap.find(entity.id) == m_entityToArrayIndexMap.end()) {
-			throw Log::RuntimeException(__FUNCTION__, "Cannot update component of type " + enquote(typeid(Component).name()) + " for entity #" + std::to_string(entity.id) + ": Entity does not exist!");
+	inline void updateComponent(EntityID entityID, Component component) {
+		if (m_entityToArrayIndexMap.find(entityID) == m_entityToArrayIndexMap.end()) {
+			throw Log::RuntimeException(__FUNCTION__, __LINE__, "Cannot update component of type " + enquote(typeid(Component).name()) + " for entity #" + std::to_string(entityID) + ": Entity does not exist!");
 		}
 
-		size_t index = m_entityToArrayIndexMap[entity.id];
+		size_t index = m_entityToArrayIndexMap[entityID];
 		m_components[index] = component;
 	}
 
 
 	/* Gets a component from the component array.
-		@param entity: The entity owning the requested component.
+		@param entityID: The ID of the entity owning the requested component.
 
 		@return The requested component.
 	*/
-	inline Component& getComponent(EntityID& entity) { return m_components[m_entityToArrayIndexMap[entity]]; }
+	inline Component& getComponent(EntityID entityID) { return m_components[m_entityToArrayIndexMap[entityID]]; }
 	
 
 	/* Checks whether a component exists in the component array.
-		@param entity: The entity owning the component to be checked.
+		@param entityID: The ID of the entity owning the component to be checked.
 
 		@return True if the component exists, otherwise False.
 	*/
-	inline bool contains(Entity& entity) {
-		return (m_entityToArrayIndexMap.find(entity.id) != m_entityToArrayIndexMap.end());
+	inline bool contains(EntityID entityID) {
+		return (m_entityToArrayIndexMap.find(entityID) != m_entityToArrayIndexMap.end());
 	}
 
 private:
@@ -189,137 +189,3 @@ public:
 private:
 	inline static size_t nextID = 0;
 };
-
-
-
-//class View {
-//public:
-//	/* Creates a view of the component arrays.
-//		@param entityManager: Used to narrow down the view scope to entities that are only created by it.
-//		@param arrays: The component arrays to be viewed.
-//		@return A view of the component arrays.
-//	*/
-//	template<typename... Components>
-//	static auto getView(std::shared_ptr<EntityManager> entityManager) {
-//		constexpr size_t argCount = sizeof...(Components);
-//		if (argCount == 0) {
-//			throw Log::RuntimeException(__FUNCTION__, "No components are passed into view!");
-//		}
-//		
-//		return InternalView<Components...>(entityManager);
-//	}
-//
-//private:
-//
-//	template<typename... Components>
-//	class InternalView {
-//	public:
-//		InternalView(std::shared_ptr<EntityManager> entityManager) :
-//			entityManager(entityManager) {
-//		
-//			// Queries entities to look for those with the required components
-//			requiredMask = buildComponentMask<Components...>();
-//			auto allEntities = entityManager->getActiveEntities();
-//			updateMatchingEntities(allEntities);
-//		};
-//
-//
-//		/* Ignores a variable number of components.
-//			@tparam IgnoredComponents: The components whose entities having them attached are to be ignored in the view.
-//		*/
-//		template<typename... IgnoredComponents>
-//		inline void ignoreComponents() {
-//			ignoredMask = buildComponentMask<IgnoredComponents...>();
-//			updateMatchingEntities(matchingEntities);
-//		}
-//
-//
-//		class Iterator {
-//		public:
-//			Iterator(InternalView* view, size_t index) :
-//				view(view), index(index) {}
-//
-//
-//			// Dereferencing
-//			// This is necessary for compatibility with native range-based loops and structured bindings.
-//			auto operator*() {
-//				Entity& entity = view->matchingEntities[index];
-//
-//				auto generateTuple = [&](Components&... components) {
-//					return std::tuple<Entity&, Components&...>(entity, components...);
-//				};
-//
-//				return std::apply(generateTuple, view->matchingEntityComponents);
-//			}
-//
-//
-//			// Prefix increment
-//			Iterator& operator++() {
-//				index++;
-//				return *this;
-//			}
-//
-//
-//			// Suffix increment
-//			Iterator operator++(int) {
-//				Iterator tmp = *this;
-//				++(*this);
-//				return tmp;
-//			}
-//
-//
-//			bool operator!=(const Iterator& other) const {
-//				return index != other.index;
-//			}
-//
-//		private:
-//			InternalView* view;
-//			size_t index;
-//		};
-//		
-//
-//		Iterator begin() { return Iterator(this, 0); }
-//		Iterator end()   { return Iterator(this, matchingEntities.size()); }
-//
-//	private:
-//		std::shared_ptr<EntityManager> entityManager;
-//
-//		std::vector<Entity> matchingEntities;
-//		ComponentMask requiredMask;
-//		ComponentMask ignoredMask;
-//
-//
-//		/* Updates the list of entities according to filters (e.g., required/ignored masks).
-//			@param sourceEntities: The source vector of entities used as data for updating matching entities from.
-//		*/
-//		inline void updateMatchingEntities(std::vector<Entity>& sourceEntities) {
-//			std::vector<Entity> temp;
-//			temp.reserve(sourceEntities.size());
-//
-//			for (auto& entity : sourceEntities) {
-//				if (
-//					((entity.componentMask & requiredMask) == requiredMask) &&	// Entity mask must match the required mask
-//					((entity.componentMask & ignoredMask).none())				// Entity mask must NOT match the ignored mask
-//					) {
-//
-//					temp.push_back(entity);
-//				}
-//			}
-//
-//			matchingEntities.swap(temp);
-//		}
-//
-//		
-//		/* Creates a component mask.
-//			@tparam SpecifiedComponents: Components to be included in the mask.
-//			
-//			@return The newly created component mask.
-//		*/
-//		template<typename... SpecifiedComponents>
-//		inline ComponentMask& buildComponentMask() {
-//			ComponentMask mask;
-//			(mask.set(ComponentTypeID::get<SpecifiedComponents>()), ...);
-//			return mask;
-//		}
-//	};
-//};

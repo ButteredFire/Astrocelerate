@@ -70,7 +70,7 @@ void VkInstanceManager::createDebugMessenger() {
 
     VkResult result = createDebugUtilsMessengerEXT(m_vulkInst, &createInfo, nullptr, &m_debugMessenger);
     if (result != VK_SUCCESS) {
-        throw Log::RuntimeException(__FUNCTION__, "Failed to create debug messenger!");
+        throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create debug messenger!");
     }
 
     CleanupTask task{};
@@ -116,7 +116,7 @@ void VkInstanceManager::createVulkanInstance() {
 
     if (verifyVulkanExtensions(m_enabledExtensions) == false) {
         m_enabledExtensions.clear();
-        throw Log::RuntimeException(__FUNCTION__, "GLFW Instance Extensions contain invalid or unsupported extensions!");
+        throw Log::RuntimeException(__FUNCTION__, __LINE__, "GLFW Instance Extensions contain invalid or unsupported extensions!");
     }
 
     instanceInfo.enabledExtensionCount = static_cast<uint32_t>(m_enabledExtensions.size());
@@ -140,7 +140,7 @@ void VkInstanceManager::createVulkanInstance() {
     // and initializes the member VkInstance variable
     VkResult result = vkCreateInstance(&instanceInfo, nullptr, &m_vulkInst);
     if (result != VK_SUCCESS) {
-        throw Log::RuntimeException(__FUNCTION__, "Failed to create Vulkan instance!");
+        throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create Vulkan instance!");
     }
 
     m_vkContext.vulkanInstance = m_vulkInst;
@@ -163,7 +163,7 @@ void VkInstanceManager::createSurface() {
     */
     VkResult result = glfwCreateWindowSurface(m_vulkInst, m_vkContext.window, nullptr, &m_windowSurface);
     if (result != VK_SUCCESS) {
-        throw Log::RuntimeException(__FUNCTION__, "Failed to create Vulkan window surface!");
+        throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create Vulkan window surface!");
     }
 
     m_vkContext.vkSurface = m_windowSurface;
@@ -229,7 +229,7 @@ std::vector<VkLayerProperties> VkInstanceManager::getSupportedVulkanValidationLa
 
 void VkInstanceManager::addVulkanExtensions(std::vector<const char*> extensions) {
     if (verifyVulkanExtensions(extensions) == false) {
-        throw Log::RuntimeException(__FUNCTION__, "Cannot set Vulkan extensions: Provided extensions are either invalid or unsupported!");
+        throw Log::RuntimeException(__FUNCTION__, __LINE__, "Cannot set Vulkan extensions: Provided extensions are either invalid or unsupported!");
     }
 
     for (const auto& ext : extensions) {
@@ -244,7 +244,7 @@ void VkInstanceManager::addVulkanExtensions(std::vector<const char*> extensions)
 
 void VkInstanceManager::addVulkanValidationLayers(std::vector<const char*> layers) {
     if (inDebugMode && verifyVulkanValidationLayers(layers) == false) {
-        throw Log::RuntimeException(__FUNCTION__, "Cannot set Vulkan validation layers: Provided layers are either invalid or unsupported!");
+        throw Log::RuntimeException(__FUNCTION__, __LINE__, "Cannot set Vulkan validation layers: Provided layers are either invalid or unsupported!");
     }
 
     for (const auto& layer : layers) {

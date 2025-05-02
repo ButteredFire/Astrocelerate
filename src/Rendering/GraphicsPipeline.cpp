@@ -117,7 +117,7 @@ void GraphicsPipeline::createGraphicsPipeline() {
 
 	VkResult result = vkCreateGraphicsPipelines(m_vkContext.Device.logicalDevice, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &m_graphicsPipeline);
 	if (result != VK_SUCCESS) {
-		throw Log::RuntimeException(__FUNCTION__, "Failed to create graphics pipeline!");
+		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create graphics pipeline!");
 	}
 
 	m_vkContext.GraphicsPipeline.pipeline = m_graphicsPipeline;
@@ -145,7 +145,7 @@ void GraphicsPipeline::createPipelineLayout() {
 
 	VkResult result = vkCreatePipelineLayout(m_vkContext.Device.logicalDevice, &createInfo, nullptr, &m_pipelineLayout);
 	if (result != VK_SUCCESS) {
-		throw Log::RuntimeException(__FUNCTION__, "Failed to create graphics pipeline layout!");
+		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create graphics pipeline layout!");
 	}
 
 	m_vkContext.GraphicsPipeline.layout = m_pipelineLayout;
@@ -214,7 +214,7 @@ void GraphicsPipeline::createDescriptorSetLayout(std::vector<VkDescriptorSetLayo
 
 	VkResult result = vkCreateDescriptorSetLayout(m_vkContext.Device.logicalDevice, &layoutCreateInfo, nullptr, &m_descriptorSetLayout);
 	if (result != VK_SUCCESS) {
-		throw Log::RuntimeException(__FUNCTION__, "Failed to create descriptor set layout!");
+		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create descriptor set layout!");
 	}
 
 
@@ -241,7 +241,7 @@ void GraphicsPipeline::createDescriptorPool(uint32_t maxDescriptorSetCount, std:
 
 	VkResult result = vkCreateDescriptorPool(m_vkContext.Device.logicalDevice, &descPoolCreateInfo, nullptr, &descriptorPool);
 	if (result != VK_SUCCESS) {
-		throw Log::RuntimeException(__FUNCTION__, "Failed to create descriptor pool!");
+		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create descriptor pool!");
 	}
 
 	
@@ -272,7 +272,7 @@ void GraphicsPipeline::createDescriptorSets() {
 	
 	VkResult result = vkAllocateDescriptorSets(m_vkContext.Device.logicalDevice, &descSetAllocInfo, m_descriptorSets.data());
 	if (result != VK_SUCCESS) {
-		throw Log::RuntimeException(__FUNCTION__, "Failed to create descriptor sets!");
+		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create descriptor sets!");
 	}
 
 
@@ -462,7 +462,7 @@ void GraphicsPipeline::createRenderPass() {
 
 	VkResult result = vkCreateRenderPass(m_vkContext.Device.logicalDevice, &m_renderPassCreateInfo, nullptr, &m_renderPass);
 	if (result != VK_SUCCESS) {
-		throw Log::RuntimeException(__FUNCTION__, "Failed to create render pass!");
+		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create render pass!");
 	}
 
 	m_vkContext.GraphicsPipeline.renderPass = m_renderPass;
@@ -738,7 +738,7 @@ VkFormat GraphicsPipeline::findSuppportedFormat(const std::vector<VkFormat>& for
 	}
 
 
-	throw Log::RuntimeException(__FUNCTION__, "Failed to find a suitable image format!");
+	throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to find a suitable image format!");
 }
 
 
@@ -757,7 +757,7 @@ VkShaderModule GraphicsPipeline::createShaderModule(const std::vector<char>& byt
 	VkShaderModule shaderModule;
 	VkResult result = vkCreateShaderModule(m_vkContext.Device.logicalDevice, &moduleCreateInfo, nullptr, &shaderModule);
 	if (result != VK_SUCCESS) {
-		throw Log::RuntimeException(__FUNCTION__, "Failed to create shader module!");
+		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create shader module!");
 	}
 
 	return shaderModule;

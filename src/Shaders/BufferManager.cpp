@@ -3,6 +3,8 @@
 BufferManager::BufferManager(VulkanContext& context):
 	m_vkContext(context) {
 
+	m_registry = ServiceLocator::getService<Registry>(__FUNCTION__);
+	m_eventDispatcher = ServiceLocator::getService<EventDispatcher>(__FUNCTION__);
 	m_garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
 
 	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
@@ -21,6 +23,17 @@ void BufferManager::init() {
 	
 	m_vertices = mesh.vertices;
 	m_vertIndices = mesh.indices;
+
+
+	m_UBOEntity = m_registry->createEntity();
+
+	m_UBORigidBody.position = glm::vec3(0.0f, -30.0f, 0.0f);
+	m_UBORigidBody.velocity = glm::vec3(0.0f, 1.0f, 0.0f);
+	m_UBORigidBody.acceleration = glm::vec3(0.0f, 15.0f, 0.0f);
+	m_UBORigidBody.mass = 20;
+
+	m_registry->addComponent(m_UBOEntity.id, m_UBORigidBody);
+
 
 	createVertexBuffer();
 	createIndexBuffer();
@@ -58,7 +71,7 @@ uint32_t BufferManager::createBuffer(VulkanContext& vkContext, VkBuffer& buffer,
 
 	VkResult bufCreateResult = vmaCreateBuffer(vkContext.vmaAllocator, &bufCreateInfo, &bufferAllocationCreateInfo, &buffer, &bufferAllocation, nullptr);
 	if (bufCreateResult != VK_SUCCESS) {
-		throw Log::RuntimeException(__FUNCTION__, "Failed to create buffer!");
+		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create buffer!");
 	}
 
 
@@ -109,11 +122,14 @@ void BufferManager::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceS
 
 
 void BufferManager::updateUniformBuffer(uint32_t currentImage) {
+
 	// Timekeeping ensures that the geometry rotates 90 deg/s regardless of frame rate
 	static auto startTime = std::chrono::high_resolution_clock::now();
-
 	auto currentTime = std::chrono::high_resolution_clock::now();
 	float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+
+	//float time = Time::GetDeltaTime();
+	//Log::print(Log::T_WARNING, __FUNCTION__, std::to_string(time));
 
 	UniformBufferObject UBO{};
 
@@ -122,11 +138,16 @@ void BufferManager::updateUniformBuffer(uint32_t currentImage) {
 	float rotationAngle = (time * glm::radians(90.0f));
 	glm::vec3 rotationAxis = glm::vec3(0.0f, 0.0f, 1.0f);
 
-	UBO.model = glm::rotate(identityMat, rotationAngle, rotationAxis);
+	//UBO.model = glm::rotate(identityMat, rotationAngle, rotationAxis);
 
+	m_eventDispatcher->publish(Event::UpdateRigidBodies{}, true);
+	m_UBORigidBody = m_registry->getComponent<Component::RigidBody>(m_UBOEntity.id);
+
+	UBO.model = glm::translate(identityMat, m_UBORigidBody.position);
+	Log::print(Log::T_WARNING, __FUNCTION__, "(x, y, z) = (" + std::to_string(m_UBORigidBody.position.x) + ", " + std::to_string(m_UBORigidBody.position.y) + ", " + std::to_string(m_UBORigidBody.position.z) + ")");
 
 	// glm::lookAt(eyePosition, centerPosition, upAxis);
-	glm::vec3 eyePosition = glm::vec3(1.0f, 1.0f, 1.0f) * 4.0f;
+	glm::vec3 eyePosition = glm::vec3(1.0f, 0.0f, 1.0f) * 30.0f;
 	glm::vec3 centerPosition = glm::vec3(0.0f, 0.0f, 0.0f);
 	glm::vec3 upAxis = glm::vec3(0.0f, 0.0f, 1.0f);
 	
@@ -137,7 +158,7 @@ void BufferManager::updateUniformBuffer(uint32_t currentImage) {
 	constexpr float fieldOfView = glm::radians(60.0f);
 	float aspectRatio = static_cast<float>(m_vkContext.SwapChain.extent.width / m_vkContext.SwapChain.extent.height);
 	float nearClipPlane = 0.1f;
-	float farClipPlane = 10.0f;
+	float farClipPlane = 1e10f;
 
 	UBO.projection = glm::perspective(fieldOfView, aspectRatio, nearClipPlane, farClipPlane);
 
@@ -304,5 +325,5 @@ uint32_t BufferManager::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlag
 		}
 	}
 
-	throw Log::RuntimeException(__FUNCTION__, "Failed to find suitable memory type!");
+	throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to find suitable memory type!");
 }

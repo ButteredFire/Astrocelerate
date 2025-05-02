@@ -12,7 +12,7 @@ Engine::Engine(GLFWwindow *w, VulkanContext& context):
     m_registry = ServiceLocator::getService<Registry>(__FUNCTION__);
 
     if (!isPointerValid(window)) {
-        throw Log::RuntimeException(__FUNCTION__, "Engine crashed: Invalid window context!");
+        throw Log::RuntimeException(__FUNCTION__, __LINE__, "Engine crashed: Invalid window context!");
     }
 
     Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");

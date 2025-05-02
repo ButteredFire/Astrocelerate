@@ -31,7 +31,7 @@ VkFence VkSyncManager::createSingleUseFence(VulkanContext& vkContext, bool signa
 	VkFence fence;
 	VkResult result = vkCreateFence(vkContext.Device.logicalDevice, &fenceCreateInfo, nullptr, &fence);
 	if (result != VK_SUCCESS) {
-		throw Log::RuntimeException(__FUNCTION__, "Failed to create single-use fence!");
+		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create single-use fence!");
 	}
 	
 	return fence;
@@ -41,7 +41,7 @@ VkFence VkSyncManager::createSingleUseFence(VulkanContext& vkContext, bool signa
 void VkSyncManager::waitForSingleUseFence(VulkanContext& vkContext, VkFence& fence, uint64_t timeout) {
 	VkResult result = vkWaitForFences(vkContext.Device.logicalDevice, 1, &fence, VK_TRUE, timeout);
 	if (result != VK_SUCCESS) {
-		throw Log::RuntimeException(__FUNCTION__, "Failed to wait for single-use fence!");
+		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to wait for single-use fence!");
 	}
 	
 	vkDestroyFence(vkContext.Device.logicalDevice, fence, nullptr);
@@ -94,11 +94,11 @@ void VkSyncManager::createSyncObjects() {
 		VkResult inFlightFenceCreateResult = vkCreateFence(m_vkContext.Device.logicalDevice, &fenceCreateInfo, nullptr, &m_inFlightFences[i]);
 
 		if (imageSemaphoreCreateResult != VK_SUCCESS || renderSemaphoreCreateResult != VK_SUCCESS) {
-			throw Log::RuntimeException(__FUNCTION__, "Failed to create semaphores for a frame!");
+			throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create semaphores for a frame!");
 		}
 
 		if (inFlightFenceCreateResult != VK_SUCCESS) {
-			throw Log::RuntimeException(__FUNCTION__, "Failed to create in-flight fence for a frame!");
+			throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create in-flight fence for a frame!");
 		}
 
 		VkSemaphore imageReadySemaphore = m_imageReadySemaphores[i];
