@@ -142,6 +142,16 @@ public:
 	}
 
 
+	/* Updates an existing component in a component array.
+		@param entity: The entity owning the component to be updated.
+		@param component: The new component data.
+	*/
+	template<typename Component>
+	inline void updateComponent(Entity& entity, Component& component) {
+		getComponentArray<Component>()->updateComponent(entity, component);
+	}
+
+
 	/* Removes a component from a component array.
 		@tparam Component: The component type of the component array.
 
@@ -162,7 +172,7 @@ public:
 	*/
 	template<typename Component>
 	inline Component& getComponent(Entity& entity) {
-		return getComponentArray<Component>()->getComponent(entity);
+		return getComponentArray<Component>()->getComponent(entity.id);
 	}
 
 
@@ -338,6 +348,12 @@ public:
 		mask.set(ComponentTypeID::get<Component>());
 
 		entityManager.setComponentMask(entity, mask);
+	}
+
+
+	template<typename Component>
+	inline void updateComponent(Entity& entity, Component& component) {
+		componentManager.updateComponent(entity, component);
 	}
 
 

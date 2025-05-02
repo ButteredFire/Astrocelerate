@@ -46,7 +46,7 @@ public:
 		@param event: The event to be published.
 	*/
 	template<typename EventType>
-	inline void publish(const EventType& event) {
+	inline void publish(const EventType& event, bool suppressLogs = false) {
 		std::type_index eventTypeIndex = std::type_index(typeid(EventType));
 
 		if (m_subscribers.find(eventTypeIndex) == m_subscribers.end()) {
@@ -65,7 +65,8 @@ public:
 			callback(&event);
 		}
 
-		Log::print(Log::T_SUCCESS, __FUNCTION__, "	Invoked " + std::to_string(callbacks.size()) + " callback(s) for event type " + enquote(typeid(EventType).name()) + ".");
+		if (!suppressLogs)
+			Log::print(Log::T_SUCCESS, __FUNCTION__, "	Invoked " + std::to_string(callbacks.size()) + " callback(s) for event type " + enquote(typeid(EventType).name()) + ".");
 	}
 
 	

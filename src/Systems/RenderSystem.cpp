@@ -4,7 +4,33 @@
 #include "RenderSystem.hpp"
 
 
-void RenderSystem::processRenderable(VulkanContext& vkContext, VkCommandBuffer& cmdBuffer, Component::Renderable& renderable) {
+RenderSystem::RenderSystem(VulkanContext& context):
+	m_vkContext(context) {
+
+	m_registry = ServiceLocator::getService<Registry>(__FUNCTION__);
+	m_eventDispatcher = ServiceLocator::getService<EventDispatcher>(__FUNCTION__);
+
+	m_eventDispatcher->subscribe<Event::UpdateRenderables>(
+		[this](const Event::UpdateRenderables& event) {
+			auto view = m_registry->getView<Component::Renderable>();
+		
+			const uint32_t MAX_SUBPASSES = m_vkContext.GraphicsPipeline.subpassCount;
+			uint32_t subpassCount = 1;
+
+			for (auto [entity, renderable] : view) {
+				processRenderable(event.commandBuffer, renderable);
+
+				if (subpassCount++ < MAX_SUBPASSES)
+					vkCmdNextSubpass(event.commandBuffer, VK_SUBPASS_CONTENTS_INLINE);
+			}
+		}
+	);
+
+	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
+}
+
+
+void RenderSystem::processRenderable(const VkCommandBuffer& cmdBuffer, Component::Renderable& renderable) {
 	switch (renderable.type) {
 	case ComponentType::Renderable::T_RENDERABLE_VERTEX:
 		// Bind vertex and index buffers, then draw
@@ -25,7 +51,7 @@ void RenderSystem::processRenderable(VulkanContext& vkContext, VkCommandBuffer& 
 
 		// Draw call
 			// Binds descriptor sets
-		vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkContext.GraphicsPipeline.layout, 0, 1, &renderable.descriptorSet, 0, nullptr);
+		vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_vkContext.GraphicsPipeline.layout, 0, 1, &renderable.descriptorSet, 0, nullptr);
 
 
 		// Draws vertices based on the index buffer

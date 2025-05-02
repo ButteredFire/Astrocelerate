@@ -78,25 +78,10 @@ int main() {
     globalRegistry->addComponent(starship, starshipRB);
     globalRegistry->addComponent(earth, earthRB);
 
+    auto view = globalRegistry->getView<Component::RigidBody>();
 
-    struct Dummy {
-        int test = 0;
-    };
-
-    Dummy instance = {
-        1e2
-    };
-
-    globalRegistry->initComponentArray<Dummy>();
-    globalRegistry->addComponent(starship, instance);
-
-
-    auto view = globalRegistry->getView<Dummy>();
-
-    for (auto [entity, dummy] : view) {
-        //Log::print(Log::T_WARNING, __FUNCTION__, "Entity #" + std::to_string(entity) + ": Mass = " + std::to_string(rb.mass));
-
-        Log::print(Log::T_WARNING, __FUNCTION__, "Entity #" + std::to_string(entity) + ": Test = " + std::to_string(dummy.test));
+    for (auto [entity, rb] : view) {
+        Log::print(Log::T_WARNING, __FUNCTION__, "Entity #" + std::to_string(entity) + ": Mass = " + std::to_string(rb.mass));
     }
 
 
@@ -157,6 +142,10 @@ int main() {
         syncManager->init();
 
 
+        Engine engine(windowPtr, vkContext);
+        engine.initComponents();
+
+
             // Renderers
         std::shared_ptr<UIRenderer> uiRenderer = std::make_shared<UIRenderer>(vkContext);
         ServiceLocator::registerService(uiRenderer);
@@ -165,10 +154,13 @@ int main() {
         ServiceLocator::registerService(renderer);
         renderer->init();
 
+        
+            // Systems
+        std::shared_ptr<RenderSystem> renderSystem = std::make_shared<RenderSystem>(vkContext);
+        ServiceLocator::registerService(renderSystem);
 
-        Engine engine(windowPtr, vkContext);
-        engine.initComponents();
-        //engine.run();
+
+        engine.run();
     }
     catch (const Log::RuntimeException& e) {
         Log::print(e.severity(), e.origin(), e.what());

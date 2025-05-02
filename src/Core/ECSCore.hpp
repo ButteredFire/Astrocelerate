@@ -132,6 +132,20 @@ public:
 	}
 
 
+	/* Updates a component in the component array.
+		@param entity: The entity owning the component to be updated.
+		@param component: The new component data.
+	*/
+	inline void updateComponent(Entity& entity, Component& component) {
+		if (m_entityToArrayIndexMap.find(entity.id) == m_entityToArrayIndexMap.end()) {
+			throw Log::RuntimeException(__FUNCTION__, "Cannot update component of type " + enquote(typeid(Component).name()) + " for entity #" + std::to_string(entity.id) + ": Entity does not exist!");
+		}
+
+		size_t index = m_entityToArrayIndexMap[entity.id];
+		m_components[index] = component;
+	}
+
+
 	/* Gets a component from the component array.
 		@param entity: The entity owning the requested component.
 

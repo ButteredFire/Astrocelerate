@@ -80,6 +80,8 @@ private:
 	Entity m_vertexRenderable{};
 	Entity m_guiRenderable{};
 
+	Component::Renderable m_vertexRenderComponent{};
+	Component::Renderable m_guiRenderComponent{};
 
 	/* Creates renderable entities. */
 	void initializeRenderables();

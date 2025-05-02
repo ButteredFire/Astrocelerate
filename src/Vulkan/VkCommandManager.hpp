@@ -24,6 +24,7 @@
 #include <Core/Constants.h>
 #include <Core/LoggingManager.hpp>
 #include <Core/ServiceLocator.hpp>
+#include <Core/EventDispatcher.hpp>
 #include <Core/GarbageCollector.hpp>
 #include <CoreStructs/ApplicationContext.hpp>
 
@@ -87,11 +88,10 @@ public:
 
 	/* Writes commands into the command buffer to be used for rendering.
 		@param buffer: The buffer to be recorded into.
-		@param renderables: The component array of renderable entities.
 		@param imageIndex: The index of the swap-chain image from which commands are recorded.
 		@param currentFrame: The index of the frame currently being rendered.
 	*/
-	void recordRenderingCommandBuffer(VkCommandBuffer& buffer, ComponentArray<Component::Renderable>& renderables, uint32_t imageIndex, uint32_t currentFrame);
+	void recordRenderingCommandBuffer(VkCommandBuffer& buffer, uint32_t imageIndex, uint32_t currentFrame);
 
 
 	/* Begins recording a single-use/anonymous command buffer for single-time commands.
@@ -127,6 +127,7 @@ public:
 private:
 	VulkanContext& m_vkContext;
 
+	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 	std::shared_ptr<GarbageCollector> m_garbageCollector;
 
 	// Command pools manage the memory that is used to store the buffers

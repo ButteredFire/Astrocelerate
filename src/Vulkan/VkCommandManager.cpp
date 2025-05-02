@@ -7,6 +7,7 @@
 VkCommandManager::VkCommandManager(VulkanContext& context):
 	m_vkContext(context) {
 
+	m_eventDispatcher = ServiceLocator::getService<EventDispatcher>(__FUNCTION__);
 	m_garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
 
 	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
@@ -28,7 +29,7 @@ void VkCommandManager::init() {
 }
 
 
-void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, ComponentArray<Component::Renderable>& renderables, uint32_t imageIndex, uint32_t currentFrame) {
+void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, uint32_t imageIndex, uint32_t currentFrame) {
 	// Specifies details about how the passed-in command buffer will be used before beginning
 	VkCommandBufferBeginInfo bufferBeginInfo{};
 	bufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -120,6 +121,11 @@ void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, 
 			vkCmdNextSubpass(cmdBuffer, VK_SUBPASS_CONTENTS_INLINE);
 		
 	}*/
+
+	Event::UpdateRenderables event{};
+	event.commandBuffer = cmdBuffer;
+
+	m_eventDispatcher->publish<Event::UpdateRenderables>(event, true);
 
 	// End the render pass
 	vkCmdEndRenderPass(cmdBuffer);
