@@ -33,7 +33,7 @@
 #include <Engine/Components/ModelComponents.hpp>
 #include <Engine/Components/PhysicsComponents.hpp>
 
-#include <Utils/ModelLoader.hpp>
+#include <Utils/ModelParser.hpp>
 #include <Utils/FilePathUtils.hpp>
 
 #include <Systems/Time.hpp>
@@ -116,7 +116,7 @@ public:
     inline const VkBuffer& getVertexBuffer() const { return m_vertexBuffer; }
 
     /* Gets the vertex data. */
-    inline const std::vector<Vertex> getVertexData() const { return m_vertices; }
+    inline const std::vector<Geometry::Vertex> getVertexData() const { return m_vertices; }
 
 
     /* Gets the index buffer. */
@@ -153,7 +153,7 @@ private:
     std::vector<void*> m_uniformBuffersMappedData;
 
 
-    std::vector<Vertex> m_vertices = {};
+    std::vector<Geometry::Vertex> m_vertices = {};
 
     std::vector<uint32_t> m_vertIndices = {};
 

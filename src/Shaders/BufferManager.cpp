@@ -16,20 +16,20 @@ BufferManager::~BufferManager() {}
 void BufferManager::init() {
 	//Component::Mesh mesh = ModelLoader::loadModel((std::string(APP_SOURCE_DIR) + std::string("/assets/Models/Spacecraft/SpaceX_Starship/Starship.obj")), ModelLoader::FileType::T_OBJ);
 
-	//std::string modelPath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models", "Spacecraft/SpaceX_Starship/Starship.obj");
-	std::string modelPath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models", "TestModels/Cube/Cube.obj");
-	Component::Mesh mesh = ModelLoader::loadModel(modelPath, ModelLoader::FileType::T_OBJ);
+	std::string modelPath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models", "Spacecraft/SpaceX_Starship/Starship.obj");
+	//std::string modelPath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models", "TestModels/Cube/Cube.obj");
+	OBJParser objParser;
+	RawMeshData rawData = objParser.parse(modelPath);
 	
-	
-	m_vertices = mesh.vertices;
-	m_vertIndices = mesh.indices;
+	m_vertices = rawData.vertices;
+	m_vertIndices = rawData.indices;
 
 
 	m_UBOEntity = m_registry->createEntity();
 
 	m_UBORigidBody.position = glm::vec3(0.0f, -30.0f, 0.0f);
 	m_UBORigidBody.velocity = glm::vec3(0.0f, 1.0f, 0.0f);
-	m_UBORigidBody.acceleration = glm::vec3(0.0f, 15.0f, 0.0f);
+	m_UBORigidBody.acceleration = glm::vec3(0.0f, 1.0f, 0.0f);
 	m_UBORigidBody.mass = 20;
 
 	m_registry->addComponent(m_UBOEntity.id, m_UBORigidBody);
@@ -138,13 +138,13 @@ void BufferManager::updateUniformBuffer(uint32_t currentImage) {
 	float rotationAngle = (time * glm::radians(90.0f));
 	glm::vec3 rotationAxis = glm::vec3(0.0f, 0.0f, 1.0f);
 
-	//UBO.model = glm::rotate(identityMat, rotationAngle, rotationAxis);
+	UBO.model = glm::rotate(identityMat, rotationAngle, rotationAxis);
 
 	m_eventDispatcher->publish(Event::UpdateRigidBodies{}, true);
 	m_UBORigidBody = m_registry->getComponent<Component::RigidBody>(m_UBOEntity.id);
 
-	UBO.model = glm::translate(identityMat, m_UBORigidBody.position);
-	Log::print(Log::T_WARNING, __FUNCTION__, "(x, y, z) = (" + std::to_string(m_UBORigidBody.position.x) + ", " + std::to_string(m_UBORigidBody.position.y) + ", " + std::to_string(m_UBORigidBody.position.z) + ")");
+	//UBO.model = glm::translate(identityMat, m_UBORigidBody.position);
+	//Log::print(Log::T_WARNING, __FUNCTION__, "(x, y, z) = (" + std::to_string(m_UBORigidBody.position.x) + ", " + std::to_string(m_UBORigidBody.position.y) + ", " + std::to_string(m_UBORigidBody.position.z) + ")");
 
 	// glm::lookAt(eyePosition, centerPosition, upAxis);
 	glm::vec3 eyePosition = glm::vec3(1.0f, 0.0f, 1.0f) * 30.0f;

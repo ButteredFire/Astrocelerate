@@ -6,6 +6,8 @@ layout(binding = 1) uniform sampler2D textureSampler;
 
 layout(location = 0) in vec3 fragColor;
 layout(location = 1) in vec2 fragTextureCoord;
+layout(location = 2) in vec3 fragNormal;
+layout(location = 3) in vec3 fragTangent;
 
 layout(location = 0) out vec4 outColor;
 

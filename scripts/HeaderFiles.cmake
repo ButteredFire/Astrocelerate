@@ -41,7 +41,7 @@ set(HEADER_FILES
 	"src/Systems/Time.hpp"
 	"src/Utils/ColorUtils.hpp"
 	"src/Utils/FilePathUtils.hpp"
-	"src/Utils/ModelLoader.hpp"
+	"src/Utils/ModelParser.hpp"
 	"src/Vulkan/VkCommandManager.hpp"
 	"src/Vulkan/VkDeviceManager.hpp"
 	"src/Vulkan/VkInstanceManager.hpp"

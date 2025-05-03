@@ -41,9 +41,13 @@ namespace ShaderConsts {
 	constexpr int VERT_LOC_IN_INPOSITION = 0;
 	constexpr int VERT_LOC_IN_INCOLOR = 1;
 	constexpr int VERT_LOC_IN_INTEXTURECOORD = 2;
+	constexpr int VERT_LOC_IN_INNORMAL = 3;
+	constexpr int VERT_LOC_IN_INTANGENT = 4;
 
 	constexpr int VERT_LOC_OUT_FRAGCOLOR = 0;
 	constexpr int VERT_LOC_OUT_FRAGTEXTURECOORD = 1;
+	constexpr int VERT_LOC_OUT_FRAGNORMAL = 2;
+	constexpr int VERT_LOC_OUT_FRAGTANGENT = 3;
 
 
 		// Fragment shader
@@ -51,6 +55,8 @@ namespace ShaderConsts {
 
 	constexpr int FRAG_LOC_IN_FRAGCOLOR = VERT_LOC_OUT_FRAGCOLOR;
 	constexpr int FRAG_LOC_IN_FRAGTEXTURECOORD = VERT_LOC_OUT_FRAGTEXTURECOORD;
+	constexpr int FRAG_LOC_IN_FRAGNORMAL = VERT_LOC_OUT_FRAGNORMAL;
+	constexpr int FRAG_LOC_IN_FRAGTANGENT = VERT_LOC_OUT_FRAGTANGENT;
 
 	constexpr int FRAG_LOC_OUT_OUTCOLOR = 0;
 

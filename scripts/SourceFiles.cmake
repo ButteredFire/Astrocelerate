@@ -22,7 +22,7 @@ set(SOURCE_FILES
 	"src/Shaders/BufferManager.cpp"
 	"src/Systems/PhysicsSystem.cpp"
 	"src/Systems/RenderSystem.cpp"
-	"src/Utils/ModelLoader.cpp"
+	"src/Utils/ModelParser.cpp"
 	"src/Vulkan/VkCommandManager.cpp"
 	"src/Vulkan/VkDeviceManager.cpp"
 	"src/Vulkan/VkInstanceManager.cpp"
