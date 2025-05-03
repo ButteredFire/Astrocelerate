@@ -86,6 +86,8 @@ add_executable(Astrocelerate ${SOURCE_FILES} )
                 GIT_REPOSITORY ${gitRepo}
                 GIT_TAG ${gitTag}
             )
+
+            FetchContent_MakeAvailable(${depName})
         else()
             message(STATUS "Using offline source for ${depName}: ${offlineDir}")
             FetchContent_Declare(
@@ -120,18 +122,20 @@ find_package(Vulkan REQUIRED)    # Vulkan SDK
     set(GLFW_GIT_REPO "https://github.com/glfw/glfw.git")
     set(GLM_GIT_REPO "https://github.com/g-truc/glm.git")
     set(VMA_GIT_REPO "https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git")
+    set(ASSIMP_GIT_REPO "https://github.com/assimp/assimp.git")
 
         # Offline mode: Fetch from local source
-    set(GLFW_OFFLINE_SOURCE_DIR "${CMAKE_CURRENT_BINARY_DIR}/_offline_deps_cache/_deps/glfw-src")
-    set(GLM_OFFLINE_SOURCE_DIR "${CMAKE_CURRENT_BINARY_DIR}/_offline_deps_cache/_deps/glm-src")
-    set(VMA_OFFLINE_SOURCE_DIR "${CMAKE_CURRENT_BINARY_DIR}/_offline_deps_cache/_deps/vulkanmemoryallocator-src")
+    set(GLFW_OFFLINE_SOURCE_DIR "${CMAKE_CURRENT_BINARY_DIR}/_deps/glfw-src")
+    set(GLM_OFFLINE_SOURCE_DIR "${CMAKE_CURRENT_BINARY_DIR}/_deps/glm-src")
+    set(VMA_OFFLINE_SOURCE_DIR "${CMAKE_CURRENT_BINARY_DIR}/_deps/vulkanmemoryallocator-src")
+    set(ASSIMP_OFFLINE_SOURCE_DIR "${CMAKE_CURRENT_BINARY_DIR}/_deps/assimp-src")
     
 
     # GLFW3
     fetchDependency(
         glfw
         ${GLFW_GIT_REPO}
-        master
+        3.4
         ${GLFW_OFFLINE_SOURCE_DIR}
     )
 
@@ -139,7 +143,7 @@ find_package(Vulkan REQUIRED)    # Vulkan SDK
     fetchDependency(
         glm
         ${GLM_GIT_REPO}
-        master
+        1.0.1
         ${GLM_OFFLINE_SOURCE_DIR}
     )
 
@@ -147,26 +151,47 @@ find_package(Vulkan REQUIRED)    # Vulkan SDK
     fetchDependency(
         VulkanMemoryAllocator
         ${VMA_GIT_REPO}
-        master
+        v3.2.1
         ${VMA_OFFLINE_SOURCE_DIR}
+    )
+
+    # Assimp
+    fetchDependency(
+        assimp
+        ${ASSIMP_GIT_REPO}
+        v5.4.3
+        ${ASSIMP_OFFLINE_SOURCE_DIR}
     )
 
 
 # Organize libraries into variables
 set(PKG_LIBS
-    Vulkan::Vulkan Boxer
+    Vulkan::Vulkan
+    Boxer
 )
 
 set(FETCHCONTENT_LIBS
-    glfw glm VulkanMemoryAllocator
+    glfw
+    glm
+    VulkanMemoryAllocator
+    assimp
+)
+
+set(FETCHCONTENT_LIBS_TARGET_INCLUDE_DIRS
+    ${glm_SOURCE_DIR} 
+    ${GLFW_SOURCE_DIR}/include
+    ${imgui_SOURCE_DIR}
+    ${VulkanMemoryAllocator_SOURCE_DIR}/include
+    ${assimp_SOURCE_DIR}/include
+    ${assimp_BINARY_DIR}/include
 )
 
 
 # Make libraries available
-FetchContent_MakeAvailable(${FETCHCONTENT_LIBS})
+#FetchContent_MakeAvailable(${FETCHCONTENT_LIBS})
 
     # Cache libraries for fallback in case of no internet connection
-    if (IS_ONLINE)
+    if (IS_ONLINE AND 0)
         message(STATUS "Creating dependency cache for offline fallback...")
         file(
             COPY "${CMAKE_CURRENT_BINARY_DIR}/_deps"
@@ -228,11 +253,8 @@ add_subdirectory("external/boxer")
 target_link_libraries(Astrocelerate PRIVATE ${PKG_LIBS} ${FETCHCONTENT_LIBS})
 
 
-# Include directories for header-only libraries
+# Include library directories
 target_include_directories(Astrocelerate PRIVATE 
     ${HEADER_DIRS}
-    ${glm_SOURCE_DIR} 
-    ${GLFW_SOURCE_DIR}/include
-    ${imgui_SOURCE_DIR}
-    ${VulkanMemoryAllocator_SOURCE_DIR}/include
+    ${FETCHCONTENT_LIBS_TARGET_INCLUDE_DIRS}
 )

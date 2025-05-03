@@ -9,17 +9,6 @@
             "installRoot": "${projectDir}\\out\\install\\${name}",
             "buildCommandArgs": "-v",
             "ctestCommandArgs": ""
-        },
-        {
-            "name": "x64-Release",
-            "generator": "Ninja",
-            "configurationType": "Release",
-            "buildRoot": "${projectDir}\\out\\build\\${name}",
-            "installRoot": "${projectDir}\\out\\install\\${name}",
-            "buildCommandArgs": "-v",
-            "ctestCommandArgs": "",
-            "inheritEnvironments": [ "msvc_x64_x64" ],
-            "variables": []
         }
     ]
 }

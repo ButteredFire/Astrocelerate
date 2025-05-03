@@ -9,6 +9,7 @@ set(HEADER_FILES
 	"external/imgui/imstb_rectpack.h"
 	"external/imgui/imstb_textedit.h"
 	"external/imgui/imstb_truetype.h"
+	"external/json/json.hpp"
 	"external/stb/stb_image.h"
 	"external/termcolor/termcolor.hpp"
 	"external/tinyobjloader/tiny_obj_loader.h"

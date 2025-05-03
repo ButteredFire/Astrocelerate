@@ -16,10 +16,11 @@ BufferManager::~BufferManager() {}
 void BufferManager::init() {
 	//Component::Mesh mesh = ModelLoader::loadModel((std::string(APP_SOURCE_DIR) + std::string("/assets/Models/Spacecraft/SpaceX_Starship/Starship.obj")), ModelLoader::FileType::T_OBJ);
 
-	std::string modelPath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models", "Spacecraft/SpaceX_Starship/Starship.obj");
-	//std::string modelPath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models", "TestModels/Cube/Cube.obj");
-	OBJParser objParser;
-	RawMeshData rawData = objParser.parse(modelPath);
+	//std::string modelPath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models", "Spacecraft/SpaceX_Starship/Starship.obj");
+	/td::string modelPath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models", "TestModels/Cube/Cube.obj");
+	//std::string modelPath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models", "TestModels/VikingRoom/viking_room.obj");
+	AssimpParser parser;
+	MeshData rawData = parser.parse(modelPath);
 	
 	m_vertices = rawData.vertices;
 	m_vertIndices = rawData.indices;
@@ -27,10 +28,10 @@ void BufferManager::init() {
 
 	m_UBOEntity = m_registry->createEntity();
 
-	m_UBORigidBody.position = glm::vec3(0.0f, -30.0f, 0.0f);
-	m_UBORigidBody.velocity = glm::vec3(0.0f, 1.0f, 0.0f);
-	m_UBORigidBody.acceleration = glm::vec3(0.0f, 1.0f, 0.0f);
-	m_UBORigidBody.mass = 20;
+	m_UBORigidBody.position = glm::vec3(0.0f, 0.0f, -3000.0f);
+	m_UBORigidBody.velocity = glm::vec3(0.0f, 0.0f, 1.0f);
+	m_UBORigidBody.acceleration = glm::vec3(0.0f, 0.0f, 50.0f);
+	m_UBORigidBody.mass = 5e6;
 
 	m_registry->addComponent(m_UBOEntity.id, m_UBORigidBody);
 
@@ -138,16 +139,16 @@ void BufferManager::updateUniformBuffer(uint32_t currentImage) {
 	float rotationAngle = (time * glm::radians(90.0f));
 	glm::vec3 rotationAxis = glm::vec3(0.0f, 0.0f, 1.0f);
 
-	UBO.model = glm::rotate(identityMat, rotationAngle, rotationAxis);
+	//UBO.model = glm::rotate(identityMat, rotationAngle, rotationAxis);
 
 	m_eventDispatcher->publish(Event::UpdateRigidBodies{}, true);
 	m_UBORigidBody = m_registry->getComponent<Component::RigidBody>(m_UBOEntity.id);
 
-	//UBO.model = glm::translate(identityMat, m_UBORigidBody.position);
-	//Log::print(Log::T_WARNING, __FUNCTION__, "(x, y, z) = (" + std::to_string(m_UBORigidBody.position.x) + ", " + std::to_string(m_UBORigidBody.position.y) + ", " + std::to_string(m_UBORigidBody.position.z) + ")");
+	UBO.model = glm::translate(identityMat, m_UBORigidBody.position);
+	Log::print(Log::T_WARNING, __FUNCTION__, "(x, y, z) = (" + std::to_string(m_UBORigidBody.position.x) + ", " + std::to_string(m_UBORigidBody.position.y) + ", " + std::to_string(m_UBORigidBody.position.z) + ")");
 
 	// glm::lookAt(eyePosition, centerPosition, upAxis);
-	glm::vec3 eyePosition = glm::vec3(1.0f, 0.0f, 1.0f) * 30.0f;
+	glm::vec3 eyePosition = glm::vec3(1.0f, 0.0f, 0.0f) * 200.0f;
 	glm::vec3 centerPosition = glm::vec3(0.0f, 0.0f, 0.0f);
 	glm::vec3 upAxis = glm::vec3(0.0f, 0.0f, 1.0f);
 	
@@ -155,7 +156,7 @@ void BufferManager::updateUniformBuffer(uint32_t currentImage) {
 
 
 	// glm::perspective(fieldOfView, aspectRatio, nearClipPlane, farClipPlane);
-	constexpr float fieldOfView = glm::radians(60.0f);
+	constexpr float fieldOfView = glm::radians(75.0f);
 	float aspectRatio = static_cast<float>(m_vkContext.SwapChain.extent.width / m_vkContext.SwapChain.extent.height);
 	float nearClipPlane = 0.1f;
 	float farClipPlane = 1e10f;

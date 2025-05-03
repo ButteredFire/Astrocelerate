@@ -318,7 +318,7 @@ private:
 	*/
 	template<typename... SpecifiedComponents>
 	inline ComponentMask& buildComponentMask() {
-		ComponentMask mask;
+		ComponentMask mask{};
 		(mask.set(ComponentTypeID::get<SpecifiedComponents>()), ...);
 		return mask;
 	}
