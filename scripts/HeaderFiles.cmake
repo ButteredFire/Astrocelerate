@@ -43,6 +43,7 @@ set(HEADER_FILES
 	"src/Utils/ColorUtils.hpp"
 	"src/Utils/FilePathUtils.hpp"
 	"src/Utils/ModelParser.hpp"
+	"src/Utils/SystemUtils.hpp"
 	"src/Vulkan/VkCommandManager.hpp"
 	"src/Vulkan/VkDeviceManager.hpp"
 	"src/Vulkan/VkInstanceManager.hpp"

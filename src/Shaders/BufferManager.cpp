@@ -17,6 +17,7 @@ void BufferManager::init() {
 	//Component::Mesh mesh = ModelLoader::loadModel((std::string(APP_SOURCE_DIR) + std::string("/assets/Models/Spacecraft/SpaceX_Starship/Starship.obj")), ModelLoader::FileType::T_OBJ);
 
 	//std::string modelPath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models", "Spacecraft/SpaceX_Starship/Starship.obj");
+	//std::string modelPath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models", "Spacecraft/NASA_Endurance/Endurance_Unified.fbx");
 	std::string modelPath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models", "TestModels/SolarSailSpaceship/ColoredPerVertex/SolarSailSpaceship.obj");
 	//std::string modelPath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models", "TestModels/Cube/Cube.obj");
 	//std::string modelPath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models", "TestModels/Plane/Plane.obj");
@@ -30,14 +31,14 @@ void BufferManager::init() {
 
 	m_UBOEntity = m_registry->createEntity();
 
-	m_UBORigidBody.position = glm::vec3(0.0f, 0.0f, -10000.0f);
-	m_UBORigidBody.velocity = glm::vec3(0.0f, 0.0f, 300.0f);
-	m_UBORigidBody.acceleration = glm::vec3(0.0f, 0.0f, 100.0f);
+	m_UBORigidBody.position = glm::vec3(0.0f, 0.0f, -1500.0f);
+	m_UBORigidBody.velocity = glm::vec3(0.0f, 0.0f, 5.0f);
+	m_UBORigidBody.acceleration = glm::vec3(0.0f, 0.0f, 5.0f);
 	m_UBORigidBody.mass = 900;
 
 	m_registry->addComponent(m_UBOEntity.id, m_UBORigidBody);
-	 
 
+	 
 	createVertexBuffer();
 	createIndexBuffer();
 	createUniformBuffers();
@@ -138,7 +139,7 @@ void BufferManager::updateUniformBuffer(uint32_t currentImage) {
 
 	// glm::rotate(transformation, rotationAngle, rotationAxis);
 	const glm::mat4 identityMat = glm::mat4(1.0f);
-	float rotationAngle = (time * glm::radians(90.0f));
+	float rotationAngle = (time * glm::radians(30.0f));
 	glm::vec3 rotationAxis = glm::vec3(0.0f, 0.0f, 1.0f);
 
 	//UBO.model = identityMat;
@@ -146,14 +147,15 @@ void BufferManager::updateUniformBuffer(uint32_t currentImage) {
 
 	m_eventDispatcher->publish(Event::UpdateRigidBodies{}, true);
 	m_UBORigidBody = m_registry->getComponent<Component::RigidBody>(m_UBOEntity.id);
-	
+
 	UBO.model = glm::rotate(identityMat, rotationAngle, rotationAxis);
 	UBO.model *= glm::translate(identityMat, m_UBORigidBody.position);
 	//UBO.model = glm::translate(identityMat, glm::vec3(0.0f));
-	//Log::print(Log::T_WARNING, __FUNCTION__, "(x, y, z) = (" + std::to_string(m_UBORigidBody.position.x) + ", " + std::to_string(m_UBORigidBody.position.y) + ", " + std::to_string(m_UBORigidBody.position.z) + ")");
+	Log::print(Log::T_WARNING, __FUNCTION__, "(x, y, z) = (" + std::to_string(m_UBORigidBody.position.x) + ", " + std::to_string(m_UBORigidBody.position.y) + ", " + std::to_string(m_UBORigidBody.position.z) + ")");
 
 	// glm::lookAt(eyePosition, centerPosition, upAxis);
-	glm::vec3 eyePosition = glm::vec3(4.0f, 0.0f, 5.0f) * 200.0f;
+	glm::vec3 eyePosition = glm::vec3(5.5f, 0.0f, 2.0f) * 225.0f;
+	//glm::vec3 eyePosition = glm::vec3(3.0f, 0.0f, 5.0f) * 300.0f;
 	glm::vec3 centerPosition = glm::vec3(0.0f, 0.0f, 0.0f);
 	glm::vec3 upAxis = glm::vec3(0.0f, 0.0f, 1.0f);
 	

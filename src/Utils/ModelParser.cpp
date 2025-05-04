@@ -28,6 +28,9 @@ MeshData AssimpParser::parse(const std::string& path) {
 
 	processNode(scene->mRootNode, scene, meshData);
 
+	Log::print(Log::T_SUCCESS, __FUNCTION__, "Successfully loaded model! Vertices: " + std::to_string(meshData.vertices.size())
+		+ ";\tindices: " + std::to_string(meshData.indices.size()));
+
 	return meshData;
 }
 

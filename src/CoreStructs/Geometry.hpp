@@ -8,6 +8,8 @@
 #include <vector>
 #include <Core/Constants.h>
 
+#include <Utils/SystemUtils.hpp>
+
 
 namespace Geometry {
 	// Properties of a vertex.
@@ -131,11 +133,14 @@ namespace std {
 	template<>
 	struct hash<Geometry::Vertex> {
 		inline std::size_t operator()(const Geometry::Vertex& vertex) const noexcept {
-			return std::hash<glm::vec3>()(vertex.position) ^
-				   std::hash<glm::vec3>()(vertex.color) ^
-				   std::hash<glm::vec2>()(vertex.texCoord) ^
-				   std::hash<glm::vec3>()(vertex.normal) ^
-			       std::hash<glm::vec3>()(vertex.tangent);
+			size_t seed = 0;
+			SystemUtils::combineHash(seed, vertex.position);
+			SystemUtils::combineHash(seed, vertex.color);
+			SystemUtils::combineHash(seed, vertex.texCoord);
+			SystemUtils::combineHash(seed, vertex.normal);
+			SystemUtils::combineHash(seed, vertex.tangent);
+			return seed;
 		}
 	};
 }
+
