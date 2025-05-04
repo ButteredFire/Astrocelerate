@@ -12,6 +12,7 @@
 #include <imgui/imgui_impl_glfw.h>
 #include <imgui/imgui_impl_vulkan.h>
 
+#include <CoreStructs/Geometry.hpp>
 #include <Engine/Components/ComponentTypes.hpp>
 
 
@@ -23,6 +24,7 @@ namespace Component {
         std::vector<VkBuffer> vertexBuffers;                // A vector of vertex buffers.
         std::vector<VkDeviceSize> vertexBufferOffsets;      // A vector of vertex buffer offsets corresponding to their vertex buffers.
         VkBuffer indexBuffer = VK_NULL_HANDLE;              // The index buffer.
+        std::vector<Geometry::Vertex> vertexData;
         std::vector<uint32_t> vertexIndexData;              // Vertex index data for the index buffer.
         VkDescriptorSet descriptorSet = VK_NULL_HANDLE;     // The descriptor set to be used in vertex rendering.
         

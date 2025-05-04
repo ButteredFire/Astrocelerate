@@ -16,8 +16,7 @@
 struct MeshData {
 	std::vector<Geometry::Vertex> vertices;
 	std::vector<uint32_t> indices;
-	glm::vec3 normal;
-	glm::vec3 tangent;
+	std::vector<Geometry::Material> materials;
 };
 
 
@@ -56,11 +55,17 @@ private:
 		@param scene: The scene owning the node to be processed.
 		@param meshData: The mesh data.
 	*/
-	void processNode(aiNode* node, const aiScene* scene, MeshData& meshData);
+	void processNode(aiNode* node, aiScene* scene, MeshData& meshData);
 
 
 	/* Processes a mesh.
-	
+		@param scene: The scene owning the mesh.
+		@param mesh: The mesh to be processed.
+		@param meshData: The mesh data.
 	*/
-	void processMesh(aiMesh* mesh, MeshData& meshData);
+	void processMesh(aiScene* scene, aiMesh* mesh, MeshData& meshData);
+
+
+	/* Processes mesh materials. */
+	void processMeshMaterials(aiScene* scene, aiMesh* mesh, MeshData& meshData);
 };

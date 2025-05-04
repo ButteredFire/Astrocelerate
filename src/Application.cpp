@@ -126,7 +126,10 @@ int main() {
 
         //textureManager->createTexture((std::string(APP_SOURCE_DIR) + std::string("/assets/app/ExperimentalAppLogo.png")).c_str());
         //textureManager->createTexture((std::string(APP_SOURCE_DIR) + std::string("/assets/Models/Spacecraft/SpaceX_Starship/textures/")).c_str());
+        //std::string path = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/app/ExperimentalAppLogo.png");
+        //std::string path = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models", "Spacecraft/SpaceX_Starship/textures");
         std::string path = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models", "TestModels/Cube/Textures/BaseColor.png");
+        //std::string path = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models", "TestModels/Plane/Textures/BaseColor.png");
         //std::string path = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models", "TestModels/VikingRoom/viking_room.png");
         textureManager->createTexture(path.c_str());
 

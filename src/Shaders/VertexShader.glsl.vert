@@ -5,7 +5,7 @@
 // You can use this feature to put descriptors that vary per-object and descriptors that are shared into separate descriptor sets. In that case you avoid rebinding most of the descriptors across draw calls which is potentially more efficient.
 
     // Define custom type for the UBO -> layout(...) uniform UniformBufferObject UBO;
-layout(binding = 0) uniform UniformBufferObject {
+layout(set = 0, binding = 0) uniform UniformBufferObject {
     mat4 model;
     mat4 view;
     mat4 projection;

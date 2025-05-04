@@ -111,24 +111,16 @@ void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, 
 	scissor.extent = m_vkContext.SwapChain.extent;
 	vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
 
+
 	// Processes renderables
-	/*const uint32_t MAX_SUBPASSES = m_vkContext.GraphicsPipeline.subpassCount;
-	uint32_t subpassCount = 1;
-	for (auto renderable : renderables.getAllComponents()) {
-		RenderSystem::processRenderable(m_vkContext, cmdBuffer, renderable);
-
-		if (subpassCount++ < MAX_SUBPASSES)
-			vkCmdNextSubpass(cmdBuffer, VK_SUBPASS_CONTENTS_INLINE);
-		
-	}*/
-
 	Event::UpdateRenderables event{};
 	event.commandBuffer = cmdBuffer;
-
 	m_eventDispatcher->publish<Event::UpdateRenderables>(event, true);
+
 
 	// End the render pass
 	vkCmdEndRenderPass(cmdBuffer);
+
 
 	// Stop recording the command buffer
 	VkResult endCmdBufferResult = vkEndCommandBuffer(cmdBuffer);

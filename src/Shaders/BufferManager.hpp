@@ -139,7 +139,7 @@ private:
     std::shared_ptr<EventDispatcher> m_eventDispatcher;
     std::shared_ptr<GarbageCollector> m_garbageCollector;
 
-    Entity m_UBOEntity;
+    Entity m_UBOEntity{};
     Component::RigidBody m_UBORigidBody{};
     
     VkBuffer m_vertexBuffer = VK_NULL_HANDLE;
@@ -154,7 +154,6 @@ private:
 
 
     std::vector<Geometry::Vertex> m_vertices = {};
-
     std::vector<uint32_t> m_vertIndices = {};
 
 

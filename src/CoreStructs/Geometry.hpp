@@ -12,12 +12,12 @@
 namespace Geometry {
 	// Properties of a vertex.
 	struct Vertex {
-		glm::vec3 position;     // Vertex position.
-		glm::vec3 color;        // Vertex color.
-		glm::vec2 texCoord;     // Texture coordinates (a.k.a., UV coordinates) for mapping textures
+		alignas(16) glm::vec3 position;     // Vertex position.
+		alignas(16) glm::vec3 color;        // Vertex color.
+		alignas(8) glm::vec2 texCoord;     // Texture coordinates (a.k.a., UV coordinates) for mapping textures
 
-		glm::vec3 normal;		// Normals
-		glm::vec3 tangent;		// Tangents
+		alignas(16) glm::vec3 normal;		// Normals
+		alignas(16) glm::vec3 tangent;		// Tangents
 
 
 		bool operator==(const Vertex& other) const {
@@ -91,7 +91,7 @@ namespace Geometry {
 			attribDescriptions.push_back(texCoordAttribDesc);
 
 
-			// Attribute: Normals
+			// Attribute: Normal
 			VkVertexInputAttributeDescription normalAttribDesc{};
 			normalAttribDesc.binding = 0;
 			normalAttribDesc.location = ShaderConsts::VERT_LOC_IN_INNORMAL;
@@ -100,8 +100,7 @@ namespace Geometry {
 
 			attribDescriptions.push_back(normalAttribDesc);
 
-
-			// Attribute: Tangents
+			// Attribute: Tangent
 			VkVertexInputAttributeDescription tangentAttribDesc{};
 			tangentAttribDesc.binding = 0;
 			tangentAttribDesc.location = ShaderConsts::VERT_LOC_IN_INTANGENT;
@@ -114,6 +113,18 @@ namespace Geometry {
 			return attribDescriptions;
 		}
 	};
+
+
+
+	struct Material {
+		glm::vec3 diffuseColor;
+		glm::vec3 specularColor;
+		glm::vec3 ambientColor;
+		float shininess;
+		std::string diffuseTexture;
+		std::string specularTexture;
+		// TODO: Add other material properties
+	};
 }
 
 namespace std {
@@ -121,8 +132,10 @@ namespace std {
 	struct hash<Geometry::Vertex> {
 		inline std::size_t operator()(const Geometry::Vertex& vertex) const noexcept {
 			return std::hash<glm::vec3>()(vertex.position) ^
-				std::hash<glm::vec3>()(vertex.color) ^
-				std::hash<glm::vec2>()(vertex.texCoord);
+				   std::hash<glm::vec3>()(vertex.color) ^
+				   std::hash<glm::vec2>()(vertex.texCoord) ^
+				   std::hash<glm::vec3>()(vertex.normal) ^
+			       std::hash<glm::vec3>()(vertex.tangent);
 		}
 	};
 }

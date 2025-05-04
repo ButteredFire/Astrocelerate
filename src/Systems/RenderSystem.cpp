@@ -55,6 +55,7 @@ void RenderSystem::processRenderable(const VkCommandBuffer& cmdBuffer, Component
 
 
 		// Draws vertices based on the index buffer
+		//vkCmdDraw(cmdBuffer, renderable.vertexData.size(), 1, 0, 0);
 		vkCmdDrawIndexed(cmdBuffer, static_cast<uint32_t>(renderable.vertexIndexData.size()), 1, 0, 0, 0); // Use vkCmdDrawIndexed instead of vkCmdDraw to draw with the index buffer
 
 		break;

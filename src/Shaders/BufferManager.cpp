@@ -17,24 +17,26 @@ void BufferManager::init() {
 	//Component::Mesh mesh = ModelLoader::loadModel((std::string(APP_SOURCE_DIR) + std::string("/assets/Models/Spacecraft/SpaceX_Starship/Starship.obj")), ModelLoader::FileType::T_OBJ);
 
 	//std::string modelPath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models", "Spacecraft/SpaceX_Starship/Starship.obj");
-	/td::string modelPath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models", "TestModels/Cube/Cube.obj");
+	std::string modelPath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models", "TestModels/SolarSailSpaceship/ColoredPerVertex/SolarSailSpaceship.obj");
+	//std::string modelPath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models", "TestModels/Cube/Cube.obj");
+	//std::string modelPath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models", "TestModels/Plane/Plane.obj");
 	//std::string modelPath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models", "TestModels/VikingRoom/viking_room.obj");
 	AssimpParser parser;
 	MeshData rawData = parser.parse(modelPath);
-	
+
 	m_vertices = rawData.vertices;
 	m_vertIndices = rawData.indices;
 
 
 	m_UBOEntity = m_registry->createEntity();
 
-	m_UBORigidBody.position = glm::vec3(0.0f, 0.0f, -3000.0f);
-	m_UBORigidBody.velocity = glm::vec3(0.0f, 0.0f, 1.0f);
-	m_UBORigidBody.acceleration = glm::vec3(0.0f, 0.0f, 50.0f);
-	m_UBORigidBody.mass = 5e6;
+	m_UBORigidBody.position = glm::vec3(0.0f, 0.0f, -10000.0f);
+	m_UBORigidBody.velocity = glm::vec3(0.0f, 0.0f, 300.0f);
+	m_UBORigidBody.acceleration = glm::vec3(0.0f, 0.0f, 100.0f);
+	m_UBORigidBody.mass = 900;
 
 	m_registry->addComponent(m_UBOEntity.id, m_UBORigidBody);
-
+	 
 
 	createVertexBuffer();
 	createIndexBuffer();
@@ -135,20 +137,23 @@ void BufferManager::updateUniformBuffer(uint32_t currentImage) {
 	UniformBufferObject UBO{};
 
 	// glm::rotate(transformation, rotationAngle, rotationAxis);
-	glm::mat4 identityMat = glm::mat4(1.0f);
+	const glm::mat4 identityMat = glm::mat4(1.0f);
 	float rotationAngle = (time * glm::radians(90.0f));
 	glm::vec3 rotationAxis = glm::vec3(0.0f, 0.0f, 1.0f);
 
-	//UBO.model = glm::rotate(identityMat, rotationAngle, rotationAxis);
+	//UBO.model = identityMat;
+	//UBO.model = glm::scale(identityMat, glm::vec3(2.0f));  // Make model bigger
 
 	m_eventDispatcher->publish(Event::UpdateRigidBodies{}, true);
 	m_UBORigidBody = m_registry->getComponent<Component::RigidBody>(m_UBOEntity.id);
-
-	UBO.model = glm::translate(identityMat, m_UBORigidBody.position);
-	Log::print(Log::T_WARNING, __FUNCTION__, "(x, y, z) = (" + std::to_string(m_UBORigidBody.position.x) + ", " + std::to_string(m_UBORigidBody.position.y) + ", " + std::to_string(m_UBORigidBody.position.z) + ")");
+	
+	UBO.model = glm::rotate(identityMat, rotationAngle, rotationAxis);
+	UBO.model *= glm::translate(identityMat, m_UBORigidBody.position);
+	//UBO.model = glm::translate(identityMat, glm::vec3(0.0f));
+	//Log::print(Log::T_WARNING, __FUNCTION__, "(x, y, z) = (" + std::to_string(m_UBORigidBody.position.x) + ", " + std::to_string(m_UBORigidBody.position.y) + ", " + std::to_string(m_UBORigidBody.position.z) + ")");
 
 	// glm::lookAt(eyePosition, centerPosition, upAxis);
-	glm::vec3 eyePosition = glm::vec3(1.0f, 0.0f, 0.0f) * 200.0f;
+	glm::vec3 eyePosition = glm::vec3(4.0f, 0.0f, 5.0f) * 200.0f;
 	glm::vec3 centerPosition = glm::vec3(0.0f, 0.0f, 0.0f);
 	glm::vec3 upAxis = glm::vec3(0.0f, 0.0f, 1.0f);
 	
@@ -156,10 +161,10 @@ void BufferManager::updateUniformBuffer(uint32_t currentImage) {
 
 
 	// glm::perspective(fieldOfView, aspectRatio, nearClipPlane, farClipPlane);
-	constexpr float fieldOfView = glm::radians(75.0f);
+	constexpr float fieldOfView = glm::radians(60.0f);
 	float aspectRatio = static_cast<float>(m_vkContext.SwapChain.extent.width / m_vkContext.SwapChain.extent.height);
-	float nearClipPlane = 0.1f;
-	float farClipPlane = 1e10f;
+	float nearClipPlane = 0.01f;
+	float farClipPlane = 1e5f;
 
 	UBO.projection = glm::perspective(fieldOfView, aspectRatio, nearClipPlane, farClipPlane);
 
@@ -169,7 +174,7 @@ void BufferManager::updateUniformBuffer(uint32_t currentImage) {
 		If this behavior is left as is, then images will be flipped upside down.
 		One way to change this behavior is to flip the sign on the Y-axis scaling factor in the projection matrix.
 	*/
-	UBO.projection[1][1] *= -1;
+	UBO.projection[1][1] *= -1; // Flip y-axis
 
 
 	// Copies the contents in the uniform buffer object to the uniform buffer's data

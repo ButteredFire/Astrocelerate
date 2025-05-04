@@ -112,7 +112,9 @@ void VkInstanceManager::createVulkanInstance() {
 
         // Sets up additional extensions
     if (inDebugMode)
-        addVulkanExtensions({ VK_EXT_DEBUG_UTILS_EXTENSION_NAME });
+        addVulkanExtensions({
+            VK_EXT_DEBUG_UTILS_EXTENSION_NAME
+        });
 
     if (verifyVulkanExtensions(m_enabledExtensions) == false) {
         m_enabledExtensions.clear();

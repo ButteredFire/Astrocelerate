@@ -50,6 +50,7 @@ void Renderer::initializeRenderables() {
     };
     m_vertexRenderComponent.vertexBufferOffsets = { 0 };
 
+    m_vertexRenderComponent.vertexData = m_bufferManager->getVertexData();
     m_vertexRenderComponent.indexBuffer = m_bufferManager->getIndexBuffer();
     m_vertexRenderComponent.vertexIndexData = m_bufferManager->getVertexIndexData();
 
@@ -67,8 +68,6 @@ void Renderer::initializeRenderables() {
 
 
 void Renderer::drawFrame() {
-    m_imguiRenderer->renderFrames();
-
     m_vertexRenderComponent.descriptorSet = m_vkContext.GraphicsPipeline.m_descriptorSets[m_currentFrame];
     m_guiRenderComponent.guiDrawData = ImGui::GetDrawData();
 
@@ -157,12 +156,15 @@ void Renderer::drawFrame() {
         throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to reset command buffer!");
     }
 
+    m_imguiRenderer->renderFrames();
+    
+        // Updates the uniform buffer
+    m_bufferManager->updateUniformBuffer(m_currentFrame);
+
         // Records commands
     m_commandManager->recordRenderingCommandBuffer(m_vkContext.CommandObjects.graphicsCmdBuffers[m_currentFrame], imageIndex, m_currentFrame);
 
 
-        // Updates the uniform buffer
-    m_bufferManager->updateUniformBuffer(m_currentFrame);
 
         // Submits the buffer to the queue
     VkSubmitInfo submitInfo{};

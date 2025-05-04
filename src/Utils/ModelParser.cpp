@@ -19,7 +19,7 @@ MeshData AssimpParser::parse(const std::string& path) {
 		| aiProcess_CalcTangentSpace
 	);
 
-	const aiScene* scene = importer.ReadFile(path, postProcessingFlags);
+	aiScene* scene = const_cast<aiScene*>(importer.ReadFile(path, postProcessingFlags));
 
 	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
 		throw Log::RuntimeException(__FUNCTION__, __LINE__, importer.GetErrorString());
@@ -28,54 +28,11 @@ MeshData AssimpParser::parse(const std::string& path) {
 
 	processNode(scene->mRootNode, scene, meshData);
 
-	//std::unordered_map<Geometry::Vertex, uint32_t> uniqueVertices{};
-
-	//tinyobj::attrib_t attributes;                   // Object attributes (e.g., vertices, normals, UV coordinates)
-	//std::vector<tinyobj::shape_t> shapes;           // Contains all separate objects and their faces
-	//std::vector<tinyobj::material_t> materials;
-	//std::string warnings, errors;
-
-	//bool loadSuccessful = tinyobj::LoadObj(&attributes, &shapes, &materials, &warnings, &errors, path.c_str());
-
-	//if (!loadSuccessful) {
-	//	throw Log::RuntimeException(__FUNCTION__, __LINE__, (warnings + errors));
-	//}
-
-	//// Combines all faces in the file into a single model
-	//for (const auto& shape : shapes) {
-	//	for (const auto& index : shape.mesh.indices) {
-	//		Geometry::Vertex vertex{};
-
-	//		vertex.position = glm::vec3(
-	//			attributes.vertices[3 * index.vertex_index + 0],
-	//			attributes.vertices[3 * index.vertex_index + 1],
-	//			attributes.vertices[3 * index.vertex_index + 2]
-	//		);
-
-	//		vertex.texCoord = glm::vec2(
-	//			attributes.texcoords[2 * index.texcoord_index + 0],
-	//			1.0f - attributes.texcoords[2 * index.texcoord_index + 1]
-	//		);
-
-	//		vertex.color = glm::vec3(1.0f, 1.0f, 1.0f);
-
-
-
-	//		if (uniqueVertices.find(vertex) == uniqueVertices.end()) {
-	//			uniqueVertices[vertex] = static_cast<uint32_t>(meshData.vertices.size());
-	//			meshData.vertices.push_back(vertex);
-	//		}
-
-	//		meshData.indices.push_back(uniqueVertices[vertex]);
-	//	}
-	//}
-
-
 	return meshData;
 }
 
 
-void AssimpParser::processNode(aiNode* node, const aiScene* scene, MeshData& meshData) {
+void AssimpParser::processNode(aiNode* node, aiScene* scene, MeshData& meshData) {
 	// Only process meshes if they exist
 	if (node->mNumMeshes > 0) {
 		size_t meshCount = static_cast<size_t>(node->mNumMeshes);
@@ -89,11 +46,12 @@ void AssimpParser::processNode(aiNode* node, const aiScene* scene, MeshData& mes
 			size_t nodeIndices = static_cast<size_t>(node->mMeshes[i]);
 
 			aiMesh* mesh = scene->mMeshes[nodeIndices];
-			processMesh(mesh, meshData);
+			processMesh(scene, mesh, meshData);
 		}
 
-		Log::print(Log::T_WARNING, __FUNCTION__, "Mesh data vertex count for node " + enquote(node->mName.C_Str()) + ": " + std::to_string(meshData.vertices.size()));
+		//Log::print(Log::T_WARNING, __FUNCTION__, "Mesh data vertex count for node " + enquote(node->mName.C_Str()) + ": " + std::to_string(meshData.vertices.size()));
 	}
+
 
 	// Recursively processes child nodes
 	size_t childNodeCount = static_cast<size_t>(node->mNumChildren);
@@ -104,63 +62,116 @@ void AssimpParser::processNode(aiNode* node, const aiScene* scene, MeshData& mes
 }
 
 
-void AssimpParser::processMesh(aiMesh* mesh, MeshData& meshData) {
+void AssimpParser::processMesh(aiScene* scene, aiMesh* mesh, MeshData& meshData) {
 	// Processes each vertex in mesh
-	size_t vertexCount = static_cast<size_t>(mesh->mNumVertices);
 	std::unordered_map<Geometry::Vertex, uint32_t> uniqueVertices{};
-
-	for (size_t i = 0; i < vertexCount; i++) {
-		Geometry::Vertex vertex{};
-
-		// Position
-		vertex.position = glm::vec3(
-			mesh->mVertices[i].x,
-			mesh->mVertices[i].y,
-			mesh->mVertices[i].z
-		);
-
-		// Normals
-		if (mesh->HasNormals()) {
-			vertex.normal = glm::vec3(
-				mesh->mNormals[i].x,
-				mesh->mNormals[i].y,
-				mesh->mNormals[i].z
-			);
-		}
-
-		// UV coordinates
-		if (mesh->HasTextureCoords(0)) {
-			vertex.texCoord = glm::vec2(
-				mesh->mTextureCoords[0][i].x,
-				mesh->mTextureCoords[0][i].y
-			);
-		}
-
-		// TODO: Add color support
-		vertex.color = glm::vec3(1.0f);
-
-
-		// Index processing
-		if (uniqueVertices.find(vertex) == uniqueVertices.end()) {
-			// Add the vertex to the vertex buffer and store its index
-			uniqueVertices[vertex] = static_cast<uint32_t>(meshData.vertices.size());
-			meshData.vertices.push_back(vertex);
-		}
-	}
-
-
-	// TODO: Process indices for index buffer
-	// Extracts indices
 	size_t faceCount = static_cast<size_t>(mesh->mNumFaces);
 
 	for (size_t i = 0; i < faceCount; i++) {
 		aiFace& face = mesh->mFaces[i];
+
 		size_t indicesCount = static_cast<size_t>(face.mNumIndices);
 
 		for (size_t j = 0; j < indicesCount; j++) {
-			Geometry::Vertex& vertex = meshData.vertices[face.mIndices[j]];
+			size_t index = static_cast<size_t>(face.mIndices[j]);
+			Geometry::Vertex vertex{};
+
+			// Position
+			vertex.position = glm::vec3(
+				mesh->mVertices[index].x,
+				mesh->mVertices[index].y,
+				mesh->mVertices[index].z
+			);
+
+
+			// Normals (essential for lighting, as they define the direction the vertex is "facing")
+			if (mesh->HasNormals()) {
+				vertex.normal = glm::vec3(
+					mesh->mNormals[index].x,
+					mesh->mNormals[index].y,
+					mesh->mNormals[index].z
+				);
+			}
+
+
+			// Tangents and bi-tangents
+			if (mesh->HasTangentsAndBitangents()) {
+				vertex.tangent = glm::vec3(
+					mesh->mTangents[index].x,
+					mesh->mTangents[index].y,
+					mesh->mTangents[index].z
+				);
+			}
+
+
+			// UV coordinates
+				/* Assimp supports up to 8 sets of texture coordinates, but right now, we only care about the first set.
+					(PBR textures may necessitate multiple UV channels)
+				*/
+			const size_t MAX_CHANNELS = 1;
+			for (size_t k = 0; k < MAX_CHANNELS; k++) {
+				if (mesh->HasTextureCoords(k)) {
+					// TODO: Modify `vertex.texCoord` to be an `std::vector<glm::vec2>`
+					vertex.texCoord = glm::vec2(
+						mesh->mTextureCoords[k][index].x,
+						mesh->mTextureCoords[k][index].y
+					);
+				}
+			}
+
+
+			// TODO: Add color support
+			vertex.color = glm::vec3(1.0f);
+
+
+			if (uniqueVertices.find(vertex) == uniqueVertices.end()) {
+				uniqueVertices[vertex] = static_cast<uint32_t>(meshData.vertices.size());
+				meshData.vertices.push_back(vertex);
+			}
+
 			meshData.indices.push_back(uniqueVertices[vertex]);
 		}
 	}
 
+	//processMeshMaterials(scene, mesh, meshData);
+}
+
+
+void AssimpParser::processMeshMaterials(aiScene* scene, aiMesh* mesh, MeshData& meshData) {
+	// Extract material
+	aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
+
+	Geometry::Material mat;
+	aiColor3D color(0.0f, 0.0f, 0.0f);
+
+	// Diffuse color
+	if (AI_SUCCESS == material->Get(AI_MATKEY_COLOR_DIFFUSE, color)) {
+		mat.diffuseColor = glm::vec3(color.r, color.g, color.b);
+	}
+
+	// Specular color
+	if (AI_SUCCESS == material->Get(AI_MATKEY_COLOR_SPECULAR, color)) {
+		mat.specularColor = glm::vec3(color.r, color.g, color.b);
+	}
+
+	// Ambient color
+	if (AI_SUCCESS == material->Get(AI_MATKEY_COLOR_AMBIENT, color)) {
+		mat.ambientColor = glm::vec3(color.r, color.g, color.b);
+	}
+
+	// Shininess
+	float shininess = 0.0f;
+	if (AI_SUCCESS == material->Get(AI_MATKEY_SHININESS, shininess)) {
+		mat.shininess = shininess;
+	}
+
+	// Textures (Diffuse)
+	aiString texturePath;
+	if (AI_SUCCESS == material->GetTexture(aiTextureType_DIFFUSE, 0, &texturePath)) {
+		mat.diffuseTexture = texturePath.C_Str();
+	}
+
+	// Optionally handle other texture types, like specular, normal maps, etc.
+
+	meshData.materials.push_back(mat);  // Add the material to meshData
 }

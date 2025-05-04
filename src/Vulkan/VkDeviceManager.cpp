@@ -30,7 +30,8 @@ void VkDeviceManager::init() {
     // Initializes required GPU extensions
     m_requiredDeviceExtensions = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-        VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME
+        VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
+        VK_EXT_INDEX_TYPE_UINT8_EXTENSION_NAME
     };
 
 
