@@ -216,7 +216,7 @@ void GraphicsPipeline::createDescriptorSetLayout(std::vector<VkDescriptorSetLayo
 	if (result != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create descriptor set layout!");
 	}
-
+	
 
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
