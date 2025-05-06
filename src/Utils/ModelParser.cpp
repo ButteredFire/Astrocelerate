@@ -1,8 +1,8 @@
 #include "ModelParser.hpp"
 
 
-MeshData AssimpParser::parse(const std::string& path) {
-	MeshData meshData{};
+Geometry::MeshData AssimpParser::parse(const std::string& path) {
+	Geometry::MeshData meshData{};
 
 	Assimp::Importer importer;
 
@@ -35,7 +35,7 @@ MeshData AssimpParser::parse(const std::string& path) {
 }
 
 
-void AssimpParser::processNode(aiNode* node, aiScene* scene, MeshData& meshData) {
+void AssimpParser::processNode(aiNode* node, aiScene* scene, Geometry::MeshData& meshData) {
 	// Only process meshes if they exist
 	if (node->mNumMeshes > 0) {
 		size_t meshCount = static_cast<size_t>(node->mNumMeshes);
@@ -65,7 +65,7 @@ void AssimpParser::processNode(aiNode* node, aiScene* scene, MeshData& meshData)
 }
 
 
-void AssimpParser::processMesh(aiScene* scene, aiMesh* mesh, MeshData& meshData) {
+void AssimpParser::processMesh(aiScene* scene, aiMesh* mesh, Geometry::MeshData& meshData) {
 	// Processes each vertex in mesh
 	std::unordered_map<Geometry::Vertex, uint32_t> uniqueVertices{};
 	size_t faceCount = static_cast<size_t>(mesh->mNumFaces);
@@ -140,7 +140,7 @@ void AssimpParser::processMesh(aiScene* scene, aiMesh* mesh, MeshData& meshData)
 }
 
 
-void AssimpParser::processMeshMaterials(aiScene* scene, aiMesh* mesh, MeshData& meshData) {
+void AssimpParser::processMeshMaterials(aiScene* scene, aiMesh* mesh, Geometry::MeshData& meshData) {
 	// Extract material
 	aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
 

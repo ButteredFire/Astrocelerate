@@ -7,10 +7,21 @@ BufferManager::BufferManager(VulkanContext& context):
 	m_eventDispatcher = ServiceLocator::getService<EventDispatcher>(__FUNCTION__);
 	m_garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
 
+	bindEvents();
+
 	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
 
 BufferManager::~BufferManager() {}
+
+
+void BufferManager::bindEvents() {
+	m_eventDispatcher->subscribe<Event::UpdateUBOs>(
+		[this](const Event::UpdateUBOs& event) {
+			this->updateUniformBuffer(event.currentFrame);
+		}
+	);
+}
 
 
 void BufferManager::init() {
@@ -23,7 +34,7 @@ void BufferManager::init() {
 	//std::string modelPath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models", "TestModels/Plane/Plane.obj");
 	//std::string modelPath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models", "TestModels/VikingRoom/viking_room.obj");
 	AssimpParser parser;
-	MeshData rawData = parser.parse(modelPath);
+	Geometry::MeshData rawData = parser.parse(modelPath);
 
 	m_vertices = rawData.vertices;
 	m_vertIndices = rawData.indices;
@@ -39,8 +50,8 @@ void BufferManager::init() {
 	m_registry->addComponent(m_UBOEntity.id, m_UBORigidBody);
 
 	 
-	createVertexBuffer();
-	createIndexBuffer();
+	createGlobalVertexBuffer(m_vertices);
+	createGlobalIndexBuffer(m_vertIndices);
 	createUniformBuffers();
 }
 
@@ -89,6 +100,38 @@ uint32_t BufferManager::createBuffer(VulkanContext& vkContext, VkBuffer& buffer,
 
 
 	return bufferTaskID;
+}
+
+
+void BufferManager::createGlobalVertexBuffer(std::vector<Geometry::Vertex>& vertexData) {
+	VkDeviceSize bufferSize = (sizeof(vertexData[0]) * vertexData.size());
+	VkBufferUsageFlags vertBufUsage = (VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+
+	// NOTE: By default, the VMA will attempt to allocate memory in the preferred type (GPU/CPU), but may fall back to other types should it not be available/suitable (hence "AUTO_PREFER").
+	// But we must use GPU memory, so we have to specify the required flags.
+	VmaAllocationCreateInfo vertBufAllocInfo{};
+	vertBufAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE; // PREFERS fast device-local memory
+	vertBufAllocInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT; // FORCES device-local memory
+
+	createBuffer(m_vkContext, m_vertexBuffer, bufferSize, vertBufUsage, m_vertexBufferAllocation, vertBufAllocInfo);
+
+	writeDataToGPUBuffer(vertexData.data(), m_vertexBuffer, bufferSize);
+}
+
+
+void BufferManager::createGlobalIndexBuffer(std::vector<uint32_t>& indexData) {
+	VkDeviceSize bufferSize = (sizeof(indexData[0]) * indexData.size());
+	VkBufferUsageFlags indexBufUsage = (VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+
+	// NOTE: By default, the VMA will attempt to allocate memory in the preferred type (GPU/CPU), but may fall back to other types should it not be available/suitable (hence "AUTO_PREFER").
+	// But we must use GPU memory, so we have to specify the required flags.
+	VmaAllocationCreateInfo indexBufAllocInfo{};
+	indexBufAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE; // PREFERS fast device-local memory
+	indexBufAllocInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT; // FORCES device-local memory
+
+	createBuffer(m_vkContext, m_indexBuffer, bufferSize, indexBufUsage, m_indexBufferAllocation, indexBufAllocInfo);
+
+	writeDataToGPUBuffer(indexData.data(), m_indexBuffer, bufferSize);
 }
 
 
@@ -152,6 +195,7 @@ void BufferManager::updateUniformBuffer(uint32_t currentImage) {
 	UBO.model *= glm::translate(identityMat, m_UBORigidBody.position);
 	//UBO.model = glm::translate(identityMat, glm::vec3(0.0f));
 	Log::print(Log::T_WARNING, __FUNCTION__, "(x, y, z) = (" + std::to_string(m_UBORigidBody.position.x) + ", " + std::to_string(m_UBORigidBody.position.y) + ", " + std::to_string(m_UBORigidBody.position.z) + ")");
+
 
 	// glm::lookAt(eyePosition, centerPosition, upAxis);
 	glm::vec3 eyePosition = glm::vec3(5.5f, 0.0f, 2.0f) * 225.0f;
@@ -240,38 +284,6 @@ void BufferManager::writeDataToGPUBuffer(const void* data, VkBuffer& buffer, VkD
 
 	// The staging buffer has done its job, so we can safely destroy it afterwards
 	m_garbageCollector->executeCleanupTask(stagingBufTaskID);
-}
-
-
-void BufferManager::createVertexBuffer() {
-	VkDeviceSize bufferSize = (sizeof(m_vertices[0]) * m_vertices.size());
-	VkBufferUsageFlags vertBufUsage = (VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
-
-	// NOTE: By default, the VMA will attempt to allocate memory in the preferred type (GPU/CPU), but may fall back to other types should it not be available/suitable (hence "AUTO_PREFER").
-	// But we must use GPU memory, so we have to specify the required flags.
-	VmaAllocationCreateInfo vertBufAllocInfo{};
-	vertBufAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE; // PREFERS fast device-local memory
-	vertBufAllocInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT; // FORCES device-local memory
-	
-	createBuffer(m_vkContext, m_vertexBuffer, bufferSize, vertBufUsage, m_vertexBufferAllocation, vertBufAllocInfo);
-
-	writeDataToGPUBuffer(m_vertices.data(), m_vertexBuffer, bufferSize);
-}
-
-
-void BufferManager::createIndexBuffer() {
-	VkDeviceSize bufferSize = (sizeof(m_vertIndices[0]) * m_vertIndices.size());
-	VkBufferUsageFlags indexBufUsage = (VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
-
-	// NOTE: By default, the VMA will attempt to allocate memory in the preferred type (GPU/CPU), but may fall back to other types should it not be available/suitable (hence "AUTO_PREFER").
-	// But we must use GPU memory, so we have to specify the required flags.
-	VmaAllocationCreateInfo indexBufAllocInfo{};
-	indexBufAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE; // PREFERS fast device-local memory
-	indexBufAllocInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT; // FORCES device-local memory
-
-	createBuffer(m_vkContext, m_indexBuffer, bufferSize, indexBufUsage, m_indexBufferAllocation, indexBufAllocInfo);
-
-	writeDataToGPUBuffer(m_vertIndices.data(), m_indexBuffer, bufferSize);
 }
 
 

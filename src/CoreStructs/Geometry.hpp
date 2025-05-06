@@ -127,6 +127,24 @@ namespace Geometry {
 		std::string specularTexture;
 		// TODO: Add other material properties
 	};
+
+
+
+	// Vertex and index buffer offsets.
+	struct MeshOffset {
+		uint32_t vertexOffset;			// Vertex buffer offset.
+		uint32_t indexOffset;			// Index buffer offset.
+		uint32_t indexCount;			// Index count (index data from the offset index buffer).
+	};
+
+
+
+	// Raw mesh data.
+	struct MeshData {
+		std::vector<Vertex> vertices;
+		std::vector<uint32_t> indices;
+		std::vector<Material> materials;
+	};
 }
 
 namespace std {

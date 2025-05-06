@@ -36,6 +36,7 @@ set(HEADER_FILES
 	"src/Rendering/Renderer.hpp"
 	"src/Rendering/TextureManager.hpp"
 	"src/Rendering/UIRenderer.hpp"
+	"src/Rendering/Geometry/GeometryLoader.hpp"
 	"src/Shaders/BufferManager.hpp"
 	"src/Systems/PhysicsSystem.hpp"
 	"src/Systems/RenderSystem.hpp"

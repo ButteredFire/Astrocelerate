@@ -67,6 +67,7 @@ private:
 
 	std::shared_ptr<Registry> m_globalRegistry;
 
+	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 	std::shared_ptr<VkSwapchainManager> m_swapchainManager;
 	std::shared_ptr<BufferManager> m_bufferManager;
 	std::shared_ptr<VkCommandManager> m_commandManager;

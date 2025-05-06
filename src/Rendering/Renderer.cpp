@@ -9,6 +9,8 @@ Renderer::Renderer(VulkanContext& context):
     m_vulkInst(context.vulkanInstance),
     m_vkContext(context) {
 
+    m_eventDispatcher = ServiceLocator::getService<EventDispatcher>(__FUNCTION__);
+
     // TODO: I've just realized that having multiple entity managers (which is very likely) will be problematic for the service locator.
     m_globalRegistry = ServiceLocator::getService<Registry>(__FUNCTION__);
 
@@ -156,14 +158,18 @@ void Renderer::drawFrame() {
         throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to reset command buffer!");
     }
 
-    m_imguiRenderer->renderFrames();
-    
-        // Updates the uniform buffer
-    m_bufferManager->updateUniformBuffer(m_currentFrame);
 
         // Records commands
+    m_imguiRenderer->renderFrames();
+    
     m_commandManager->recordRenderingCommandBuffer(m_vkContext.CommandObjects.graphicsCmdBuffers[m_currentFrame], imageIndex, m_currentFrame);
+    
 
+        // Updates the uniform buffer
+    Event::UpdateUBOs updateUBOsEvent{};
+    updateUBOsEvent.currentFrame = m_currentFrame;
+
+    m_eventDispatcher->publish<Event::UpdateUBOs>(updateUBOsEvent, true);
 
 
         // Submits the buffer to the queue

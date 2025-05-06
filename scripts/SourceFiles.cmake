@@ -19,6 +19,7 @@ set(SOURCE_FILES
 	"src/Rendering/Renderer.cpp"
 	"src/Rendering/TextureManager.cpp"
 	"src/Rendering/UIRenderer.cpp"
+	"src/Rendering/Geometry/GeometryLoader.cpp"
 	"src/Shaders/BufferManager.cpp"
 	"src/Systems/PhysicsSystem.cpp"
 	"src/Systems/RenderSystem.cpp"

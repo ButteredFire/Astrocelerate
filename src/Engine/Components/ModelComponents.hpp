@@ -21,7 +21,7 @@ namespace Component {
 		ComponentType::Model type = ComponentType::Model::T_MODEL_MESH;		// The component type.
 		uint32_t meshID;													// The mesh's ID.
 
-        std::vector<Geometry::Vertex> vertices = {};									// The mesh's vertices.
+        std::vector<Geometry::Vertex> vertices = {};						// The mesh's vertices.
         std::vector<uint32_t> indices = {};									// The mesh's vertex indices.
 	};
 

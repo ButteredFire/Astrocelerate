@@ -98,6 +98,14 @@ public:
     static uint32_t createBuffer(VulkanContext& vkContext, VkBuffer& buffer, VkDeviceSize bufferSize, VkBufferUsageFlags usageFlags, VmaAllocation& bufferAllocation, VmaAllocationCreateInfo bufferAllocationCreateInfo);
 
 
+    /* Creates the global vertex buffer. */
+    void createGlobalVertexBuffer(std::vector<Geometry::Vertex>& vertexData);
+
+
+    /* Creates the global index buffer. */
+    void createGlobalIndexBuffer(std::vector<uint32_t>& indexData);
+
+
     /* Copies the contents from a source buffer to a destination buffer.
         @param srcBuffer: The source buffer that stores the contents to be transferred.
         @param dstBuffer: The destination buffer to receive the contents from the source buffer.
@@ -157,20 +165,15 @@ private:
     std::vector<uint32_t> m_vertIndices = {};
 
 
+    void bindEvents();
+
+
     /* Writes data to a buffer that is allocated in GPU (device-local) memory.
         @param data: The data to write to the buffer.
         @param buffer: The buffer to which the data is to be written.
         @param bufferSize: The size of the buffer (in bytes).
     */
     void writeDataToGPUBuffer(const void* data, VkBuffer& buffer, VkDeviceSize bufferSize);
-
-
-    /* Creates the vertex buffer. */
-    void createVertexBuffer();
-
-
-    /* Creates the index buffer. */
-    void createIndexBuffer();
 
 
     /* Creates uniform buffers. */
