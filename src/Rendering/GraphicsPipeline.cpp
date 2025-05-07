@@ -285,7 +285,7 @@ void GraphicsPipeline::createDescriptorSets() {
 
 		// Uniform buffer
 		VkDescriptorBufferInfo descBufInfo{};
-		descBufInfo.buffer = m_bufferManager->getUniformBuffers()[i];
+		descBufInfo.buffer = m_bufferManager->getUniformBuffers()[i].buffer;
 		descBufInfo.offset = 0;
 		descBufInfo.range = sizeof(UniformBufferObject); // Note: We can also use VK_WHOLE_SIZE if we want to overwrite the whole buffer (like what we're doing)
 

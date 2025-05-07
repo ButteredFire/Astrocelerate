@@ -27,12 +27,14 @@
 #include <Core/EventDispatcher.hpp>
 #include <Core/GarbageCollector.hpp>
 
+#include <CoreStructs/Buffer.hpp>
 #include <CoreStructs/Geometry.hpp>
 #include <CoreStructs/ApplicationContext.hpp>
 
 #include <Engine/Components/ModelComponents.hpp>
 #include <Engine/Components/PhysicsComponents.hpp>
 
+#include <Utils/SystemUtils.hpp>
 #include <Utils/ModelParser.hpp>
 #include <Utils/FilePathUtils.hpp>
 
@@ -135,10 +137,7 @@ public:
 
 
     /* Gets the uniform buffers */
-    inline const std::vector<VkBuffer>& getUniformBuffers() const { return m_uniformBuffers; };
-
-    /* Gets the uniform buffer allocations */
-    inline const std::vector<VmaAllocation>& getUniformBuffersAllocations() const { return m_uniformBuffersAllocations; };
+    inline const std::vector<Buffer::BufferAndAlloc>& getUniformBuffers() const { return m_globalUBOs; }
 
 private:
     VulkanContext& m_vkContext;
@@ -147,8 +146,10 @@ private:
     std::shared_ptr<EventDispatcher> m_eventDispatcher;
     std::shared_ptr<GarbageCollector> m_garbageCollector;
 
+    
     Entity m_UBOEntity{};
     Component::RigidBody m_UBORigidBody{};
+    
     
     VkBuffer m_vertexBuffer = VK_NULL_HANDLE;
     VmaAllocation m_vertexBufferAllocation = VK_NULL_HANDLE;
@@ -156,9 +157,13 @@ private:
     VkBuffer m_indexBuffer = VK_NULL_HANDLE;
     VmaAllocation m_indexBufferAllocation = VK_NULL_HANDLE;
 
-    std::vector<VkBuffer> m_uniformBuffers;
-    std::vector<VmaAllocation> m_uniformBuffersAllocations;
-    std::vector<void*> m_uniformBuffersMappedData;
+
+    std::vector<Buffer::BufferAndAlloc> m_globalUBOs;
+    std::vector<void*> m_globalUBOMappedData;
+
+    // Per-object UBOs
+    std::vector<Buffer::BufferAndAlloc> m_objectUBOs;
+    std::vector<void*> m_objectUBOMappedData;
 
 
     std::vector<Geometry::Vertex> m_vertices = {};

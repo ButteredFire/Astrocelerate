@@ -25,6 +25,7 @@ void BufferManager::bindEvents() {
 
 
 void BufferManager::init() {
+	/*
 	//Component::Mesh mesh = ModelLoader::loadModel((std::string(APP_SOURCE_DIR) + std::string("/assets/Models/Spacecraft/SpaceX_Starship/Starship.obj")), ModelLoader::FileType::T_OBJ);
 
 	//std::string modelPath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models", "Spacecraft/SpaceX_Starship/Starship.obj");
@@ -52,6 +53,8 @@ void BufferManager::init() {
 	 
 	createGlobalVertexBuffer(m_vertices);
 	createGlobalIndexBuffer(m_vertIndices);
+	*/
+
 	createUniformBuffers();
 }
 
@@ -169,6 +172,7 @@ void BufferManager::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceS
 
 
 void BufferManager::updateUniformBuffer(uint32_t currentImage) {
+	throw Log::RuntimeException(__FUNCTION__, __LINE__, "THIS FUNCTION IS OUTDATED! UPDATE IT NOW!");
 
 	// Timekeeping ensures that the geometry rotates 90 deg/s regardless of frame rate
 	static auto startTime = std::chrono::high_resolution_clock::now();
@@ -224,7 +228,7 @@ void BufferManager::updateUniformBuffer(uint32_t currentImage) {
 
 
 	// Copies the contents in the uniform buffer object to the uniform buffer's data
-	memcpy(m_uniformBuffersMappedData[currentImage], &UBO, sizeof(UBO));
+	memcpy(m_globalUBOMappedData[currentImage], &UBO, sizeof(UBO));
 }
 
 
@@ -288,36 +292,65 @@ void BufferManager::writeDataToGPUBuffer(const void* data, VkBuffer& buffer, VkD
 
 
 void BufferManager::createUniformBuffers() {
-	// NOTE: Since new data is copied to the UBOs every frame, we should not use staging buffers since they add overhead and thus degrade performance
-	VkDeviceSize bufferSize = sizeof(UniformBufferObject);
+	// NOTE: Since new data is copied to the UBOs every frame, we should not use staging buffers since they add overhead and thus degrade performance.
+	// However, we may use staging buffers if we want to utilize UBOs for instancing/compute.
 
-	m_uniformBuffers.resize(SimulationConsts::MAX_FRAMES_IN_FLIGHT);
-	m_uniformBuffersAllocations.resize(SimulationConsts::MAX_FRAMES_IN_FLIGHT);
-	m_uniformBuffersMappedData.resize(SimulationConsts::MAX_FRAMES_IN_FLIGHT);
+	// Global UBOs
+	VkDeviceSize globalBufSize = sizeof(Buffer::GlobalUBO);
+
+	m_globalUBOs.resize(SimulationConsts::MAX_FRAMES_IN_FLIGHT);
+	m_globalUBOMappedData.resize(SimulationConsts::MAX_FRAMES_IN_FLIGHT);
+
+
+	// Object UBOs
+	size_t objectUBOAlignment = m_vkContext.Device.deviceProperties.limits.minUniformBufferOffsetAlignment;
+	VkDeviceSize objectBufSize = static_cast<VkDeviceSize>(
+		SystemUtils::align(sizeof(Buffer::ObjectUBO), objectUBOAlignment)
+	);
+
+	m_objectUBOs.resize(SimulationConsts::MAX_FRAMES_IN_FLIGHT);
+	m_objectUBOMappedData.resize(SimulationConsts::MAX_FRAMES_IN_FLIGHT);
+
 
 	VkBufferUsageFlags uniformBufUsageFlags = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 
 	for (size_t i = 0; i < SimulationConsts::MAX_FRAMES_IN_FLIGHT; i++) {
+		// Creates the UBOs
 		VmaAllocationCreateInfo uniformBufAllocInfo{};
 		uniformBufAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_HOST;
 		uniformBufAllocInfo.requiredFlags = (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 		uniformBufAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+		/* NOTE: Should you transition to staging buffer uploads (maybe for instancing/compute), you'll need this flag:
+			uniformBufAllocInfo.flags |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+		*/
 		
-		createBuffer(m_vkContext, m_uniformBuffers[i], bufferSize, uniformBufUsageFlags, m_uniformBuffersAllocations[i], uniformBufAllocInfo);
+			// Global UBO
+		createBuffer(m_vkContext, m_globalUBOs[i].buffer, globalBufSize, uniformBufUsageFlags, m_globalUBOs[i].allocation, uniformBufAllocInfo);
+
+			// Object UBO
+		createBuffer(m_vkContext, m_objectUBOs[i].buffer, objectBufSize, uniformBufUsageFlags, m_objectUBOs[i].allocation, uniformBufAllocInfo);
+
 
 		// Maps the buffer allocation post-creation to get a pointer to the CPU memory block on which we can later write data
 		/*
 		The buffer allocation stays mapped to the pointer for the application's whole lifetime.
 		This technique is called "persistent mapping". We use it here because, as aforementioned, the UBOs are updated with new data every single frame, and mapping them alone costs a little performance, much less every frame.
 		*/
-		vmaMapMemory(m_vkContext.vmaAllocator, m_uniformBuffersAllocations[i], &m_uniformBuffersMappedData[i]);
+		vmaMapMemory(m_vkContext.vmaAllocator, m_globalUBOs[i].allocation, &m_globalUBOMappedData[i]);
+		vmaMapMemory(m_vkContext.vmaAllocator, m_objectUBOs[i].allocation, &m_objectUBOMappedData[i]);
 
-		VmaAllocation uniformBufAlloc = m_uniformBuffersAllocations[i];
+		// Cleanup task
+		VmaAllocation globalUBOAlloc = m_globalUBOs[i].allocation;
+		VmaAllocation objectUBOAlloc = m_objectUBOs[i].allocation;
+
 		CleanupTask task{};
 		task.caller = __FUNCTION__;
-		task.objectNames = { VARIABLE_NAME(m_uniformBuffersAllocations) };
-		task.vkObjects = { m_vkContext.vmaAllocator, uniformBufAlloc };
-		task.cleanupFunc = [this, uniformBufAlloc]() { vmaUnmapMemory(m_vkContext.vmaAllocator, uniformBufAlloc); };
+		task.objectNames = { VARIABLE_NAME(globalUBOAlloc), VARIABLE_NAME(objectUBOAlloc) };
+		task.vkObjects = { m_vkContext.vmaAllocator, globalUBOAlloc, objectUBOAlloc };
+		task.cleanupFunc = [this, globalUBOAlloc, objectUBOAlloc]() {
+			vmaUnmapMemory(m_vkContext.vmaAllocator, globalUBOAlloc);
+			vmaUnmapMemory(m_vkContext.vmaAllocator, objectUBOAlloc);
+		};
 
 		m_garbageCollector->createCleanupTask(task);
 	}

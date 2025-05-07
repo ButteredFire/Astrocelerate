@@ -7,6 +7,13 @@
 
 
 namespace Buffer {
+	// "Utility" struct that groups a buffer and its allocation.
+	struct BufferAndAlloc {
+		VkBuffer buffer;
+		VmaAllocation allocation;
+	};
+
+
 	// Global uniform buffer object.
 	struct GlobalUBO {
 		glm::mat4 view;
