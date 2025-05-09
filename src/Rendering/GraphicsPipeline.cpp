@@ -164,13 +164,22 @@ void GraphicsPipeline::createPipelineLayout() {
 void GraphicsPipeline::setUpDescriptors() {
 	// Setup
 		// Layout bindings
-			// Uniform buffer
-	VkDescriptorSetLayoutBinding uniformBufferLayoutBinding{};
-	uniformBufferLayoutBinding.binding = ShaderConsts::VERT_BIND_UNIFORM_UBO;
-	uniformBufferLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	uniformBufferLayoutBinding.descriptorCount = 1;
-	uniformBufferLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT; // Specifies which shader stages will the UBO(s) be referenced and used (through `VkShaderStageFlagBits` values; see the specification for more information)
-	uniformBufferLayoutBinding.pImmutableSamplers = nullptr;			// Specifies descriptors handling image-sampling
+			// Global uniform buffer
+	VkDescriptorSetLayoutBinding globalUBOLayoutBinding{};
+	globalUBOLayoutBinding.binding = ShaderConsts::VERT_BIND_GLOBAL_UBO;
+	globalUBOLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	globalUBOLayoutBinding.descriptorCount = 1;
+	globalUBOLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT; // Specifies which shader stages will the UBO(s) be referenced and used (through `VkShaderStageFlagBits` values; see the specification for more information)
+	globalUBOLayoutBinding.pImmutableSamplers = nullptr;			// Specifies descriptors handling image-sampling
+
+
+			// Per-object uniform buffer
+	VkDescriptorSetLayoutBinding objectUBOLayoutBinding{};
+	objectUBOLayoutBinding.binding = ShaderConsts::VERT_BIND_OBJECT_UBO;
+	objectUBOLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;  // Allows the same descriptor to reference different offsets within a uniform buffer at draw time. That is, there will be a single big buffer with all object UBOs for each frame, and making this descriptor dynamic lets you bind this buffer once, and access it via offsets.
+	globalUBOLayoutBinding.descriptorCount = 1;
+	globalUBOLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	objectUBOLayoutBinding.pImmutableSamplers = nullptr;
 
 
 			// Texture sampler
@@ -185,7 +194,8 @@ void GraphicsPipeline::setUpDescriptors() {
 
 	// Data organization
 	std::vector<VkDescriptorSetLayoutBinding> layoutBindings = {
-		uniformBufferLayoutBinding,
+		globalUBOLayoutBinding,
+		objectUBOLayoutBinding,
 		samplerLayoutBinding
 	};
 
@@ -193,6 +203,7 @@ void GraphicsPipeline::setUpDescriptors() {
 
 	std::vector<VkDescriptorPoolSize> poolSize = {
 		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, static_cast<uint32_t>(SimulationConsts::MAX_FRAMES_IN_FLIGHT) },
+		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, static_cast<uint32_t>(SimulationConsts::MAX_FRAMES_IN_FLIGHT) },
 		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, static_cast<uint32_t>(SimulationConsts::MAX_FRAMES_IN_FLIGHT) }
 	};
 
@@ -283,11 +294,11 @@ void GraphicsPipeline::createDescriptorSets() {
 	for (size_t i = 0; i < descSetLayouts.size(); i++) {
 		descriptorWrites.clear();
 
-		// Uniform buffer
-		VkDescriptorBufferInfo descBufInfo{};
-		descBufInfo.buffer = m_bufferManager->getUniformBuffers()[i].buffer;
-		descBufInfo.offset = 0;
-		descBufInfo.range = sizeof(UniformBufferObject); // Note: We can also use VK_WHOLE_SIZE if we want to overwrite the whole buffer (like what we're doing)
+		// Global uniform buffer
+		VkDescriptorBufferInfo descGlobalBufInfo{};
+		descGlobalBufInfo.buffer = m_bufferManager->getUniformBuffers()[i].buffer;
+		descGlobalBufInfo.offset = 0;
+		descGlobalBufInfo.range = sizeof(UniformBufferObject); // Note: We can also use VK_WHOLE_SIZE if we want to overwrite the whole buffer (like what we're doing)
 
 
 		// Texture sampler
@@ -302,7 +313,7 @@ void GraphicsPipeline::createDescriptorSets() {
 		VkWriteDescriptorSet uniformBufferDescWrite{};
 		uniformBufferDescWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		uniformBufferDescWrite.dstSet = m_descriptorSets[i];
-		uniformBufferDescWrite.dstBinding = ShaderConsts::VERT_BIND_UNIFORM_UBO;
+		uniformBufferDescWrite.dstBinding = ShaderConsts::VERT_BIND_GLOBAL_UBO;
 
 				// Since descriptors can be arrays, we must specify the first descriptor's index to update in the array.
 				// We are not using an array now, so we can leave it at 0.
@@ -319,7 +330,7 @@ void GraphicsPipeline::createDescriptorSets() {
 
 					We can only choose 1 out of 3.
 				*/
-		uniformBufferDescWrite.pBufferInfo = &descBufInfo;
+		uniformBufferDescWrite.pBufferInfo = &descGlobalBufInfo;
 		//uniformBufferDescWrite.pImageInfo = nullptr;
 		//uniformBufferDescWrite.pTexelBufferView = nullptr;
 

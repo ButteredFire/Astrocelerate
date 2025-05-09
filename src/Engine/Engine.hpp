@@ -18,6 +18,7 @@
 #include <Rendering/Renderer.hpp>
 #include <Rendering/TextureManager.hpp>
 #include <Rendering/GraphicsPipeline.hpp>
+#include <Rendering/Geometry/GeometryLoader.hpp>
 
 #include <Shaders/BufferManager.hpp>
 

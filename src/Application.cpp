@@ -128,7 +128,7 @@ int main() {
         //textureManager->createTexture((std::string(APP_SOURCE_DIR) + std::string("/assets/Models/Spacecraft/SpaceX_Starship/textures/")).c_str());
         //std::string path = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/app/ExperimentalAppLogo.png");
         //std::string path = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models", "Spacecraft/SpaceX_Starship/textures");
-        std::string path = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models", "TestModels/Cube/Textures/BaseColor.png");
+        std::string path = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models/TestModels", "Cube/Textures/BaseColor.png");
         //std::string path = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models", "TestModels/SolarSailSpaceship/Textures/13892_diffuse.jpg");
         //std::string path = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models", "TestModels/Plane/Textures/BaseColor.png");
         //std::string path = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models", "TestModels/VikingRoom/viking_room.png");
@@ -142,6 +142,14 @@ int main() {
 
 
         //  TODO: Load geometry here!
+        GeometryLoader geometryLoader;
+
+        std::string cubePath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models/TestModels", "Cube/Cube.obj");
+        std::string spherePath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models/TestModels", "Sphere/Sphere.obj");
+
+        geometryLoader.loadGeometryFromFile(cubePath);
+        geometryLoader.loadGeometryFromFile(spherePath);
+        std::vector<Geometry::MeshOffset> meshOffsets = geometryLoader.bakeGeometry();
         
 
             // Graphics pipeline

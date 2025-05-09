@@ -36,7 +36,8 @@ namespace APP {
 namespace ShaderConsts {
 	// Locations
 		// Vertex shader
-	constexpr int VERT_BIND_UNIFORM_UBO = 0;
+	constexpr int VERT_BIND_GLOBAL_UBO = 0;
+	constexpr int VERT_BIND_OBJECT_UBO = 1;
 
 	constexpr int VERT_LOC_IN_INPOSITION = 0;
 	constexpr int VERT_LOC_IN_INCOLOR = 1;

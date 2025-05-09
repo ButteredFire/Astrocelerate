@@ -13,19 +13,7 @@ void GeometryLoader::loadGeometryFromFile(const std::string& path) {
 	AssimpParser parser;
 	Geometry::MeshData meshData = parser.parse(path);
 
-	PrecomputedMeshData precomp{};
-	precomp.meshData = meshData;
-
-	if (m_meshes.empty()) {
-		precomp.cumulativeVertexSize = meshData.vertices.size();
-		precomp.cumulativeIndexSize = meshData.indices.size();
-	}
-	else {
-		precomp.cumulativeVertexSize = meshData.vertices.size() + m_meshes.back().cumulativeVertexSize;
-		precomp.cumulativeIndexSize = meshData.indices.size() + m_meshes.back().cumulativeIndexSize;
-	}
-
-	m_meshes.push_back(precomp);
+	m_meshes.push_back(meshData);
 }
 
 
@@ -33,15 +21,24 @@ std::vector<Geometry::MeshOffset> GeometryLoader::bakeGeometry() {
 	std::vector<Geometry::MeshOffset> offsets;
 	offsets.reserve(m_meshes.size());
 
+
+	// First pass: Gets total vertex and index size for memory pre-allocation
+	size_t cumulativeVertexSize = 0;
+	size_t cumulativeIndexSize = 0;
+	for (const auto& mesh : m_meshes) {
+		cumulativeVertexSize += mesh.vertices.size();
+		cumulativeIndexSize += mesh.indices.size();
+	}
+
 	std::vector<Geometry::Vertex> vertexData;
-	vertexData.reserve(m_meshes.back().cumulativeVertexSize);
+	vertexData.reserve(cumulativeVertexSize);
 
 	std::vector<uint32_t> indexData;
-	indexData.reserve(m_meshes.back().cumulativeIndexSize);
+	indexData.reserve(cumulativeIndexSize);
 
-	for (const auto& precompMesh : m_meshes) {
-		Geometry::MeshData mesh = precompMesh.meshData;
 
+	// Second pass: Process mesh data
+	for (const auto& mesh : m_meshes) {
 		size_t prevVertSize = vertexData.size();
 		size_t prevIndexSize = indexData.size();
 

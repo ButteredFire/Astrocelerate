@@ -27,7 +27,7 @@ namespace SystemUtils {
 
 	   @return: The aligned size.
     */
-    size_t align(size_t size, size_t alignment) {
+    inline size_t align(size_t size, size_t alignment) {
         return (size + alignment - 1) & ~(alignment - 1);
     }
 }
