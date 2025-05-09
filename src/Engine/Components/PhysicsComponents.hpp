@@ -5,6 +5,7 @@
 
 #include <glm_config.hpp>
 
+
 namespace Component {
 	struct RigidBody {
 		glm::vec3 position = glm::vec3();				// Position

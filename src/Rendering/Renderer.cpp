@@ -52,7 +52,6 @@ void Renderer::initializeRenderables() {
     };
     m_vertexRenderComponent.vertexBufferOffsets = { 0 };
 
-    m_vertexRenderComponent.vertexData = m_bufferManager->getVertexData();
     m_vertexRenderComponent.indexBuffer = m_bufferManager->getIndexBuffer();
     m_vertexRenderComponent.vertexIndexData = m_bufferManager->getVertexIndexData();
 

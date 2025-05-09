@@ -136,8 +136,12 @@ public:
     inline const std::vector<uint32_t> getVertexIndexData() const { return m_vertIndices; }
 
 
-    /* Gets the uniform buffers */
-    inline const std::vector<Buffer::BufferAndAlloc>& getUniformBuffers() const { return m_globalUBOs; }
+    /* Gets the global uniform buffers */
+    inline const std::vector<Buffer::BufferAndAlloc>& getGlobalUBOs() const { return m_globalUBOs; }
+
+
+    /* Gets the object uniform buffers */
+    inline const std::vector<Buffer::BufferAndAlloc>& getObjectUBOs() const { return m_objectUBOs; }
 
 private:
     VulkanContext& m_vkContext;

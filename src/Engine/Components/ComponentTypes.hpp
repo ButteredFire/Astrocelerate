@@ -15,4 +15,9 @@ namespace ComponentType {
 		T_MODEL_MESH,
 		T_MODEL_MATERIAL
 	};
+
+
+	enum Physics {
+		T_PHYSICS_RIGIDBODY
+	};
 }

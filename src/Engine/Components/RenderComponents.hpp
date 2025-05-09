@@ -13,10 +13,24 @@
 #include <imgui/imgui_impl_vulkan.h>
 
 #include <CoreStructs/Geometry.hpp>
+
 #include <Engine/Components/ComponentTypes.hpp>
+#include <Engine/Components/WorldSpaceComponents.hpp>
 
 
 namespace Component {
+    struct MeshRenderable {
+        Geometry::MeshOffset meshOffset;                    // Mesh offset into the global vertex and index buffers.
+        Transform transform;                                // World matrix.
+        uint32_t textureIndex;                              // Index into a texture atlas or descriptor array. (TODO)
+    };
+
+
+    struct GUIRenderable {
+        ImDrawData* guiDrawData = nullptr;                  // The ImGui draw data.
+    };
+
+
     struct Renderable {
         ComponentType::Renderable type;             // The renderable type.
 
@@ -24,7 +38,6 @@ namespace Component {
         std::vector<VkBuffer> vertexBuffers;                // A vector of vertex buffers.
         std::vector<VkDeviceSize> vertexBufferOffsets;      // A vector of vertex buffer offsets corresponding to their vertex buffers.
         VkBuffer indexBuffer = VK_NULL_HANDLE;              // The index buffer.
-        std::vector<Geometry::Vertex> vertexData;
         std::vector<uint32_t> vertexIndexData;              // Vertex index data for the index buffer.
         VkDescriptorSet descriptorSet = VK_NULL_HANDLE;     // The descriptor set to be used in vertex rendering.
         

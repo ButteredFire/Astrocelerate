@@ -177,8 +177,8 @@ void GraphicsPipeline::setUpDescriptors() {
 	VkDescriptorSetLayoutBinding objectUBOLayoutBinding{};
 	objectUBOLayoutBinding.binding = ShaderConsts::VERT_BIND_OBJECT_UBO;
 	objectUBOLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;  // Allows the same descriptor to reference different offsets within a uniform buffer at draw time. That is, there will be a single big buffer with all object UBOs for each frame, and making this descriptor dynamic lets you bind this buffer once, and access it via offsets.
-	globalUBOLayoutBinding.descriptorCount = 1;
-	globalUBOLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	objectUBOLayoutBinding.descriptorCount = 1;
+	objectUBOLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 	objectUBOLayoutBinding.pImmutableSamplers = nullptr;
 
 
@@ -246,9 +246,10 @@ void GraphicsPipeline::createDescriptorPool(uint32_t maxDescriptorSetCount, std:
 	descPoolCreateInfo.pPoolSizes = poolSizes.data();
 	descPoolCreateInfo.flags = createFlags;
 
+	// TODO: See why the hell `maxSets` is the number of frames in flight
 	// Specifies the maximum number of descriptor sets that can be allocated
-	descPoolCreateInfo.maxSets = maxDescriptorSetCount;
-
+	//descPoolCreateInfo.maxSets = maxDescriptorSetCount;
+	descPoolCreateInfo.maxSets = SimulationConsts::MAX_FRAMES_IN_FLIGHT;
 
 	VkResult result = vkCreateDescriptorPool(m_vkContext.Device.logicalDevice, &descPoolCreateInfo, nullptr, &descriptorPool);
 	if (result != VK_SUCCESS) {
@@ -295,10 +296,17 @@ void GraphicsPipeline::createDescriptorSets() {
 		descriptorWrites.clear();
 
 		// Global uniform buffer
-		VkDescriptorBufferInfo descGlobalBufInfo{};
-		descGlobalBufInfo.buffer = m_bufferManager->getUniformBuffers()[i].buffer;
-		descGlobalBufInfo.offset = 0;
-		descGlobalBufInfo.range = sizeof(UniformBufferObject); // Note: We can also use VK_WHOLE_SIZE if we want to overwrite the whole buffer (like what we're doing)
+		VkDescriptorBufferInfo globalUBOInfo{};
+		globalUBOInfo.buffer = m_bufferManager->getGlobalUBOs()[i].buffer;
+		globalUBOInfo.offset = 0;
+		globalUBOInfo.range = sizeof(Buffer::GlobalUBO); // Note: We can also use VK_WHOLE_SIZE if we want to overwrite the whole buffer (like what we're doing)
+
+
+		// Per-object uniform buffer
+		VkDescriptorBufferInfo objectUBOInfo{};
+		objectUBOInfo.buffer = m_bufferManager->getObjectUBOs()[i].buffer;
+		objectUBOInfo.offset = 0; // Offset will be dynamic during draw calls
+		objectUBOInfo.range = sizeof(Buffer::ObjectUBO);
 
 
 		// Texture sampler
@@ -309,18 +317,18 @@ void GraphicsPipeline::createDescriptorSets() {
 
 
 		// Updates the configuration for each descriptor
-			// Uniform buffer descriptor write
-		VkWriteDescriptorSet uniformBufferDescWrite{};
-		uniformBufferDescWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		uniformBufferDescWrite.dstSet = m_descriptorSets[i];
-		uniformBufferDescWrite.dstBinding = ShaderConsts::VERT_BIND_GLOBAL_UBO;
+			// Global uniform buffer descriptor write
+		VkWriteDescriptorSet globalUBODescWrite{};
+		globalUBODescWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		globalUBODescWrite.dstSet = m_descriptorSets[i];
+		globalUBODescWrite.dstBinding = ShaderConsts::VERT_BIND_GLOBAL_UBO;
 
 				// Since descriptors can be arrays, we must specify the first descriptor's index to update in the array.
 				// We are not using an array now, so we can leave it at 0.
-		uniformBufferDescWrite.dstArrayElement = 0;
+		globalUBODescWrite.dstArrayElement = 0;
 
-		uniformBufferDescWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		uniformBufferDescWrite.descriptorCount = 1; // Specifies how many array elements to update (refer to `VkWriteDescriptorSet::dstArrayElement`)
+		globalUBODescWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		globalUBODescWrite.descriptorCount = 1; // Specifies how many array elements to update (refer to `VkWriteDescriptorSet::dstArrayElement`)
 
 				/* The descriptor write configuration also needs a reference to its Info struct, and this part depends on the type of descriptor:
 		
@@ -330,14 +338,27 @@ void GraphicsPipeline::createDescriptorSets() {
 
 					We can only choose 1 out of 3.
 				*/
-		uniformBufferDescWrite.pBufferInfo = &descGlobalBufInfo;
+		globalUBODescWrite.pBufferInfo = &globalUBOInfo;
 		//uniformBufferDescWrite.pImageInfo = nullptr;
 		//uniformBufferDescWrite.pTexelBufferView = nullptr;
 
-		descriptorWrites.push_back(uniformBufferDescWrite);
+		descriptorWrites.push_back(globalUBODescWrite);
 
 
-		// Texture sampler descriptor write
+			// Object uniform buffer descriptor write
+		VkWriteDescriptorSet objectUBODescWrite{};
+		objectUBODescWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		objectUBODescWrite.dstSet = m_descriptorSets[i];
+		objectUBODescWrite.dstBinding = ShaderConsts::VERT_BIND_OBJECT_UBO;
+		objectUBODescWrite.dstArrayElement = 0;
+		objectUBODescWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+		objectUBODescWrite.descriptorCount = 1;
+		objectUBODescWrite.pBufferInfo = &objectUBOInfo;
+
+		descriptorWrites.push_back(objectUBODescWrite);
+
+
+			// Texture sampler descriptor write
 		VkWriteDescriptorSet samplerDescWrite{};
 		samplerDescWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		samplerDescWrite.dstSet = m_descriptorSets[i];
