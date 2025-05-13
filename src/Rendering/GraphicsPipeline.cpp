@@ -376,7 +376,7 @@ void GraphicsPipeline::createDescriptorSets() {
 	}
 
 
-	m_vkContext.GraphicsPipeline.m_descriptorSets = m_descriptorSets;
+	m_vkContext.GraphicsPipeline.descriptorSets = m_descriptorSets;
 }
 
 
@@ -423,7 +423,7 @@ void GraphicsPipeline::createRenderPass() {
 
 
 	
-	// Subpasses
+	// Subpasses (NOTE: Update subpass types in Constants.h on adding new subpasses)
 		// Main subpass
 	VkSubpassDescription mainSubpass{};
 	mainSubpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;

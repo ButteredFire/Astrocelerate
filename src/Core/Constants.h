@@ -32,6 +32,7 @@ namespace APP {
 	#endif
 }
 
+
 // Shader properties
 namespace ShaderConsts {
 	// Locations
@@ -52,7 +53,7 @@ namespace ShaderConsts {
 
 
 		// Fragment shader
-	constexpr int FRAG_BIND_UNIFORM_TEXURE_SAMPLER = 1;
+	constexpr int FRAG_BIND_UNIFORM_TEXURE_SAMPLER = 2;
 
 	constexpr int FRAG_LOC_IN_FRAGCOLOR = VERT_LOC_OUT_FRAGCOLOR;
 	constexpr int FRAG_LOC_IN_FRAGTEXTURECOORD = VERT_LOC_OUT_FRAGTEXTURECOORD;
@@ -65,6 +66,15 @@ namespace ShaderConsts {
 	// Compiled shaders
 	inline const std::string VERTEX = std::string(APP_BINARY_DIR) + std::string("/compiled_shaders/VertexShader.spv");
 	inline const std::string FRAGMENT = std::string(APP_BINARY_DIR) + std::string("/compiled_shaders/FragmentShader.spv");
+}
+
+
+// Subpass properties
+namespace SubpassConsts {
+	enum Type {
+		T_MAIN,
+		T_IMGUI
+	};
 }
 
 

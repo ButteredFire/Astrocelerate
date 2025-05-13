@@ -34,6 +34,8 @@
 
 #include <Systems/RenderSystem.hpp>
 
+#include <Shaders/BufferManager.hpp>
+
 
 // A structure that stores the configuration for single-use command buffers
 struct SingleUseCommandBufferInfo {
@@ -129,6 +131,8 @@ private:
 
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 	std::shared_ptr<GarbageCollector> m_garbageCollector;
+
+	std::shared_ptr<BufferManager> m_bufferManager;
 
 	// Command pools manage the memory that is used to store the buffers
 	// Command buffers are allocated from them

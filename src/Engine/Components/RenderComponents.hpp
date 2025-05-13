@@ -22,27 +22,20 @@ namespace Component {
     struct MeshRenderable {
         Geometry::MeshOffset meshOffset;                    // Mesh offset into the global vertex and index buffers.
         Transform transform;                                // World matrix.
+        uint32_t uboIndex;                                  // Index into the mesh's uniform buffer object,
         uint32_t textureIndex;                              // Index into a texture atlas or descriptor array. (TODO)
-    };
 
 
-    struct GUIRenderable {
-        ImDrawData* guiDrawData = nullptr;                  // The ImGui draw data.
-    };
-
-
-    struct Renderable {
-        ComponentType::Renderable type;             // The renderable type.
-
-        // Vertex rendering
+        // Deprecated
         std::vector<VkBuffer> vertexBuffers;                // A vector of vertex buffers.
         std::vector<VkDeviceSize> vertexBufferOffsets;      // A vector of vertex buffer offsets corresponding to their vertex buffers.
         VkBuffer indexBuffer = VK_NULL_HANDLE;              // The index buffer.
         std::vector<uint32_t> vertexIndexData;              // Vertex index data for the index buffer.
         VkDescriptorSet descriptorSet = VK_NULL_HANDLE;     // The descriptor set to be used in vertex rendering.
-        
+    };
 
-        // GUI rendering
+
+    struct GUIRenderable {
         ImDrawData* guiDrawData = nullptr;                  // The ImGui draw data.
     };
 }

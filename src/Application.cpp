@@ -90,6 +90,11 @@ int main() {
     ServiceLocator::registerService(textureManager);
 
 
+    // Subpass binder
+    std::shared_ptr<SubpassBinder> subpassBinder = std::make_shared<SubpassBinder>();
+    ServiceLocator::registerService(subpassBinder);
+
+
     try {
         // Pipeline initialization
             // Creates a window
@@ -142,14 +147,6 @@ int main() {
 
 
         //  TODO: Load geometry here!
-        GeometryLoader geometryLoader;
-
-        std::string cubePath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models/TestModels", "Cube/Cube.obj");
-        std::string spherePath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models/TestModels", "Sphere/Sphere.obj");
-
-        geometryLoader.loadGeometryFromFile(cubePath);
-        geometryLoader.loadGeometryFromFile(spherePath);
-        std::vector<Geometry::MeshOffset> meshOffsets = geometryLoader.bakeGeometry();
         
 
             // Graphics pipeline

@@ -72,8 +72,6 @@ private:
 	std::shared_ptr<BufferManager> m_bufferManager;
 	std::shared_ptr<VkCommandManager> m_commandManager;
 
-	std::shared_ptr<GraphicsPipeline> m_graphicsPipeline;
-
 	std::shared_ptr<UIRenderer> m_imguiRenderer;
 
 	uint32_t m_currentFrame = 0;
@@ -81,8 +79,8 @@ private:
 	Entity m_vertexRenderable{};
 	Entity m_guiRenderable{};
 
-	Component::Renderable m_vertexRenderComponent{};
-	Component::Renderable m_guiRenderComponent{};
+	Component::MeshRenderable m_vertexRenderComponent{};
+	Component::GUIRenderable m_guiRenderComponent{};
 
 	/* Creates renderable entities. */
 	void initializeRenderables();

@@ -32,7 +32,8 @@ void Engine::initComponents() {
     m_registry->initComponentArray<Component::Material>();
 
     /* RenderComponents.hpp */
-    m_registry->initComponentArray<Component::Renderable>();
+    m_registry->initComponentArray<Component::MeshRenderable>();
+    m_registry->initComponentArray<Component::GUIRenderable>();
 
     /* PhysicsComponents.hpp */
     m_registry->initComponentArray<Component::RigidBody>();

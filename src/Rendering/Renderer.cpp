@@ -16,7 +16,6 @@ Renderer::Renderer(VulkanContext& context):
 
     m_swapchainManager = ServiceLocator::getService<VkSwapchainManager>(__FUNCTION__);
     m_bufferManager = ServiceLocator::getService<BufferManager>(__FUNCTION__);
-    m_graphicsPipeline = ServiceLocator::getService<GraphicsPipeline>(__FUNCTION__);
     m_commandManager = ServiceLocator::getService<VkCommandManager>(__FUNCTION__);
 
     m_imguiRenderer = ServiceLocator::getService<UIRenderer>(__FUNCTION__);
@@ -40,13 +39,13 @@ void Renderer::init() {
 
 
 void Renderer::initializeRenderables() {
-    m_vertexRenderable = m_globalRegistry->createEntity();
+    //m_vertexRenderable = m_globalRegistry->createEntity();
     m_guiRenderable = m_globalRegistry->createEntity();
 
     // Specifies renderable components
 
     // Vertex rendering
-    m_vertexRenderComponent.type = ComponentType::Renderable::T_RENDERABLE_VERTEX;
+    //m_vertexRenderComponent.type = ComponentType::Renderable::T_RENDERABLE_VERTEX;
     m_vertexRenderComponent.vertexBuffers = {
         m_bufferManager->getVertexBuffer()
     };
@@ -55,24 +54,24 @@ void Renderer::initializeRenderables() {
     m_vertexRenderComponent.indexBuffer = m_bufferManager->getIndexBuffer();
     m_vertexRenderComponent.vertexIndexData = m_bufferManager->getVertexIndexData();
 
-    //m_vertexRenderComponent.descriptorSet = m_vkContext.GraphicsPipeline.m_descriptorSets[m_currentFrame];
+    //m_vertexRenderComponent.descriptorSet = m_vkContext.GraphicsPipeline.descriptorSets[m_currentFrame];
 
     // GUI rendering
     
-    m_guiRenderComponent.type = ComponentType::Renderable::T_RENDERABLE_GUI;
+    //m_guiRenderComponent.type = ComponentType::Renderable::T_RENDERABLE_GUI;
     //m_guiRenderComponent.guiDrawData = ImGui::GetDrawData();
 
 
-    m_globalRegistry->addComponent(m_vertexRenderable.id, m_vertexRenderComponent);
+    //m_globalRegistry->addComponent(m_vertexRenderable.id, m_vertexRenderComponent);
     m_globalRegistry->addComponent(m_guiRenderable.id, m_guiRenderComponent);
 }
 
 
 void Renderer::drawFrame() {
-    m_vertexRenderComponent.descriptorSet = m_vkContext.GraphicsPipeline.m_descriptorSets[m_currentFrame];
+    //m_vertexRenderComponent.descriptorSet = m_vkContext.GraphicsPipeline.descriptorSets[m_currentFrame];
     m_guiRenderComponent.guiDrawData = ImGui::GetDrawData();
 
-    m_globalRegistry->updateComponent(m_vertexRenderable.id, m_vertexRenderComponent);
+    //m_globalRegistry->updateComponent(m_vertexRenderable.id, m_vertexRenderComponent);
     m_globalRegistry->updateComponent(m_guiRenderable.id, m_guiRenderComponent);
 
     /*
@@ -91,7 +90,7 @@ void Renderer::drawFrame() {
     vertexRenderComponent.indexBuffer = m_bufferManager->getIndexBuffer();
     vertexRenderComponent.vertexIndexData = m_bufferManager->getVertexIndexData();
 
-    vertexRenderComponent.descriptorSet = m_vkContext.GraphicsPipeline.m_descriptorSets[m_currentFrame];
+    vertexRenderComponent.descriptorSet = m_vkContext.GraphicsPipeline.descriptorSets[m_currentFrame];
 
         // GUI rendering
     Component::Renderable guiRenderComponent{};
@@ -158,17 +157,17 @@ void Renderer::drawFrame() {
     }
 
 
-        // Records commands
-    m_imguiRenderer->renderFrames();
-    
-    m_commandManager->recordRenderingCommandBuffer(m_vkContext.CommandObjects.graphicsCmdBuffers[m_currentFrame], imageIndex, m_currentFrame);
-    
-
         // Updates the uniform buffer
     Event::UpdateUBOs updateUBOsEvent{};
     updateUBOsEvent.currentFrame = m_currentFrame;
 
     m_eventDispatcher->publish<Event::UpdateUBOs>(updateUBOsEvent, true);
+
+    
+        // Records commands
+    m_imguiRenderer->renderFrames();
+    
+    m_commandManager->recordRenderingCommandBuffer(m_vkContext.CommandObjects.graphicsCmdBuffers[m_currentFrame], imageIndex, m_currentFrame);
 
 
         // Submits the buffer to the queue

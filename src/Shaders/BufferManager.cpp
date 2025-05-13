@@ -18,7 +18,8 @@ BufferManager::~BufferManager() {}
 void BufferManager::bindEvents() {
 	m_eventDispatcher->subscribe<Event::UpdateUBOs>(
 		[this](const Event::UpdateUBOs& event) {
-			this->updateUniformBuffer(event.currentFrame);
+			this->updateGlobalUBO(event.currentFrame);
+			this->updateObjectUBOs(event.currentFrame);
 		}
 	);
 }
@@ -54,6 +55,53 @@ void BufferManager::init() {
 	createGlobalVertexBuffer(m_vertices);
 	createGlobalIndexBuffer(m_vertIndices);
 	*/
+
+	// Load geometry
+	GeometryLoader geometryLoader;
+
+	std::string planetPath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models/TestModels", "Sphere/Sphere.obj");
+	std::string satellitePath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models/TestModels", "Cube/Cube.obj");
+
+	geometryLoader.loadGeometryFromFile(planetPath);
+	geometryLoader.loadGeometryFromFile(satellitePath);
+	std::vector<Geometry::MeshOffset> meshOffsets = geometryLoader.bakeGeometry();
+
+	m_totalObjects = 2;
+
+	// Define rigid bodies
+	m_planet = m_registry->createEntity();
+	m_satellite = m_registry->createEntity();
+
+		// Planet components
+	Component::RigidBody planetRB{};
+	planetRB.position = glm::vec3(0.0f);
+	planetRB.velocity = glm::vec3(0.0f);
+	planetRB.acceleration = glm::vec3(0.0f);
+	planetRB.mass = (5.972 * 10e24);
+
+	Component::MeshRenderable planetRenderable{};
+	planetRenderable.uboIndex = 0;
+	planetRenderable.meshOffset = meshOffsets[0];
+
+
+		// Satellite components
+	Component::RigidBody satelliteRB{};
+	satelliteRB.position = glm::vec3(0.0f);
+	satelliteRB.velocity = glm::vec3(0.0f, 0.0f, 3.5f);
+	satelliteRB.acceleration = glm::vec3(0.0f);
+	satelliteRB.mass = 20;
+
+	Component::MeshRenderable satelliteRenderable{};
+	satelliteRenderable.uboIndex = 1;
+	satelliteRenderable.meshOffset = meshOffsets[1];
+
+
+	m_registry->addComponent(m_planet.id, planetRB);
+	m_registry->addComponent(m_planet.id, planetRenderable);
+
+	m_registry->addComponent(m_satellite.id, satelliteRB);
+	m_registry->addComponent(m_satellite.id, satelliteRenderable);
+
 
 	createUniformBuffers();
 }
@@ -168,6 +216,59 @@ void BufferManager::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceS
 
 	// Stops recording the command buffer and submits recorded data to the GPU
 	VkCommandManager::endSingleUseCommandBuffer(m_vkContext, &cmdBufInfo, commandBuffer);
+}
+
+
+void BufferManager::updateGlobalUBO(uint32_t currentImage) {
+	Buffer::GlobalUBO ubo{};
+
+
+	// glm::lookAt(eyePosition, centerPosition, upAxis);
+	glm::vec3 eyePosition = glm::vec3(2.0f, 0.0f, 2.0f) * 100.0f;
+	//glm::vec3 eyePosition = glm::vec3(3.0f, 0.0f, 5.0f) * 300.0f;
+	glm::vec3 centerPosition = glm::vec3(0.0f, 0.0f, 0.0f);
+	glm::vec3 upAxis = glm::vec3(0.0f, 0.0f, 1.0f);
+
+	ubo.view = glm::lookAt(eyePosition, centerPosition, upAxis);
+
+
+	// glm::perspective(fieldOfView, aspectRatio, nearClipPlane, farClipPlane);
+	constexpr float fieldOfView = glm::radians(60.0f);
+	float aspectRatio = static_cast<float>(m_vkContext.SwapChain.extent.width / m_vkContext.SwapChain.extent.height);
+	float nearClipPlane = 0.01f;
+	float farClipPlane = 1e5f;
+
+	ubo.projection = glm::perspective(fieldOfView, aspectRatio, nearClipPlane, farClipPlane);
+
+
+	memcpy(m_globalUBOMappedData[currentImage], &ubo, sizeof(ubo));
+}
+
+
+void BufferManager::updateObjectUBOs(uint32_t currentImage) {
+	m_eventDispatcher->publish(Event::UpdateRigidBodies{}, true);
+
+	auto view = m_registry->getView<Component::RigidBody, Component::MeshRenderable>();
+
+	for (const auto& [entity, rigidBody, meshRenderable] : view) {
+		static auto startTime = std::chrono::high_resolution_clock::now();
+		auto currentTime = std::chrono::high_resolution_clock::now();
+		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+
+		Buffer::ObjectUBO ubo{};
+
+		// glm::rotate(transformation, rotationAngle, rotationAxis);
+		const glm::mat4 identityMat = glm::mat4(1.0f);
+		float rotationAngle = (time * glm::radians(30.0f));
+		glm::vec3 rotationAxis = glm::vec3(0.0f, 0.0f, 1.0f);
+
+		ubo.model = glm::rotate(identityMat, rotationAngle, rotationAxis);
+		ubo.model *= glm::translate(identityMat, rigidBody.position);
+
+		
+		void* uboDst = getPerObjectUBO(m_totalObjects, currentImage, meshRenderable.uboIndex);
+		memcpy(uboDst, &ubo, sizeof(ubo));
+	}
 }
 
 

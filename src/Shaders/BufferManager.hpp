@@ -40,6 +40,8 @@
 
 #include <Systems/Time.hpp>
 
+#include <Rendering/Geometry/GeometryLoader.hpp>
+
 
 /* VERY IMPORTANT EXPLANATION BEHIND alignas(...) PER STRUCT MEMBER: "Alignment requirements"
 
@@ -116,7 +118,20 @@ public:
     void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize deviceSize);
     
 
-    /* Updates the uniform buffer. 
+    /* Updates the global uniform buffer.
+        @param currentImage: The index of the current image/frame.
+    */
+    void updateGlobalUBO(uint32_t currentImage);
+
+
+    /* Updates per-object uniform buffers.
+        @param currentImage: The index of the current image/frame.
+    */
+    void updateObjectUBOs(uint32_t currentImage);
+
+
+    /* Updates the uniform buffer.
+        @deprecated This no longer works.
 	    @param currentImage: The index of the current image/frame.
     */
     void updateUniformBuffer(uint32_t currentImage);
@@ -153,6 +168,11 @@ private:
     
     Entity m_UBOEntity{};
     Component::RigidBody m_UBORigidBody{};
+
+    Entity m_planet{};
+    Entity m_satellite{};
+
+    size_t m_totalObjects;
     
     
     VkBuffer m_vertexBuffer = VK_NULL_HANDLE;
@@ -175,6 +195,11 @@ private:
 
 
     void bindEvents();
+
+
+    inline void* getPerObjectUBO(size_t totalObjects, uint32_t frameIndex, uint32_t uboIndex) {
+        return m_objectUBOMappedData[frameIndex * totalObjects + uboIndex];
+    }
 
 
     /* Writes data to a buffer that is allocated in GPU (device-local) memory.
