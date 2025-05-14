@@ -29,6 +29,6 @@ PhysicsSystem::PhysicsSystem() {
 void PhysicsSystem::updateRigidBody(Component::RigidBody& rigidBody) {
 	float dt = Time::GetDeltaTime();
 
-	rigidBody.position += rigidBody.velocity * dt;
+	rigidBody.transform.position += rigidBody.velocity * dt;
 	rigidBody.velocity += rigidBody.acceleration * dt;
 }

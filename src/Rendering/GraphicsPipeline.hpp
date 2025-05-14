@@ -44,12 +44,13 @@ public:
 
 
 	/* Creates a descriptor pool.
-		@param maxDescriptorSetCount: The maximum number of descriptor sets for which the descriptor pool is to be allocated.
+		@deprecated parameter maxDescriptorSetCount: The maximum number of descriptor sets for which the descriptor pool is to be allocated.
+
 		@param poolSizes: A vector storing descriptor pool sizes. Note that the resulting descriptor pool's max sets value is the cumulative descriptor count of all pool sizes in the vector.
 		@param descriptorPool: The descriptor pool to be created.
 		@param createFlags (Default: null): The descriptor pool's create flags.
 	*/
-	void createDescriptorPool(uint32_t maxDescriptorSetCount, std::vector<VkDescriptorPoolSize> poolSizes, VkDescriptorPool& descriptorPool, VkDescriptorPoolCreateFlags createFlags = VkDescriptorPoolCreateFlags());
+	void createDescriptorPool(std::vector<VkDescriptorPoolSize> poolSizes, VkDescriptorPool& descriptorPool, VkDescriptorPoolCreateFlags createFlags = VkDescriptorPoolCreateFlags());
 
 
 	/* Creates depth buffering resources. */

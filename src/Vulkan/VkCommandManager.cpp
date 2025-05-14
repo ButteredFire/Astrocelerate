@@ -10,8 +10,6 @@ VkCommandManager::VkCommandManager(VulkanContext& context):
 	m_eventDispatcher = ServiceLocator::getService<EventDispatcher>(__FUNCTION__);
 	m_garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
 
-	m_bufferManager = ServiceLocator::getService<BufferManager>(__FUNCTION__);
-
 	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 };
 
@@ -112,30 +110,6 @@ void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, 
 	scissor.offset = { 0, 0 };
 	scissor.extent = m_vkContext.SwapChain.extent;
 	vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
-
-
-	// Mesh rendering
-				// Bind vertex and index buffers, then draw
-			/* vkCmdDraw parameters (Vulkan specs):
-				- commandBuffer: The command buffer to record the draw commands into
-				- vertexCount: The number of vertices to draw
-				- instanceCount: The number of instances to draw (useful for instanced rendering)
-				- firstVertex: The index of the first vertex to draw. It is used as an offset into the vertex buffer, and defines the lowest value of gl_VertexIndex.
-				- firstInstance: The instance ID of the first instance to draw. It is used as an offset for instanced rendering, and defines the lowest value of gl_InstanceIndex.
-			*/
-			// Vertex buffers
-	VkBuffer vertexBuffers[] = {
-		m_bufferManager->getVertexBuffer()
-	};
-	VkDeviceSize vertexBufferOffsets[] = {0};
-
-	vkCmdBindVertexBuffers(cmdBuffer, 0, 1, vertexBuffers, vertexBufferOffsets);
-
-
-	// Index buffer (note: you can only have 1 index buffer)
-	VkBuffer indexBuffer = m_bufferManager->getIndexBuffer();
-	vkCmdBindIndexBuffer(cmdBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-
 
 
 	// Processes renderables

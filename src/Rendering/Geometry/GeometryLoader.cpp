@@ -3,7 +3,7 @@
 
 GeometryLoader::GeometryLoader() {
 
-	m_bufferManager = ServiceLocator::getService<BufferManager>(__FUNCTION__);
+	m_eventDispatcher = ServiceLocator::getService<EventDispatcher>(__FUNCTION__);
 
 	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
@@ -53,8 +53,11 @@ std::vector<Geometry::MeshOffset> GeometryLoader::bakeGeometry() {
 		offsets.push_back(offset);
 	}
 
-	m_bufferManager->createGlobalVertexBuffer(vertexData);
-	m_bufferManager->createGlobalIndexBuffer(indexData);
+	Event::InitGlobalBuffers event{};
+	event.vertexData = vertexData;
+	event.indexData = indexData;
+
+	m_eventDispatcher->publish(event);
 
 	Log::print(Log::T_SUCCESS, __FUNCTION__, "Baked " + std::to_string(m_meshes.size()) + " objects.");
 

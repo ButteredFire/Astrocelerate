@@ -39,30 +39,7 @@ void Renderer::init() {
 
 
 void Renderer::initializeRenderables() {
-    //m_vertexRenderable = m_globalRegistry->createEntity();
     m_guiRenderable = m_globalRegistry->createEntity();
-
-    // Specifies renderable components
-
-    // Vertex rendering
-    //m_vertexRenderComponent.type = ComponentType::Renderable::T_RENDERABLE_VERTEX;
-    m_vertexRenderComponent.vertexBuffers = {
-        m_bufferManager->getVertexBuffer()
-    };
-    m_vertexRenderComponent.vertexBufferOffsets = { 0 };
-
-    m_vertexRenderComponent.indexBuffer = m_bufferManager->getIndexBuffer();
-    m_vertexRenderComponent.vertexIndexData = m_bufferManager->getVertexIndexData();
-
-    //m_vertexRenderComponent.descriptorSet = m_vkContext.GraphicsPipeline.descriptorSets[m_currentFrame];
-
-    // GUI rendering
-    
-    //m_guiRenderComponent.type = ComponentType::Renderable::T_RENDERABLE_GUI;
-    //m_guiRenderComponent.guiDrawData = ImGui::GetDrawData();
-
-
-    //m_globalRegistry->addComponent(m_vertexRenderable.id, m_vertexRenderComponent);
     m_globalRegistry->addComponent(m_guiRenderable.id, m_guiRenderComponent);
 }
 

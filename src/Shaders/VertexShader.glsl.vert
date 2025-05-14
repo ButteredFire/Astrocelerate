@@ -12,7 +12,6 @@ layout(set = 0, binding = 0) uniform globalUniformBufferObject {
 
 layout(set = 0, binding = 1) uniform perObjectUniformBufferObject {
     mat4 model;
-    mat4 normalMatrix;
 } objectUBO;
 
 

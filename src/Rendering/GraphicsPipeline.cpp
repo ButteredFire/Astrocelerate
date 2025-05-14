@@ -199,7 +199,7 @@ void GraphicsPipeline::setUpDescriptors() {
 		samplerLayoutBinding
 	};
 
-	for (const auto& binding : layoutBindings) { m_descriptorCount += binding.descriptorCount; }
+	//for (const auto& binding : layoutBindings) { m_descriptorCount += binding.descriptorCount; }
 
 	std::vector<VkDescriptorPoolSize> poolSize = {
 		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, static_cast<uint32_t>(SimulationConsts::MAX_FRAMES_IN_FLIGHT) },
@@ -211,7 +211,7 @@ void GraphicsPipeline::setUpDescriptors() {
 
 	// Descriptor creation
 	createDescriptorSetLayout(layoutBindings);
-	createDescriptorPool(m_descriptorCount, poolSize, m_descriptorPool);
+	createDescriptorPool(poolSize, m_descriptorPool);
 	createDescriptorSets();
 }
 
@@ -239,7 +239,7 @@ void GraphicsPipeline::createDescriptorSetLayout(std::vector<VkDescriptorSetLayo
 }
 
 
-void GraphicsPipeline::createDescriptorPool(uint32_t maxDescriptorSetCount, std::vector<VkDescriptorPoolSize> poolSizes, VkDescriptorPool& descriptorPool, VkDescriptorPoolCreateFlags createFlags) {
+void GraphicsPipeline::createDescriptorPool(std::vector<VkDescriptorPoolSize> poolSizes, VkDescriptorPool& descriptorPool, VkDescriptorPoolCreateFlags createFlags) {
 	VkDescriptorPoolCreateInfo descPoolCreateInfo{};
 	descPoolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 	descPoolCreateInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
@@ -269,6 +269,8 @@ void GraphicsPipeline::createDescriptorPool(uint32_t maxDescriptorSetCount, std:
 
 void GraphicsPipeline::createDescriptorSets() {
 	// Creates one descriptor set for every frame in flight (all with the same layout)
+	// NOTE/TODO: Right now, our single pool handles all bindings across all sets. That's okay for small-scale applications, but can bottleneck fast if we scale. To solve this, use separate pools per descriptor type if we are hitting fragmentation or pool exhaustion.
+
 	std::vector<VkDescriptorSetLayout> descSetLayouts(SimulationConsts::MAX_FRAMES_IN_FLIGHT, m_descriptorSetLayout);
 
 	VkDescriptorSetAllocateInfo descSetAllocInfo{};
@@ -303,10 +305,12 @@ void GraphicsPipeline::createDescriptorSets() {
 
 
 		// Per-object uniform buffer
+		size_t alignedObjectUBOSize = SystemUtils::align(sizeof(Buffer::ObjectUBO), m_vkContext.Device.deviceProperties.limits.minUniformBufferOffsetAlignment);
+
 		VkDescriptorBufferInfo objectUBOInfo{};
 		objectUBOInfo.buffer = m_bufferManager->getObjectUBOs()[i].buffer;
 		objectUBOInfo.offset = 0; // Offset will be dynamic during draw calls
-		objectUBOInfo.range = sizeof(Buffer::ObjectUBO);
+		objectUBOInfo.range = alignedObjectUBOSize;
 
 
 		// Texture sampler

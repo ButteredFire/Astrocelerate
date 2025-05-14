@@ -103,11 +103,11 @@ public:
 
 
     /* Creates the global vertex buffer. */
-    void createGlobalVertexBuffer(std::vector<Geometry::Vertex>& vertexData);
+    void createGlobalVertexBuffer(const std::vector<Geometry::Vertex>& vertexData);
 
 
     /* Creates the global index buffer. */
-    void createGlobalIndexBuffer(std::vector<uint32_t>& indexData);
+    void createGlobalIndexBuffer(const std::vector<uint32_t>& indexData);
 
 
     /* Copies the contents from a source buffer to a destination buffer.
@@ -119,22 +119,15 @@ public:
     
 
     /* Updates the global uniform buffer.
-        @param currentImage: The index of the current image/frame.
+        @param currentImage: The index of the current frame.
     */
     void updateGlobalUBO(uint32_t currentImage);
 
 
     /* Updates per-object uniform buffers.
-        @param currentImage: The index of the current image/frame.
+        @param currentImage: The index of the current frame.
     */
     void updateObjectUBOs(uint32_t currentImage);
-
-
-    /* Updates the uniform buffer.
-        @deprecated This no longer works.
-	    @param currentImage: The index of the current image/frame.
-    */
-    void updateUniformBuffer(uint32_t currentImage);
 
 
     /* Gets the vertex buffer. */
@@ -188,6 +181,7 @@ private:
     // Per-object UBOs
     std::vector<Buffer::BufferAndAlloc> m_objectUBOs;
     std::vector<void*> m_objectUBOMappedData;
+    size_t m_alignedObjectUBOSize = 0;
 
 
     std::vector<Geometry::Vertex> m_vertices = {};
@@ -197,8 +191,24 @@ private:
     void bindEvents();
 
 
-    inline void* getPerObjectUBO(size_t totalObjects, uint32_t frameIndex, uint32_t uboIndex) {
-        return m_objectUBOMappedData[frameIndex * totalObjects + uboIndex];
+
+    /* Computes the byte offset into the buffer where the object UBO lies.
+        @param currentImage: The index of the current frame.
+        @param uboIndex: The mesh's index into its UBO.
+    */
+    inline void* getObjectUBO(uint32_t currentImage, size_t uboIndex) {
+        static size_t alignedUBOSize = SystemUtils::align(sizeof(Buffer::ObjectUBO), m_vkContext.Device.deviceProperties.limits.minUniformBufferOffsetAlignment);
+
+        /*
+            First, we retrieve the pointer to the master object UBO of the current frame. We must cast it to a Byte pointer so that subsequent pointer increments will mean incrementing by bytes.
+            Then, we calculate the offset of the target child object UBO from the base (start) of the master object UBO.
+            Finally, we move the base pointer to the offset (start of the target UBO).
+        */
+
+        Byte* base = static_cast<Byte*>(m_objectUBOMappedData[currentImage]);
+        Byte offset = static_cast<Byte>(alignedUBOSize * uboIndex);
+
+        return static_cast<void*>(base + offset);
     }
 
 

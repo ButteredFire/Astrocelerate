@@ -72,7 +72,7 @@ void UIRenderer::initializeImGui(UIRenderer::Appearance appearance) {
         { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE }
     };
     VkDescriptorPoolCreateFlags imgui_DescPoolCreateFlags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-    m_graphicsPipeline->createDescriptorPool(1, imgui_PoolSizes, m_descriptorPool, imgui_DescPoolCreateFlags);
+    m_graphicsPipeline->createDescriptorPool(imgui_PoolSizes, m_descriptorPool, imgui_DescPoolCreateFlags);
     vkInitInfo.DescriptorPool = m_descriptorPool;
 
 

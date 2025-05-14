@@ -8,6 +8,7 @@
 
 #include <Core/LoggingManager.hpp>
 #include <Core/ServiceLocator.hpp>
+#include <Core/EventDispatcher.hpp>
 
 #include <CoreStructs/Geometry.hpp>
 
@@ -33,7 +34,7 @@ public:
 	std::vector<Geometry::MeshOffset> bakeGeometry();
 
 private:
-	std::vector<Geometry::MeshData> m_meshes;
+	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 
-	std::shared_ptr<BufferManager> m_bufferManager;
+	std::vector<Geometry::MeshData> m_meshes;
 };

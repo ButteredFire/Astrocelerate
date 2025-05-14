@@ -21,6 +21,10 @@ inline std::string DEFAULT_WORKING_DIR = std::filesystem::current_path().string(
 #define VULKAN_VERSION VK_API_VERSION_1_2 // If you decide to change VULKAN_VERSION, also change VMA_VULKAN_VERSION defined in CMakeLists.txt
 
 
+// Definition of a byte
+using Byte = uint8_t;
+
+
 // Application properties
 namespace APP {
 	constexpr char APP_NAME[] = "Astrocelerate (Alpha)";

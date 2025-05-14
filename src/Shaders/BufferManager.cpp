@@ -16,6 +16,14 @@ BufferManager::~BufferManager() {}
 
 
 void BufferManager::bindEvents() {
+	m_eventDispatcher->subscribe<Event::InitGlobalBuffers>(
+		[this](const Event::InitGlobalBuffers& event) {
+			this->createGlobalVertexBuffer(event.vertexData);
+			this->createGlobalIndexBuffer(event.indexData);
+		}
+	);
+
+
 	m_eventDispatcher->subscribe<Event::UpdateUBOs>(
 		[this](const Event::UpdateUBOs& event) {
 			this->updateGlobalUBO(event.currentFrame);
@@ -74,7 +82,8 @@ void BufferManager::init() {
 
 		// Planet components
 	Component::RigidBody planetRB{};
-	planetRB.position = glm::vec3(0.0f);
+	planetRB.transform.position = glm::vec3(0.0f, 0.5f, 1.0f);
+	planetRB.transform.scale = glm::vec3(2.0f);
 	planetRB.velocity = glm::vec3(0.0f);
 	planetRB.acceleration = glm::vec3(0.0f);
 	planetRB.mass = (5.972 * 10e24);
@@ -86,8 +95,8 @@ void BufferManager::init() {
 
 		// Satellite components
 	Component::RigidBody satelliteRB{};
-	satelliteRB.position = glm::vec3(0.0f);
-	satelliteRB.velocity = glm::vec3(0.0f, 0.0f, 3.5f);
+	satelliteRB.transform.position = glm::vec3(0.0f);
+	satelliteRB.velocity = glm::vec3(0.0f, 0.0f, 1.0f);
 	satelliteRB.acceleration = glm::vec3(0.0f);
 	satelliteRB.mass = 20;
 
@@ -103,6 +112,7 @@ void BufferManager::init() {
 	m_registry->addComponent(m_satellite.id, satelliteRenderable);
 
 
+	m_alignedObjectUBOSize = SystemUtils::align(sizeof(Buffer::ObjectUBO), m_vkContext.Device.deviceProperties.limits.minUniformBufferOffsetAlignment);
 	createUniformBuffers();
 }
 
@@ -154,7 +164,7 @@ uint32_t BufferManager::createBuffer(VulkanContext& vkContext, VkBuffer& buffer,
 }
 
 
-void BufferManager::createGlobalVertexBuffer(std::vector<Geometry::Vertex>& vertexData) {
+void BufferManager::createGlobalVertexBuffer(const std::vector<Geometry::Vertex>& vertexData) {
 	VkDeviceSize bufferSize = (sizeof(vertexData[0]) * vertexData.size());
 	VkBufferUsageFlags vertBufUsage = (VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
 
@@ -170,7 +180,7 @@ void BufferManager::createGlobalVertexBuffer(std::vector<Geometry::Vertex>& vert
 }
 
 
-void BufferManager::createGlobalIndexBuffer(std::vector<uint32_t>& indexData) {
+void BufferManager::createGlobalIndexBuffer(const std::vector<uint32_t>& indexData) {
 	VkDeviceSize bufferSize = (sizeof(indexData[0]) * indexData.size());
 	VkBufferUsageFlags indexBufUsage = (VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
 
@@ -223,22 +233,31 @@ void BufferManager::updateGlobalUBO(uint32_t currentImage) {
 	Buffer::GlobalUBO ubo{};
 
 
-	// glm::lookAt(eyePosition, centerPosition, upAxis);
-	glm::vec3 eyePosition = glm::vec3(2.0f, 0.0f, 2.0f) * 100.0f;
-	//glm::vec3 eyePosition = glm::vec3(3.0f, 0.0f, 5.0f) * 300.0f;
+	// View
+		// glm::lookAt(eyePosition, centerPosition, upAxis);
+	glm::vec3 eyePosition = glm::vec3(2.0f, 2.0f, 2.0f) * 15.0f;
 	glm::vec3 centerPosition = glm::vec3(0.0f, 0.0f, 0.0f);
 	glm::vec3 upAxis = glm::vec3(0.0f, 0.0f, 1.0f);
 
 	ubo.view = glm::lookAt(eyePosition, centerPosition, upAxis);
 
 
-	// glm::perspective(fieldOfView, aspectRatio, nearClipPlane, farClipPlane);
+	// Perspective
+		// glm::perspective(fieldOfView, aspectRatio, nearClipPlane, farClipPlane);
 	constexpr float fieldOfView = glm::radians(60.0f);
 	float aspectRatio = static_cast<float>(m_vkContext.SwapChain.extent.width / m_vkContext.SwapChain.extent.height);
 	float nearClipPlane = 0.01f;
-	float farClipPlane = 1e5f;
+	float farClipPlane = 1e10f;
 
 	ubo.projection = glm::perspective(fieldOfView, aspectRatio, nearClipPlane, farClipPlane);
+
+
+	/*
+		GLM was originally designed for OpenGL, and because of that, the Y-coordinate of the clip coordinates is flipped.
+		If this behavior is left as is, then images will be flipped upside down.
+		One way to change this behavior is to flip the sign on the Y-axis scaling factor in the projection matrix.
+	*/
+	ubo.projection[1][1] *= -1; // Flip y-axis
 
 
 	memcpy(m_globalUBOMappedData[currentImage], &ubo, sizeof(ubo));
@@ -251,85 +270,36 @@ void BufferManager::updateObjectUBOs(uint32_t currentImage) {
 	auto view = m_registry->getView<Component::RigidBody, Component::MeshRenderable>();
 
 	for (const auto& [entity, rigidBody, meshRenderable] : view) {
+		// Rendering side: Update descriptor set
+		Component::MeshRenderable copy = meshRenderable;
+		copy.descriptorSet = m_vkContext.GraphicsPipeline.descriptorSets[currentImage];
+		m_registry->updateComponent(entity, copy);
+
+		// Timekeeping ensures that the geometry rotates at a constant rate regardless of frame rate
 		static auto startTime = std::chrono::high_resolution_clock::now();
 		auto currentTime = std::chrono::high_resolution_clock::now();
 		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
+
+		// Actual UBO population
 		Buffer::ObjectUBO ubo{};
 
-		// glm::rotate(transformation, rotationAngle, rotationAxis);
+		// Model matrix
+			// glm::rotate(transformation, rotationAngle, rotationAxis);
+			// glm::translate(transformation, translation);
 		const glm::mat4 identityMat = glm::mat4(1.0f);
 		float rotationAngle = (time * glm::radians(30.0f));
 		glm::vec3 rotationAxis = glm::vec3(0.0f, 0.0f, 1.0f);
 
-		ubo.model = glm::rotate(identityMat, rotationAngle, rotationAxis);
-		ubo.model *= glm::translate(identityMat, rigidBody.position);
+		//ubo.model = glm::rotate(identityMat, rotationAngle, rotationAxis);
+		ubo.model = glm::translate(identityMat, rigidBody.transform.position);
+		ubo.model *= glm::scale(identityMat, rigidBody.transform.scale);
 
-		
-		void* uboDst = getPerObjectUBO(m_totalObjects, currentImage, meshRenderable.uboIndex);
+
+		// Writing to memory
+		void* uboDst = getObjectUBO(currentImage, meshRenderable.uboIndex);
 		memcpy(uboDst, &ubo, sizeof(ubo));
 	}
-}
-
-
-void BufferManager::updateUniformBuffer(uint32_t currentImage) {
-	throw Log::RuntimeException(__FUNCTION__, __LINE__, "THIS FUNCTION IS OUTDATED! UPDATE IT NOW!");
-
-	// Timekeeping ensures that the geometry rotates 90 deg/s regardless of frame rate
-	static auto startTime = std::chrono::high_resolution_clock::now();
-	auto currentTime = std::chrono::high_resolution_clock::now();
-	float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-
-	//float time = Time::GetDeltaTime();
-	//Log::print(Log::T_WARNING, __FUNCTION__, std::to_string(time));
-
-	UniformBufferObject UBO{};
-
-	// glm::rotate(transformation, rotationAngle, rotationAxis);
-	const glm::mat4 identityMat = glm::mat4(1.0f);
-	float rotationAngle = (time * glm::radians(30.0f));
-	glm::vec3 rotationAxis = glm::vec3(0.0f, 0.0f, 1.0f);
-
-	//UBO.model = identityMat;
-	//UBO.model = glm::scale(identityMat, glm::vec3(2.0f));  // Make model bigger
-
-	m_eventDispatcher->publish(Event::UpdateRigidBodies{}, true);
-	m_UBORigidBody = m_registry->getComponent<Component::RigidBody>(m_UBOEntity.id);
-
-	UBO.model = glm::rotate(identityMat, rotationAngle, rotationAxis);
-	UBO.model *= glm::translate(identityMat, m_UBORigidBody.position);
-	//UBO.model = glm::translate(identityMat, glm::vec3(0.0f));
-	Log::print(Log::T_WARNING, __FUNCTION__, "(x, y, z) = (" + std::to_string(m_UBORigidBody.position.x) + ", " + std::to_string(m_UBORigidBody.position.y) + ", " + std::to_string(m_UBORigidBody.position.z) + ")");
-
-
-	// glm::lookAt(eyePosition, centerPosition, upAxis);
-	glm::vec3 eyePosition = glm::vec3(5.5f, 0.0f, 2.0f) * 225.0f;
-	//glm::vec3 eyePosition = glm::vec3(3.0f, 0.0f, 5.0f) * 300.0f;
-	glm::vec3 centerPosition = glm::vec3(0.0f, 0.0f, 0.0f);
-	glm::vec3 upAxis = glm::vec3(0.0f, 0.0f, 1.0f);
-	
-	UBO.view = glm::lookAt(eyePosition, centerPosition, upAxis);
-
-
-	// glm::perspective(fieldOfView, aspectRatio, nearClipPlane, farClipPlane);
-	constexpr float fieldOfView = glm::radians(60.0f);
-	float aspectRatio = static_cast<float>(m_vkContext.SwapChain.extent.width / m_vkContext.SwapChain.extent.height);
-	float nearClipPlane = 0.01f;
-	float farClipPlane = 1e5f;
-
-	UBO.projection = glm::perspective(fieldOfView, aspectRatio, nearClipPlane, farClipPlane);
-
-
-	/*
-		GLM was originally designed for OpenGL, and because of that, the Y-coordinate of the clip coordinates is flipped.
-		If this behavior is left as is, then images will be flipped upside down.
-		One way to change this behavior is to flip the sign on the Y-axis scaling factor in the projection matrix.
-	*/
-	UBO.projection[1][1] *= -1; // Flip y-axis
-
-
-	// Copies the contents in the uniform buffer object to the uniform buffer's data
-	memcpy(m_globalUBOMappedData[currentImage], &UBO, sizeof(UBO));
 }
 
 
@@ -404,10 +374,11 @@ void BufferManager::createUniformBuffers() {
 
 
 	// Object UBOs
-	size_t objectUBOAlignment = m_vkContext.Device.deviceProperties.limits.minUniformBufferOffsetAlignment;
-	VkDeviceSize objectBufSize = static_cast<VkDeviceSize>(
-		SystemUtils::align(sizeof(Buffer::ObjectUBO), objectUBOAlignment)
-	);
+		/*
+			objectBufSize is the total size of all object UBOs (each corresponding to its object). We could say that objectBufSize is the size of the master object UBO, which stores child object UBOs.
+			For every frame, we want to have exactly 1 master object UBO. Therefore, for MAX_FRAMES_IN_FLIGHT frames, we want MAX_FRAMES_IN_FLIGHT master object UBOs.
+		*/
+	VkDeviceSize objectBufSize = static_cast<VkDeviceSize>(m_alignedObjectUBOSize) * m_totalObjects;
 
 	m_objectUBOs.resize(SimulationConsts::MAX_FRAMES_IN_FLIGHT);
 	m_objectUBOMappedData.resize(SimulationConsts::MAX_FRAMES_IN_FLIGHT);
@@ -416,7 +387,7 @@ void BufferManager::createUniformBuffers() {
 	VkBufferUsageFlags uniformBufUsageFlags = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 
 	for (size_t i = 0; i < SimulationConsts::MAX_FRAMES_IN_FLIGHT; i++) {
-		// Creates the UBOs
+		// Creates the UBOs and map them to CPU memory
 		VmaAllocationCreateInfo uniformBufAllocInfo{};
 		uniformBufAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_HOST;
 		uniformBufAllocInfo.requiredFlags = (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
@@ -425,20 +396,26 @@ void BufferManager::createUniformBuffers() {
 			uniformBufAllocInfo.flags |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 		*/
 		
-			// Global UBO
+			// Global UBO (per frame)
 		createBuffer(m_vkContext, m_globalUBOs[i].buffer, globalBufSize, uniformBufUsageFlags, m_globalUBOs[i].allocation, uniformBufAllocInfo);
 
-			// Object UBO
-		createBuffer(m_vkContext, m_objectUBOs[i].buffer, objectBufSize, uniformBufUsageFlags, m_objectUBOs[i].allocation, uniformBufAllocInfo);
-
-
-		// Maps the buffer allocation post-creation to get a pointer to the CPU memory block on which we can later write data
-		/*
-		The buffer allocation stays mapped to the pointer for the application's whole lifetime.
-		This technique is called "persistent mapping". We use it here because, as aforementioned, the UBOs are updated with new data every single frame, and mapping them alone costs a little performance, much less every frame.
-		*/
+			/*
+			The buffer allocation stays mapped to the pointer for the application's whole lifetime.
+			This technique is called "persistent mapping". We use it here because, as aforementioned, the UBOs are updated with new data every single frame, and mapping them alone costs a little performance, much less every frame.
+			*/
 		vmaMapMemory(m_vkContext.vmaAllocator, m_globalUBOs[i].allocation, &m_globalUBOMappedData[i]);
+
+
+			// Object UBO (per object per frame)
+		createBuffer(m_vkContext, m_objectUBOs[i].buffer, objectBufSize, uniformBufUsageFlags, m_objectUBOs[i].allocation, uniformBufAllocInfo);
 		vmaMapMemory(m_vkContext.vmaAllocator, m_objectUBOs[i].allocation, &m_objectUBOMappedData[i]);
+		
+		/*
+		for (size_t j = 0; j < m_totalObjects; j++) {
+			size_t index = i * m_totalObjects + j;
+		}
+		*/
+
 
 		// Cleanup task
 		VmaAllocation globalUBOAlloc = m_globalUBOs[i].allocation;
@@ -446,11 +423,16 @@ void BufferManager::createUniformBuffers() {
 
 		CleanupTask task{};
 		task.caller = __FUNCTION__;
-		task.objectNames = { VARIABLE_NAME(globalUBOAlloc), VARIABLE_NAME(objectUBOAlloc) };
+		task.objectNames = { "Global and per-object UBOs" };
 		task.vkObjects = { m_vkContext.vmaAllocator, globalUBOAlloc, objectUBOAlloc };
-		task.cleanupFunc = [this, globalUBOAlloc, objectUBOAlloc]() {
+		task.cleanupFunc = [this, i, globalUBOAlloc, objectUBOAlloc]() {
 			vmaUnmapMemory(m_vkContext.vmaAllocator, globalUBOAlloc);
 			vmaUnmapMemory(m_vkContext.vmaAllocator, objectUBOAlloc);
+			/*
+			for (size_t j = 0; j < m_totalObjects; j++) {
+				size_t index = i * m_totalObjects + j;
+			}
+			*/
 		};
 
 		m_garbageCollector->createCleanupTask(task);

@@ -11,11 +11,16 @@
 #include <Core/ECS.hpp>
 #include <Core/ServiceLocator.hpp>
 #include <Core/EventDispatcher.hpp>
+
 #include <CoreStructs/ApplicationContext.hpp>
+#include <CoreStructs/Buffer.hpp>
 
 #include <Engine/Components/RenderComponents.hpp>
 
 #include <Utils/SubpassBinder.hpp>
+
+#include <Shaders/BufferManager.hpp>
+class BufferManager;
 
 
 class RenderSystem {
@@ -28,8 +33,11 @@ private:
 
 	std::shared_ptr<Registry> m_registry;
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
+	std::shared_ptr<BufferManager> m_bufferManager;
 
 	std::shared_ptr<SubpassBinder> m_subpassBinder;
+
+	size_t m_dynamicAlignment = 0;
 
 
 	/* Processes a mesh. */
