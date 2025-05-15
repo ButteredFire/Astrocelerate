@@ -84,7 +84,7 @@ namespace SubpassConsts {
 
 // Window properties
 namespace WindowConsts {
-	constexpr int DEFAULT_WINDOW_WIDTH = 1200;
+	constexpr int DEFAULT_WINDOW_WIDTH = 1500;
 	constexpr int DEFAULT_WINDOW_HEIGHT = 900;
 }
 

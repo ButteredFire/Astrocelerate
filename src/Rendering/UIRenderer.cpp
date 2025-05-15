@@ -7,7 +7,9 @@
 UIRenderer::UIRenderer(VulkanContext& context):
     m_vkContext(context) {
 
+    m_registry = ServiceLocator::getService<Registry>(__FUNCTION__);
     m_garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
+
     m_graphicsPipeline = ServiceLocator::getService<GraphicsPipeline>(__FUNCTION__);
 
 	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
@@ -148,6 +150,44 @@ void UIRenderer::renderFrames() {
     ImGui::PushFont(m_pFont);
     
 
+    auto view = m_registry->getView<Component::RigidBody>();
+
+    ImGui::Begin("Rigid-body Entity Debug Info");
+    for (const auto& [entity, rigidBody] : view) {
+
+        ImGui::Text("Entity ID #%d", entity);
+        
+
+        ImGui::Text("\tPosition: (x: %.2f, y: %.2f, z: %.2f)", rigidBody.transform.position.x, rigidBody.transform.position.y, rigidBody.transform.position.z);
+        
+
+        float velocityAbs = glm::length(rigidBody.velocity);
+        ImGui::Text("\tVelocity:");
+        ImGui::Text("\t\tVector: (x: %.2f, y: %.2f, z: %.2f)", rigidBody.velocity.x, rigidBody.velocity.y, rigidBody.velocity.z);
+        ImGui::Text("\t\tAbsolute: |v| ~= %.4f m/s", velocityAbs);
+        
+
+
+        float accelerationAbs = glm::length(rigidBody.acceleration);
+        ImGui::Text("\tAcceleration:");
+        ImGui::Text("\t\tVector: (x: %.2f, y: %.2f, z: %.2f)", rigidBody.acceleration.x, rigidBody.acceleration.y, rigidBody.acceleration.z);
+        ImGui::Text("\t\tAbsolute: |a| ~= %.4f m/s^2", accelerationAbs);
+
+
+        // Display mass: scientific notation for large values, fixed for small
+        if (std::abs(rigidBody.mass) >= 1e6f) {
+            ImGui::Text("\tMass: %.2e kg", rigidBody.mass);
+        }
+        else {
+            ImGui::Text("\tMass: %.2f kg", rigidBody.mass);
+        }
+
+        ImGui::Separator();
+    }
+
+    ImGui::End();
+
+    /*
     ImGui::ShowDemoWindow();
     ImGui::Begin("Astrocelerate Control Panel"); // Window title
     ImGui::Text("Welcome to Astrocelerate!"); // Basic text
@@ -157,6 +197,7 @@ void UIRenderer::renderFrames() {
         // Call your simulation start function here
     }
     ImGui::End();
+    */
 
 
     ImGui::PopFont();

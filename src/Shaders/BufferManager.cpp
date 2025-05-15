@@ -82,8 +82,8 @@ void BufferManager::init() {
 
 		// Planet components
 	Component::RigidBody planetRB{};
-	planetRB.transform.position = glm::vec3(0.0f, 0.5f, 1.0f);
-	planetRB.transform.scale = glm::vec3(2.0f);
+	planetRB.transform.position = glm::vec3(0.0f);
+	planetRB.transform.scale = glm::vec3(50.0f);
 	planetRB.velocity = glm::vec3(0.0f);
 	planetRB.acceleration = glm::vec3(0.0f);
 	planetRB.mass = (5.972 * 10e24);
@@ -95,8 +95,8 @@ void BufferManager::init() {
 
 		// Satellite components
 	Component::RigidBody satelliteRB{};
-	satelliteRB.transform.position = glm::vec3(0.0f);
-	satelliteRB.velocity = glm::vec3(0.0f, 0.0f, 1.0f);
+	satelliteRB.transform.position = glm::vec3(0.0f, 80.0f, 0.0f);
+	satelliteRB.velocity = glm::vec3(0.0f);
 	satelliteRB.acceleration = glm::vec3(0.0f);
 	satelliteRB.mass = 20;
 
@@ -235,7 +235,7 @@ void BufferManager::updateGlobalUBO(uint32_t currentImage) {
 
 	// View
 		// glm::lookAt(eyePosition, centerPosition, upAxis);
-	glm::vec3 eyePosition = glm::vec3(2.0f, 2.0f, 2.0f) * 15.0f;
+	glm::vec3 eyePosition = glm::vec3(1.5f, 2.0f, 1.0f) * 100.0f;
 	glm::vec3 centerPosition = glm::vec3(0.0f, 0.0f, 0.0f);
 	glm::vec3 upAxis = glm::vec3(0.0f, 0.0f, 1.0f);
 
@@ -245,7 +245,7 @@ void BufferManager::updateGlobalUBO(uint32_t currentImage) {
 	// Perspective
 		// glm::perspective(fieldOfView, aspectRatio, nearClipPlane, farClipPlane);
 	constexpr float fieldOfView = glm::radians(60.0f);
-	float aspectRatio = static_cast<float>(m_vkContext.SwapChain.extent.width / m_vkContext.SwapChain.extent.height);
+	float aspectRatio = static_cast<float>(m_vkContext.SwapChain.extent.width) / static_cast<float>(m_vkContext.SwapChain.extent.height);
 	float nearClipPlane = 0.01f;
 	float farClipPlane = 1e10f;
 
@@ -287,14 +287,18 @@ void BufferManager::updateObjectUBOs(uint32_t currentImage) {
 		// Model matrix
 			// glm::rotate(transformation, rotationAngle, rotationAxis);
 			// glm::translate(transformation, translation);
+			// glm::scale(transformation, scale);
 		const glm::mat4 identityMat = glm::mat4(1.0f);
-		float rotationAngle = (time * glm::radians(30.0f));
+		float rotationAngle = (time * glm::radians(0.5f));
 		glm::vec3 rotationAxis = glm::vec3(0.0f, 0.0f, 1.0f);
 
-		//ubo.model = glm::rotate(identityMat, rotationAngle, rotationAxis);
-		ubo.model = glm::translate(identityMat, rigidBody.transform.position);
-		ubo.model *= glm::scale(identityMat, rigidBody.transform.scale);
+		glm::mat4 modelMatrix = glm::mat4(1.0f);
 
+		modelMatrix *= glm::rotate(identityMat, rotationAngle, rotationAxis);
+		modelMatrix *= glm::translate(identityMat, rigidBody.transform.position);
+		modelMatrix *= glm::scale(identityMat, rigidBody.transform.scale);
+
+		ubo.model = modelMatrix;
 
 		// Writing to memory
 		void* uboDst = getObjectUBO(currentImage, meshRenderable.uboIndex);

@@ -16,6 +16,7 @@
 #include <imgui/imgui_impl_vulkan.h>
 
 // Local
+#include <Core/ECS.hpp>
 #include <Core/Constants.h>
 #include <Core/LoggingManager.hpp>
 #include <Core/ServiceLocator.hpp>
@@ -61,7 +62,9 @@ private:
 	VulkanContext& m_vkContext;
 	UIRenderer::Appearance m_currentAppearance = Appearance::IMGUI_APPEARANCE_DARK_MODE;
 
+	std::shared_ptr<Registry> m_registry;
 	std::shared_ptr<GarbageCollector> m_garbageCollector;
+
 	std::shared_ptr<GraphicsPipeline> m_graphicsPipeline;
 
 	ImFont* m_pFont = nullptr;

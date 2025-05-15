@@ -384,7 +384,7 @@ bool VkDeviceManager::checkDeviceExtensionSupport(VkPhysicalDevice& device, std:
 
         if (!found) {
             allOK = false;
-            Log::print(Log::T_ERROR, __FUNCTION__, "Device extension " + enquote(ext) + " is not supported!");
+            throw Log::RuntimeException(__FUNCTION__, __LINE__, "Device extension " + enquote(ext) + " is not supported!");
         }
     }
 
