@@ -101,14 +101,15 @@ namespace Gamma {
 
 // Physics constants
 namespace PhysicsConsts {
-	constexpr double GRAVITATIONAL_CONSTANT = 6.67430e-11;  // m^3 kg^-1 s^-2
-	constexpr double SPEED_OF_LIGHT = 299792458.0;         // m/s
+	constexpr double G = 6.67430e-11;			// Gravitational constant (m^3 kg^-1 s^-2)
+	constexpr double C = 299792458.0;           // Speed of light (m/s)
 }
 
 
 // Simulation settings
 namespace SimulationConsts {
 	constexpr int MAX_SIMULATION_STEPS = 10000;
-	constexpr int MAX_FRAMES_IN_FLIGHT = 2; // How many frames should be processed concurrently
-	constexpr double TIME_STEP = 0.01;  // seconds
+	constexpr int MAX_FRAMES_IN_FLIGHT = 2;				 // How many frames should be processed concurrently
+	constexpr double TIME_STEP = 1.0 / 60.0;			 // 60 Hz
+	constexpr double SIMULATION_SCALE = 1.0 / 1e6;		 // 1 world unit = 1,000,000 meters (1000 km)
 }

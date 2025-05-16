@@ -11,14 +11,14 @@ class Time {
 public:
 	inline static void UpdateDeltaTime() {
 		auto currentTime = high_resolution_clock::now();
-		deltaTime = std::chrono::duration<float>(currentTime - previousTime).count();
+		deltaTime = std::chrono::duration<double>(currentTime - previousTime).count();
 
 		previousTime = currentTime;
 	}
 
-	inline static float GetDeltaTime() { return deltaTime; }
+	inline static double GetDeltaTime() { return deltaTime; }
 
 private:
-	inline static float deltaTime = 0.0f;
+	inline static double deltaTime = 0;
 	inline static std::chrono::time_point<high_resolution_clock> previousTime = high_resolution_clock::now();
 };

@@ -13,14 +13,21 @@
 #include <Engine/Components/PhysicsComponents.hpp>
 #include <Engine/Components/WorldSpaceComponents.hpp>
 
+#include <Simulation/Integrators/SymplecticEuler.hpp>
+
+#include <Utils/SpaceUtils.hpp>
+
 
 class PhysicsSystem {
 public:
 	PhysicsSystem();
 	~PhysicsSystem() = default;
 
-	/* Updates a rigid body. */
-	void updateRigidBody(Component::RigidBody& rigidBody, Component::Transform& transform);
+	void update(const double dt);
+
+
+	/* Updates all rigid bodies. */
+	void updateRigidBodies(const double dt);
 
 private:
 	std::shared_ptr<Registry> m_registry;

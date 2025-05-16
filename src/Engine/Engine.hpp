@@ -26,6 +26,7 @@
 #include <Core/AppWindow.hpp>
 #include <Core/Constants.h>
 #include <Core/LoggingManager.hpp>
+#include <Core/EventDispatcher.hpp>
 
 #include <CoreStructs/ApplicationContext.hpp>
 
@@ -54,6 +55,7 @@ private:
 	GLFWwindow *window;
 	VulkanContext &m_vkContext;
 
+	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 	std::shared_ptr<Registry> m_registry;
 	std::shared_ptr<Renderer> m_renderer;
 

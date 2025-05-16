@@ -8,8 +8,8 @@
 
 namespace Component {
 	struct Transform {
-		glm::vec3 position = glm::vec3(0.0f);							// World or local position.
-		glm::quat rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);			// Orientation as a quaternion.
-		glm::vec3 scale = glm::vec3(1.0f);								// Scale.
+		glm::dvec3 position;						// World or local position.
+		glm::dquat rotation;						// Orientation as a quaternion.
+		glm::dvec3 scale = glm::dvec3(1.0);			// Scale.
 	};
 }

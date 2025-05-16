@@ -9,6 +9,7 @@ Engine::Engine(GLFWwindow *w, VulkanContext& context):
     window(w),
     m_vkContext(context) {
 
+    m_eventDispatcher = ServiceLocator::getService<EventDispatcher>(__FUNCTION__);
     m_registry = ServiceLocator::getService<Registry>(__FUNCTION__);
 
     if (!isPointerValid(window)) {
@@ -37,6 +38,7 @@ void Engine::initComponents() {
 
     /* PhysicsComponents.hpp */
     m_registry->initComponentArray<Component::RigidBody>();
+    m_registry->initComponentArray<Component::OrbitingBody>();
 
     /* WorldSpaceComponents.hpp */
     m_registry->initComponentArray<Component::Transform>();
@@ -52,10 +54,24 @@ void Engine::run() {
 
 /* [MEMBER] Updates and processes all events */
 void Engine::update() {
+    double accumulator = 0.0;
+    const float TIME_SCALE = 1.0f;
+
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
 
         Time::UpdateDeltaTime();
+        double deltaTime = Time::GetDeltaTime();
+        accumulator += deltaTime * TIME_SCALE;
+
+        while (accumulator >= SimulationConsts::TIME_STEP) {
+            Event::UpdatePhysics updateEvent{};
+            updateEvent.dt = SimulationConsts::TIME_STEP * TIME_SCALE;
+
+            m_eventDispatcher->publish(updateEvent, true);
+
+            accumulator -= SimulationConsts::TIME_STEP * TIME_SCALE;
+        }
         
         m_renderer->update();
     }

@@ -17,7 +17,7 @@ enum EventType {
 	EVENT_ID_INIT_GLOBAL_BUFFERS,
 
 	EVENT_ID_UPDATE_RENDERABLES,
-	EVENT_ID_UPDATE_RIGID_BODIES,
+	EVENT_ID_UPDATE_PHYSICS,
 	EVENT_ID_UPDATE_UBOS
 };
 
@@ -53,9 +53,10 @@ namespace Event {
 	};
 
 
-	/* Used when rigid bodies need to be updated. */
-	struct UpdateRigidBodies {
-		const EventType eventType = EventType::EVENT_ID_UPDATE_RIGID_BODIES;
+	/* Used when physics need to be updated. */
+	struct UpdatePhysics {
+		const EventType eventType = EventType::EVENT_ID_UPDATE_PHYSICS;
+		double dt;
 	};
 
 

@@ -7,9 +7,17 @@
 
 
 namespace Component {
+	/* Rigid-body */
 	struct RigidBody {
-		glm::vec3 velocity = glm::vec3();				// Velocity (m/s)
-		glm::vec3 acceleration = glm::vec3();			// Acceleration (m/s^2)
-		double mass = 0;								// Mass (kg)
+		glm::dvec3 velocity;				// Velocity (m/s)
+		glm::dvec3 acceleration;			// Acceleration (m/s^2)
+		double mass;						// Mass (kg)
+	};
+
+
+	/* Orbiting body (around another celestial body) */
+	struct OrbitingBody {
+		glm::dvec3 relativePosition;		// Position of this body relative to the body that it is orbiting.
+		double centralMass;					// The mass of the body that this body is orbiting.
 	};
 }

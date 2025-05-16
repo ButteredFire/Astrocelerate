@@ -67,9 +67,10 @@ void VkBufferManager::init() {
 	// Load geometry
 	GeometryLoader geometryLoader;
 
-	//std::string planetPath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models/TestModels", "Sphere/Sphere.obj");
-	std::string planetPath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models/CelestialBodies", "Earth/Earth.glb");
+	std::string planetPath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models/TestModels", "Sphere/Sphere.obj");
+	//std::string planetPath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models/CelestialBodies", "Earth/Earth.glb");
 	std::string satellitePath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models/TestModels", "Cube/Cube.obj");
+	//std::string satellitePath = planetPath;
 
 	geometryLoader.loadGeometryFromFile(planetPath);
 	geometryLoader.loadGeometryFromFile(satellitePath);
@@ -83,13 +84,15 @@ void VkBufferManager::init() {
 
 	// Planet components
 	Component::RigidBody planetRB{};
-	planetRB.velocity = glm::vec3(0.0f);
-	planetRB.acceleration = glm::vec3(0.0f);
+	planetRB.velocity = glm::dvec3(0.0);
+	planetRB.acceleration = glm::dvec3(0.0);
 	planetRB.mass = (5.972 * 10e24);
 
+	double earthRadius = 6.378e6;
+
 	Component::Transform planetTransform{};
-	planetTransform.position = glm::vec3(0.0f);
-	planetTransform.scale = glm::vec3(1.0f);
+	planetTransform.position = glm::dvec3(0.0);
+	planetTransform.scale = glm::dvec3(earthRadius);
 
 	Component::MeshRenderable planetRenderable{};
 	planetRenderable.uboIndex = 0;
@@ -97,13 +100,20 @@ void VkBufferManager::init() {
 
 
 		// Satellite components
+	double orbitalSpeed = sqrt(PhysicsConsts::G * planetRB.mass / 6.7e6); // SI units
+
 	Component::RigidBody satelliteRB{};
-	satelliteRB.velocity = glm::vec3(-20.0f, 0.0f, 0.0f);
-	satelliteRB.acceleration = glm::vec3(0.0f);
+	satelliteRB.velocity = glm::dvec3(orbitalSpeed, 0.0, 0.0);
+	satelliteRB.acceleration = glm::dvec3(0.0);
 	satelliteRB.mass = 20;
 
 	Component::Transform satelliteTransform{};
-	satelliteTransform.position = glm::vec3(0.0f, 500.0f, 0.0f);
+	satelliteTransform.position = glm::dvec3(0.0, (earthRadius + 2e6), 0.0);
+	satelliteTransform.scale = glm::dvec3(100000.0);
+
+	Component::OrbitingBody satelliteOB{};
+	satelliteOB.relativePosition = satelliteTransform.position - planetTransform.position;
+	satelliteOB.centralMass = planetRB.mass;
 
 	Component::MeshRenderable satelliteRenderable{};
 	satelliteRenderable.uboIndex = 1;
@@ -116,6 +126,7 @@ void VkBufferManager::init() {
 
 	m_registry->addComponent(m_satellite.id, satelliteRB);
 	m_registry->addComponent(m_satellite.id, satelliteTransform);
+	m_registry->addComponent(m_satellite.id, satelliteOB);
 	m_registry->addComponent(m_satellite.id, satelliteRenderable);
 
 
@@ -242,7 +253,7 @@ void VkBufferManager::updateGlobalUBO(uint32_t currentImage) {
 
 	// View
 		// glm::lookAt(eyePosition, centerPosition, upAxis);
-	glm::vec3 eyePosition = glm::vec3(1.5f, 2.0f, 1.0f) * 500.0f;
+	glm::vec3 eyePosition = SpaceUtils::ToSimSpace(glm::vec3(0.0f, 2.0f, 2.0f) * 8e6f);
 	glm::vec3 centerPosition = glm::vec3(0.0f, 0.0f, 0.0f);
 	glm::vec3 upAxis = glm::vec3(0.0f, 0.0f, 1.0f);
 
@@ -272,8 +283,6 @@ void VkBufferManager::updateGlobalUBO(uint32_t currentImage) {
 
 
 void VkBufferManager::updateObjectUBOs(uint32_t currentImage) {
-	m_eventDispatcher->publish(Event::UpdateRigidBodies{}, true);
-
 	auto view = m_registry->getView<Component::RigidBody, Component::MeshRenderable, Component::Transform>();
 
 	for (const auto& [entity, rigidBody, meshRenderable, transform] : view) {
@@ -291,14 +300,31 @@ void VkBufferManager::updateObjectUBOs(uint32_t currentImage) {
 			// glm::rotate(transformation, rotationAngle, rotationAxis);
 			// glm::translate(transformation, translation);
 		const glm::mat4 identityMat = glm::mat4(1.0f);
-		float rotationAngle = (time * glm::radians(0.5f));
+		float rotationAngle = (time * glm::radians(90.0f));
 		glm::vec3 rotationAxis = glm::vec3(0.0f, 0.0f, 1.0f);
 
-		glm::mat4 modelMatrix = glm::mat4(1.0f);
 
-		modelMatrix *= glm::scale(identityMat, transform.scale);
-		modelMatrix *= glm::rotate(identityMat, rotationAngle, rotationAxis);
-		modelMatrix *= glm::translate(identityMat, transform.position);
+		glm::mat4 rotationMatrix = glm::toMat4(transform.rotation);
+
+		/* NOTE:
+			Model matrices are constructed according to the Scale -> Rotate -> Translate (S-R-T) order.
+			Specifically, a model matrix, M, is constructed like so:
+					M = T * R * S * v_local (where v_local is the position of the vertex in local space).
+
+			The reason why the construction looks backwards is because matrix multiplication is right-to-left for column vectors (the default in GLM). So, when we construct M as M = T * R * S * v_local, the operations are applied as:
+					M = T * (R * (S * v_local)), hence S-R-T order.
+		*/
+		 glm::mat4 modelMatrix =
+			glm::translate(identityMat, glm::vec3(SpaceUtils::ToSimSpace(transform.position)))
+			* rotationMatrix
+			* glm::scale(identityMat, glm::vec3(SpaceUtils::ToSimSpace(transform.scale)));
+
+		/* Alternatively, the model matrix can be updated as follows:
+			modelMatrix = glm::translate(modelMatrix, glm::vec3(transform.position));
+			modelMatrix *= rotationMatrix;
+			modelMatrix = glm::scale(modelMatrix, glm::vec3(transform.scale));
+		*/
+
 
 		ubo.model = modelMatrix;
 
