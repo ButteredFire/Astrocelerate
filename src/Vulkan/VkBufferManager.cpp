@@ -59,7 +59,7 @@ void VkBufferManager::init() {
 
 	m_registry->addComponent(m_UBOEntity.id, m_UBORigidBody);
 
-	 
+
 	createGlobalVertexBuffer(m_vertices);
 	createGlobalIndexBuffer(m_vertIndices);
 	*/
@@ -81,13 +81,15 @@ void VkBufferManager::init() {
 	m_planet = m_registry->createEntity();
 	m_satellite = m_registry->createEntity();
 
-		// Planet components
+	// Planet components
 	Component::RigidBody planetRB{};
-	planetRB.transform.position = glm::vec3(0.0f);
-	planetRB.transform.scale = glm::vec3(1.0f);
 	planetRB.velocity = glm::vec3(0.0f);
 	planetRB.acceleration = glm::vec3(0.0f);
 	planetRB.mass = (5.972 * 10e24);
+
+	Component::Transform planetTransform{};
+	planetTransform.position = glm::vec3(0.0f);
+	planetTransform.scale = glm::vec3(1.0f);
 
 	Component::MeshRenderable planetRenderable{};
 	planetRenderable.uboIndex = 0;
@@ -96,10 +98,12 @@ void VkBufferManager::init() {
 
 		// Satellite components
 	Component::RigidBody satelliteRB{};
-	satelliteRB.transform.position = glm::vec3(0.0f, 500.0f, 0.0f);
 	satelliteRB.velocity = glm::vec3(-20.0f, 0.0f, 0.0f);
 	satelliteRB.acceleration = glm::vec3(0.0f);
 	satelliteRB.mass = 20;
+
+	Component::Transform satelliteTransform{};
+	satelliteTransform.position = glm::vec3(0.0f, 500.0f, 0.0f);
 
 	Component::MeshRenderable satelliteRenderable{};
 	satelliteRenderable.uboIndex = 1;
@@ -107,9 +111,11 @@ void VkBufferManager::init() {
 
 
 	m_registry->addComponent(m_planet.id, planetRB);
+	m_registry->addComponent(m_planet.id, planetTransform);
 	m_registry->addComponent(m_planet.id, planetRenderable);
 
 	m_registry->addComponent(m_satellite.id, satelliteRB);
+	m_registry->addComponent(m_satellite.id, satelliteTransform);
 	m_registry->addComponent(m_satellite.id, satelliteRenderable);
 
 
@@ -268,14 +274,9 @@ void VkBufferManager::updateGlobalUBO(uint32_t currentImage) {
 void VkBufferManager::updateObjectUBOs(uint32_t currentImage) {
 	m_eventDispatcher->publish(Event::UpdateRigidBodies{}, true);
 
-	auto view = m_registry->getView<Component::RigidBody, Component::MeshRenderable>();
+	auto view = m_registry->getView<Component::RigidBody, Component::MeshRenderable, Component::Transform>();
 
-	for (const auto& [entity, rigidBody, meshRenderable] : view) {
-		// Rendering side: Update descriptor set
-		Component::MeshRenderable copy = meshRenderable;
-		copy.descriptorSet = m_vkContext.GraphicsPipeline.descriptorSets[currentImage];
-		m_registry->updateComponent(entity, copy);
-
+	for (const auto& [entity, rigidBody, meshRenderable, transform] : view) {
 		// Timekeeping ensures that the geometry rotates at a constant rate regardless of frame rate
 		static auto startTime = std::chrono::high_resolution_clock::now();
 		auto currentTime = std::chrono::high_resolution_clock::now();
@@ -285,19 +286,19 @@ void VkBufferManager::updateObjectUBOs(uint32_t currentImage) {
 		// Actual UBO population
 		Buffer::ObjectUBO ubo{};
 
-		// Model matrix
+		// Model matrix (Scale -> Rotate -> Translate)
+			// glm::scale(transformation, scale);
 			// glm::rotate(transformation, rotationAngle, rotationAxis);
 			// glm::translate(transformation, translation);
-			// glm::scale(transformation, scale);
 		const glm::mat4 identityMat = glm::mat4(1.0f);
 		float rotationAngle = (time * glm::radians(0.5f));
 		glm::vec3 rotationAxis = glm::vec3(0.0f, 0.0f, 1.0f);
 
 		glm::mat4 modelMatrix = glm::mat4(1.0f);
 
+		modelMatrix *= glm::scale(identityMat, transform.scale);
 		modelMatrix *= glm::rotate(identityMat, rotationAngle, rotationAxis);
-		modelMatrix *= glm::translate(identityMat, rigidBody.transform.position);
-		modelMatrix *= glm::scale(identityMat, rigidBody.transform.scale);
+		modelMatrix *= glm::translate(identityMat, transform.position);
 
 		ubo.model = modelMatrix;
 

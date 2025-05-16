@@ -150,15 +150,15 @@ void UIRenderer::renderFrames() {
     ImGui::PushFont(m_pFont);
     
 
-    auto view = m_registry->getView<Component::RigidBody>();
+    auto view = m_registry->getView<Component::RigidBody, Component::Transform>();
 
     ImGui::Begin("Rigid-body Entity Debug Info");
-    for (const auto& [entity, rigidBody] : view) {
+    for (const auto& [entity, rigidBody, transform] : view) {
 
         ImGui::Text("Entity ID #%d", entity);
         
 
-        ImGui::Text("\tPosition: (x: %.2f, y: %.2f, z: %.2f)", rigidBody.transform.position.x, rigidBody.transform.position.y, rigidBody.transform.position.z);
+        ImGui::Text("\tPosition: (x: %.2f, y: %.2f, z: %.2f)", transform.position.x, transform.position.y, transform.position.z);
         
 
         float velocityAbs = glm::length(rigidBody.velocity);

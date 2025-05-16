@@ -11,6 +11,7 @@
 #include <Systems/Time.hpp>
 
 #include <Engine/Components/PhysicsComponents.hpp>
+#include <Engine/Components/WorldSpaceComponents.hpp>
 
 
 class PhysicsSystem {
@@ -19,7 +20,7 @@ public:
 	~PhysicsSystem() = default;
 
 	/* Updates a rigid body. */
-	void updateRigidBody(Component::RigidBody& rigidBody);
+	void updateRigidBody(Component::RigidBody& rigidBody, Component::Transform& transform);
 
 private:
 	std::shared_ptr<Registry> m_registry;

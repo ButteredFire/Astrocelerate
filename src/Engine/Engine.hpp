@@ -32,6 +32,7 @@
 #include <Engine/Components/ModelComponents.hpp>
 #include <Engine/Components/RenderComponents.hpp>
 #include <Engine/Components/PhysicsComponents.hpp>
+#include <Engine/Components/WorldSpaceComponents.hpp>
 
 #include <Systems/Time.hpp>
 #include <Systems/RenderSystem.hpp>

@@ -41,7 +41,7 @@ private:
 
 
 	/* Processes a mesh. */
-	void processMeshRenderable(const VkCommandBuffer& cmdBuffer, const Component::MeshRenderable& renderable);
+	void processMeshRenderable(const VkCommandBuffer& cmdBuffer, const Component::MeshRenderable& renderable, const VkDescriptorSet& descriptorSet);
 
 
 	/* Processes the GUI. */

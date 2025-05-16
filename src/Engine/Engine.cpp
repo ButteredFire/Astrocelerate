@@ -37,6 +37,9 @@ void Engine::initComponents() {
 
     /* PhysicsComponents.hpp */
     m_registry->initComponentArray<Component::RigidBody>();
+
+    /* WorldSpaceComponents.hpp */
+    m_registry->initComponentArray<Component::Transform>();
 }
 
 

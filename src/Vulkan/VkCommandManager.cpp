@@ -115,6 +115,7 @@ void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, 
 	// Processes renderables
 	Event::UpdateRenderables event{};
 	event.commandBuffer = cmdBuffer;
+	event.descriptorSet = m_vkContext.GraphicsPipeline.descriptorSets[currentFrame];
 	m_eventDispatcher->publish<Event::UpdateRenderables>(event, true);
 
 

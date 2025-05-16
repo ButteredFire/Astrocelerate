@@ -33,6 +33,7 @@
 
 #include <Engine/Components/ModelComponents.hpp>
 #include <Engine/Components/PhysicsComponents.hpp>
+#include <Engine/Components/WorldSpaceComponents.hpp>
 
 #include <Utils/SystemUtils.hpp>
 #include <Rendering/Geometry/ModelParser.hpp>

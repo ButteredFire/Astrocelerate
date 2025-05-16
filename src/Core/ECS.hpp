@@ -185,7 +185,7 @@ public:
 	}
 
 
-	/* Checks whether a component exists in the component array.
+	/* Checks whether an entity has a component.
 		@tparam Component: The component type of the component array.
 
 		@param entity: The ID of the entity owning the component to be checked.
@@ -193,8 +193,20 @@ public:
 		@return True if the component exists, otherwise False.
 	*/
 	template<typename Component>
-	inline bool containsComponent(EntityID entityID) {
+	inline bool entityHasComponent(EntityID entityID) {
 		return getComponentArray<Component>()->contains(entityID);
+	}
+
+
+	/* Checks whether the component has been registered.
+		@tparam Component: The component type of the component array.
+
+		@return True if the component has been registered, otherwise False.
+	*/
+	template<typename Component>
+	inline bool arrayHasComponent() {
+		const char* typeName = typeid(Component).name();
+		return (m_componentArrays.find(typeName) != m_componentArrays.end());
 	}
 
 private:
@@ -374,7 +386,7 @@ public:
 
     template<typename Component>
     inline Component& getComponent(EntityID entityID) {
-       if (!componentManager.containsComponent<Component>(entityID)) {
+       if (!componentManager.entityHasComponent<Component>(entityID)) {
            throw Log::RuntimeException(__FUNCTION__, __LINE__, "Entity #" + std::to_string(entityID) + " does not have the requested component!");
        }
 
@@ -384,7 +396,7 @@ public:
 
 	template<typename Component>
 	inline bool hasComponent(EntityID entityID) {
-		return componentManager.containsComponent<Component>(entityID);
+		return componentManager.entityHasComponent<Component>(entityID);
 	}
 
 
@@ -392,8 +404,19 @@ public:
 	auto getView() {
 		constexpr size_t argCount = sizeof...(Components);
 		if (argCount == 0) {
-			throw Log::RuntimeException(__FUNCTION__, __LINE__, "No components are passed into view!");
+			throw Log::RuntimeException(__FUNCTION__, __LINE__, "Cannot get view: No components are passed into view!");
 		}
+
+		/* NOTE: C++20 allows the use of lambda expressions for iterating over parameter packs:
+			`[&]<typename T>() {...}`     is a generic lambda;
+			`.template operator()<Ts>()`  explicitly calls the lambda's templated call operator for each type in `Ts...`;
+			`(expr, ...)`				  is a (unary right) fold expression that expands the call for each type in the parameter pack.
+		*/
+		([&]<typename Component>() {
+			if (!componentManager.arrayHasComponent<Component>()) {
+				throw Log::RuntimeException(__FUNCTION__, __LINE__, "Cannot get view: The component " + enquote(typeid(Component).name()) + " has not been registered!");
+			}
+		}.template operator()<Components>(), ...);
 
 		return InternalView<Components...>(entityManager, componentManager);
 	}

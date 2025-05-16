@@ -11,13 +11,15 @@ PhysicsSystem::PhysicsSystem() {
 
 	m_eventDispatcher->subscribe<Event::UpdateRigidBodies>(
 		[this](const Event::UpdateRigidBodies& event) {
-			auto view = m_registry->getView<Component::RigidBody>();
+			auto view = m_registry->getView<Component::RigidBody, Component::Transform>();
 
-			for (auto [entityID, rb] : view) {
-				Component::RigidBody copy = rb;
-				this->updateRigidBody(copy);
+			for (auto [entityID, rigidBody, transform] : view) {
+				Component::RigidBody copyRigidBody = rigidBody;
+				Component::Transform copyTransform = transform;
+				this->updateRigidBody(copyRigidBody, copyTransform);
 
-				m_registry->updateComponent(entityID, copy);
+				m_registry->updateComponent(entityID, copyRigidBody);
+				m_registry->updateComponent(entityID, copyTransform);
 			}
 		}
 	);
@@ -26,9 +28,9 @@ PhysicsSystem::PhysicsSystem() {
 }
 
 
-void PhysicsSystem::updateRigidBody(Component::RigidBody& rigidBody) {
+void PhysicsSystem::updateRigidBody(Component::RigidBody& rigidBody, Component::Transform& transform) {
 	float dt = Time::GetDeltaTime();
 
-	rigidBody.transform.position += rigidBody.velocity * dt;
+	transform.position += rigidBody.velocity * dt;
 	rigidBody.velocity += rigidBody.acceleration * dt;
 }

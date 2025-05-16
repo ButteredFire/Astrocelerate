@@ -49,6 +49,7 @@ namespace Event {
 	struct UpdateRenderables {
 		const EventType eventType = EventType::EVENT_ID_UPDATE_RENDERABLES;
 		VkCommandBuffer commandBuffer;
+		VkDescriptorSet descriptorSet;
 	};
 
 

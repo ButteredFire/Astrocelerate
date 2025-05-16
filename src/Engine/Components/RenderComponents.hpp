@@ -14,16 +14,12 @@
 
 #include <CoreStructs/Geometry.hpp>
 
-#include <Engine/Components/ComponentTypes.hpp>
-#include <Engine/Components/WorldSpaceComponents.hpp>
-
 
 namespace Component {
     struct MeshRenderable {
         Geometry::MeshOffset meshOffset;                    // Mesh offset into the global vertex and index buffers.
         size_t uboIndex;                                    // Index into the mesh's uniform buffer object,
         size_t textureIndex;                                // Index into a texture atlas or descriptor array. (TODO)
-        VkDescriptorSet descriptorSet = VK_NULL_HANDLE;     // The descriptor set to be used in vertex rendering.
     };
 
 

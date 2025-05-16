@@ -38,7 +38,7 @@ RenderSystem::RenderSystem(VulkanContext& context):
 			auto meshView = m_registry->getView<Component::MeshRenderable>();
 			
 			for (const auto& [entity, meshRenderable] : meshView) {
-				this->processMeshRenderable(event.commandBuffer, meshRenderable);
+				this->processMeshRenderable(event.commandBuffer, meshRenderable, event.descriptorSet);
 			}
 
 			vkCmdNextSubpass(event.commandBuffer, VK_SUBPASS_CONTENTS_INLINE);
@@ -56,13 +56,13 @@ RenderSystem::RenderSystem(VulkanContext& context):
 }
 
 
-void RenderSystem::processMeshRenderable(const VkCommandBuffer& cmdBuffer, const Component::MeshRenderable& renderable) {
+void RenderSystem::processMeshRenderable(const VkCommandBuffer& cmdBuffer, const Component::MeshRenderable& renderable, const VkDescriptorSet& descriptorSet) {
 	uint32_t dynamicOffset = static_cast<uint32_t>(renderable.uboIndex * m_dynamicAlignment);
 
 	// Draw call
 		// Binds descriptor sets
 			// Descriptor set 0
-	vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_vkContext.GraphicsPipeline.layout, 0, 1, &renderable.descriptorSet, 1, &dynamicOffset);
+	vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_vkContext.GraphicsPipeline.layout, 0, 1, &descriptorSet, 1, &dynamicOffset);
 
 	// Draws vertices based on the index buffer
 	//vkCmdDraw(cmdBuffer, renderable.vertexData.size(), 1, 0, 0);
