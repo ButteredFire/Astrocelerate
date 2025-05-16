@@ -120,9 +120,9 @@ void TextureManager::createTextureSampler() {
 		- ...MIRROR_CLAMP_TO_EDGE: Similar to ...CLAMP_TO_EDGE, but instead uses the edge opposite to the closest edge.
 		- ...CLAMP_TO_BORDER: Return a solid color when sampling beyond the dimensions of the texture.
 	*/
-	samplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-	samplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-	samplerCreateInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+	samplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	samplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	samplerCreateInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 
 
 	// Specifies which color is returned when sampling beyond the image with CLAMP_TO_BORDER addressing mode

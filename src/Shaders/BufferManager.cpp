@@ -67,7 +67,8 @@ void BufferManager::init() {
 	// Load geometry
 	GeometryLoader geometryLoader;
 
-	std::string planetPath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models/TestModels", "Sphere/Sphere.obj");
+	//std::string planetPath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models/TestModels", "Sphere/Sphere.obj");
+	std::string planetPath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models/CelestialBodies", "Earth/Earth.glb");
 	std::string satellitePath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models/TestModels", "Cube/Cube.obj");
 
 	geometryLoader.loadGeometryFromFile(planetPath);
@@ -83,7 +84,7 @@ void BufferManager::init() {
 		// Planet components
 	Component::RigidBody planetRB{};
 	planetRB.transform.position = glm::vec3(0.0f);
-	planetRB.transform.scale = glm::vec3(50.0f);
+	planetRB.transform.scale = glm::vec3(1.0f);
 	planetRB.velocity = glm::vec3(0.0f);
 	planetRB.acceleration = glm::vec3(0.0f);
 	planetRB.mass = (5.972 * 10e24);
@@ -95,8 +96,8 @@ void BufferManager::init() {
 
 		// Satellite components
 	Component::RigidBody satelliteRB{};
-	satelliteRB.transform.position = glm::vec3(0.0f, 80.0f, 0.0f);
-	satelliteRB.velocity = glm::vec3(0.0f);
+	satelliteRB.transform.position = glm::vec3(0.0f, 500.0f, 0.0f);
+	satelliteRB.velocity = glm::vec3(-20.0f, 0.0f, 0.0f);
 	satelliteRB.acceleration = glm::vec3(0.0f);
 	satelliteRB.mass = 20;
 
@@ -235,7 +236,7 @@ void BufferManager::updateGlobalUBO(uint32_t currentImage) {
 
 	// View
 		// glm::lookAt(eyePosition, centerPosition, upAxis);
-	glm::vec3 eyePosition = glm::vec3(1.5f, 2.0f, 1.0f) * 100.0f;
+	glm::vec3 eyePosition = glm::vec3(1.5f, 2.0f, 1.0f) * 500.0f;
 	glm::vec3 centerPosition = glm::vec3(0.0f, 0.0f, 0.0f);
 	glm::vec3 upAxis = glm::vec3(0.0f, 0.0f, 1.0f);
 
