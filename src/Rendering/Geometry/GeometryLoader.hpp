@@ -12,9 +12,9 @@
 
 #include <CoreStructs/Geometry.hpp>
 
-#include <Utils/ModelParser.hpp>
+#include <Rendering/Geometry/ModelParser.hpp>
 
-#include <Shaders/BufferManager.hpp>
+#include <Vulkan/VkBufferManager.hpp>
 
 
 class GeometryLoader {

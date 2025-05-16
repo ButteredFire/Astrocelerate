@@ -53,7 +53,7 @@ void TextureManager::createTextureImage(const char* texSource, int channels) {
 	bufAllocInfo.requiredFlags = (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 	bufAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT; // Specify CPU access since we will be mapping the buffer allocation to CPU memory
 
-	uint32_t stagingBufTaskID = BufferManager::createBuffer(m_vkContext, stagingBuffer, imageSize, stagingBufUsageFlags, stagingBufAllocation, bufAllocInfo);
+	uint32_t stagingBufTaskID = VkBufferManager::createBuffer(m_vkContext, stagingBuffer, imageSize, stagingBufUsageFlags, stagingBufAllocation, bufAllocInfo);
 
 		// Copy pixel data to the buffer
 	void* pixelData;

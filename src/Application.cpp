@@ -142,7 +142,7 @@ int main() {
 
 
             // Buffer manager
-        std::shared_ptr<BufferManager> m_bufferManager = std::make_shared<BufferManager>(vkContext);
+        std::shared_ptr<VkBufferManager> m_bufferManager = std::make_shared<VkBufferManager>(vkContext);
         ServiceLocator::registerService(m_bufferManager);
         m_bufferManager->init();
 

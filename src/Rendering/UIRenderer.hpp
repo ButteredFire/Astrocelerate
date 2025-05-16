@@ -22,7 +22,7 @@
 #include <Core/ServiceLocator.hpp>
 #include <CoreStructs/ApplicationContext.hpp>
 
-#include <Rendering/GraphicsPipeline.hpp>
+#include <Rendering/Pipelines/GraphicsPipeline.hpp>
 
 #include <Utils/ColorUtils.hpp>
 

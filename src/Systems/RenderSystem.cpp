@@ -10,7 +10,7 @@ RenderSystem::RenderSystem(VulkanContext& context):
 	m_registry = ServiceLocator::getService<Registry>(__FUNCTION__);
 	m_eventDispatcher = ServiceLocator::getService<EventDispatcher>(__FUNCTION__);
 
-	m_bufferManager = ServiceLocator::getService<BufferManager>(__FUNCTION__);
+	m_bufferManager = ServiceLocator::getService<VkBufferManager>(__FUNCTION__);
 
 	m_subpassBinder = ServiceLocator::getService<SubpassBinder>(__FUNCTION__);
 

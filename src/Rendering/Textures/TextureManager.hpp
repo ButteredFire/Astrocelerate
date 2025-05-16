@@ -20,9 +20,9 @@
 #include <CoreStructs/ApplicationContext.hpp>
 #include <Core/GarbageCollector.hpp>
 
-#include <Shaders/BufferManager.hpp>
+#include <Vulkan/VkBufferManager.hpp>
 
-#include <Rendering/GraphicsPipeline.hpp>
+#include <Rendering/Pipelines/GraphicsPipeline.hpp>
 
 
 class TextureManager {

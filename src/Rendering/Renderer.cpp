@@ -15,7 +15,7 @@ Renderer::Renderer(VulkanContext& context):
     m_globalRegistry = ServiceLocator::getService<Registry>(__FUNCTION__);
 
     m_swapchainManager = ServiceLocator::getService<VkSwapchainManager>(__FUNCTION__);
-    m_bufferManager = ServiceLocator::getService<BufferManager>(__FUNCTION__);
+    m_bufferManager = ServiceLocator::getService<VkBufferManager>(__FUNCTION__);
     m_commandManager = ServiceLocator::getService<VkCommandManager>(__FUNCTION__);
 
     m_imguiRenderer = ServiceLocator::getService<UIRenderer>(__FUNCTION__);

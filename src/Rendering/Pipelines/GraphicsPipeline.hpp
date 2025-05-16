@@ -19,7 +19,7 @@
 // Local
 #include <Vulkan/VkInstanceManager.hpp>
 
-#include <Shaders/BufferManager.hpp>
+#include <Vulkan/VkBufferManager.hpp>
 
 #include <CoreStructs/ApplicationContext.hpp>
 #include <Core/GarbageCollector.hpp>
@@ -30,7 +30,7 @@
 
 #include <CoreStructs/Geometry.hpp>
 
-#include <Rendering/TextureManager.hpp>
+#include <Rendering/Textures/TextureManager.hpp>
 
 #include <Utils/FilePathUtils.hpp>
 
@@ -68,7 +68,7 @@ private:
 
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 	std::shared_ptr<GarbageCollector> m_garbageCollector;
-	std::shared_ptr<BufferManager> m_bufferManager;
+	std::shared_ptr<VkBufferManager> m_bufferManager;
 
 	VkPipeline m_graphicsPipeline = VK_NULL_HANDLE;
 

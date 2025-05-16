@@ -19,8 +19,8 @@
 
 #include <Utils/SubpassBinder.hpp>
 
-#include <Shaders/BufferManager.hpp>
-class BufferManager;
+#include <Vulkan/VkBufferManager.hpp>
+class VkBufferManager;
 
 
 class RenderSystem {
@@ -33,7 +33,7 @@ private:
 
 	std::shared_ptr<Registry> m_registry;
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
-	std::shared_ptr<BufferManager> m_bufferManager;
+	std::shared_ptr<VkBufferManager> m_bufferManager;
 
 	std::shared_ptr<SubpassBinder> m_subpassBinder;
 

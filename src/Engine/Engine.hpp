@@ -16,11 +16,11 @@
 #include <Vulkan/VkSyncManager.hpp>
 
 #include <Rendering/Renderer.hpp>
-#include <Rendering/TextureManager.hpp>
-#include <Rendering/GraphicsPipeline.hpp>
+#include <Rendering/Textures/TextureManager.hpp>
+#include <Rendering/Pipelines/GraphicsPipeline.hpp>
 #include <Rendering/Geometry/GeometryLoader.hpp>
 
-#include <Shaders/BufferManager.hpp>
+#include <Vulkan/VkBufferManager.hpp>
 
 #include <Core/ECS.hpp>
 #include <Core/AppWindow.hpp>

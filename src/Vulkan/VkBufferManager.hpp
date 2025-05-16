@@ -1,4 +1,4 @@
-/* BufferManager.hpp - Manages the vertex buffer.
+/* VkBufferManager.hpp - Manages the vertex buffer.
 */
 #pragma once
 
@@ -35,7 +35,7 @@
 #include <Engine/Components/PhysicsComponents.hpp>
 
 #include <Utils/SystemUtils.hpp>
-#include <Utils/ModelParser.hpp>
+#include <Rendering/Geometry/ModelParser.hpp>
 #include <Utils/FilePathUtils.hpp>
 
 #include <Systems/Time.hpp>
@@ -81,10 +81,10 @@ struct UniformBufferObject {
 };
 
 
-class BufferManager {
+class VkBufferManager {
 public:
-    BufferManager(VulkanContext& context);
-    ~BufferManager();
+    VkBufferManager(VulkanContext& context);
+    ~VkBufferManager();
 
     void init();
 

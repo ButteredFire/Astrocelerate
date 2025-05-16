@@ -8,7 +8,7 @@ GraphicsPipeline::GraphicsPipeline(VulkanContext& context):
 
 	m_eventDispatcher = ServiceLocator::getService<EventDispatcher>(__FUNCTION__);
 	m_garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
-	m_bufferManager = ServiceLocator::getService<BufferManager>(__FUNCTION__);
+	m_bufferManager = ServiceLocator::getService<VkBufferManager>(__FUNCTION__);
 
 
 	m_eventDispatcher->subscribe<Event::SwapchainRecreation>(
@@ -632,7 +632,7 @@ void GraphicsPipeline::initRasterizationState() {
 	m_rasterizerCreateInfo.cullMode = VK_CULL_MODE_BACK_BIT; // Determines the type of culling to use
 
 	// Specifies the vertex order for faces to be considered front-facing (can be clockwise/counter-clockwise)
-	// Since we flipped the Y-coordinate of the clip coordinates in `BufferManager::updateUniformBuffer` to prevent images from being rendered upside-down, we must also specify that the vertex order should be counter-clockwise. If we keep it as clockwise, in our Y-flip case, backface culling will appear and prevent any geometry from being drawn.
+	// Since we flipped the Y-coordinate of the clip coordinates in `VkBufferManager::updateUniformBuffer` to prevent images from being rendered upside-down, we must also specify that the vertex order should be counter-clockwise. If we keep it as clockwise, in our Y-flip case, backface culling will appear and prevent any geometry from being drawn.
 	m_rasterizerCreateInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
 	m_rasterizerCreateInfo.depthBiasEnable = VK_FALSE;

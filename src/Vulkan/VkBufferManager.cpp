@@ -1,6 +1,6 @@
-#include "BufferManager.hpp"
+#include "VkBufferManager.hpp"
 
-BufferManager::BufferManager(VulkanContext& context):
+VkBufferManager::VkBufferManager(VulkanContext& context):
 	m_vkContext(context) {
 
 	m_registry = ServiceLocator::getService<Registry>(__FUNCTION__);
@@ -12,10 +12,10 @@ BufferManager::BufferManager(VulkanContext& context):
 	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
 
-BufferManager::~BufferManager() {}
+VkBufferManager::~VkBufferManager() {}
 
 
-void BufferManager::bindEvents() {
+void VkBufferManager::bindEvents() {
 	m_eventDispatcher->subscribe<Event::InitGlobalBuffers>(
 		[this](const Event::InitGlobalBuffers& event) {
 			this->createGlobalVertexBuffer(event.vertexData);
@@ -33,7 +33,7 @@ void BufferManager::bindEvents() {
 }
 
 
-void BufferManager::init() {
+void VkBufferManager::init() {
 	/*
 	//Component::Mesh mesh = ModelLoader::loadModel((std::string(APP_SOURCE_DIR) + std::string("/assets/Models/Spacecraft/SpaceX_Starship/Starship.obj")), ModelLoader::FileType::T_OBJ);
 
@@ -118,7 +118,7 @@ void BufferManager::init() {
 }
 
 
-uint32_t BufferManager::createBuffer(VulkanContext& vkContext, VkBuffer& buffer, VkDeviceSize bufferSize, VkBufferUsageFlags usageFlags, VmaAllocation& bufferAllocation, VmaAllocationCreateInfo bufferAllocationCreateInfo) {
+uint32_t VkBufferManager::createBuffer(VulkanContext& vkContext, VkBuffer& buffer, VkDeviceSize bufferSize, VkBufferUsageFlags usageFlags, VmaAllocation& bufferAllocation, VmaAllocationCreateInfo bufferAllocationCreateInfo) {
 
 	std::shared_ptr<GarbageCollector> m_garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
 
@@ -165,7 +165,7 @@ uint32_t BufferManager::createBuffer(VulkanContext& vkContext, VkBuffer& buffer,
 }
 
 
-void BufferManager::createGlobalVertexBuffer(const std::vector<Geometry::Vertex>& vertexData) {
+void VkBufferManager::createGlobalVertexBuffer(const std::vector<Geometry::Vertex>& vertexData) {
 	VkDeviceSize bufferSize = (sizeof(vertexData[0]) * vertexData.size());
 	VkBufferUsageFlags vertBufUsage = (VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
 
@@ -181,7 +181,7 @@ void BufferManager::createGlobalVertexBuffer(const std::vector<Geometry::Vertex>
 }
 
 
-void BufferManager::createGlobalIndexBuffer(const std::vector<uint32_t>& indexData) {
+void VkBufferManager::createGlobalIndexBuffer(const std::vector<uint32_t>& indexData) {
 	VkDeviceSize bufferSize = (sizeof(indexData[0]) * indexData.size());
 	VkBufferUsageFlags indexBufUsage = (VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
 
@@ -197,7 +197,7 @@ void BufferManager::createGlobalIndexBuffer(const std::vector<uint32_t>& indexDa
 }
 
 
-void BufferManager::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize deviceSize) {
+void VkBufferManager::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize deviceSize) {
 	// Uses the transfer queue by default, but if it does not exist, switch to the graphics queue
 	QueueFamilyIndices::QueueFamily queueFamily = m_vkContext.Device.queueFamilies.transferFamily;
 	if (queueFamily.deviceQueue == VK_NULL_HANDLE || !queueFamily.index.has_value()) {
@@ -230,7 +230,7 @@ void BufferManager::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceS
 }
 
 
-void BufferManager::updateGlobalUBO(uint32_t currentImage) {
+void VkBufferManager::updateGlobalUBO(uint32_t currentImage) {
 	Buffer::GlobalUBO ubo{};
 
 
@@ -265,7 +265,7 @@ void BufferManager::updateGlobalUBO(uint32_t currentImage) {
 }
 
 
-void BufferManager::updateObjectUBOs(uint32_t currentImage) {
+void VkBufferManager::updateObjectUBOs(uint32_t currentImage) {
 	m_eventDispatcher->publish(Event::UpdateRigidBodies{}, true);
 
 	auto view = m_registry->getView<Component::RigidBody, Component::MeshRenderable>();
@@ -308,7 +308,7 @@ void BufferManager::updateObjectUBOs(uint32_t currentImage) {
 }
 
 
-void BufferManager::writeDataToGPUBuffer(const void* data, VkBuffer& buffer, VkDeviceSize bufferSize) {
+void VkBufferManager::writeDataToGPUBuffer(const void* data, VkBuffer& buffer, VkDeviceSize bufferSize) {
 	/* How data is written into a device-local-memory allocated buffer:
 	*
 	* - We want the CPU to access and write data to a buffer in GPU memory (or device-local memory). It is in GPU memory because its memory usage flag is `VMA_MEMORY_USAGE_GPU_ONLY`. However, such buffers are not always directly accessible from the CPU.
@@ -367,7 +367,7 @@ void BufferManager::writeDataToGPUBuffer(const void* data, VkBuffer& buffer, VkD
 }
 
 
-void BufferManager::createUniformBuffers() {
+void VkBufferManager::createUniformBuffers() {
 	// NOTE: Since new data is copied to the UBOs every frame, we should not use staging buffers since they add overhead and thus degrade performance.
 	// However, we may use staging buffers if we want to utilize UBOs for instancing/compute.
 
@@ -445,7 +445,7 @@ void BufferManager::createUniformBuffers() {
 }
 
 
-uint32_t BufferManager::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
+uint32_t VkBufferManager::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
 	// Queries info about available memory types on the GPU
 	VkPhysicalDeviceMemoryProperties memoryProperties{};
 	vkGetPhysicalDeviceMemoryProperties(m_vkContext.Device.physicalDevice, &memoryProperties);
