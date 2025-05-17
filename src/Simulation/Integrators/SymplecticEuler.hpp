@@ -18,7 +18,7 @@ public:
 		@param acceleration: The current acceleration of the system.
 		@param dt: The time step for integration.
 	*/
-	void integrate(State& state, Derivative& velocity, const Derivative& acceleration, double dt) {
+	static void Integrate(State& state, Derivative& velocity, const Derivative& acceleration, double dt) {
 		state += velocity * dt;
 		velocity += acceleration * dt;
 	}

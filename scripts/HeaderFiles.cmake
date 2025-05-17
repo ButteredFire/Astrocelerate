@@ -40,6 +40,7 @@ set(HEADER_FILES
 	"src/Rendering/Geometry/ModelParser.hpp"
 	"src/Rendering/Pipelines/GraphicsPipeline.hpp"
 	"src/Rendering/Textures/TextureManager.hpp"
+	"src/Simulation/Integrators/RK4.hpp"
 	"src/Simulation/Integrators/SymplecticEuler.hpp"
 	"src/Systems/PhysicsSystem.hpp"
 	"src/Systems/RenderSystem.hpp"

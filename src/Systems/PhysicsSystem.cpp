@@ -41,8 +41,7 @@ void PhysicsSystem::updateRigidBodies(const double dt) {
 		glm::dvec3 acceleration = -G * orbitingBody.centralMass / (distance * distance * distance) * orbitingBody.relativePosition;
 
 
-		SymplecticEulerIntegrator integrator{};
-		integrator.integrate(transform.position, rigidBody.velocity, acceleration, dt);
+		SymplecticEulerIntegrator::Integrate(transform.position, rigidBody.velocity, acceleration, dt);
 
 		rigidBody.acceleration = acceleration;
 		orbitingBody.relativePosition = transform.position - glm::dvec3(0.0); // Assuming planet is at (0, 0, 0)
