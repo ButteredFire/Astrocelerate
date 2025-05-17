@@ -44,7 +44,7 @@ void PhysicsSystem::updateRigidBodies(const double dt) {
 		SymplecticEulerIntegrator::Integrate(transform.position, rigidBody.velocity, acceleration, dt);
 
 		rigidBody.acceleration = acceleration;
-		orbitingBody.relativePosition = transform.position - glm::dvec3(0.0); // Assuming planet is at (0, 0, 0)
+		orbitingBody.relativePosition = transform.position - orbitingBody.centralPosition;
 
 		m_registry->updateComponent(entityID, rigidBody);
 		m_registry->updateComponent(entityID, transform);

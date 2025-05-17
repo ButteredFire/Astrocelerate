@@ -26,7 +26,7 @@
 #include <Core/ServiceLocator.hpp>
 #include <Core/EventDispatcher.hpp>
 #include <Core/GarbageCollector.hpp>
-#include <CoreStructs/ApplicationContext.hpp>
+#include <CoreStructs/Contexts.hpp>
 
 #include <Engine/Components/RenderComponents.hpp>
 

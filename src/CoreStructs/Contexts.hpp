@@ -9,8 +9,10 @@
 #include <map>  
 
 // Local  
+#include <Core/InputManager.hpp>
 #include <Core/LoggingManager.hpp>  
-#include <CoreStructs/Device.hpp>  
+#include <CoreStructs/Device.hpp>
+
 
 using VulkanHandles = std::variant<  
    VmaAllocator,  
@@ -107,6 +109,14 @@ struct VulkanContext {
        std::vector<VkDescriptorSet> descriptorSets;
    } GraphicsPipeline;
 };
+
+
+
+// Used for GLFW
+struct CallbackContext {
+    InputManager* inputManager;
+};
+
 
 /* Checks whether a Vulkan object is valid/non-null. */  
 template<typename T> bool vkIsValid(T vulkanObject) { return (vulkanObject != T()); }

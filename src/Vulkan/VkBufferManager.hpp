@@ -29,7 +29,7 @@
 
 #include <CoreStructs/Buffer.hpp>
 #include <CoreStructs/Geometry.hpp>
-#include <CoreStructs/ApplicationContext.hpp>
+#include <CoreStructs/Contexts.hpp>
 
 #include <Engine/Components/ModelComponents.hpp>
 #include <Engine/Components/PhysicsComponents.hpp>
@@ -43,6 +43,8 @@
 
 #include <Rendering/Geometry/ModelParser.hpp>
 #include <Rendering/Geometry/GeometryLoader.hpp>
+
+#include <Scene/Camera.hpp>
 
 
 /* VERY IMPORTANT EXPLANATION BEHIND alignas(...) PER STRUCT MEMBER: "Alignment requirements"
@@ -159,6 +161,8 @@ private:
     std::shared_ptr<Registry> m_registry;
     std::shared_ptr<EventDispatcher> m_eventDispatcher;
     std::shared_ptr<GarbageCollector> m_garbageCollector;
+
+    std::shared_ptr<Camera> m_camera;
 
     
     Entity m_UBOEntity{};

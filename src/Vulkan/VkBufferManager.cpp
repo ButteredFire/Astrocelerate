@@ -7,6 +7,8 @@ VkBufferManager::VkBufferManager(VulkanContext& context):
 	m_eventDispatcher = ServiceLocator::getService<EventDispatcher>(__FUNCTION__);
 	m_garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
 
+	m_camera = ServiceLocator::getService<Camera>(__FUNCTION__);
+
 	bindEvents();
 
 	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
@@ -108,11 +110,12 @@ void VkBufferManager::init() {
 	satelliteRB.mass = 20;
 
 	Component::Transform satelliteTransform{};
-	satelliteTransform.position = glm::dvec3(0.0, (earthRadius + 2e6), 0.0);
+	satelliteTransform.position = glm::dvec3(0.0, (earthRadius + 3e6), 0.0);
 	satelliteTransform.scale = glm::dvec3(100000.0);
 
 	Component::OrbitingBody satelliteOB{};
 	satelliteOB.relativePosition = satelliteTransform.position - planetTransform.position;
+	satelliteOB.centralPosition = planetTransform.position;
 	satelliteOB.centralMass = planetRB.mass;
 
 	Component::MeshRenderable satelliteRenderable{};
@@ -253,16 +256,16 @@ void VkBufferManager::updateGlobalUBO(uint32_t currentImage) {
 
 	// View
 		// glm::lookAt(eyePosition, centerPosition, upAxis);
-	glm::vec3 eyePosition = SpaceUtils::ToSimSpace(glm::vec3(0.0f, 2.0f, 2.0f) * 8e6f);
-	glm::vec3 centerPosition = glm::vec3(0.0f, 0.0f, 0.0f);
-	glm::vec3 upAxis = glm::vec3(0.0f, 0.0f, 1.0f);
-
-	ubo.view = glm::lookAt(eyePosition, centerPosition, upAxis);
+	//glm::vec3 eyePosition = SpaceUtils::ToSimSpace(glm::vec3(0.0f, 2.0f, 2.0f) * 8e6f);
+	//glm::vec3 centerPosition = glm::vec3(0.0f, 0.0f, 0.0f);
+	ubo.view = m_camera->getViewMatrix();
+	//ubo.view = glm::lookAt(eyePosition, centerPosition, SimulationConsts::UP_AXIS);
 
 
 	// Perspective
 		// glm::perspective(fieldOfView, aspectRatio, nearClipPlane, farClipPlane);
-	constexpr float fieldOfView = glm::radians(60.0f);
+
+	const float fieldOfView = glm::radians(m_camera->zoom);
 	float aspectRatio = static_cast<float>(m_vkContext.SwapChain.extent.width) / static_cast<float>(m_vkContext.SwapChain.extent.height);
 	float nearClipPlane = 0.01f;
 	float farClipPlane = 1e10f;

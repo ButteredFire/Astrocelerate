@@ -17,7 +17,7 @@
 // Other
 #include <Core/Constants.h>
 #include <Core/LoggingManager.hpp>
-#include <CoreStructs/ApplicationContext.hpp>
+#include <CoreStructs/Contexts.hpp>
 #include <Core/GarbageCollector.hpp>
 
 #include <Vulkan/VkBufferManager.hpp>

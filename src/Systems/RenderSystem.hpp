@@ -12,7 +12,7 @@
 #include <Core/ServiceLocator.hpp>
 #include <Core/EventDispatcher.hpp>
 
-#include <CoreStructs/ApplicationContext.hpp>
+#include <CoreStructs/Contexts.hpp>
 #include <CoreStructs/Buffer.hpp>
 
 #include <Engine/Components/RenderComponents.hpp>

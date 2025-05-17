@@ -17,7 +17,8 @@ namespace Component {
 
 	/* Orbiting body (around another celestial body) */
 	struct OrbitingBody {
-		glm::dvec3 relativePosition;		// Position of this body relative to the body that it is orbiting.
-		double centralMass;					// The mass of the body that this body is orbiting.
+		glm::dvec3 relativePosition;		// Position of this body relative to the body that it is orbiting around.
+		glm::dvec3 centralPosition;			// Position of the body that this body is orbiting around.
+		double centralMass;					// The mass of the body that this body is orbiting around.
 	};
 }

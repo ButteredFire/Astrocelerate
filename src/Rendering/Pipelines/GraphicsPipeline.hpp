@@ -21,7 +21,7 @@
 
 #include <Vulkan/VkBufferManager.hpp>
 
-#include <CoreStructs/ApplicationContext.hpp>
+#include <CoreStructs/Contexts.hpp>
 #include <Core/GarbageCollector.hpp>
 #include <Core/LoggingManager.hpp>
 #include <Core/ServiceLocator.hpp>

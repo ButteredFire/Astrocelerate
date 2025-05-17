@@ -14,21 +14,21 @@
 #include <Vulkan/VkSwapchainManager.hpp>
 #include <Vulkan/VkCommandManager.hpp>
 #include <Vulkan/VkSyncManager.hpp>
+#include <Vulkan/VkBufferManager.hpp>
 
 #include <Rendering/Renderer.hpp>
 #include <Rendering/Textures/TextureManager.hpp>
 #include <Rendering/Pipelines/GraphicsPipeline.hpp>
 #include <Rendering/Geometry/GeometryLoader.hpp>
 
-#include <Vulkan/VkBufferManager.hpp>
-
 #include <Core/ECS.hpp>
+#include <Core/InputManager.hpp>
 #include <Core/AppWindow.hpp>
 #include <Core/Constants.h>
 #include <Core/LoggingManager.hpp>
 #include <Core/EventDispatcher.hpp>
 
-#include <CoreStructs/ApplicationContext.hpp>
+#include <CoreStructs/Contexts.hpp>
 
 #include <Engine/Components/ModelComponents.hpp>
 #include <Engine/Components/RenderComponents.hpp>
@@ -58,6 +58,8 @@ private:
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 	std::shared_ptr<Registry> m_registry;
 	std::shared_ptr<Renderer> m_renderer;
+
+	std::shared_ptr<InputManager> m_appInput;
 
 template<typename T>
 	static inline bool isPointerValid(T *ptr) { return ptr != nullptr; };

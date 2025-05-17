@@ -12,6 +12,8 @@ Engine::Engine(GLFWwindow *w, VulkanContext& context):
     m_eventDispatcher = ServiceLocator::getService<EventDispatcher>(__FUNCTION__);
     m_registry = ServiceLocator::getService<Registry>(__FUNCTION__);
 
+    m_appInput = ServiceLocator::getService<InputManager>(__FUNCTION__);
+
     if (!isPointerValid(window)) {
         throw Log::RuntimeException(__FUNCTION__, __LINE__, "Engine crashed: Invalid window context!");
     }
@@ -64,6 +66,7 @@ void Engine::update() {
         double deltaTime = Time::GetDeltaTime();
         accumulator += deltaTime * TIME_SCALE;
 
+        // Update physics
         while (accumulator >= SimulationConsts::TIME_STEP) {
             Event::UpdatePhysics updateEvent{};
             updateEvent.dt = SimulationConsts::TIME_STEP * TIME_SCALE;
@@ -72,7 +75,11 @@ void Engine::update() {
 
             accumulator -= SimulationConsts::TIME_STEP * TIME_SCALE;
         }
+
+        // Process key input events
+        m_appInput->processKeyboardInput(deltaTime);
         
+        // Update rendering
         m_renderer->update();
     }
 

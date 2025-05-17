@@ -7,7 +7,7 @@
 #include <GLFW/glfw3.h>
 
 #include <CoreStructs/Geometry.hpp>
-#include <CoreStructs/ApplicationContext.hpp>
+#include <CoreStructs/Contexts.hpp>
 
 
 enum EventType {

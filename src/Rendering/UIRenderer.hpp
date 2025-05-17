@@ -20,7 +20,7 @@
 #include <Core/Constants.h>
 #include <Core/LoggingManager.hpp>
 #include <Core/ServiceLocator.hpp>
-#include <CoreStructs/ApplicationContext.hpp>
+#include <CoreStructs/Contexts.hpp>
 
 #include <Rendering/Pipelines/GraphicsPipeline.hpp>
 

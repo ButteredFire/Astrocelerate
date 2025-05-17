@@ -9,7 +9,7 @@
 #include <Core/GarbageCollector.hpp>
 #include <Core/EventDispatcher.hpp>
 
-#include <CoreStructs/ApplicationContext.hpp>
+#include <CoreStructs/Contexts.hpp>
 
 #include <Engine/Components/PhysicsComponents.hpp>
 
@@ -30,6 +30,17 @@ int main() {
 
     // Binds members in the VulkanInstanceContext struct to their corresponding active Vulkan objects
     VulkanContext vkContext{};
+
+    // GLFW callback context
+    CallbackContext* callbackContext = new CallbackContext{};
+
+
+    // Creates a window
+    Window window(WIN_WIDTH, WIN_HEIGHT, WIN_NAME);
+    GLFWwindow *windowPtr = window.getGLFWwindowPtr();
+    vkContext.window = windowPtr;
+
+    window.initGLFWBindings(callbackContext);
 
     // Event dispatcher
     std::shared_ptr<EventDispatcher> eventDispatcher = std::make_shared<EventDispatcher>();
@@ -95,14 +106,24 @@ int main() {
     ServiceLocator::registerService(subpassBinder);
 
 
+    // Camera
+    std::shared_ptr<Camera> camera = std::make_shared<Camera>(
+        windowPtr,
+        SpaceUtils::ToSimSpace(glm::vec3(0.0f, 2.0f, 2.0f) * 8e6f),
+        glm::quat()
+    );
+    ServiceLocator::registerService(camera);
+
+
+    // Input
+    std::shared_ptr<InputManager> inputManager = std::make_shared<InputManager>();
+    ServiceLocator::registerService(inputManager);
+    callbackContext->inputManager = inputManager.get();
+
+
     try {
         // Pipeline initialization
-            // Creates a window
-        Window window(WIN_WIDTH, WIN_HEIGHT, WIN_NAME);
-        GLFWwindow *windowPtr = window.getGLFWwindowPtr();
-        vkContext.window = windowPtr;
 
-        
         Engine engine(windowPtr, vkContext);
         engine.initComponents();
 

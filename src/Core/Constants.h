@@ -6,6 +6,8 @@
 #include <filesystem>
 #include <string>
 
+#include <glm_config.hpp>
+
 // Default working directory
 inline std::string DEFAULT_WORKING_DIR = std::filesystem::current_path().string();
 
@@ -109,7 +111,9 @@ namespace PhysicsConsts {
 // Simulation settings
 namespace SimulationConsts {
 	constexpr int MAX_SIMULATION_STEPS = 10000;
-	constexpr int MAX_FRAMES_IN_FLIGHT = 2;				 // How many frames should be processed concurrently
-	constexpr double TIME_STEP = 1.0 / 60.0;			 // 60 Hz
-	constexpr double SIMULATION_SCALE = 1.0 / 1e6;		 // 1 world unit = 1,000,000 meters (1000 km)
+	constexpr int MAX_FRAMES_IN_FLIGHT = 2;							// How many frames should be processed concurrently
+	constexpr double TIME_STEP = 1.0 / 60.0;						// 60 Hz
+	constexpr double SIMULATION_SCALE = 1.0 / 1e6;					// 1 world unit = 1,000,000 meters (1000 km)
+
+	constexpr glm::vec3 UP_AXIS = glm::vec3(0.0f, 0.0f, 1.0f);		// Z-up
 }
