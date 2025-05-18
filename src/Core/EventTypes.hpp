@@ -16,6 +16,7 @@ enum EventType {
 	EVENT_ID_INIT_FRAMEBUFFERS,
 	EVENT_ID_INIT_GLOBAL_BUFFERS,
 
+	EVENT_ID_UPDATE_INPUT,
 	EVENT_ID_UPDATE_RENDERABLES,
 	EVENT_ID_UPDATE_PHYSICS,
 	EVENT_ID_UPDATE_UBOS
@@ -42,6 +43,13 @@ namespace Event {
 		const EventType eventType = EventType::EVENT_ID_INIT_GLOBAL_BUFFERS;
 		std::vector<Geometry::Vertex> vertexData;
 		std::vector<uint32_t> indexData;
+	};
+
+
+	/* Used when user input needs to be processed. */
+	struct UpdateInput {
+		const EventType eventType = EventType::EVENT_ID_UPDATE_INPUT;
+		double deltaTime;
 	};
 
 

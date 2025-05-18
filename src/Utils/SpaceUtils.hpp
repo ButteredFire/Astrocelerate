@@ -9,20 +9,14 @@
 
 
 namespace SpaceUtils {
-	/* @deprecated */
-	inline glm::vec3 ToRenderSpace(const glm::dvec3& simPos, const glm::dvec3& camPos) {
-		return static_cast<glm::vec3>((simPos - camPos) * SimulationConsts::SIMULATION_SCALE);
-	}
-
-
-	/* Converts to real space/scale. */
-	inline glm::dvec3 ToRealSpace(const glm::dvec3& vec3) {
+	/* Converts to simulation space/scale. Simulation space is one wherein objects retain real world data. */
+	inline glm::dvec3 ToSimulationSpace(const glm::dvec3& vec3) {
 		return (vec3 / SimulationConsts::SIMULATION_SCALE);
 	}
 
 
-	/* Converts to simulation space/scale. */
-	inline glm::vec3 ToSimSpace(const glm::dvec3& vec3) {
+	/* Converts to render space/scale. Render space is one wherein objects have their data scaled down for visual output. */
+	inline glm::vec3 ToRenderSpace(const glm::dvec3& vec3) {
 		return static_cast<glm::vec3>(vec3 * SimulationConsts::SIMULATION_SCALE);
 	}
 }

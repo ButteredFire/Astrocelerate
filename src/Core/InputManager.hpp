@@ -13,6 +13,9 @@
 #include <Scene/Camera.hpp>
 
 
+class EventDispatcher;
+
+
 class InputManager {
 public:
 	InputManager();
@@ -40,6 +43,11 @@ public:
 	void processMouseScroll(double deltaX, double deltaY);
 
 private:
+	std::shared_ptr<EventDispatcher> m_eventDispatcher;
+
 	std::shared_ptr<Camera> m_camera;
 	std::set<int> m_pressedKeys;
+
+
+	void bindEvents();
 };

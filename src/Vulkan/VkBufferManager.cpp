@@ -256,7 +256,7 @@ void VkBufferManager::updateGlobalUBO(uint32_t currentImage) {
 
 	// View
 		// glm::lookAt(eyePosition, centerPosition, upAxis);
-	//glm::vec3 eyePosition = SpaceUtils::ToSimSpace(glm::vec3(0.0f, 2.0f, 2.0f) * 8e6f);
+	//glm::vec3 eyePosition = SpaceUtils::ToRenderSpace(glm::vec3(0.0f, 2.0f, 2.0f) * 8e6f);
 	//glm::vec3 centerPosition = glm::vec3(0.0f, 0.0f, 0.0f);
 	ubo.view = m_camera->getViewMatrix();
 	//ubo.view = glm::lookAt(eyePosition, centerPosition, SimulationConsts::UP_AXIS);
@@ -318,9 +318,9 @@ void VkBufferManager::updateObjectUBOs(uint32_t currentImage) {
 					M = T * (R * (S * v_local)), hence S-R-T order.
 		*/
 		 glm::mat4 modelMatrix =
-			glm::translate(identityMat, glm::vec3(SpaceUtils::ToSimSpace(transform.position)))
+			glm::translate(identityMat, glm::vec3(SpaceUtils::ToRenderSpace(transform.position)))
 			* rotationMatrix
-			* glm::scale(identityMat, glm::vec3(SpaceUtils::ToSimSpace(transform.scale)));
+			* glm::scale(identityMat, glm::vec3(SpaceUtils::ToRenderSpace(transform.scale)));
 
 		/* Alternatively, the model matrix can be updated as follows:
 			modelMatrix = glm::translate(modelMatrix, glm::vec3(transform.position));

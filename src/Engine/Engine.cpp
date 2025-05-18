@@ -68,17 +68,20 @@ void Engine::update() {
 
         // Update physics
         while (accumulator >= SimulationConsts::TIME_STEP) {
-            Event::UpdatePhysics updateEvent{};
-            updateEvent.dt = SimulationConsts::TIME_STEP * TIME_SCALE;
+            Event::UpdatePhysics updatePhysicsEvent{};
+            updatePhysicsEvent.dt = SimulationConsts::TIME_STEP * TIME_SCALE;
 
-            m_eventDispatcher->publish(updateEvent, true);
+            m_eventDispatcher->publish(updatePhysicsEvent, true);
 
             accumulator -= SimulationConsts::TIME_STEP * TIME_SCALE;
         }
 
         // Process key input events
-        m_appInput->processKeyboardInput(deltaTime);
+        Event::UpdateInput updateInputEvent{};
+        updateInputEvent.deltaTime = deltaTime;
+        m_eventDispatcher->publish(updateInputEvent, true);
         
+
         // Update rendering
         m_renderer->update();
     }

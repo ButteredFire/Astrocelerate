@@ -45,6 +45,7 @@ set(HEADER_FILES
 	"src/Scene/Camera.hpp"
 	"src/Simulation/Integrators/RK4.hpp"
 	"src/Simulation/Integrators/SymplecticEuler.hpp"
+	"src/Simulation/Systems/ReferenceFrameSystem.hpp"
 	"src/Systems/PhysicsSystem.hpp"
 	"src/Systems/RenderSystem.hpp"
 	"src/Systems/Time.hpp"

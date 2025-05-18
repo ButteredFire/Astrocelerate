@@ -39,6 +39,8 @@
 #include <Systems/RenderSystem.hpp>
 #include <Systems/PhysicsSystem.hpp>
 
+#include <Simulation/Systems/ReferenceFrameSystem.hpp>
+
 #include <Utils/SubpassBinder.hpp>
 
 

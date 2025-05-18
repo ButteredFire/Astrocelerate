@@ -1,10 +1,23 @@
 #include "InputManager.hpp"
+#include <Core/EventDispatcher.hpp>
 
 
 InputManager::InputManager() {
+	m_eventDispatcher = ServiceLocator::getService<EventDispatcher>(__FUNCTION__);
 	m_camera = ServiceLocator::getService<Camera>(__FUNCTION__);
 
+	bindEvents();
+
 	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
+}
+
+
+void InputManager::bindEvents() {
+	m_eventDispatcher->subscribe<Event::UpdateInput>(
+		[this](const Event::UpdateInput& event) {
+			this->processKeyboardInput(event.deltaTime);
+		}
+	);
 }
 
 

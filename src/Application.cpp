@@ -109,7 +109,7 @@ int main() {
     // Camera
     std::shared_ptr<Camera> camera = std::make_shared<Camera>(
         windowPtr,
-        SpaceUtils::ToSimSpace(glm::vec3(0.0f, 2.0f, 2.0f) * 8e6f),
+        SpaceUtils::ToRenderSpace(glm::vec3(0.0f, 2.0f, 2.0f) * 8e6f),
         glm::quat()
     );
     ServiceLocator::registerService(camera);
@@ -198,6 +198,9 @@ int main() {
 
         std::shared_ptr<PhysicsSystem> physicsSystem = std::make_shared<PhysicsSystem>();
         ServiceLocator::registerService(physicsSystem);
+
+        std::shared_ptr<ReferenceFrameSystem> refFrameSystem = std::make_shared<ReferenceFrameSystem>();
+        ServiceLocator::registerService(refFrameSystem);
 
         engine.run();
     }
