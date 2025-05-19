@@ -27,8 +27,8 @@ Renderer::Renderer(VulkanContext& context):
 Renderer::~Renderer() {}
 
 
-void Renderer::update() {
-    drawFrame();
+void Renderer::update(glm::dvec3& renderOrigin) {
+    drawFrame(renderOrigin);
 }
 
 
@@ -44,7 +44,7 @@ void Renderer::initializeRenderables() {
 }
 
 
-void Renderer::drawFrame() {
+void Renderer::drawFrame(glm::dvec3& renderOrigin) {
     //m_vertexRenderComponent.descriptorSet = m_vkContext.GraphicsPipeline.descriptorSets[m_currentFrame];
     m_guiRenderComponent.guiDrawData = ImGui::GetDrawData();
 
@@ -137,6 +137,7 @@ void Renderer::drawFrame() {
         // Updates the uniform buffer
     Event::UpdateUBOs updateUBOsEvent{};
     updateUBOsEvent.currentFrame = m_currentFrame;
+    updateUBOsEvent.renderOrigin = renderOrigin;
 
     m_eventDispatcher->publish<Event::UpdateUBOs>(updateUBOsEvent, true);
 

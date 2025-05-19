@@ -11,8 +11,17 @@ Window::Window(int width, int height, std::string windowName)
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     // Disables window from being resized post-creation (to support custom window resizing logic)
     //glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    m_monitor = glfwGetPrimaryMonitor();
 
+    // Fullscreen:
+    // m_window = glfwCreateWindow(width, height, windowName.c_str(), m_monitor, nullptr);
+
+    // Set width and height:
+    //m_window = glfwCreateWindow(width, height, windowName.c_str(), nullptr, nullptr);
+
+    // Maximized:
     m_window = glfwCreateWindow(width, height, windowName.c_str(), nullptr, nullptr);
+    glfwMaximizeWindow(m_window);
 }
 
 
@@ -30,6 +39,8 @@ void Window::initGLFWBindings(CallbackContext* context) {
     glfwSetCursorPosCallback(m_window, MouseCallback);
     glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
+    glfwSetMouseButtonCallback(m_window, MouseBtnCallback);
+
     glfwSetScrollCallback(m_window, ScrollCallback);
 }
 
@@ -37,12 +48,23 @@ void Window::initGLFWBindings(CallbackContext* context) {
 void Window::KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
 	CallbackContext* context = static_cast<CallbackContext*>(glfwGetWindowUserPointer(window));
     context->inputManager->glfwDeferKeyInput(action, key);
+
+    if (key == GLFW_KEY_ESCAPE) {
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    }
 }
 
 
 void Window::MouseCallback(GLFWwindow* window, double posX, double posY) {
     CallbackContext* context = static_cast<CallbackContext*>(glfwGetWindowUserPointer(window));
     context->inputManager->processMouseInput(posX, posY);
+}
+
+
+void Window::MouseBtnCallback(GLFWwindow* window, int button, int action, int mods) {
+    if (button == GLFW_MOUSE_BUTTON_LEFT) {
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    }
 }
 
 

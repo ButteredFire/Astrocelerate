@@ -13,6 +13,8 @@
 
 #include <Engine/Components/WorldSpaceComponents.hpp>
 
+#include <Utils/SpaceUtils.hpp>
+
 
 class ReferenceFrameSystem {
 public:
@@ -25,7 +27,7 @@ public:
 
 
 	/* Updates the absolute transform of a reference frame. */
-	void updateGlobalTransform(Component::ReferenceFrame* frame);
+	void updateGlobalTransform(EntityID entityID, Component::ReferenceFrame& frame);
 
 
 	/* Sorts the reference frame tree. This is done only once, at the start of a simulation. */

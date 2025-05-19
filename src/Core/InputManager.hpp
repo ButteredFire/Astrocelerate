@@ -22,6 +22,12 @@ public:
 	~InputManager() = default;
 
 
+	/* Gets a pointer to the Camera instance. */
+	inline Camera* getCamera() {
+		return m_camera.get();
+	}
+
+
 	/* GLFW keyboard input: Defer input processing to update loop.
 		GLFW only invokes the key callback function when a key input event happens, not per-frame.
 		This means that directly manipulating the application in the callback function (i.e., updating movement in simulation space) is very jittery. Even if delta-time is used, such manipulation cannot synchronize with the update loop.

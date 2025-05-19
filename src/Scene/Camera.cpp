@@ -30,6 +30,15 @@ glm::mat4 Camera::getViewMatrix() const {
 }
 
 
+Component::Transform Camera::getGlobalTransform() const {
+	Component::Transform transform{};
+	transform.position = m_position;
+	transform.rotation = m_orientation;
+	
+	return transform;
+}
+
+
 void Camera::processKeyboardInput(Input::CameraMovement direction, double dt) {
 	using namespace Input;
 

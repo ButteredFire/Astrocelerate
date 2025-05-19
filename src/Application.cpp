@@ -109,7 +109,7 @@ int main() {
     // Camera
     std::shared_ptr<Camera> camera = std::make_shared<Camera>(
         windowPtr,
-        SpaceUtils::ToRenderSpace(glm::vec3(0.0f, 2.0f, 2.0f) * 8e6f),
+        SpaceUtils::ToRenderSpace(glm::vec3(0.0f, 2.0f, 2.0f) * 6e6f),
         glm::quat()
     );
     ServiceLocator::registerService(camera);

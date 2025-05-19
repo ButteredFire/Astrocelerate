@@ -9,12 +9,6 @@ PhysicsSystem::PhysicsSystem() {
 	m_registry = ServiceLocator::getService<Registry>(__FUNCTION__);
 	m_eventDispatcher = ServiceLocator::getService<EventDispatcher>(__FUNCTION__);
 
-	m_eventDispatcher->subscribe<Event::UpdatePhysics>(
-		[this](const Event::UpdatePhysics& event) {
-			this->update(event.dt);
-		}
-	);
-	
 	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
 
@@ -27,27 +21,20 @@ void PhysicsSystem::update(const double dt) {
 void PhysicsSystem::updateRigidBodies(const double dt) {
 	using namespace PhysicsConsts;
 
-	auto view = m_registry->getView<Component::RigidBody, Component::Transform, Component::OrbitingBody>();
+	auto view = m_registry->getView<Component::RigidBody, Component::ReferenceFrame, Component::OrbitingBody>();
 
-	for (auto [entityID, rb, t, ob] : view) {
-		Component::RigidBody rigidBody = rb;
-		Component::Transform transform = t;
-		Component::OrbitingBody orbitingBody = ob;
-
-
+	for (auto [entityID, rigidBody, refFrame, orbitingBody] : view) {
 		// Distance to central mass
-		double distance = glm::length(orbitingBody.relativePosition);
+		glm::dvec3 relativePosition = refFrame.localTransform.position;
+		double distance = glm::length(relativePosition);
 
-		glm::dvec3 acceleration = -G * orbitingBody.centralMass / (distance * distance * distance) * orbitingBody.relativePosition;
+		glm::dvec3 acceleration = -G * orbitingBody.centralMass / (distance * distance * distance) * relativePosition;
+		rigidBody.acceleration = acceleration; // For telemetry display only (not used in simulation)
 
-
-		SymplecticEulerIntegrator::Integrate(transform.position, rigidBody.velocity, acceleration, dt);
-
-		rigidBody.acceleration = acceleration;
-		orbitingBody.relativePosition = transform.position - orbitingBody.centralPosition;
+		SymplecticEulerIntegrator::Integrate(refFrame.localTransform.position, rigidBody.velocity, acceleration, dt);
 
 		m_registry->updateComponent(entityID, rigidBody);
-		m_registry->updateComponent(entityID, transform);
+		m_registry->updateComponent(entityID, refFrame);
 		m_registry->updateComponent(entityID, orbitingBody);
 	}
 }

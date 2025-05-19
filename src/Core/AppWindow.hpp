@@ -26,6 +26,8 @@ public:
 
 	static void MouseCallback(GLFWwindow* window, double posX, double posY);
 
+	static void MouseBtnCallback(GLFWwindow* window, int button, int action, int mods);
+
 	static void ScrollCallback(GLFWwindow* window, double deltaX, double deltaY);
 	
 private:
@@ -33,5 +35,6 @@ private:
 	const int m_HEIGHT;
 	std::string m_windowName;
 
-	GLFWwindow *m_window;
+	GLFWmonitor* m_monitor;
+	GLFWwindow* m_window;
 };

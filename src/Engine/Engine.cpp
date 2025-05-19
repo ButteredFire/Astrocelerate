@@ -4,7 +4,6 @@
 #include "Engine.hpp"
 
 
-
 Engine::Engine(GLFWwindow *w, VulkanContext& context):
     window(w),
     m_vkContext(context) {
@@ -12,7 +11,7 @@ Engine::Engine(GLFWwindow *w, VulkanContext& context):
     m_eventDispatcher = ServiceLocator::getService<EventDispatcher>(__FUNCTION__);
     m_registry = ServiceLocator::getService<Registry>(__FUNCTION__);
 
-    m_appInput = ServiceLocator::getService<InputManager>(__FUNCTION__);
+    m_inputManager = ServiceLocator::getService<InputManager>(__FUNCTION__);
 
     if (!isPointerValid(window)) {
         throw Log::RuntimeException(__FUNCTION__, __LINE__, "Engine crashed: Invalid window context!");
@@ -44,12 +43,17 @@ void Engine::initComponents() {
 
     /* WorldSpaceComponents.hpp */
     m_registry->initComponentArray<Component::Transform>();
+    m_registry->initComponentArray<Component::ReferenceFrame>();
 }
 
 
 /* Starts the engine. */ 
 void Engine::run() {
+    m_physicsSystem = ServiceLocator::getService<PhysicsSystem>(__FUNCTION__);
+    m_refFrameSystem = ServiceLocator::getService<ReferenceFrameSystem>(__FUNCTION__);
+
     m_renderer = ServiceLocator::getService<Renderer>(__FUNCTION__);
+
     update();
 }
 
@@ -68,12 +72,13 @@ void Engine::update() {
 
         // Update physics
         while (accumulator >= SimulationConsts::TIME_STEP) {
-            Event::UpdatePhysics updatePhysicsEvent{};
-            updatePhysicsEvent.dt = SimulationConsts::TIME_STEP * TIME_SCALE;
+            const double scaledDeltaTime = SimulationConsts::TIME_STEP * TIME_SCALE;
 
-            m_eventDispatcher->publish(updatePhysicsEvent, true);
+            m_refFrameSystem->updateAllFrames();
+            m_physicsSystem->update(scaledDeltaTime);
+            m_refFrameSystem->updateAllFrames();
 
-            accumulator -= SimulationConsts::TIME_STEP * TIME_SCALE;
+            accumulator -= scaledDeltaTime;
         }
 
         // Process key input events
@@ -83,7 +88,9 @@ void Engine::update() {
         
 
         // Update rendering
-        m_renderer->update();
+        glm::dvec3 anchor = m_inputManager->getCamera()->getGlobalTransform().position;
+        //std::cout << anchor.x << ", " << anchor.y << ", " << anchor.z << '\n';
+        m_renderer->update(anchor);
     }
 
     // All of the operations in Renderer::drawFrame are asynchronous. That means that when we exit the loop in mainLoop, drawing and presentation operations may still be going on. Cleaning up resources while that is happening is a bad idea.

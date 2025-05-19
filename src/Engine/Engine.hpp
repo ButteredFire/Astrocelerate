@@ -61,7 +61,10 @@ private:
 	std::shared_ptr<Registry> m_registry;
 	std::shared_ptr<Renderer> m_renderer;
 
-	std::shared_ptr<InputManager> m_appInput;
+	std::shared_ptr<InputManager> m_inputManager;
+
+	std::shared_ptr<PhysicsSystem> m_physicsSystem;
+	std::shared_ptr<ReferenceFrameSystem> m_refFrameSystem;
 
 template<typename T>
 	static inline bool isPointerValid(T *ptr) { return ptr != nullptr; };

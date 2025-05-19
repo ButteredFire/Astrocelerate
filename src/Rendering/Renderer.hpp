@@ -11,10 +11,7 @@
 #include <GLFW/glfw3.h>
 
 // GLM
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/vec4.hpp>
-#include <glm/mat4x4.hpp>
+#include <glm_config.hpp>
 
 // C++ STLs
 #include <iostream>
@@ -59,7 +56,7 @@ public:
 	void init();
 
 	/* Updates the rendering. */
-	void update();
+	void update(glm::dvec3& renderOrigin);
 
 private:
 	VkInstance& m_vulkInst;
@@ -94,5 +91,5 @@ private:
 			- Submit the recorded command buffer
 			- Present the swap chain image
 	*/
-	void drawFrame();
+	void drawFrame(glm::dvec3& renderOrigin);
 };

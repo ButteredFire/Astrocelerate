@@ -17,33 +17,50 @@ void ReferenceFrameSystem::updateAllFrames() {
 	}
 
 	for (auto& [entity, frame] : m_referenceFrames) {
-		updateGlobalTransform(frame);
+		updateGlobalTransform(entity, *frame);
 		m_registry->updateComponent(entity, *frame);
 	}
+
+	std::cout;
 }
 
 
-void ReferenceFrameSystem::updateGlobalTransform(Component::ReferenceFrame* frame) {
+void ReferenceFrameSystem::updateGlobalTransform(EntityID entityID, Component::ReferenceFrame& frame) {
 	// If frame is the root frame, set global transform to local transform
-	if (frame->parent == nullptr) {
-		frame->globalPosition = frame->localPosition;
-		frame->globalRotation = frame->localRotation;
-		frame->globalScale = frame->localScale;
+	if (!frame.parentID.has_value()) {
+		frame.globalTransform.position = frame.localTransform.position;
+		frame.globalTransform.rotation = frame.localTransform.rotation;
+		frame.globalTransform.scale = frame.localTransform.scale;
 
 		return;
 	}
 
 	// Else, recursively compute the frame's global transform (assuming parent's global transform was already computed)
-	const Component::ReferenceFrame* parent = frame->parent;
-	const double parentScale = parent->globalScale;
+	const Component::ReferenceFrame* parent = &m_registry->getComponent<Component::ReferenceFrame>(frame.parentID.value());
+	const double parentScale = parent->globalTransform.scale;
+
 
 		// Order: Scale -> Rotate -> Translate
-	glm::dvec3 scaledPosition = frame->localPosition * parentScale;
-	glm::dvec3 rotatedPosition = parent->globalRotation * scaledPosition;
+	glm::dvec3 scaledPosition = frame.localTransform.position * parentScale;
+	glm::dvec3 rotatedPosition = parent->globalTransform.rotation * scaledPosition;
 
-	frame->globalPosition = parent->globalPosition + rotatedPosition;
-	frame->globalRotation = parent->globalRotation * frame->localRotation;  // NOTE: Quaternion multiplication is not commutative
-	frame->globalScale = frame->localScale * parentScale;
+	frame.globalTransform.position = parent->globalTransform.position + rotatedPosition;
+	frame.globalTransform.rotation = parent->globalTransform.rotation * frame.localTransform.rotation;  // NOTE: Quaternion multiplication is not commutative
+	frame.globalTransform.scale = frame.localTransform.scale * parentScale;
+
+	if (frame.globalTransform.scale == 0) {
+		std::string errMsg = "Failed to update global transform for entity ID #" + std::to_string(entityID) + ": ";
+
+		if (frame.localTransform.scale == 0)
+			errMsg += "\n- Its local scale is 0";
+
+		if (parentScale == 0)
+			errMsg += "\n- Its parent (Entity ID #" + std::to_string(frame.parentID.value()) + ") has a scale value of 0";
+
+		errMsg += "\n\nScale, globally or locally, must be greater than 0.";
+
+		throw Log::RuntimeException(__FUNCTION__, __LINE__, errMsg);
+	}
 }
 
 
@@ -57,9 +74,10 @@ void ReferenceFrameSystem::sortFrameTree() {
 	std::unordered_map<EntityID, Component::ReferenceFrame*> frameMap;
 	std::unordered_map<Component::ReferenceFrame*, EntityID> reverseFrameMap;
 
-	for (auto&& [entity, frame] : view) {
-		frameMap[entity] = &frame;		// Alternatively: frameMap[entity] = std::addressof(frame);
-		reverseFrameMap[&frame] = entity;
+	for (auto&& [entity, _] : view) {
+		Component::ReferenceFrame* frame = &m_registry->getComponent<Component::ReferenceFrame>(entity);
+		frameMap[entity] = frame;		// Alternatively: frameMap[entity] = std::addressof(frame);
+		reverseFrameMap[frame] = entity;
 	}
 
 
@@ -70,7 +88,7 @@ void ReferenceFrameSystem::sortFrameTree() {
 	std::function<void(EntityID)> visit = [&](EntityID entity) {
 		// If a cyclic dependency is detected
 		if (recursionStack.contains(entity)) {
-			throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to sort reference frame tree: Cyclic dependency detected! (Entity ID involved: " + std::to_string(entity) + ")");
+			throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to sort reference frame tree due to a cyclic dependency!\nEntry node of the cycle has entity ID #" + std::to_string(entity) + ".");
 		}
 
 
@@ -84,10 +102,14 @@ void ReferenceFrameSystem::sortFrameTree() {
 		recursionStack.insert(entity);
 
 		auto* frame = frameMap[entity];
-		auto it = reverseFrameMap.find(frame->parent);
 
-		if (frame->parent && it != reverseFrameMap.end()) {
-			visit(it->second);
+		if (frame->parentID.has_value()) {
+			auto it = reverseFrameMap.find(
+				&m_registry->getComponent<Component::ReferenceFrame>(frame->parentID.value())
+			);
+
+			if (it != reverseFrameMap.end())
+				visit(it->second);
 		}
 
 		recursionStack.erase(entity);

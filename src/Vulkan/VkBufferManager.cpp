@@ -29,7 +29,7 @@ void VkBufferManager::bindEvents() {
 	m_eventDispatcher->subscribe<Event::UpdateUBOs>(
 		[this](const Event::UpdateUBOs& event) {
 			this->updateGlobalUBO(event.currentFrame);
-			this->updateObjectUBOs(event.currentFrame);
+			this->updateObjectUBOs(event.currentFrame, event.renderOrigin);
 		}
 	);
 }
@@ -80,9 +80,21 @@ void VkBufferManager::init() {
 
 	m_totalObjects = 2;
 
+	// Global reference frame
+	Entity renderSpace = m_registry->createEntity();
+
+	Component::ReferenceFrame globalRefFrame{};
+	globalRefFrame.parentID = std::nullopt;
+	globalRefFrame.localTransform.scale = 1.0;
+	globalRefFrame.localTransform.scale = 1.0;
+
+	m_registry->addComponent(renderSpace.id, globalRefFrame);
+
+
 	// Define rigid bodies
 	m_planet = m_registry->createEntity();
 	m_satellite = m_registry->createEntity();
+
 
 	// Planet components
 	Component::RigidBody planetRB{};
@@ -92,13 +104,21 @@ void VkBufferManager::init() {
 
 	double earthRadius = 6.378e6;
 
-	Component::Transform planetTransform{};
-	planetTransform.position = glm::dvec3(0.0);
-	planetTransform.scale = glm::dvec3(earthRadius);
+	Component::ReferenceFrame planetRefFrame{};
+	planetRefFrame.parentID = renderSpace.id;
+	planetRefFrame.localTransform.position = glm::dvec3(0.0);
+	planetRefFrame.localTransform.rotation = glm::dquat(1, 0, 0, 0);
+	planetRefFrame.localTransform.scale = 5.0;  // 1 Earth meter = 5 meters in global reference frame
 
 	Component::MeshRenderable planetRenderable{};
 	planetRenderable.uboIndex = 0;
 	planetRenderable.meshOffset = meshOffsets[0];
+
+
+	m_registry->addComponent(m_planet.id, planetRB);
+	m_registry->addComponent(m_planet.id, planetRefFrame);
+	m_registry->addComponent(m_planet.id, planetRenderable);
+
 
 
 		// Satellite components
@@ -109,13 +129,14 @@ void VkBufferManager::init() {
 	satelliteRB.acceleration = glm::dvec3(0.0);
 	satelliteRB.mass = 20;
 
-	Component::Transform satelliteTransform{};
-	satelliteTransform.position = glm::dvec3(0.0, (earthRadius + 3e6), 0.0);
-	satelliteTransform.scale = glm::dvec3(100000.0);
+	Component::ReferenceFrame satelliteRefFrame{};
+	satelliteRefFrame.parentID = m_planet.id;
+	satelliteRefFrame.localTransform.position = glm::dvec3(0.0, (earthRadius + 2e6), 0.0);
+	satelliteRefFrame.localTransform.rotation = glm::dquat(1, 0, 0, 0);
+	satelliteRefFrame.localTransform.scale = 0.01;  // 1 satellite meter = 0.01 meters in Earth frame
 
 	Component::OrbitingBody satelliteOB{};
-	satelliteOB.relativePosition = satelliteTransform.position - planetTransform.position;
-	satelliteOB.centralPosition = planetTransform.position;
+	satelliteOB.centralGlobalPosition = planetRefFrame.globalTransform.position;
 	satelliteOB.centralMass = planetRB.mass;
 
 	Component::MeshRenderable satelliteRenderable{};
@@ -123,12 +144,8 @@ void VkBufferManager::init() {
 	satelliteRenderable.meshOffset = meshOffsets[1];
 
 
-	m_registry->addComponent(m_planet.id, planetRB);
-	m_registry->addComponent(m_planet.id, planetTransform);
-	m_registry->addComponent(m_planet.id, planetRenderable);
-
 	m_registry->addComponent(m_satellite.id, satelliteRB);
-	m_registry->addComponent(m_satellite.id, satelliteTransform);
+	m_registry->addComponent(m_satellite.id, satelliteRefFrame);
 	m_registry->addComponent(m_satellite.id, satelliteOB);
 	m_registry->addComponent(m_satellite.id, satelliteRenderable);
 
@@ -285,17 +302,10 @@ void VkBufferManager::updateGlobalUBO(uint32_t currentImage) {
 }
 
 
-void VkBufferManager::updateObjectUBOs(uint32_t currentImage) {
-	auto view = m_registry->getView<Component::RigidBody, Component::MeshRenderable, Component::Transform>();
+void VkBufferManager::updateObjectUBOs(uint32_t currentImage, const glm::dvec3& renderOrigin) {
+	auto view = m_registry->getView<Component::RigidBody, Component::MeshRenderable, Component::ReferenceFrame>();
 
-	for (const auto& [entity, rigidBody, meshRenderable, transform] : view) {
-		// Timekeeping ensures that the geometry rotates at a constant rate regardless of frame rate
-		static auto startTime = std::chrono::high_resolution_clock::now();
-		auto currentTime = std::chrono::high_resolution_clock::now();
-		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-
-
-		// Actual UBO population
+	for (const auto& [entity, rigidBody, meshRenderable, refFrame] : view) {
 		Buffer::ObjectUBO ubo{};
 
 		// Model matrix (Scale -> Rotate -> Translate)
@@ -303,11 +313,11 @@ void VkBufferManager::updateObjectUBOs(uint32_t currentImage) {
 			// glm::rotate(transformation, rotationAngle, rotationAxis);
 			// glm::translate(transformation, translation);
 		const glm::mat4 identityMat = glm::mat4(1.0f);
-		float rotationAngle = (time * glm::radians(90.0f));
-		glm::vec3 rotationAxis = glm::vec3(0.0f, 0.0f, 1.0f);
 
+		//glm::mat4 rotationMatrix = glm::toMat4(refFrame.globalTransform.rotation);
 
-		glm::mat4 rotationMatrix = glm::toMat4(transform.rotation);
+		glm::dvec3 relativePosition = SpaceUtils::ToRenderSpace(refFrame.globalTransform.position - renderOrigin);
+		glm::vec3 globalScale = glm::vec3(refFrame.globalTransform.scale);
 
 		/* NOTE:
 			Model matrices are constructed according to the Scale -> Rotate -> Translate (S-R-T) order.
@@ -318,9 +328,9 @@ void VkBufferManager::updateObjectUBOs(uint32_t currentImage) {
 					M = T * (R * (S * v_local)), hence S-R-T order.
 		*/
 		 glm::mat4 modelMatrix =
-			glm::translate(identityMat, glm::vec3(SpaceUtils::ToRenderSpace(transform.position)))
-			* rotationMatrix
-			* glm::scale(identityMat, glm::vec3(SpaceUtils::ToRenderSpace(transform.scale)));
+			glm::translate(identityMat, glm::vec3(relativePosition))
+			* glm::mat4(glm::toMat4(refFrame.globalTransform.rotation))
+			* glm::scale(identityMat, globalScale);
 
 		/* Alternatively, the model matrix can be updated as follows:
 			modelMatrix = glm::translate(modelMatrix, glm::vec3(transform.position));

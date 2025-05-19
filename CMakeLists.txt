@@ -129,6 +129,7 @@ find_package(Vulkan REQUIRED)    # Vulkan SDK
     set(GLM_OFFLINE_SOURCE_DIR "${CMAKE_CURRENT_BINARY_DIR}/_deps/glm-src")
     set(VMA_OFFLINE_SOURCE_DIR "${CMAKE_CURRENT_BINARY_DIR}/_deps/vulkanmemoryallocator-src")
     set(ASSIMP_OFFLINE_SOURCE_DIR "${CMAKE_CURRENT_BINARY_DIR}/_deps/assimp-src")
+    set(ASSIMP_OFFLINE_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/_deps/assimp-build")
     
 
     # GLFW3
@@ -187,10 +188,20 @@ set(FETCHCONTENT_LIBS_TARGET_INCLUDE_DIRS
 )
 
 
+set(FETCHCONTENT_LIBS_TARGET_INCLUDE_DIRS_OFFLINE
+    ${GLM_OFFLINE_SOURCE_DIR} 
+    ${GLFW_OFFLINE_SOURCE_DIR}/include
+    ${imgui_SOURCE_DIR}
+    ${VMA_OFFLINE_SOURCE_DIR}/include
+    ${ASSIMP_OFFLINE_SOURCE_DIR}/include
+    ${ASSIMP_OFFLINE_BINARY_DIR}/include
+)
+
+
 # Make libraries available
 #FetchContent_MakeAvailable(${FETCHCONTENT_LIBS})
 
-    # Cache libraries for fallback in case of no internet connection
+    # Cache libraries for fallback in case of no internet connection (disabled for now)
     if (IS_ONLINE AND 0)
         message(STATUS "Creating dependency cache for offline fallback...")
         file(
@@ -257,4 +268,5 @@ target_link_libraries(Astrocelerate PRIVATE ${PKG_LIBS} ${FETCHCONTENT_LIBS})
 target_include_directories(Astrocelerate PRIVATE 
     ${HEADER_DIRS}
     ${FETCHCONTENT_LIBS_TARGET_INCLUDE_DIRS}
+    ${FETCHCONTENT_LIBS_TARGET_INCLUDE_DIRS_OFFLINE}
 )

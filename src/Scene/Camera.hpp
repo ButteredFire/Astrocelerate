@@ -13,6 +13,8 @@
 
 #include <CoreStructs/Input.hpp>
 
+#include <Engine/Components/WorldSpaceComponents.hpp>
+
 #include <Systems/Time.hpp>
 
 
@@ -27,6 +29,11 @@ public:
 
 	/* Gets the camera's view matrix. */
 	glm::mat4 getViewMatrix() const;
+
+
+	/* Gets the camera's transform in global simualtion space. */
+	Component::Transform getGlobalTransform() const;
+
 
 	float movementSpeed = 20.0f;			// Movement speed in simulation space (m/s)
 	float mouseSensitivity = 0.1f;			// Mouse sensitivity

@@ -130,8 +130,9 @@ public:
 
     /* Updates per-object uniform buffers.
         @param currentImage: The index of the current frame.
+        @param renderOrigin: The render anchor frame for relative position computations.
     */
-    void updateObjectUBOs(uint32_t currentImage);
+    void updateObjectUBOs(uint32_t currentImage, const glm::dvec3& renderOrigin);
 
 
     /* Gets the vertex buffer. */

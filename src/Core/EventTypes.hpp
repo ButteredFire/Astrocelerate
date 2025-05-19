@@ -6,6 +6,8 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
+#include <glm_config.hpp>
+
 #include <CoreStructs/Geometry.hpp>
 #include <CoreStructs/Contexts.hpp>
 
@@ -72,5 +74,6 @@ namespace Event {
 	struct UpdateUBOs {
 		const EventType eventType = EventType::EVENT_ID_UPDATE_UBOS;
 		uint32_t currentFrame;
+		glm::dvec3 renderOrigin;
 	};
 }
