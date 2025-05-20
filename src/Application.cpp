@@ -5,15 +5,8 @@
 #include <Engine/Engine.hpp>
 #include <Core/ServiceLocator.hpp>
 #include <Core/Constants.h>
-#include <Core/ECS.hpp>
-#include <Core/GarbageCollector.hpp>
-#include <Core/EventDispatcher.hpp>
 
 #include <CoreStructs/Contexts.hpp>
-
-#include <Engine/Components/PhysicsComponents.hpp>
-
-#include <Utils/FilePathUtils.hpp>
 
 #include <iostream>
 #include <stdexcept>
@@ -46,59 +39,25 @@ int main() {
     std::shared_ptr<EventDispatcher> eventDispatcher = std::make_shared<EventDispatcher>();
     ServiceLocator::registerService(eventDispatcher);
 
+
     // Garbage collector
     std::shared_ptr<GarbageCollector> garbageCollector = std::make_shared<GarbageCollector>(vkContext);
     ServiceLocator::registerService(garbageCollector);
+
 
     // ECS Registry
     std::shared_ptr<Registry> globalRegistry = std::make_shared<Registry>();
     ServiceLocator::registerService(globalRegistry);
 
 
-
-    //    // ECS architecture test
-    //Entity satellite = globalRegistry->createEntity();
-    //Entity starship = globalRegistry->createEntity();
-    //Entity earth = globalRegistry->createEntity();
-
-
-    //globalRegistry->initComponentArray<Component::RigidBody>();
-
-    //Component::RigidBody satelliteRB = {
-    //    glm::vec3(1.0f),
-    //    glm::vec3(1.0f),
-    //    glm::vec3(1.0f),
-    //    10.0f
-    //};
-
-    //Component::RigidBody starshipRB = {
-    //    glm::vec3(1.0f) * 2.0f,
-    //    glm::vec3(1.0f) * 2.0f,
-    //    glm::vec3(1.0f) * 2.0f,
-    //    5e6
-    //};
-
-    //Component::RigidBody earthRB = {
-    //    glm::vec3(1.0f) * 3.0f,
-    //    glm::vec3(1.0f) * 3.0f,
-    //    glm::vec3(1.0f) * 3.0f,
-    //    (5.972 * 10e24)
-    //};
-
-    //globalRegistry->addComponent(satellite.id, satelliteRB);
-    //globalRegistry->addComponent(starship.id, starshipRB);
-    //globalRegistry->addComponent(earth.id, earthRB);
-
-    //auto view = globalRegistry->getView<Component::RigidBody>();
-
-    //for (auto [entity, rb] : view) {
-    //    Log::print(Log::T_WARNING, __FUNCTION__, "Entity #" + std::to_string(entity) + ": Mass = " + std::to_string(rb.mass));
-    //}
-
-
     // Texture manager
     std::shared_ptr<TextureManager> textureManager = std::make_shared<TextureManager>(vkContext);
     ServiceLocator::registerService(textureManager);
+
+
+    // GUI panel manager
+    std::shared_ptr<UIPanelManager> uiPanelManager = std::make_shared<UIPanelManager>();
+    ServiceLocator::registerService(uiPanelManager);
 
 
     // Subpass binder

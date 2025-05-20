@@ -41,6 +41,8 @@
 
 #include <Simulation/Systems/ReferenceFrameSystem.hpp>
 
+#include <Scene/GUI/UIPanelManager.hpp>
+
 #include <Utils/SubpassBinder.hpp>
 
 

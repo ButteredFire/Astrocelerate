@@ -23,6 +23,7 @@ set(SOURCE_FILES
 	"src/Rendering/Pipelines/GraphicsPipeline.cpp"
 	"src/Rendering/Textures/TextureManager.cpp"
 	"src/Scene/Camera.cpp"
+	"src/Scene/GUI/UIPanelManager.cpp"
 	"src/Simulation/Systems/ReferenceFrameSystem.cpp"
 	"src/Systems/PhysicsSystem.cpp"
 	"src/Systems/RenderSystem.cpp"

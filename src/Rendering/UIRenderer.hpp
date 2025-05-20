@@ -24,6 +24,8 @@
 
 #include <Rendering/Pipelines/GraphicsPipeline.hpp>
 
+#include <Scene/GUI/UIPanelManager.hpp>
+
 #include <Utils/ColorUtils.hpp>
 
 // Font
@@ -66,6 +68,8 @@ private:
 	std::shared_ptr<GarbageCollector> m_garbageCollector;
 
 	std::shared_ptr<GraphicsPipeline> m_graphicsPipeline;
+
+	std::shared_ptr<UIPanelManager> m_uiPanelManager;
 
 	ImFont* m_pFont = nullptr;
 	VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;

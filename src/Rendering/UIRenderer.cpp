@@ -12,6 +12,8 @@ UIRenderer::UIRenderer(VulkanContext& context):
 
     m_graphicsPipeline = ServiceLocator::getService<GraphicsPipeline>(__FUNCTION__);
 
+    m_uiPanelManager = ServiceLocator::getService<UIPanelManager>(__FUNCTION__);
+
 	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
 
@@ -148,8 +150,10 @@ void UIRenderer::renderFrames() {
     ImGui::NewFrame();
 
     ImGui::PushFont(m_pFont);
-    
 
+    m_uiPanelManager->updatePanels();
+    
+    /*
     auto view = m_registry->getView<Component::RigidBody, Component::ReferenceFrame>();
 
     // --- Rigid-body Entity Debug Info ---
@@ -233,6 +237,7 @@ void UIRenderer::renderFrames() {
         ImGui::Separator();
     }
     ImGui::End();
+    */
 
     /*
     ImGui::ShowDemoWindow();
