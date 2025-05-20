@@ -35,7 +35,7 @@ public:
 	Component::Transform getGlobalTransform() const;
 
 
-	float movementSpeed = 20.0f;			// Movement speed in simulation space (m/s)
+	float movementSpeed = 10.0f;			// Movement speed in render space (m/s)
 	float mouseSensitivity = 0.1f;			// Mouse sensitivity
 	float zoom = 60.0f;						// Zoom (degrees)
 

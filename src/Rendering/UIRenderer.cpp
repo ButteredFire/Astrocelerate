@@ -187,12 +187,12 @@ void UIRenderer::renderFrames() {
 
     // --- Reference Frame Entity Debug Info ---
     ImGui::Begin("Reference Frame Entity Debug Info");
-    for (const auto& [entity, _, referenceFrame] : view) {
+    for (const auto& [entity, _, refFrame] : view) {
         ImGui::Text("Entity ID #%d", entity);
 
         // Parent ID
-        if (referenceFrame.parentID.has_value()) {
-            ImGui::Text("\tParent Entity ID: %d", referenceFrame.parentID.value());
+        if (refFrame.parentID.has_value()) {
+            ImGui::Text("\tParent Entity ID: %d", refFrame.parentID.value());
         }
         else {
             ImGui::Text("\tParent Entity ID: None");
@@ -201,30 +201,34 @@ void UIRenderer::renderFrames() {
         // Local Transform
         ImGui::Text("\tLocal Transform:");
         ImGui::Text("\t\tPosition: (x: %.2f, y: %.2f, z: %.2f)",
-            referenceFrame.localTransform.position.x,
-            referenceFrame.localTransform.position.y,
-            referenceFrame.localTransform.position.z);
+            refFrame.localTransform.position.x,
+            refFrame.localTransform.position.y,
+            refFrame.localTransform.position.z);
+        ImGui::Text("\t\t\tMagnitude: ||vec|| ~= %.2f", glm::length(refFrame.localTransform.position));
+
         ImGui::Text("\t\tRotation: (x: %.2f, y: %.2f, z: %.2f, w: %.2f)",
-            referenceFrame.localTransform.rotation.x,
-            referenceFrame.localTransform.rotation.y,
-            referenceFrame.localTransform.rotation.z,
-            referenceFrame.localTransform.rotation.w);
+            refFrame.localTransform.rotation.x,
+            refFrame.localTransform.rotation.y,
+            refFrame.localTransform.rotation.z,
+            refFrame.localTransform.rotation.w);
         ImGui::Text("\t\tScale: %.10f",
-            referenceFrame.localTransform.scale);
+            refFrame.localTransform.scale);
 
         // Global Transform
-        ImGui::Text("\tGlobal Transform:");
+        ImGui::Text("\tGlobal Transform (normalized):");
         ImGui::Text("\t\tPosition: (x: %.2f, y: %.2f, z: %.2f)",
-            referenceFrame.globalTransform.position.x,
-            referenceFrame.globalTransform.position.y,
-            referenceFrame.globalTransform.position.z);
+            refFrame.globalTransform.position.x,
+            refFrame.globalTransform.position.y,
+            refFrame.globalTransform.position.z);
+        ImGui::Text("\t\t\tMagnitude: ||vec|| ~= %.2f", glm::length(refFrame.globalTransform.position));
+
         ImGui::Text("\t\tRotation: (x: %.2f, y: %.2f, z: %.2f, w: %.2f)",
-            referenceFrame.globalTransform.rotation.x,
-            referenceFrame.globalTransform.rotation.y,
-            referenceFrame.globalTransform.rotation.z,
-            referenceFrame.globalTransform.rotation.w);
+            refFrame.globalTransform.rotation.x,
+            refFrame.globalTransform.rotation.y,
+            refFrame.globalTransform.rotation.z,
+            refFrame.globalTransform.rotation.w);
         ImGui::Text("\t\tScale: %.10f",
-            referenceFrame.globalTransform.scale);
+            refFrame.globalTransform.scale);
 
         ImGui::Separator();
     }

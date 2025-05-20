@@ -133,7 +133,7 @@ void VkBufferManager::init() {
 	satelliteRefFrame.parentID = m_planet.id;
 	satelliteRefFrame.localTransform.position = glm::dvec3(0.0, (earthRadius + 2e6), 0.0);
 	satelliteRefFrame.localTransform.rotation = glm::dquat(1, 0, 0, 0);
-	satelliteRefFrame.localTransform.scale = 0.01;  // 1 satellite meter = 0.01 meters in Earth frame
+	satelliteRefFrame.localTransform.scale = 0.001;  // 1 satellite meter = 0.01 meters in Earth frame
 
 	Component::OrbitingBody satelliteOB{};
 	satelliteOB.centralGlobalPosition = planetRefFrame.globalTransform.position;

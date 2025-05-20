@@ -48,6 +48,16 @@ void ReferenceFrameSystem::updateGlobalTransform(EntityID entityID, Component::R
 	frame.globalTransform.rotation = parent->globalTransform.rotation * frame.localTransform.rotation;  // NOTE: Quaternion multiplication is not commutative
 	frame.globalTransform.scale = frame.localTransform.scale * parentScale;
 
+
+	// Rescale global transform to account for different child-to-parent scale ratios (i.e., undo different scale influence on transforms)
+	frame.globalTransform.position /= parentScale;
+	frame.globalTransform.scale /= parentScale;
+
+
+	// Ensure that the mesh with the global scale gets rendered
+	frame.globalTransform.scale = SpaceUtils::GetRenderableScale(frame.globalTransform.scale);
+
+
 	if (frame.globalTransform.scale == 0) {
 		std::string errMsg = "Failed to update global transform for entity ID #" + std::to_string(entityID) + ": ";
 
