@@ -1,0 +1,4 @@
+*.obj binary
+*.mtl binary
+*.fbx binary
+*.gltf binary
