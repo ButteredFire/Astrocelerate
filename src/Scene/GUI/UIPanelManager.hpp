@@ -38,8 +38,7 @@ private:
 	GUI::PanelMask m_panelMask;
 
 	typedef void(UIPanelManager::*PanelCallback)();  // void(void) function pointer
-	std::unordered_map<GUI::PanelFlag, PanelCallback> m_panelInitCallbacks;
-	std::vector<PanelCallback> m_callbacks;
+	std::unordered_map<GUI::PanelFlag, PanelCallback> m_panelCallbacks;
 
 
 	/* Binds the panel flags to their respective initalization callback functions. */

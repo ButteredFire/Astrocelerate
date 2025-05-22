@@ -243,6 +243,10 @@ public:
 	}
 
 
+	/* Returns the number of entries queried. */
+	inline size_t size() { return m_matchingEntities.size(); }
+
+
 	class Iterator {
 		public:
 			Iterator(InternalView* view, size_t index) :

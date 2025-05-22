@@ -34,15 +34,19 @@ public:
 
 		The solution is to keep track which keys are pressed, and only process those key presses in the update loop. In other words, the solution is to defer key input processing until the update loop is run.
 	*/
-	void glfwDeferKeyInput(int action, int key);
+	void glfwDeferKeyInput(int key, int scancode, int action, int mods);
 
 
-	/* Processes keyboard inputs. */
+	/* Processes keyboard input. */
 	void processKeyboardInput(double dt);
 
 
-	/* Processes mouse input. */
-	void processMouseInput(double posX, double posY);
+	/* Processes mouse clicks. */
+	void processMouseClicks(GLFWwindow* window, int button, int action, int mods);
+
+
+	/* Processes mouse movement. */
+	void processMouseMovement(double posX, double posY);
 
 
 	/* Processes mouse scroll. */
@@ -54,6 +58,7 @@ private:
 	std::shared_ptr<Camera> m_camera;
 	std::set<int> m_pressedKeys;
 
+	bool m_cursorLocked = false;
 
 	void bindEvents();
 };

@@ -63,7 +63,7 @@ namespace GUI {
 		@param panel: The panel to be toggled.  
 		@param toggleMode: The toggle mode (on/off).  
 	*/  
-	inline void togglePanel(PanelMask& mask, PanelFlag panel, Toggle toggleMode) {  
+	inline void TogglePanel(PanelMask& mask, PanelFlag panel, Toggle toggleMode) {  
 		switch (toggleMode) {  
 		case TOGGLE_ON:  
 			mask.set(static_cast<size_t>(panel));  
@@ -97,7 +97,7 @@ namespace GUI {
 
 		@return A compact string representation of the panel mask.
 	*/
-	inline std::string serializePanelMask(const PanelMask& mask) {
+	inline std::string SerializePanelMask(const PanelMask& mask) {
 		return mask.to_string(); // Compact string like "110010"
 	}
 
@@ -107,7 +107,7 @@ namespace GUI {
 
 		@return A PanelMask object.
 	*/
-	inline PanelMask deserializePanelMask(const std::string& str) {
+	inline PanelMask DeserializePanelMask(const std::string& str) {
 		return PanelMask(str);
 	}
 }

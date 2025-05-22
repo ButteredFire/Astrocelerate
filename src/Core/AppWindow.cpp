@@ -37,7 +37,6 @@ void Window::initGLFWBindings(CallbackContext* context) {
     glfwSetKeyCallback(m_window, KeyCallback);
 
     glfwSetCursorPosCallback(m_window, MouseCallback);
-    glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     glfwSetMouseButtonCallback(m_window, MouseBtnCallback);
 
@@ -47,24 +46,19 @@ void Window::initGLFWBindings(CallbackContext* context) {
 
 void Window::KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
 	CallbackContext* context = static_cast<CallbackContext*>(glfwGetWindowUserPointer(window));
-    context->inputManager->glfwDeferKeyInput(action, key);
-
-    if (key == GLFW_KEY_ESCAPE) {
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-    }
+    context->inputManager->glfwDeferKeyInput(key, scancode, action, mods);
 }
 
 
 void Window::MouseCallback(GLFWwindow* window, double posX, double posY) {
     CallbackContext* context = static_cast<CallbackContext*>(glfwGetWindowUserPointer(window));
-    context->inputManager->processMouseInput(posX, posY);
+    context->inputManager->processMouseMovement(posX, posY);
 }
 
 
 void Window::MouseBtnCallback(GLFWwindow* window, int button, int action, int mods) {
-    if (button == GLFW_MOUSE_BUTTON_LEFT) {
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-    }
+    CallbackContext* context = static_cast<CallbackContext*>(glfwGetWindowUserPointer(window));
+    context->inputManager->processMouseClicks(window, button, action, mods);
 }
 
 

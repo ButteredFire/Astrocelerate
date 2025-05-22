@@ -21,7 +21,7 @@ void InputManager::bindEvents() {
 }
 
 
-void InputManager::glfwDeferKeyInput(int action, int key) {
+void InputManager::glfwDeferKeyInput(int key, int scancode, int action, int mods) {
 	if (action == GLFW_PRESS) {
 		m_pressedKeys.insert(key);
 	}
@@ -35,34 +35,49 @@ void InputManager::processKeyboardInput(double dt) {
 	using namespace Input;
 
 	for (const int key : m_pressedKeys) {
-		if (key == GLFW_KEY_W) {
-			m_camera->processKeyboardInput(CameraMovement::FORWARD, dt);
-		}
+		// This only happens when the cursor is locked.
+		// When the cursor is not locked, such keys can be bound to other actions.
+		if (m_cursorLocked) {
+			if (key == GLFW_KEY_W) {
+				m_camera->processKeyboardInput(CameraMovement::FORWARD, dt);
+			}
 
-		if (key == GLFW_KEY_S) {
-			m_camera->processKeyboardInput(CameraMovement::BACKWARD, dt);
-		}
+			if (key == GLFW_KEY_S) {
+				m_camera->processKeyboardInput(CameraMovement::BACKWARD, dt);
+			}
 
-		if (key == GLFW_KEY_A) {
-			m_camera->processKeyboardInput(CameraMovement::LEFT, dt);
-		}
+			if (key == GLFW_KEY_A) {
+				m_camera->processKeyboardInput(CameraMovement::LEFT, dt);
+			}
 
-		if (key == GLFW_KEY_D) {
-			m_camera->processKeyboardInput(CameraMovement::RIGHT, dt);
-		}
+			if (key == GLFW_KEY_D) {
+				m_camera->processKeyboardInput(CameraMovement::RIGHT, dt);
+			}
 
-		if (key == GLFW_KEY_SPACE) {
-			m_camera->processKeyboardInput(CameraMovement::UP, dt);
-		}
+			if (key == GLFW_KEY_SPACE) {
+				m_camera->processKeyboardInput(CameraMovement::UP, dt);
+			}
 
-		if (key == GLFW_KEY_LEFT_SHIFT) {
-			m_camera->processKeyboardInput(CameraMovement::DOWN, dt);
+			if (key == GLFW_KEY_LEFT_SHIFT) {
+				m_camera->processKeyboardInput(CameraMovement::DOWN, dt);
+			}
 		}
 	}
 }
 
+void InputManager::processMouseClicks(GLFWwindow* window, int button, int action, int mods) {
+	if (button == GLFW_MOUSE_BUTTON_LEFT) {
+		m_cursorLocked = true;
+		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	}
+	else if (button == GLFW_MOUSE_BUTTON_RIGHT) {
+		m_cursorLocked = false;
+		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+	}
+}
 
-void InputManager::processMouseInput(double dposX, double dposY) {
+
+void InputManager::processMouseMovement(double dposX, double dposY) {
 	static float lastX = 0.0f, lastY = 0.0f;
 	static bool initialInput = true;
 
@@ -85,10 +100,12 @@ void InputManager::processMouseInput(double dposX, double dposY) {
 	lastX = posX;
 	lastY = posY;
 
-	m_camera->processMouseInput(deltaX, deltaY);
+	if (m_cursorLocked)
+		m_camera->processMouseInput(deltaX, deltaY);
 }
 
 
 void InputManager::processMouseScroll(double deltaX, double deltaY) {
-	m_camera->processMouseScroll(static_cast<float>(deltaY));
+	if (m_cursorLocked)
+		m_camera->processMouseScroll(static_cast<float>(deltaY));
 }
