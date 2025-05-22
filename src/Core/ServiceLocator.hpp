@@ -13,7 +13,7 @@ public:
 		@param service: A shared pointer to the service. If the service to be registered already exists, the currently mapped service in the service registry will be updated.
 	*/
 	template<typename T>
-	inline static void registerService(std::shared_ptr<T> service) {
+	inline static void RegisterService(std::shared_ptr<T> service) {
 		std::type_index serviceTypeIdx = std::type_index(typeid(T));
 		if (m_services.find(serviceTypeIdx) != m_services.end()) {
 			Log::print(Log::T_WARNING, __FUNCTION__, "Service of type " + enquote(serviceTypeIdx.name()) + " already exists! Overwriting existing service...");
@@ -29,7 +29,7 @@ public:
 		@return A shared pointer to the service.
 	*/
 	template<typename T>
-	inline static std::shared_ptr<T> getService(const char* caller) {
+	inline static std::shared_ptr<T> GetService(const char* caller) {
 		std::type_index serviceTypeIdx = std::type_index(typeid(T));
 		auto ptrIt = m_services.find(serviceTypeIdx);
 		if (ptrIt == m_services.end()) {

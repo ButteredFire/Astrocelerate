@@ -6,7 +6,7 @@
 TextureManager::TextureManager(VulkanContext& context) :
 	m_vkContext(context) {
 
-	m_garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
+	m_garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
 
 	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
@@ -172,7 +172,7 @@ void TextureManager::createTextureSampler() {
 
 
 void TextureManager::createImage(VulkanContext& vkContext, VkImage& image, VmaAllocation& imgAllocation, uint32_t width, uint32_t height, uint32_t depth, VkFormat imgFormat, VkImageTiling imgTiling, VkImageUsageFlags imgUsageFlags, VmaAllocationCreateInfo& imgAllocCreateInfo) {
-	std::shared_ptr<GarbageCollector> garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
+	std::shared_ptr<GarbageCollector> garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
 
 	// Image info
 	VkImageCreateInfo imgCreateInfo{};

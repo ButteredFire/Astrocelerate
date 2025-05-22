@@ -165,15 +165,7 @@ private:
 
     std::shared_ptr<Camera> m_camera;
 
-    
-    Entity m_UBOEntity{};
-    Component::RigidBody m_UBORigidBody{};
-
-    Entity m_planet{};
-    Entity m_satellite{};
-
     size_t m_totalObjects;
-    
     
     VkBuffer m_vertexBuffer = VK_NULL_HANDLE;
     VmaAllocation m_vertexBufferAllocation = VK_NULL_HANDLE;

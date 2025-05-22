@@ -44,6 +44,7 @@
 #include <Scene/GUI/UIPanelManager.hpp>
 
 #include <Utils/SubpassBinder.hpp>
+#include <Utils/SpaceUtils.hpp>
 
 
 class Engine {

@@ -26,8 +26,8 @@ public:
 	void updateAllFrames();
 
 
-	/* Updates the absolute transform of a reference frame. */
-	void updateGlobalTransform(EntityID entityID, Component::ReferenceFrame& frame);
+	/* Computes the absolute transform of a reference frame. */
+	Component::Transform computeGlobalTransform(EntityID entityID, Component::ReferenceFrame& frame);
 
 
 	/* Sorts the reference frame tree. This is done only once, at the start of a simulation. */

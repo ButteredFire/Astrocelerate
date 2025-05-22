@@ -16,6 +16,8 @@
 #include <Engine/Components/PhysicsComponents.hpp>
 #include <Engine/Components/WorldSpaceComponents.hpp>
 
+#include <Utils/SpaceUtils.hpp>
+
 
 class UIPanelManager {
 public:

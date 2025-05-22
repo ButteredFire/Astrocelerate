@@ -7,8 +7,8 @@
 VkCommandManager::VkCommandManager(VulkanContext& context):
 	m_vkContext(context) {
 
-	m_eventDispatcher = ServiceLocator::getService<EventDispatcher>(__FUNCTION__);
-	m_garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
+	m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
+	m_garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
 
 	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 };
@@ -219,7 +219,7 @@ VkCommandPool VkCommandManager::createCommandPool(VulkanContext& vkContext, VkDe
 	}
 
 
-	std::shared_ptr<GarbageCollector> garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
+	std::shared_ptr<GarbageCollector> garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
 
 	VkCommandPoolCreateInfo poolCreateInfo{};
 	poolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;

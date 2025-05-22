@@ -37,46 +37,47 @@ int main() {
 
     // Event dispatcher
     std::shared_ptr<EventDispatcher> eventDispatcher = std::make_shared<EventDispatcher>();
-    ServiceLocator::registerService(eventDispatcher);
+    ServiceLocator::RegisterService(eventDispatcher);
 
 
     // Garbage collector
     std::shared_ptr<GarbageCollector> garbageCollector = std::make_shared<GarbageCollector>(vkContext);
-    ServiceLocator::registerService(garbageCollector);
+    ServiceLocator::RegisterService(garbageCollector);
 
 
     // ECS Registry
     std::shared_ptr<Registry> globalRegistry = std::make_shared<Registry>();
-    ServiceLocator::registerService(globalRegistry);
+    ServiceLocator::RegisterService(globalRegistry);
 
 
     // Texture manager
     std::shared_ptr<TextureManager> textureManager = std::make_shared<TextureManager>(vkContext);
-    ServiceLocator::registerService(textureManager);
+    ServiceLocator::RegisterService(textureManager);
 
 
     // GUI panel manager
     std::shared_ptr<UIPanelManager> uiPanelManager = std::make_shared<UIPanelManager>();
-    ServiceLocator::registerService(uiPanelManager);
+    ServiceLocator::RegisterService(uiPanelManager);
 
 
     // Subpass binder
     std::shared_ptr<SubpassBinder> subpassBinder = std::make_shared<SubpassBinder>();
-    ServiceLocator::registerService(subpassBinder);
+    ServiceLocator::RegisterService(subpassBinder);
 
 
     // Camera
+    glm::dvec3 cameraPosition = glm::vec3(20e6f, 1.5005e+11f, 0.0f);
     std::shared_ptr<Camera> camera = std::make_shared<Camera>(
         windowPtr,
-        SpaceUtils::ToRenderSpace(glm::vec3(0.0f, 2.0f, 2.0f) * 6e6f),
+        SpaceUtils::ToRenderSpace(cameraPosition),
         glm::quat()
     );
-    ServiceLocator::registerService(camera);
+    ServiceLocator::RegisterService(camera);
 
 
     // Input
     std::shared_ptr<InputManager> inputManager = std::make_shared<InputManager>();
-    ServiceLocator::registerService(inputManager);
+    ServiceLocator::RegisterService(inputManager);
     callbackContext->inputManager = inputManager.get();
 
 
@@ -99,13 +100,13 @@ int main() {
 
             // Swap-chain manager
         std::shared_ptr<VkSwapchainManager> swapchainManager = std::make_shared<VkSwapchainManager>(vkContext);
-        ServiceLocator::registerService(swapchainManager);
+        ServiceLocator::RegisterService(swapchainManager);
         swapchainManager->init();
 
 
             // Command manager
         std::shared_ptr<VkCommandManager> commandManager = std::make_shared<VkCommandManager>(vkContext);
-        ServiceLocator::registerService(commandManager);
+        ServiceLocator::RegisterService(commandManager);
         commandManager->init();
 
 
@@ -123,7 +124,7 @@ int main() {
 
             // Buffer manager
         std::shared_ptr<VkBufferManager> m_bufferManager = std::make_shared<VkBufferManager>(vkContext);
-        ServiceLocator::registerService(m_bufferManager);
+        ServiceLocator::RegisterService(m_bufferManager);
         m_bufferManager->init();
 
 
@@ -132,34 +133,34 @@ int main() {
 
             // Graphics pipeline
         std::shared_ptr<GraphicsPipeline> graphicsPipeline = std::make_shared<GraphicsPipeline>(vkContext);
-        ServiceLocator::registerService(graphicsPipeline);
+        ServiceLocator::RegisterService(graphicsPipeline);
         graphicsPipeline->init();
 
 
             // Synchronization manager
         std::shared_ptr<VkSyncManager> syncManager = std::make_shared<VkSyncManager>(vkContext);
-        ServiceLocator::registerService(syncManager);
+        ServiceLocator::RegisterService(syncManager);
         syncManager->init();
 
 
             // Renderers
         std::shared_ptr<UIRenderer> uiRenderer = std::make_shared<UIRenderer>(vkContext);
-        ServiceLocator::registerService(uiRenderer);
+        ServiceLocator::RegisterService(uiRenderer);
 
         std::shared_ptr<Renderer> renderer = std::make_shared<Renderer>(vkContext);
-        ServiceLocator::registerService(renderer);
+        ServiceLocator::RegisterService(renderer);
         renderer->init();
 
         
             // Systems
         std::shared_ptr<RenderSystem> renderSystem = std::make_shared<RenderSystem>(vkContext);
-        ServiceLocator::registerService(renderSystem);
+        ServiceLocator::RegisterService(renderSystem);
 
         std::shared_ptr<PhysicsSystem> physicsSystem = std::make_shared<PhysicsSystem>();
-        ServiceLocator::registerService(physicsSystem);
+        ServiceLocator::RegisterService(physicsSystem);
 
         std::shared_ptr<ReferenceFrameSystem> refFrameSystem = std::make_shared<ReferenceFrameSystem>();
-        ServiceLocator::registerService(refFrameSystem);
+        ServiceLocator::RegisterService(refFrameSystem);
 
         engine.run();
     }

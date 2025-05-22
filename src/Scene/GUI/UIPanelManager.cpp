@@ -2,7 +2,7 @@
 
 UIPanelManager::UIPanelManager() {
 
-	m_registry = ServiceLocator::getService<Registry>(__FUNCTION__);
+	m_registry = ServiceLocator::GetService<Registry>(__FUNCTION__);
 
 
 	bindPanelFlags();
@@ -132,21 +132,24 @@ void UIPanelManager::renderTelemetryPanel() {
 				ImGui::Text("\tParent Entity ID: None");
 			}
 
+			ImGui::Text("\t\tScale (simulation): %.10f m (radius)",
+				refFrame.scale);
+			ImGui::Text("\t\tScale (render): %.10f m (radius)",
+				SpaceUtils::GetRenderableScale(SpaceUtils::ToRenderSpace(refFrame.scale)));
+
 			// Local Transform
 			ImGui::Text("\tLocal Transform:");
 			ImGui::Text("\t\tPosition: (x: %.2f, y: %.2f, z: %.2f)",
 				refFrame.localTransform.position.x,
 				refFrame.localTransform.position.y,
 				refFrame.localTransform.position.z);
-			ImGui::Text("\t\t\tMagnitude: ||vec|| ~= %.2f", glm::length(refFrame.localTransform.position));
+			ImGui::Text("\t\t\tMagnitude: ||vec|| ~= %.2f m", glm::length(refFrame.localTransform.position));
 
 			ImGui::Text("\t\tRotation: (x: %.2f, y: %.2f, z: %.2f, w: %.2f)",
 				refFrame.localTransform.rotation.x,
 				refFrame.localTransform.rotation.y,
 				refFrame.localTransform.rotation.z,
 				refFrame.localTransform.rotation.w);
-			ImGui::Text("\t\tScale: %.10f",
-				refFrame.localTransform.scale);
 
 			// Global Transform
 			ImGui::Text("\tGlobal Transform (normalized):");
@@ -154,15 +157,13 @@ void UIPanelManager::renderTelemetryPanel() {
 				refFrame.globalTransform.position.x,
 				refFrame.globalTransform.position.y,
 				refFrame.globalTransform.position.z);
-			ImGui::Text("\t\t\tMagnitude: ||vec|| ~= %.2f", glm::length(refFrame.globalTransform.position));
+			ImGui::Text("\t\t\tMagnitude: ||vec|| ~= %.2f m", glm::length(refFrame.globalTransform.position));
 
 			ImGui::Text("\t\tRotation: (x: %.2f, y: %.2f, z: %.2f, w: %.2f)",
 				refFrame.globalTransform.rotation.x,
 				refFrame.globalTransform.rotation.y,
 				refFrame.globalTransform.rotation.z,
 				refFrame.globalTransform.rotation.w);
-			ImGui::Text("\t\tScale: %.10f",
-				refFrame.globalTransform.scale);
 
 		}
 

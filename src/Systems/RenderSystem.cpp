@@ -7,12 +7,12 @@
 RenderSystem::RenderSystem(VulkanContext& context):
 	m_vkContext(context) {
 
-	m_registry = ServiceLocator::getService<Registry>(__FUNCTION__);
-	m_eventDispatcher = ServiceLocator::getService<EventDispatcher>(__FUNCTION__);
+	m_registry = ServiceLocator::GetService<Registry>(__FUNCTION__);
+	m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
 
-	m_bufferManager = ServiceLocator::getService<VkBufferManager>(__FUNCTION__);
+	m_bufferManager = ServiceLocator::GetService<VkBufferManager>(__FUNCTION__);
 
-	m_subpassBinder = ServiceLocator::getService<SubpassBinder>(__FUNCTION__);
+	m_subpassBinder = ServiceLocator::GetService<SubpassBinder>(__FUNCTION__);
 
 	m_eventDispatcher->subscribe<Event::UpdateRenderables>(
 		[this](const Event::UpdateRenderables& event) {

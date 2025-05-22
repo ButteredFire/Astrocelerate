@@ -13,18 +13,18 @@
 namespace Component {
 	struct Transform {
 		glm::dvec3 position;						// World or local position.
-		glm::dquat rotation;						// Orientation as a quaternion.
-		double scale = 1.0;							// Scale.
+		glm::dquat rotation = glm::dquat();			// Orientation as a quaternion (Default: Identity (1, 0, 0, 0)).
+		//double scale = 1.0;							// Scale (Default: 1.0).
 	};
 
 
 	struct ReferenceFrame {
 		std::optional<EntityID> parentID;			// The parent reference frame's entity ID.
+		double scale = 1.0;							// The frame's absolute scale.
 
 		/* Local transform.
 		- position: The frame's position relative to its parent.
 		- rotation: The frame's rotation relative to its parent.
-		- scale: Local-to-parent scale ratio (e.g., 2.0 means "1 meter in the child = 2 meters in the parent").
 		*/
 		Transform localTransform;
 

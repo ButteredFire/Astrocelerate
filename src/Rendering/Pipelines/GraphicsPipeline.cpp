@@ -6,9 +6,9 @@
 GraphicsPipeline::GraphicsPipeline(VulkanContext& context):
 	m_vkContext(context) {
 
-	m_eventDispatcher = ServiceLocator::getService<EventDispatcher>(__FUNCTION__);
-	m_garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
-	m_bufferManager = ServiceLocator::getService<VkBufferManager>(__FUNCTION__);
+	m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
+	m_garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
+	m_bufferManager = ServiceLocator::GetService<VkBufferManager>(__FUNCTION__);
 
 
 	m_eventDispatcher->subscribe<Event::SwapchainRecreation>(

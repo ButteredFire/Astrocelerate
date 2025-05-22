@@ -7,7 +7,7 @@
 VkInstanceManager::VkInstanceManager(VulkanContext& context):
     m_vkContext(context) {
     
-    m_garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
+    m_garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
 
     Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }

@@ -3,7 +3,7 @@
 
 GeometryLoader::GeometryLoader() {
 
-	m_eventDispatcher = ServiceLocator::getService<EventDispatcher>(__FUNCTION__);
+	m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
 
 	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }

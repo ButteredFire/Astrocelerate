@@ -3,8 +3,8 @@
 
 
 InputManager::InputManager() {
-	m_eventDispatcher = ServiceLocator::getService<EventDispatcher>(__FUNCTION__);
-	m_camera = ServiceLocator::getService<Camera>(__FUNCTION__);
+	m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
+	m_camera = ServiceLocator::GetService<Camera>(__FUNCTION__);
 
 	bindEvents();
 

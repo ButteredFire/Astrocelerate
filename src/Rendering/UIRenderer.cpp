@@ -7,12 +7,12 @@
 UIRenderer::UIRenderer(VulkanContext& context):
     m_vkContext(context) {
 
-    m_registry = ServiceLocator::getService<Registry>(__FUNCTION__);
-    m_garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
+    m_registry = ServiceLocator::GetService<Registry>(__FUNCTION__);
+    m_garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
 
-    m_graphicsPipeline = ServiceLocator::getService<GraphicsPipeline>(__FUNCTION__);
+    m_graphicsPipeline = ServiceLocator::GetService<GraphicsPipeline>(__FUNCTION__);
 
-    m_uiPanelManager = ServiceLocator::getService<UIPanelManager>(__FUNCTION__);
+    m_uiPanelManager = ServiceLocator::GetService<UIPanelManager>(__FUNCTION__);
 
 	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }

@@ -2,7 +2,7 @@
 
 
 ReferenceFrameSystem::ReferenceFrameSystem() {
-	m_registry = ServiceLocator::getService<Registry>(__FUNCTION__);
+	m_registry = ServiceLocator::GetService<Registry>(__FUNCTION__);
 
 	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
@@ -17,60 +17,34 @@ void ReferenceFrameSystem::updateAllFrames() {
 	}
 
 	for (auto& [entity, frame] : m_referenceFrames) {
-		updateGlobalTransform(entity, *frame);
+		frame->globalTransform = computeGlobalTransform(entity, *frame);
 		m_registry->updateComponent(entity, *frame);
 	}
-
-	std::cout;
 }
 
 
-void ReferenceFrameSystem::updateGlobalTransform(EntityID entityID, Component::ReferenceFrame& frame) {
+Component::Transform ReferenceFrameSystem::computeGlobalTransform(EntityID entityID, Component::ReferenceFrame& frame) {
+	Component::Transform globalTransform;
+
 	// If frame is the root frame, set global transform to local transform
 	if (!frame.parentID.has_value()) {
-		frame.globalTransform.position = frame.localTransform.position;
-		frame.globalTransform.rotation = frame.localTransform.rotation;
-		frame.globalTransform.scale = frame.localTransform.scale;
+		globalTransform.position = frame.localTransform.position;
+		globalTransform.rotation = frame.localTransform.rotation;
 
-		return;
+		return globalTransform;
 	}
 
 	// Else, recursively compute the frame's global transform (assuming parent's global transform was already computed)
 	const Component::ReferenceFrame* parent = &m_registry->getComponent<Component::ReferenceFrame>(frame.parentID.value());
-	const double parentScale = parent->globalTransform.scale;
-
 
 		// Order: Scale -> Rotate -> Translate
-	glm::dvec3 scaledPosition = frame.localTransform.position * parentScale;
-	glm::dvec3 rotatedPosition = parent->globalTransform.rotation * scaledPosition;
+	glm::dvec3 rotatedPosition = parent->globalTransform.rotation * frame.localTransform.position;
 
-	frame.globalTransform.position = parent->globalTransform.position + rotatedPosition;
-	frame.globalTransform.rotation = parent->globalTransform.rotation * frame.localTransform.rotation;  // NOTE: Quaternion multiplication is not commutative
-	frame.globalTransform.scale = frame.localTransform.scale * parentScale;
+	globalTransform.position = parent->globalTransform.position + rotatedPosition;
+	globalTransform.rotation = glm::normalize(parent->globalTransform.rotation * frame.localTransform.rotation);  // NOTE: Quaternion multiplication is not commutative;; It is good practice to use normalize() after quaternion multiplication to prevent drift
 
 
-	// Rescale global transform to account for different child-to-parent scale ratios (i.e., undo different scale influence on transforms)
-	frame.globalTransform.position /= parentScale;
-	frame.globalTransform.scale /= parentScale;
-
-
-	// Ensure that the mesh with the global scale gets rendered
-	frame.globalTransform.scale = SpaceUtils::GetRenderableScale(frame.globalTransform.scale);
-
-
-	if (frame.globalTransform.scale == 0) {
-		std::string errMsg = "Failed to update global transform for entity ID #" + std::to_string(entityID) + ": ";
-
-		if (frame.localTransform.scale == 0)
-			errMsg += "\n- Its local scale is 0";
-
-		if (parentScale == 0)
-			errMsg += "\n- Its parent (Entity ID #" + std::to_string(frame.parentID.value()) + ") has a scale value of 0";
-
-		errMsg += "\n\nScale, globally or locally, must be greater than 0.";
-
-		throw Log::RuntimeException(__FUNCTION__, __LINE__, errMsg);
-	}
+	return globalTransform;
 }
 
 

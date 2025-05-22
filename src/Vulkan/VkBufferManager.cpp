@@ -3,11 +3,11 @@
 VkBufferManager::VkBufferManager(VulkanContext& context):
 	m_vkContext(context) {
 
-	m_registry = ServiceLocator::getService<Registry>(__FUNCTION__);
-	m_eventDispatcher = ServiceLocator::getService<EventDispatcher>(__FUNCTION__);
-	m_garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
+	m_registry = ServiceLocator::GetService<Registry>(__FUNCTION__);
+	m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
+	m_garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
 
-	m_camera = ServiceLocator::getService<Camera>(__FUNCTION__);
+	m_camera = ServiceLocator::GetService<Camera>(__FUNCTION__);
 
 	bindEvents();
 
@@ -36,119 +36,125 @@ void VkBufferManager::bindEvents() {
 
 
 void VkBufferManager::init() {
-	/*
-	//Component::Mesh mesh = ModelLoader::loadModel((std::string(APP_SOURCE_DIR) + std::string("/assets/Models/Spacecraft/SpaceX_Starship/Starship.obj")), ModelLoader::FileType::T_OBJ);
-
-	//std::string modelPath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models", "Spacecraft/SpaceX_Starship/Starship.obj");
-	//std::string modelPath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models", "Spacecraft/NASA_Endurance/Endurance_Unified.fbx");
-	std::string modelPath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models", "TestModels/SolarSailSpaceship/ColoredPerVertex/SolarSailSpaceship.obj");
-	//std::string modelPath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models", "TestModels/Cube/Cube.obj");
-	//std::string modelPath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models", "TestModels/Plane/Plane.obj");
-	//std::string modelPath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models", "TestModels/VikingRoom/viking_room.obj");
-	AssimpParser parser;
-	Geometry::MeshData rawData = parser.parse(modelPath);
-
-	m_vertices = rawData.vertices;
-	m_vertIndices = rawData.indices;
-
-
-	m_UBOEntity = m_registry->createEntity();
-
-	m_UBORigidBody.position = glm::vec3(0.0f, 0.0f, -1500.0f);
-	m_UBORigidBody.velocity = glm::vec3(0.0f, 0.0f, 5.0f);
-	m_UBORigidBody.acceleration = glm::vec3(0.0f, 0.0f, 5.0f);
-	m_UBORigidBody.mass = 900;
-
-	m_registry->addComponent(m_UBOEntity.id, m_UBORigidBody);
-
-
-	createGlobalVertexBuffer(m_vertices);
-	createGlobalIndexBuffer(m_vertIndices);
-	*/
-
 	// Load geometry
 	GeometryLoader geometryLoader;
 
-	std::string planetPath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models/TestModels", "Sphere/Sphere.obj");
+	std::string sphere = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models/TestModels", "Sphere/Sphere.obj");
+	std::string cube = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models/TestModels", "Cube/Cube.obj");
+
+	std::string starPath = sphere;
+	std::string planetPath = sphere;
+	std::string satellitePath = cube;
 	//std::string planetPath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models/CelestialBodies", "Earth/Earth.glb");
-	std::string satellitePath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models/TestModels", "Cube/Cube.obj");
 	//std::string satellitePath = planetPath;
 
+	geometryLoader.loadGeometryFromFile(starPath);
 	geometryLoader.loadGeometryFromFile(planetPath);
 	geometryLoader.loadGeometryFromFile(satellitePath);
 	std::vector<Geometry::MeshOffset> meshOffsets = geometryLoader.bakeGeometry();
 
-	m_totalObjects = 2;
+	m_totalObjects = meshOffsets.size();
+
 
 	// Global reference frame
 	Entity renderSpace = m_registry->createEntity();
 
 	Component::ReferenceFrame globalRefFrame{};
 	globalRefFrame.parentID = std::nullopt;
-	globalRefFrame.localTransform.scale = 1.0;
-	globalRefFrame.localTransform.scale = 1.0;
+	globalRefFrame.scale = 1.0;
+	globalRefFrame.localTransform.position = glm::dvec3(0.0);
+	globalRefFrame.localTransform.rotation = glm::dquat(1.0, 0.0, 0.0, 0.0);
 
 	m_registry->addComponent(renderSpace.id, globalRefFrame);
 
 
 	// Define rigid bodies
-	m_planet = m_registry->createEntity();
-	m_satellite = m_registry->createEntity();
+	Entity star = m_registry->createEntity();
+	Entity planet = m_registry->createEntity();
+	Entity satellite = m_registry->createEntity();
+
+	double sunRadius = 6.9634e+8;
+	double earthRadius = 6.378e+6;
+
+		// Star components
+	Component::RigidBody starRB{};
+	starRB.velocity = glm::dvec3(0.0);
+	starRB.acceleration = glm::dvec3(0.0);
+	starRB.mass = (1.989e+30);
+
+	Component::ReferenceFrame starRefFrame{};
+	starRefFrame.parentID = renderSpace.id;
+	starRefFrame.scale = sunRadius;
+	starRefFrame.localTransform.position = glm::dvec3(0.0);
+	starRefFrame.localTransform.rotation = glm::dquat(1, 0, 0, 0);
+	
+	Component::MeshRenderable starRenderable{};
+	starRenderable.uboIndex = 0;
+	starRenderable.meshOffset = meshOffsets[0];
+
+	m_registry->addComponent(star.id, starRB);
+	m_registry->addComponent(star.id, starRefFrame);
+	m_registry->addComponent(star.id, starRenderable);
 
 
-	// Planet components
-	Component::RigidBody planetRB{};
-	planetRB.velocity = glm::dvec3(0.0);
-	planetRB.acceleration = glm::dvec3(0.0);
-	planetRB.mass = (5.972 * 10e24);
-
-	double earthRadius = 6.378e6;
-
+		// Planet components
 	Component::ReferenceFrame planetRefFrame{};
-	planetRefFrame.parentID = renderSpace.id;
-	planetRefFrame.localTransform.position = glm::dvec3(0.0);
+	planetRefFrame.parentID = star.id;
+	planetRefFrame.scale = earthRadius;
+	planetRefFrame.localTransform.position = glm::dvec3(0.0, 1.5e+11, 0.0);
 	planetRefFrame.localTransform.rotation = glm::dquat(1, 0, 0, 0);
-	planetRefFrame.localTransform.scale = 5.0;  // 1 Earth meter = 5 meters in global reference frame
+
+	double sunOrbitalSpeed = sqrt(PhysicsConsts::G * starRB.mass / glm::length(planetRefFrame.localTransform.position));
+
+	Component::RigidBody planetRB{};
+	planetRB.velocity = glm::dvec3(-sunOrbitalSpeed, 0.0, 0.0);
+	planetRB.acceleration = glm::dvec3(0.0);
+	planetRB.mass = (5.972e+24);
+
+	Component::OrbitingBody planetOB{};
+	planetOB.centralMass = starRB.mass;
 
 	Component::MeshRenderable planetRenderable{};
-	planetRenderable.uboIndex = 0;
-	planetRenderable.meshOffset = meshOffsets[0];
+	planetRenderable.uboIndex = 1;
+	planetRenderable.meshOffset = meshOffsets[1];
 
 
-	m_registry->addComponent(m_planet.id, planetRB);
-	m_registry->addComponent(m_planet.id, planetRefFrame);
-	m_registry->addComponent(m_planet.id, planetRenderable);
+	m_registry->addComponent(planet.id, planetRB);
+	m_registry->addComponent(planet.id, planetRefFrame);
+	m_registry->addComponent(planet.id, planetOB);
+	m_registry->addComponent(planet.id, planetRenderable);
 
 
 
 		// Satellite components
-	double orbitalSpeed = sqrt(PhysicsConsts::G * planetRB.mass / 6.7e6); // SI units
+
+	Component::ReferenceFrame satelliteRefFrame{};
+	satelliteRefFrame.parentID = planet.id;
+	satelliteRefFrame.scale = 100000;
+	satelliteRefFrame.localTransform.position = glm::dvec3(0.0, (earthRadius + 2e6), 0.0);
+	satelliteRefFrame.localTransform.rotation = glm::dquat(1, 0, 0, 0);
+
+	double earthOrbitalSpeed = sqrt(PhysicsConsts::G * planetRB.mass / glm::length(satelliteRefFrame.localTransform.position));
 
 	Component::RigidBody satelliteRB{};
-	satelliteRB.velocity = glm::dvec3(orbitalSpeed, 0.0, 0.0);
+	satelliteRB.velocity = glm::dvec3(0.0, 0.0, earthOrbitalSpeed);
 	satelliteRB.acceleration = glm::dvec3(0.0);
 	satelliteRB.mass = 20;
 
-	Component::ReferenceFrame satelliteRefFrame{};
-	satelliteRefFrame.parentID = m_planet.id;
-	satelliteRefFrame.localTransform.position = glm::dvec3(0.0, (earthRadius + 2e6), 0.0);
-	satelliteRefFrame.localTransform.rotation = glm::dquat(1, 0, 0, 0);
-	satelliteRefFrame.localTransform.scale = 0.001;  // 1 satellite meter = 0.01 meters in Earth frame
-
 	Component::OrbitingBody satelliteOB{};
-	satelliteOB.centralGlobalPosition = planetRefFrame.globalTransform.position;
 	satelliteOB.centralMass = planetRB.mass;
 
 	Component::MeshRenderable satelliteRenderable{};
-	satelliteRenderable.uboIndex = 1;
-	satelliteRenderable.meshOffset = meshOffsets[1];
+	satelliteRenderable.uboIndex = 2;
+	satelliteRenderable.meshOffset = meshOffsets[2];
 
 
-	m_registry->addComponent(m_satellite.id, satelliteRB);
-	m_registry->addComponent(m_satellite.id, satelliteRefFrame);
-	m_registry->addComponent(m_satellite.id, satelliteOB);
-	m_registry->addComponent(m_satellite.id, satelliteRenderable);
+	m_registry->addComponent(satellite.id, satelliteRB);
+	m_registry->addComponent(satellite.id, satelliteRefFrame);
+	m_registry->addComponent(satellite.id, satelliteOB);
+	m_registry->addComponent(satellite.id, satelliteRenderable);
 
+	m_camera->movementSpeed = 50;
 
 	m_alignedObjectUBOSize = SystemUtils::align(sizeof(Buffer::ObjectUBO), m_vkContext.Device.deviceProperties.limits.minUniformBufferOffsetAlignment);
 	createUniformBuffers();
@@ -157,7 +163,7 @@ void VkBufferManager::init() {
 
 uint32_t VkBufferManager::createBuffer(VulkanContext& vkContext, VkBuffer& buffer, VkDeviceSize bufferSize, VkBufferUsageFlags usageFlags, VmaAllocation& bufferAllocation, VmaAllocationCreateInfo bufferAllocationCreateInfo) {
 
-	std::shared_ptr<GarbageCollector> m_garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
+	std::shared_ptr<GarbageCollector> m_garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
 
 	// Creates the buffer
 	VkBufferCreateInfo bufCreateInfo{};
@@ -317,7 +323,11 @@ void VkBufferManager::updateObjectUBOs(uint32_t currentImage, const glm::dvec3& 
 		//glm::mat4 rotationMatrix = glm::toMat4(refFrame.globalTransform.rotation);
 
 		glm::dvec3 relativePosition = SpaceUtils::ToRenderSpace(refFrame.globalTransform.position - renderOrigin);
-		glm::vec3 globalScale = glm::vec3(refFrame.globalTransform.scale);
+
+		// Ensure that the mesh with the global scale gets rendered
+		double renderScale = SpaceUtils::GetRenderableScale(SpaceUtils::ToRenderSpace(refFrame.scale));
+		
+		glm::vec3 globalScale(static_cast<float>(renderScale));
 
 		/* NOTE:
 			Model matrices are constructed according to the Scale -> Rotate -> Translate (S-R-T) order.

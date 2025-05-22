@@ -6,8 +6,8 @@
 VkSwapchainManager::VkSwapchainManager(VulkanContext& context):
     m_vkContext(context) {
 
-    m_eventDispatcher = ServiceLocator::getService<EventDispatcher>(__FUNCTION__);
-    m_garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
+    m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
+    m_garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
 
     if (m_vkContext.Device.physicalDevice == VK_NULL_HANDLE) {
         throw Log::RuntimeException(__FUNCTION__, __LINE__, "Cannot initialize swap-chain manager: The GPU's physical device handle is null!");
@@ -76,7 +76,7 @@ void VkSwapchainManager::recreateSwapchain() {
 
 
 uint32_t VkSwapchainManager::createImageView(VulkanContext& vkContext, VkImage& image, VkImageView& imageView, VkFormat imgFormat, VkImageAspectFlags imgAspectFlags) {
-    std::shared_ptr<GarbageCollector> m_garbageCollector = ServiceLocator::getService<GarbageCollector>(__FUNCTION__);
+    std::shared_ptr<GarbageCollector> m_garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
 
     VkImageViewCreateInfo viewCreateInfo{};
     viewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;

@@ -4,8 +4,23 @@
 #pragma once
 
 #include <xhash>
+#include <concepts>
 
 namespace SystemUtils {
+    // Concept: Supports division by a double
+    template<typename T>
+    concept DivisibleByDouble = requires(T a, double b) {
+        { a / b } -> std::convertible_to<T>;
+    };
+
+
+    // Concept: Supports multiplication by a double
+    template<typename T>
+    concept MultipliableByDouble = requires(T a, double b) {
+        { a * b } -> std::convertible_to<T>;
+    };
+
+
     /* Combines multiple hash values into a single hash value. 
 		This function uses the std::hash function to generate a hash for the value and combines it with the seed using a bitwise XOR operation and some arithmetic operations.
 		
