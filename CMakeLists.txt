@@ -134,10 +134,9 @@ find_package(Vulkan REQUIRED)    # Vulkan SDK
         endif()
         message(STATUS "Vulkan glslc.exe executable is in directory \"${Vulkan_GLSLC_EXECUTABLE}\"")
 
-#find_package(glfw3 CONFIG REQUIRED)
-#find_package(glm CONFIG REQUIRED)
-#find_package(VulkanMemoryAllocator REQUIRED)
-#find_package(assimp REQUIRED)
+find_package(glfw3 CONFIG REQUIRED)
+find_package(glm CONFIG REQUIRED)
+find_package(VulkanMemoryAllocator CONFIG REQUIRED)
 
 
 # Install libraries
@@ -150,44 +149,19 @@ find_package(Vulkan REQUIRED)    # Vulkan SDK
         message(STATUS "No internet connection detected! CMake configuration has been set to offline mode. Loading dependencies from offline cache...")
     endif()
 
-        # Online mode: Fetch from remote source
-    set(GLFW_GIT_REPO "https://github.com/glfw/glfw.git")
-    set(GLM_GIT_REPO "https://github.com/g-truc/glm.git")
-    set(VMA_GIT_REPO "https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git")
+    #    # Online mode: Fetch from remote source
+    #set(GLFW_GIT_REPO "https://github.com/glfw/glfw.git")
+    #set(GLM_GIT_REPO "https://github.com/g-truc/glm.git")
+    #set(VMA_GIT_REPO "https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git")
     set(ASSIMP_GIT_REPO "https://github.com/assimp/assimp.git")
-
-        # Offline mode: Fetch from local source
-    set(GLFW_OFFLINE_SOURCE_DIR "${CMAKE_CURRENT_BINARY_DIR}/_deps/glfw-src")
-    set(GLM_OFFLINE_SOURCE_DIR "${CMAKE_CURRENT_BINARY_DIR}/_deps/glm-src")
-    set(VMA_OFFLINE_SOURCE_DIR "${CMAKE_CURRENT_BINARY_DIR}/_deps/vulkanmemoryallocator-src")
+    #
+    #    # Offline mode: Fetch from local source
+    #set(GLFW_OFFLINE_SOURCE_DIR "${CMAKE_CURRENT_BINARY_DIR}/_deps/glfw-src")
+    #set(GLM_OFFLINE_SOURCE_DIR "${CMAKE_CURRENT_BINARY_DIR}/_deps/glm-src")
+    #set(VMA_OFFLINE_SOURCE_DIR "${CMAKE_CURRENT_BINARY_DIR}/_deps/vulkanmemoryallocator-src")
     set(ASSIMP_OFFLINE_SOURCE_DIR "${CMAKE_CURRENT_BINARY_DIR}/_deps/assimp-src")
-    set(ASSIMP_OFFLINE_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/_deps/assimp-build")
-    
+    #set(ASSIMP_OFFLINE_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/_deps/assimp-build")
 
-    ## GLFW3
-    fetchDependency(
-        glfw
-        ${GLFW_GIT_REPO}
-        3.4
-        ${GLFW_OFFLINE_SOURCE_DIR}
-    )
-    
-    # GLM
-    fetchDependency(
-        glm
-        ${GLM_GIT_REPO}
-        1.0.1
-        ${GLM_OFFLINE_SOURCE_DIR}
-    )
-    
-    # VMA
-    fetchDependency(
-        VulkanMemoryAllocator
-        ${VMA_GIT_REPO}
-        v3.2.1
-        ${VMA_OFFLINE_SOURCE_DIR}
-    )
-    
     # Assimp
     fetchDependency(
         assimp

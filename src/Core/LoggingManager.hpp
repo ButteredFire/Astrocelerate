@@ -5,6 +5,8 @@
 #include <exception>
 #include <termcolor/termcolor.hpp>
 
+#include <Core/Constants.h>
+
 #define enquote(S) std::string(std::string("\"") + S + std::string("\""))
 #define enquoteCOUT(S) '"' << (S) << '"'
 #define VARIABLE_NAME(V) std::string(#V)
@@ -103,7 +105,12 @@ namespace Log {
 
 	/* Logs application information to the console. */
 	static void printAppInfo() {
-		std::cout << "Project " << APP_NAME << " (version: " << APP_VERSION << ").\n\n";
+		std::cout << "Project " << APP_NAME << " (version: " << APP_VERSION << ").\n";
+		std::cout << "Project is run in ";
+		if (inDebugMode)
+			std::cout << "Debug mode.\n\n";
+		else
+			std::cout << "Release mode.\n\n";
 
 		std::cout << "Compiler information:\n";
 

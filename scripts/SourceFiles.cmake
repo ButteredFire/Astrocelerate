@@ -10,7 +10,6 @@ set(SOURCE_FILES
 	"external/imgui/imgui_widgets.cpp"
 	"src/Application.cpp"
 	"src/stb_image.cpp"
-	"src/tinyobjloader_impl.cpp"
 	"src/vma_impl.cpp"
 	"src/Core/AppWindow.cpp"
 	"src/Core/GarbageCollector.cpp"
