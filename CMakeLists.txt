@@ -5,9 +5,15 @@
 cmake_minimum_required(VERSION 3.20)
 project(Astrocelerate)
 
-    # Set application version
+    # Set application info
+    set(APP_NAME "Astrocelerate")
+    add_compile_definitions(APP_NAME="${APP_NAME}")
+
     set(APP_VERSION "v0.1-alpha")
     add_compile_definitions(APP_VERSION="${APP_VERSION}")
+
+    set(AUTHOR "Duong Duy Nhat Minh")
+    add_compile_definitions(AUTHOR="${AUTHOR}")
 
     # Specify source/binary file directories
     add_compile_definitions(APP_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
@@ -24,9 +30,30 @@ cmake_policy(SET CMP0141 NEW)
 set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<IF:$<CONFIG:Debug,RelWithDebInfo>,EditAndContinue,ProgramDatabase>")
 
 
-# Enable multi-threaded compilation for MSVC
+# Set up vcpkg toolchain file
+    # NOTE: This setup has been added as a command-line argument instead. See CMakeSettings.json for more information.
+#set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "vcpkg toolchain file")
+
+
+# Set up MSVC configuration properties
 if (MSVC)
-    add_compile_options(/MP)
+    add_compile_options(
+        /MP  # Multithreaded compilation
+        #/WX  # Warnings as errors
+    )
+endif()
+
+
+# Enable Address Sanitizer
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    if (MSVC)
+        add_compile_options(/fsanitize=address)
+        add_link_options(/fsanitize=address)
+        # Handle /RTC and /ZI as mentioned above if needed.
+    elseif (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        add_compile_options(-fsanitize=address -fno-omit-frame-pointer -g)
+        add_link_options(-fsanitize=address)
+    endif()
 endif()
 
 
@@ -107,6 +134,11 @@ find_package(Vulkan REQUIRED)    # Vulkan SDK
         endif()
         message(STATUS "Vulkan glslc.exe executable is in directory \"${Vulkan_GLSLC_EXECUTABLE}\"")
 
+#find_package(glfw3 CONFIG REQUIRED)
+#find_package(glm CONFIG REQUIRED)
+#find_package(VulkanMemoryAllocator REQUIRED)
+#find_package(assimp REQUIRED)
+
 
 # Install libraries
     # Define offline mode
@@ -132,14 +164,14 @@ find_package(Vulkan REQUIRED)    # Vulkan SDK
     set(ASSIMP_OFFLINE_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/_deps/assimp-build")
     
 
-    # GLFW3
+    ## GLFW3
     fetchDependency(
         glfw
         ${GLFW_GIT_REPO}
         3.4
         ${GLFW_OFFLINE_SOURCE_DIR}
     )
-
+    
     # GLM
     fetchDependency(
         glm
@@ -147,7 +179,7 @@ find_package(Vulkan REQUIRED)    # Vulkan SDK
         1.0.1
         ${GLM_OFFLINE_SOURCE_DIR}
     )
-
+    
     # VMA
     fetchDependency(
         VulkanMemoryAllocator
@@ -155,7 +187,7 @@ find_package(Vulkan REQUIRED)    # Vulkan SDK
         v3.2.1
         ${VMA_OFFLINE_SOURCE_DIR}
     )
-
+    
     # Assimp
     fetchDependency(
         assimp
@@ -166,15 +198,16 @@ find_package(Vulkan REQUIRED)    # Vulkan SDK
 
 
 # Organize libraries into variables
+    # For information on the library names, search for them in "vcpkg/ports/[LIBRARY]/usage" either locally or from vcpkg's repository
 set(PKG_LIBS
     Vulkan::Vulkan
+    glfw
+    glm::glm
+    GPUOpen::VulkanMemoryAllocator
     Boxer
 )
 
 set(FETCHCONTENT_LIBS
-    glfw
-    glm
-    VulkanMemoryAllocator
     assimp
 )
 
@@ -185,16 +218,6 @@ set(FETCHCONTENT_LIBS_TARGET_INCLUDE_DIRS
     ${VulkanMemoryAllocator_SOURCE_DIR}/include
     ${assimp_SOURCE_DIR}/include
     ${assimp_BINARY_DIR}/include
-)
-
-
-set(FETCHCONTENT_LIBS_TARGET_INCLUDE_DIRS_OFFLINE
-    ${GLM_OFFLINE_SOURCE_DIR} 
-    ${GLFW_OFFLINE_SOURCE_DIR}/include
-    ${imgui_SOURCE_DIR}
-    ${VMA_OFFLINE_SOURCE_DIR}/include
-    ${ASSIMP_OFFLINE_SOURCE_DIR}/include
-    ${ASSIMP_OFFLINE_BINARY_DIR}/include
 )
 
 
@@ -268,5 +291,4 @@ target_link_libraries(Astrocelerate PRIVATE ${PKG_LIBS} ${FETCHCONTENT_LIBS})
 target_include_directories(Astrocelerate PRIVATE 
     ${HEADER_DIRS}
     ${FETCHCONTENT_LIBS_TARGET_INCLUDE_DIRS}
-    ${FETCHCONTENT_LIBS_TARGET_INCLUDE_DIRS_OFFLINE}
 )

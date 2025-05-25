@@ -31,7 +31,8 @@ void VkDeviceManager::init() {
     m_requiredDeviceExtensions = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
         VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
-        VK_EXT_INDEX_TYPE_UINT8_EXTENSION_NAME
+        VK_EXT_INDEX_TYPE_UINT8_EXTENSION_NAME,
+        VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME
     };
 
 
@@ -69,7 +70,7 @@ void VkDeviceManager::createPhysicalDevice() {
     //for (auto& score : m_GPUScores)
     //    std::cout << "\t(GPU: " << enquoteCOUT(score.deviceName) << "; Compatible: " << std::boolalpha << score.isCompatible << "; Optional Score: " << score.optionalScore << ")\n";
 
-    Log::print(Log::T_INFO, __FUNCTION__, ("Selected GPU " + enquote(bestDevice.deviceName)));
+    Log::print(Log::T_INFO, __FUNCTION__, ("Out of " + std::to_string(physDeviceCount) + " GPU(s), GPU " + enquote(bestDevice.deviceName) + " was selected with the highest grading score of " + std::to_string(physicalDeviceScore) + "."));
     //std::cout << "Most suitable GPU: (GPU: " << enquoteCOUT(bestDevice.deviceName) << "; Compatible: " << std::boolalpha << isDeviceCompatible << "; Optional Score: " << physicalDeviceScore << ")\n\n";
 
     if (physicalDevice == nullptr || !isDeviceCompatible) {
@@ -122,6 +123,7 @@ void VkDeviceManager::createLogicalDevice() {
     VkPhysicalDeviceVulkan12Features deviceVk12Features{};
     deviceVk12Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
     deviceVk12Features.bufferDeviceAddress = VK_TRUE;
+    deviceVk12Features.descriptorIndexing = VK_TRUE;
 
 
     // Creates the logical device
@@ -228,7 +230,7 @@ std::vector<PhysicalDeviceScoreProperties> VkDeviceManager::rateGPUSuitability(s
         SwapChainProperties swapChain = VkSwapchainManager::getSwapChainProperties(device, m_vkContext.vkSurface);
         
         // A "list" of minimum requirements; Variable will collapse to "true" if all are satisfied
-        bool meetsMinimumRequirements = (
+        const bool meetsMinimumRequirements = (
             // If the GPU has an API version >= the instance Vulkan version
             (deviceProperties.apiVersion >= VULKAN_VERSION) &&
 
@@ -237,9 +239,6 @@ std::vector<PhysicalDeviceScoreProperties> VkDeviceManager::rateGPUSuitability(s
 
             // If the GPU supports anisotropy filtering
             (deviceFeatures.samplerAnisotropy) &&
-
-            // If the GPU supports the buffer device address feature
-            (deviceVk12Features.bufferDeviceAddress) &&
 
             // If the GPU supports required device extensions
             (checkDeviceExtensionSupport(device, m_requiredDeviceExtensions)) &&

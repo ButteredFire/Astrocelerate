@@ -28,15 +28,17 @@ using Byte = uint8_t;
 
 
 // Application properties
-namespace APP {
-	constexpr char APP_NAME[] = "Astrocelerate (Alpha)";
-	constexpr char ENGINE_NAME[] = "astrocelerate";
+#ifndef APP_NAME
+	#define APP_NAME "Astrocelerate"
+#endif
+#ifndef APP_VERSION
+	#define APP_VERSION "default-dev-build"
+#endif
+#ifndef AUTHOR
+	#define AUTHOR "Duong Duy Nhat Minh"
+#endif
 
-		// Version will be auto-injected via CMake
-	#ifndef APP_VERSION // If APP_VERSION is not defined, default it to "default-dev-build"
-		#define APP_VERSION "default-dev-build"
-	#endif
-}
+//namespace APP {}
 
 
 // Shader properties

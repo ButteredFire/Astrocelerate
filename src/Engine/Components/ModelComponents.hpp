@@ -26,6 +26,7 @@ namespace Component {
 
 
 	struct Material {
+		size_t textureIndex;										// Index into a texture atlas or descriptor array.
 		glm::vec4 baseColor = glm::vec4();							// The material's base color.
 	};
 }

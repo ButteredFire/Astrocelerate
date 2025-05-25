@@ -16,10 +16,9 @@
 
 const int WIN_WIDTH = WindowConsts::DEFAULT_WINDOW_WIDTH;
 const int WIN_HEIGHT = WindowConsts::DEFAULT_WINDOW_HEIGHT;
-const std::string WIN_NAME = APP::APP_NAME;
 
 int main() {
-    std::cout << "Project " << WIN_NAME << ", version " << APP_VERSION << ". Copyright 2025 Duong Duy Nhat Minh.\n";
+    Log::printAppInfo();
 
     // Binds members in the VulkanInstanceContext struct to their corresponding active Vulkan objects
     VulkanContext vkContext{};
@@ -29,7 +28,7 @@ int main() {
 
 
     // Creates a window
-    Window window(WIN_WIDTH, WIN_HEIGHT, WIN_NAME);
+    Window window(WIN_WIDTH, WIN_HEIGHT, APP_NAME);
     GLFWwindow *windowPtr = window.getGLFWwindowPtr();
     vkContext.window = windowPtr;
 
@@ -171,7 +170,7 @@ int main() {
             vkDeviceWaitIdle(vkContext.Device.logicalDevice);
 
         garbageCollector->processCleanupStack();
-        Log::print(Log::T_ERROR, WIN_NAME.c_str(), "Program exited with errors.");
+        Log::print(Log::T_ERROR, APP_NAME, "Program exited with errors.");
 
         std::string errOrigin = "Origin: " + std::string(e.origin()) + "\n";
         std::string errLine = "Line: " + std::to_string(e.errorLine()) + "\n";
@@ -189,6 +188,6 @@ int main() {
 
     vkDeviceWaitIdle(vkContext.Device.logicalDevice);
     garbageCollector->processCleanupStack();
-    Log::print(Log::T_SUCCESS, WIN_NAME.c_str(), "Program exited successfully.");
+    Log::print(Log::T_SUCCESS, APP_NAME, "Program exited successfully.");
     return EXIT_SUCCESS;
 }

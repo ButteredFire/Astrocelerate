@@ -89,11 +89,11 @@ void Engine::update() {
 
         // Update rendering
         glm::dvec3 anchor = m_inputManager->getCamera()->getGlobalTransform().position;
-        //std::cout << anchor.x << ", " << anchor.y << ", " << anchor.z << '\n';
+
         m_renderer->update(anchor);
     }
 
     // All of the operations in Renderer::drawFrame are asynchronous. That means that when we exit the loop in mainLoop, drawing and presentation operations may still be going on. Cleaning up resources while that is happening is a bad idea.
-    // To fix that problem, we should wait for the logical device to finish operations before exiting mainLoop and destroying the window :
+    // To fix that problem, we should wait for the logical device to finish operations before exiting mainLoop and destroying the window:
     vkDeviceWaitIdle(m_vkContext.Device.logicalDevice);
 }

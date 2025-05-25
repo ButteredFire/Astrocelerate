@@ -1,6 +1,8 @@
 ## Personally added:
 out/
 build/
+vcpkg/
+vcpkg_installed/
 *.sln
 *.vcxproj
 *.filters

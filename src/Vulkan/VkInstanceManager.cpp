@@ -89,7 +89,7 @@ void VkInstanceManager::createVulkanInstance() {
     VkApplicationInfo appInfo{}; // INSIGHT: Using braced initialization (alt.: memset) zero-initializes all fields
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO; // Specifies structure type
 
-    appInfo.pApplicationName = APP::APP_NAME;
+    appInfo.pApplicationName = APP_NAME;
     appInfo.applicationVersion = VK_MAKE_VERSION(0, 1, 0); // Major, minor, patch
     
     //appInfo.pEngineName = APP::ENGINE_NAME;

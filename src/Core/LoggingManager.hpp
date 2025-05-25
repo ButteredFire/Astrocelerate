@@ -99,6 +99,35 @@ namespace Log {
 
 		std::cout << "[" << msgType << " @ " << caller << "]: " << message << ((newline) ? "\n" : "") << termcolor::reset;
 	}
+
+
+	/* Logs application information to the console. */
+	static void printAppInfo() {
+		std::cout << "Project " << APP_NAME << " (version: " << APP_VERSION << ").\n\n";
+
+		std::cout << "Compiler information:\n";
+
+		#if defined(_MSC_VER)
+			std::cout << "\t- Compiler: Microsoft Visual C++ (MSVC)\n";
+			std::cout << "\t- Version: " << _MSC_VER << "\n";
+			// _MSC_FULL_VER provides a more detailed version
+			std::cout << "\t- Full Version: " << _MSC_FULL_VER << "\n";
+
+			#if _MSVC_LANG   // _MSVC_LANG indicates the C++ standard version (e.g., 201703L for C++17)
+				std::cout << "\t- C++ Standard: " << _MSVC_LANG << "L\n";
+			#endif
+		#elif defined(__clang__)
+			std::cout << "\t- Compiler: Clang\n";
+			std::cout << "\t- Version: " << __clang_major__ << "." << __clang_minor__ << "." << __clang_patchlevel__ << "\n";
+		#elif defined(__GNUC__) || defined(__GNUG__)
+			std::cout << "\t- Compiler: GCC (GNU Compiler Collection)\n";
+			std::cout << "\t- Version: " << __GNUC__ << "." << __GNUC_MINOR__ << "." << __GNUC_PATCHLEVEL__ << "\n";
+		#else
+			std::cout << "\t- Compiler: Unknown\n";
+		#endif
+
+		std::cout << "\nCopyright (C) 2024-2025 " << AUTHOR << ".\n\n";
+	}
 	
 
 	/* Custom RTE exception class that allows for origin specification. */
