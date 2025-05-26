@@ -18,7 +18,7 @@ VkDeviceManager::VkDeviceManager(VulkanContext &context):
         throw Log::RuntimeException(__FUNCTION__, __LINE__, "Cannot initialize device manager: Invalid Vulkan window surface!");
     }
 
-    Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
+    Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
 
 
@@ -70,7 +70,7 @@ void VkDeviceManager::createPhysicalDevice() {
     //for (auto& score : m_GPUScores)
     //    std::cout << "\t(GPU: " << enquoteCOUT(score.deviceName) << "; Compatible: " << std::boolalpha << score.isCompatible << "; Optional Score: " << score.optionalScore << ")\n";
 
-    Log::print(Log::T_INFO, __FUNCTION__, ("Out of " + std::to_string(physDeviceCount) + " GPU(s), GPU " + enquote(bestDevice.deviceName) + " was selected with the highest grading score of " + std::to_string(physicalDeviceScore) + "."));
+    Log::Print(Log::T_INFO, __FUNCTION__, ("Out of " + std::to_string(physDeviceCount) + " GPU(s), GPU " + enquote(bestDevice.deviceName) + " was selected with the highest grading score of " + std::to_string(physicalDeviceScore) + "."));
     //std::cout << "Most suitable GPU: (GPU: " << enquoteCOUT(bestDevice.deviceName) << "; Compatible: " << std::boolalpha << isDeviceCompatible << "; Optional Score: " << physicalDeviceScore << ")\n\n";
 
     if (physicalDevice == nullptr || !isDeviceCompatible) {

@@ -9,19 +9,22 @@ UIRenderer::UIRenderer(VulkanContext& context):
 
     m_registry = ServiceLocator::GetService<Registry>(__FUNCTION__);
     m_garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
+    m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
 
     m_graphicsPipeline = ServiceLocator::GetService<GraphicsPipeline>(__FUNCTION__);
 
     m_uiPanelManager = ServiceLocator::GetService<UIPanelManager>(__FUNCTION__);
 
-	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
+    initImGui();
+
+	Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
 
 
 UIRenderer::~UIRenderer() {}
 
 
-void UIRenderer::initializeImGui(UIRenderer::Appearance appearance) {
+void UIRenderer::initImGui(UIRenderer::Appearance appearance) {
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -132,6 +135,36 @@ void UIRenderer::initializeImGui(UIRenderer::Appearance appearance) {
 }
 
 
+void UIRenderer::initDockspace() {
+    ImGuiViewport* viewport = ImGui::GetMainViewport();
+
+    ImGui::SetNextWindowPos(viewport->Pos);
+    ImGui::SetNextWindowSize(viewport->Size);
+    ImGui::SetNextWindowViewport(viewport->ID);
+
+
+    ImGuiWindowFlags viewportFlags =
+        ImGuiWindowFlags_NoDocking  | ImGuiWindowFlags_NoTitleBar |
+        ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
+        ImGuiWindowFlags_NoMove     | ImGuiWindowFlags_NoBringToFrontOnFocus |
+        ImGuiWindowFlags_NoNavFocus | ImGuiWindowFlags_MenuBar;
+
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+
+    ImGui::Begin("MainDockspace", nullptr, viewportFlags);
+    ImGui::PopStyleVar(2);
+
+
+    ImGuiID dockspaceID = ImGui::GetID("Dockspace");
+    ImGui::DockSpace(dockspaceID, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
+
+
+    ImGui::End();
+}
+
+
 void UIRenderer::refreshImGui() {
     int width = 0, height = 0;
     glfwGetFramebufferSize(m_vkContext.window, &width, &height);
@@ -149,114 +182,22 @@ void UIRenderer::renderFrames() {
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
+    //initDockspace();
+
+
     ImGui::PushFont(m_pFont);
-
     m_uiPanelManager->updatePanels();
-    
-    /*
-    auto view = m_registry->getView<Component::RigidBody, Component::ReferenceFrame>();
-
-    // --- Rigid-body Entity Debug Info ---
-    ImGui::Begin("Rigid-body Entity Debug Info");
-    for (const auto& [entity, rigidBody, _] : view) {
-        ImGui::Text("Entity ID #%d", entity);
-
-
-        float velocityAbs = glm::length(rigidBody.velocity);
-        ImGui::Text("\tVelocity:");
-        ImGui::Text("\t\tVector: (x: %.2f, y: %.2f, z: %.2f)", rigidBody.velocity.x, rigidBody.velocity.y, rigidBody.velocity.z);
-        ImGui::Text("\t\tAbsolute: |v| ~= %.4f m/s", velocityAbs);
-
-
-        float accelerationAbs = glm::length(rigidBody.acceleration);
-        ImGui::Text("\tAcceleration:");
-        ImGui::Text("\t\tVector: (x: %.2f, y: %.2f, z: %.2f)", rigidBody.acceleration.x, rigidBody.acceleration.y, rigidBody.acceleration.z);
-        ImGui::Text("\t\tAbsolute: |a| ~= %.4f m/s^2", accelerationAbs);
-
-
-        // Display mass: scientific notation for large values, fixed for small
-        if (std::abs(rigidBody.mass) >= 1e6f) {
-            ImGui::Text("\tMass: %.2e kg", rigidBody.mass);
-        }
-        else {
-            ImGui::Text("\tMass: %.2f kg", rigidBody.mass);
-        }
-
-        ImGui::Separator();
-    }
-
-    ImGui::End();
-
-
-
-    // --- Reference Frame Entity Debug Info ---
-    ImGui::Begin("Reference Frame Entity Debug Info");
-    for (const auto& [entity, _, refFrame] : view) {
-        ImGui::Text("Entity ID #%d", entity);
-
-        // Parent ID
-        if (refFrame.parentID.has_value()) {
-            ImGui::Text("\tParent Entity ID: %d", refFrame.parentID.value());
-        }
-        else {
-            ImGui::Text("\tParent Entity ID: None");
-        }
-
-        // Local Transform
-        ImGui::Text("\tLocal Transform:");
-        ImGui::Text("\t\tPosition: (x: %.2f, y: %.2f, z: %.2f)",
-            refFrame.localTransform.position.x,
-            refFrame.localTransform.position.y,
-            refFrame.localTransform.position.z);
-        ImGui::Text("\t\t\tMagnitude: ||vec|| ~= %.2f", glm::length(refFrame.localTransform.position));
-
-        ImGui::Text("\t\tRotation: (x: %.2f, y: %.2f, z: %.2f, w: %.2f)",
-            refFrame.localTransform.rotation.x,
-            refFrame.localTransform.rotation.y,
-            refFrame.localTransform.rotation.z,
-            refFrame.localTransform.rotation.w);
-        ImGui::Text("\t\tScale: %.10f",
-            refFrame.localTransform.scale);
-
-        // Global Transform
-        ImGui::Text("\tGlobal Transform (normalized):");
-        ImGui::Text("\t\tPosition: (x: %.2f, y: %.2f, z: %.2f)",
-            refFrame.globalTransform.position.x,
-            refFrame.globalTransform.position.y,
-            refFrame.globalTransform.position.z);
-        ImGui::Text("\t\t\tMagnitude: ||vec|| ~= %.2f", glm::length(refFrame.globalTransform.position));
-
-        ImGui::Text("\t\tRotation: (x: %.2f, y: %.2f, z: %.2f, w: %.2f)",
-            refFrame.globalTransform.rotation.x,
-            refFrame.globalTransform.rotation.y,
-            refFrame.globalTransform.rotation.z,
-            refFrame.globalTransform.rotation.w);
-        ImGui::Text("\t\tScale: %.10f",
-            refFrame.globalTransform.scale);
-
-        ImGui::Separator();
-    }
-    ImGui::End();
-    */
-
-    /*
-    ImGui::ShowDemoWindow();
-    ImGui::Begin("Astrocelerate Control Panel"); // Window title
-    ImGui::Text("Welcome to Astrocelerate!"); // Basic text
-    static float someValue = 0.0f;
-    ImGui::SliderFloat("Simulation Speed", &someValue, 0.0f, 10.0f); // Slider
-    if (ImGui::Button("Launch Simulation")) {
-        // Call your simulation start function here
-    }
-    ImGui::End();
-    */
-
-
     ImGui::PopFont();
+
 
     ImGui::Render();
 
-    ImGui::UpdatePlatformWindows();
+    // Multi-viewport support
+    if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+        ImGui::UpdatePlatformWindows();
+        ImGui::RenderPlatformWindowsDefault();
+    }
+
     ImGui::EndFrame();
 }
 
@@ -267,7 +208,7 @@ void UIRenderer::updateAppearance(UIRenderer::Appearance appearance) {
     
     switch (appearance) {
     case IMGUI_APPEARANCE_DARK_MODE:
-        Log::print(Log::T_VERBOSE, __FUNCTION__, "Updating GUI appearance to dark mode...");
+        Log::Print(Log::T_VERBOSE, __FUNCTION__, "Updating GUI appearance to dark mode...");
 
         // Backgrounds
         colors[ImGuiCol_WindowBg] = linearRGBA(0.10f, 0.10f, 0.10f, 1.0f); // Dark gray
@@ -323,7 +264,7 @@ void UIRenderer::updateAppearance(UIRenderer::Appearance appearance) {
         break;
 
     case IMGUI_APPEARANCE_LIGHT_MODE:
-        Log::print(Log::T_VERBOSE, __FUNCTION__, "Updating GUI appearance to light mode...");
+        Log::Print(Log::T_VERBOSE, __FUNCTION__, "Updating GUI appearance to light mode...");
 
         break;
 

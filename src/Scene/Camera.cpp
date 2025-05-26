@@ -9,7 +9,7 @@ Camera::Camera(GLFWwindow* window, glm::vec3 position, glm::quat orientation):
 
 	update();
 
-	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
+	Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
 
 

@@ -5,6 +5,8 @@
 
 #include <set>
 
+#include <imgui/imgui.h>
+
 #include <Core/ServiceLocator.hpp>
 #include <Core/LoggingManager.hpp>
 
@@ -58,7 +60,11 @@ private:
 	std::shared_ptr<Camera> m_camera;
 	std::set<int> m_pressedKeys;
 
+	ImGuiIO& m_guiIO;
+
 	bool m_cursorLocked = false;
 
 	void bindEvents();
+
+	bool isHoveringOverGUI();
 };

@@ -16,7 +16,7 @@
 class EventDispatcher {
 public:
 	EventDispatcher() {
-		Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
+		Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 	}
 	~EventDispatcher() = default;
 
@@ -65,7 +65,7 @@ public:
 		}
 
 		if (!suppressLogs)
-			Log::print(Log::T_SUCCESS, __FUNCTION__, "	Invoked " + std::to_string(callbacks.size()) + " callback(s) for event type " + enquote(typeid(EventType).name()) + ".");
+			Log::Print(Log::T_SUCCESS, __FUNCTION__, "	Invoked " + std::to_string(callbacks.size()) + " callback(s) for event type " + enquote(typeid(EventType).name()) + ".");
 	}
 
 	

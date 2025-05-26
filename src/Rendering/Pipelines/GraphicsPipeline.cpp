@@ -18,7 +18,7 @@ GraphicsPipeline::GraphicsPipeline(VulkanContext& context):
 	);
 
 
-	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
+	Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
 
 GraphicsPipeline::~GraphicsPipeline() {}
@@ -518,12 +518,12 @@ void GraphicsPipeline::initShaderStage() {
 	// Loads shader bytecode onto buffers
 		// Vertex shader
 	m_vertShaderBytecode = FilePathUtils::readFile(ShaderConsts::VERTEX);
-	Log::print(Log::T_SUCCESS, __FUNCTION__, ("Loaded vertex shader! SPIR-V bytecode file size is " + std::to_string(m_vertShaderBytecode.size()) + " (bytes)."));
+	Log::Print(Log::T_SUCCESS, __FUNCTION__, ("Loaded vertex shader! SPIR-V bytecode file size is " + std::to_string(m_vertShaderBytecode.size()) + " (bytes)."));
 	m_vertShaderModule = createShaderModule(m_vertShaderBytecode);
 
 		// Fragment shader
 	m_fragShaderBytecode = FilePathUtils::readFile(ShaderConsts::FRAGMENT);
-	Log::print(Log::T_SUCCESS, __FUNCTION__, ("Loaded fragment shader! SPIR-V bytecode file size is " + std::to_string(m_fragShaderBytecode.size()) + " (bytes)."));
+	Log::Print(Log::T_SUCCESS, __FUNCTION__, ("Loaded fragment shader! SPIR-V bytecode file size is " + std::to_string(m_fragShaderBytecode.size()) + " (bytes)."));
 	m_fragShaderModule = createShaderModule(m_fragShaderBytecode);
 
 	// Creates shader stages

@@ -178,11 +178,14 @@ set(PKG_LIBS
     glfw
     glm::glm
     GPUOpen::VulkanMemoryAllocator
-    Boxer
 )
 
 set(FETCHCONTENT_LIBS
     assimp
+)
+
+set(EXTERNAL_LIBS
+    Boxer
 )
 
 set(FETCHCONTENT_LIBS_TARGET_INCLUDE_DIRS
@@ -258,7 +261,7 @@ add_subdirectory("external/boxer")
 
 
 # Link libraries
-target_link_libraries(Astrocelerate PRIVATE ${PKG_LIBS} ${FETCHCONTENT_LIBS})
+target_link_libraries(Astrocelerate PRIVATE ${PKG_LIBS} ${FETCHCONTENT_LIBS} ${EXTERNAL_LIBS})
 
 
 # Include library directories

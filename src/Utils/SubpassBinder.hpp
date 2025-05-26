@@ -22,7 +22,7 @@ public:
        createComponentSubpassMappings();
        m_components.reserve(m_subpassToComp.size());
 
-       Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
+       Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
    }
    ~SubpassBinder() = default;
 

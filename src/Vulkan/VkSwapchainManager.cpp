@@ -28,7 +28,7 @@ VkSwapchainManager::VkSwapchainManager(VulkanContext& context):
     );
 
 
-    Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
+    Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
 
 VkSwapchainManager::~VkSwapchainManager() {}
@@ -46,7 +46,7 @@ void VkSwapchainManager::init() {
 
 
 void VkSwapchainManager::recreateSwapchain() {
-    Log::print(Log::T_INFO, __FUNCTION__, "Recreating swap-chain...");
+    Log::Print(Log::T_INFO, __FUNCTION__, "Recreating swap-chain...");
 
     // If the window is minimized (i.e., (width, height) = (0, 0), pause the window until it is in the foreground again
     int width = 0, height = 0;
@@ -214,7 +214,6 @@ void VkSwapchainManager::createSwapChain() {
 
     // Saves swap-chain properties
     m_vkContext.SwapChain.swapChain = m_swapChain;
-    // Saves swap-chain properties
     m_vkContext.SwapChain.surfaceFormat = surfaceFormat;
     m_vkContext.SwapChain.extent = extent;
 
@@ -318,10 +317,10 @@ SwapChainProperties VkSwapchainManager::getSwapChainProperties(VkPhysicalDevice&
 
 
     if (swapChain.surfaceFormats.empty()) {
-        Log::print(Log::T_WARNING, __FUNCTION__, "GPU does not support any surface formats for the given window surface!");
+        Log::Print(Log::T_WARNING, __FUNCTION__, "GPU does not support any surface formats for the given window surface!");
     }
     if (swapChain.presentModes.empty()) {
-        Log::print(Log::T_WARNING, __FUNCTION__, "GPU does not support any presentation modes for the given window surface!");
+        Log::Print(Log::T_WARNING, __FUNCTION__, "GPU does not support any presentation modes for the given window surface!");
     }
 
     return swapChain;

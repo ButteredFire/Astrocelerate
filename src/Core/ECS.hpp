@@ -14,7 +14,7 @@ public:
 			m_availableIDs.push(id);
 		}
 
-		Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
+		Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 	};
 	~EntityManager() = default;
 
@@ -47,7 +47,7 @@ public:
 	*/
 	inline void destroyEntity(Entity entity) {
 		if (m_entityToIndexMap.find(entity.id) == m_entityToIndexMap.end()) {
-			Log::print(Log::T_WARNING, __FUNCTION__, "Cannot destroy entity #" + std::to_string(entity.id) + " as it does not exist.");
+			Log::Print(Log::T_WARNING, __FUNCTION__, "Cannot destroy entity #" + std::to_string(entity.id) + " as it does not exist.");
 			return;
 		}
 
@@ -98,7 +98,7 @@ private:
 class ComponentManager {
 public:
 	ComponentManager() {
-		Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
+		Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 	}
 	~ComponentManager() = default;
 
@@ -111,7 +111,7 @@ public:
 		const char* typeName = typeid(Component).name();
 
 		if (m_componentTypes.find(typeName) != m_componentTypes.end()) {
-			Log::print(Log::T_WARNING, __FUNCTION__, "Skipping initialization of component array of type " + enquote(typeName) + " as it has already been initialized.");
+			Log::Print(Log::T_WARNING, __FUNCTION__, "Skipping initialization of component array of type " + enquote(typeName) + " as it has already been initialized.");
 
 			return;
 		}
@@ -345,7 +345,7 @@ private:
 class Registry {
 public:
 	Registry() {
-		Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
+		Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 	}
 	~Registry() = default;
 

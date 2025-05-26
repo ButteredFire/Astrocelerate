@@ -52,7 +52,7 @@ RenderSystem::RenderSystem(VulkanContext& context):
 		}
 	);
 
-	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
+	Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
 
 

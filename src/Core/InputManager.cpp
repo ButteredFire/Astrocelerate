@@ -2,13 +2,14 @@
 #include <Core/EventDispatcher.hpp>
 
 
-InputManager::InputManager() {
+InputManager::InputManager():
+	m_guiIO(ImGui::GetIO()) {
 	m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
 	m_camera = ServiceLocator::GetService<Camera>(__FUNCTION__);
 
 	bindEvents();
 
-	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
+	Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
 
 
@@ -18,6 +19,12 @@ void InputManager::bindEvents() {
 			this->processKeyboardInput(event.deltaTime);
 		}
 	);
+}
+
+
+bool InputManager::isHoveringOverGUI() {
+	return m_guiIO.WantCaptureMouse;
+	// NOTE: See m_guiIO.WantCaptureMouseUnlessPopupClose
 }
 
 
@@ -66,6 +73,8 @@ void InputManager::processKeyboardInput(double dt) {
 }
 
 void InputManager::processMouseClicks(GLFWwindow* window, int button, int action, int mods) {
+	if (isHoveringOverGUI()) return;
+
 	if (button == GLFW_MOUSE_BUTTON_LEFT) {
 		m_cursorLocked = true;
 		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -106,6 +115,8 @@ void InputManager::processMouseMovement(double dposX, double dposY) {
 
 
 void InputManager::processMouseScroll(double deltaX, double deltaY) {
+	if (isHoveringOverGUI()) return;
+
 	if (m_cursorLocked)
 		m_camera->processMouseScroll(static_cast<float>(deltaY));
 }

@@ -16,7 +16,7 @@ public:
 	inline static void RegisterService(std::shared_ptr<T> service) {
 		std::type_index serviceTypeIdx = std::type_index(typeid(T));
 		if (m_services.find(serviceTypeIdx) != m_services.end()) {
-			Log::print(Log::T_WARNING, __FUNCTION__, "Service of type " + enquote(serviceTypeIdx.name()) + " already exists! Overwriting existing service...");
+			Log::Print(Log::T_WARNING, __FUNCTION__, "Service of type " + enquote(serviceTypeIdx.name()) + " already exists! Overwriting existing service...");
 		}
 
 		m_services[serviceTypeIdx] = service;

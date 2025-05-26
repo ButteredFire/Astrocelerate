@@ -79,7 +79,7 @@ inline static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSe
 		break;
 	}
 
-	Log::print(severity, "Validation Layer", std::string(pCallbackData->pMessage));
+	Log::Print(severity, "Validation Layer", std::string(pCallbackData->pMessage));
 
 	return VK_FALSE;
 }

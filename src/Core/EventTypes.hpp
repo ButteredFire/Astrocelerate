@@ -21,7 +21,9 @@ enum EventType {
 	EVENT_ID_UPDATE_INPUT,
 	EVENT_ID_UPDATE_RENDERABLES,
 	EVENT_ID_UPDATE_PHYSICS,
-	EVENT_ID_UPDATE_UBOS
+	EVENT_ID_UPDATE_UBOS,
+
+	EVENT_ID_GUI_CONTEXT_IS_VALID
 };
 
 
@@ -75,5 +77,11 @@ namespace Event {
 		const EventType eventType = EventType::EVENT_ID_UPDATE_UBOS;
 		uint32_t currentFrame;
 		glm::dvec3 renderOrigin;
+	};
+
+
+	/* Used when the ImGui context is available. */
+	struct GUIContextIsValid {
+		const EventType eventType = EventType::EVENT_ID_GUI_CONTEXT_IS_VALID;
 	};
 }

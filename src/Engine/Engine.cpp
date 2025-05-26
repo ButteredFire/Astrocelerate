@@ -11,13 +11,11 @@ Engine::Engine(GLFWwindow *w, VulkanContext& context):
     m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
     m_registry = ServiceLocator::GetService<Registry>(__FUNCTION__);
 
-    m_inputManager = ServiceLocator::GetService<InputManager>(__FUNCTION__);
-
     if (!isPointerValid(window)) {
         throw Log::RuntimeException(__FUNCTION__, __LINE__, "Engine crashed: Invalid window context!");
     }
 
-    Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
+    Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
 
 
@@ -51,6 +49,8 @@ void Engine::initComponents() {
 void Engine::run() {
     m_physicsSystem = ServiceLocator::GetService<PhysicsSystem>(__FUNCTION__);
     m_refFrameSystem = ServiceLocator::GetService<ReferenceFrameSystem>(__FUNCTION__);
+
+    m_inputManager = ServiceLocator::GetService<InputManager>(__FUNCTION__);
 
     m_renderer = ServiceLocator::GetService<Renderer>(__FUNCTION__);
 

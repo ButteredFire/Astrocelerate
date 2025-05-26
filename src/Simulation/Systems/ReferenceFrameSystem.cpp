@@ -4,7 +4,7 @@
 ReferenceFrameSystem::ReferenceFrameSystem() {
 	m_registry = ServiceLocator::GetService<Registry>(__FUNCTION__);
 
-	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
+	Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
 
 

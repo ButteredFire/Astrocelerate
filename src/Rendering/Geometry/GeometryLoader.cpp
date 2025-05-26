@@ -5,7 +5,7 @@ GeometryLoader::GeometryLoader() {
 
 	m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
 
-	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
+	Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
 
 
@@ -59,7 +59,7 @@ std::vector<Geometry::MeshOffset> GeometryLoader::bakeGeometry() {
 
 	m_eventDispatcher->publish(event);
 
-	Log::print(Log::T_SUCCESS, __FUNCTION__, "Baked " + std::to_string(m_meshes.size()) + " objects.");
+	Log::Print(Log::T_SUCCESS, __FUNCTION__, "Baked " + std::to_string(m_meshes.size()) + " objects.");
 
 	return offsets;
 }

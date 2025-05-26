@@ -18,7 +18,7 @@ const int WIN_WIDTH = WindowConsts::DEFAULT_WINDOW_WIDTH;
 const int WIN_HEIGHT = WindowConsts::DEFAULT_WINDOW_HEIGHT;
 
 int main() {
-    Log::printAppInfo();
+    Log::PrintAppInfo();
 
     // Binds members in the VulkanInstanceContext struct to their corresponding active Vulkan objects
     VulkanContext vkContext{};
@@ -72,12 +72,6 @@ int main() {
         glm::quat()
     );
     ServiceLocator::RegisterService(camera);
-
-
-    // Input
-    std::shared_ptr<InputManager> inputManager = std::make_shared<InputManager>();
-    ServiceLocator::RegisterService(inputManager);
-    callbackContext->inputManager = inputManager.get();
 
 
     try {
@@ -146,6 +140,11 @@ int main() {
         std::shared_ptr<UIRenderer> uiRenderer = std::make_shared<UIRenderer>(vkContext);
         ServiceLocator::RegisterService(uiRenderer);
 
+                // Input (only usable after ImGui initialization)
+        std::shared_ptr<InputManager> inputManager = std::make_shared<InputManager>();
+        ServiceLocator::RegisterService(inputManager);
+        callbackContext->inputManager = inputManager.get();
+
         std::shared_ptr<Renderer> renderer = std::make_shared<Renderer>(vkContext);
         ServiceLocator::RegisterService(renderer);
         renderer->init();
@@ -164,19 +163,19 @@ int main() {
         engine.run();
     }
     catch (const Log::RuntimeException& e) {
-        Log::print(e.severity(), e.origin(), e.what());
+        Log::Print(e.severity(), e.origin(), e.what());
 
         if (vkContext.Device.logicalDevice != VK_NULL_HANDLE)
             vkDeviceWaitIdle(vkContext.Device.logicalDevice);
 
         garbageCollector->processCleanupStack();
-        Log::print(Log::T_ERROR, APP_NAME, "Program exited with errors.");
+        Log::Print(Log::T_ERROR, APP_NAME, "Program exited with errors.");
 
         std::string errOrigin = "Origin: " + std::string(e.origin()) + "\n";
         std::string errLine = "Line: " + std::to_string(e.errorLine()) + "\n";
 
         std::string msgType;
-        Log::logColor(e.severity(), msgType, false);
+        Log::LogColor(e.severity(), msgType, false);
         std::string severity = "Exception type: " + msgType + "\n";
 
         std::string title = "Exception raised from " + std::string(e.origin());
@@ -188,6 +187,6 @@ int main() {
 
     vkDeviceWaitIdle(vkContext.Device.logicalDevice);
     garbageCollector->processCleanupStack();
-    Log::print(Log::T_SUCCESS, APP_NAME, "Program exited successfully.");
+    Log::Print(Log::T_SUCCESS, APP_NAME, "Program exited successfully.");
     return EXIT_SUCCESS;
 }

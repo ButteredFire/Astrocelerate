@@ -11,8 +11,9 @@ namespace GUI {
 	constexpr uint32_t MAX_PANEL_COUNT = 32;  
 	using PanelMask = std::bitset<MAX_PANEL_COUNT>;  
 
-	enum class PanelFlag {  
-		PANEL_TELEMETRY = 0,  
+	enum class PanelFlag {
+		PANEL_VIEWPORT = 0,
+		PANEL_TELEMETRY,  
 		PANEL_ENTITY_INSPECTOR,  
 		PANEL_SIMULATION_CONTROL,  
 		PANEL_RENDER_SETTINGS,  
@@ -21,6 +22,7 @@ namespace GUI {
 	};
 
 	inline constexpr PanelFlag PanelFlagsArray[] = {
+		PanelFlag::PANEL_VIEWPORT,
 		PanelFlag::PANEL_TELEMETRY,
 		PanelFlag::PANEL_ENTITY_INSPECTOR,
 		PanelFlag::PANEL_SIMULATION_CONTROL,
@@ -31,6 +33,7 @@ namespace GUI {
 
 
 	const std::unordered_map<PanelFlag, std::string> PanelNames = {
+		{PanelFlag::PANEL_VIEWPORT,					"Viewport"},
 		{PanelFlag::PANEL_TELEMETRY,				"Telemetry Data"},
 		{PanelFlag::PANEL_ENTITY_INSPECTOR,			"Entity Inspector"},
 		{PanelFlag::PANEL_SIMULATION_CONTROL,		"Simulation Control Panel"},

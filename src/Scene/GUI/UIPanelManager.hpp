@@ -48,6 +48,8 @@ private:
 
 	void renderPanelsMenu();
 
+	void renderViewportPanel();
+
 	void renderTelemetryPanel();
 	void renderEntityInspectorPanel();
 	void renderSimulationControlPanel();

@@ -9,11 +9,13 @@ UIPanelManager::UIPanelManager() {
 
 	// TODO: Serialize the panel mask in the future to allow for config loading/ opening panels from the last session
 	m_panelMask.reset();
+
+	GUI::TogglePanel(m_panelMask, GUI::PanelFlag::PANEL_VIEWPORT, GUI::TOGGLE_ON);
 	GUI::TogglePanel(m_panelMask, GUI::PanelFlag::PANEL_TELEMETRY, GUI::TOGGLE_ON);
 
 	initPanelsFromMask(m_panelMask);
 
-	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
+	Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
 
 
@@ -30,7 +32,7 @@ void UIPanelManager::initPanelsFromMask(GUI::PanelMask& mask) {
 				(it != m_panelCallbacks.end() && it->second == nullptr)
 				) {
 
-				Log::print(Log::T_ERROR, __FUNCTION__, "Cannot open panel: Initialization callback for panel flag #" + std::to_string(i) + " is not available!");
+				Log::Print(Log::T_ERROR, __FUNCTION__, "Cannot open panel: Initialization callback for panel flag #" + std::to_string(i) + " is not available!");
 
 				continue;
 			}
@@ -52,6 +54,7 @@ void UIPanelManager::updatePanels() {
 void UIPanelManager::bindPanelFlags() {
 	using namespace GUI;
 
+	m_panelCallbacks[PanelFlag::PANEL_VIEWPORT]				= &UIPanelManager::renderViewportPanel;
 	m_panelCallbacks[PanelFlag::PANEL_TELEMETRY]			= &UIPanelManager::renderTelemetryPanel;
 	m_panelCallbacks[PanelFlag::PANEL_ENTITY_INSPECTOR]		= &UIPanelManager::renderEntityInspectorPanel;
 	m_panelCallbacks[PanelFlag::PANEL_SIMULATION_CONTROL]	= &UIPanelManager::renderSimulationControlPanel;
@@ -74,6 +77,21 @@ void UIPanelManager::renderPanelsMenu() {
 
 		TogglePanel(m_panelMask, flag, isOpen ? TOGGLE_ON : TOGGLE_OFF);
 	}
+
+	ImGui::End();
+}
+
+
+void UIPanelManager::renderViewportPanel() {
+	const GUI::PanelFlag flag = GUI::PanelFlag::PANEL_VIEWPORT;
+	if (!GUI::IsPanelOpen(m_panelMask, flag)) {
+		Log::Print(Log::T_ERROR, __FUNCTION__, "The viewport must not be closed!");
+		GUI::TogglePanel(m_panelMask, flag, GUI::TOGGLE_ON);
+	}
+
+	ImGui::Begin("Viewport");		// This panel must be docked
+
+	ImGui::Text("Simulation viewport (TBD)");
 
 	ImGui::End();
 }

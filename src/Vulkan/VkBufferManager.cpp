@@ -11,7 +11,7 @@ VkBufferManager::VkBufferManager(VulkanContext& context):
 
 	bindEvents();
 
-	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
+	Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
 
 VkBufferManager::~VkBufferManager() {}
@@ -244,7 +244,7 @@ void VkBufferManager::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDevic
 	// Uses the transfer queue by default, but if it does not exist, switch to the graphics queue
 	QueueFamilyIndices::QueueFamily queueFamily = m_vkContext.Device.queueFamilies.transferFamily;
 	if (queueFamily.deviceQueue == VK_NULL_HANDLE || !queueFamily.index.has_value()) {
-		Log::print(Log::T_WARNING, __FUNCTION__, "Transfer queue family is not valid. Switching to graphics queue family...");
+		Log::Print(Log::T_WARNING, __FUNCTION__, "Transfer queue family is not valid. Switching to graphics queue family...");
 		queueFamily = m_vkContext.Device.queueFamilies.graphicsFamily;
 	}
 

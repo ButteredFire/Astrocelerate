@@ -9,7 +9,7 @@ VkSyncManager::VkSyncManager(VulkanContext& context):
 
 	m_garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
 
-	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
+	Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 };
 
 

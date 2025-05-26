@@ -45,7 +45,10 @@ public:
 	/* Initializes ImGui.
 		@param appearance (Default: IMGUI_APPEARANCE_DARK_MODE): The default appearance.
 	*/
-	void initializeImGui(UIRenderer::Appearance appearance = Appearance::IMGUI_APPEARANCE_DARK_MODE);
+	void initImGui(UIRenderer::Appearance appearance = Appearance::IMGUI_APPEARANCE_DARK_MODE);
+
+
+	void initDockspace();
 
 
 	/* Refreshes ImGui. Call this when, for instance, the swap-chain is recreated. */
@@ -66,6 +69,7 @@ private:
 
 	std::shared_ptr<Registry> m_registry;
 	std::shared_ptr<GarbageCollector> m_garbageCollector;
+	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 
 	std::shared_ptr<GraphicsPipeline> m_graphicsPipeline;
 

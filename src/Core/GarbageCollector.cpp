@@ -4,7 +4,7 @@ GarbageCollector::GarbageCollector(VulkanContext& context):
 	m_vkContext(context),
 	m_nextID(0) {
 
-	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
+	Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
 
 GarbageCollector::~GarbageCollector() {}
@@ -44,7 +44,7 @@ uint32_t GarbageCollector::createCleanupTask(CleanupTask task) {
 	m_cleanupStack.push_back(task);
 	m_idToIdxLookup[id] = (m_cleanupStack.size() - 1);
 
-	Log::print(Log::T_VERBOSE, task.caller.c_str(), "Pushed object(s) " + objectNamesStr + " to cleanup stack.");
+	Log::Print(Log::T_VERBOSE, task.caller.c_str(), "Pushed object(s) " + objectNamesStr + " to cleanup stack.");
 	return id;
 }
 
@@ -75,7 +75,7 @@ void GarbageCollector::processCleanupStack() {
 	size_t stackSize = m_cleanupStack.size();
 
 	std::string plural = (stackSize != 1)? "s" : "";
-	Log::print(Log::T_VERBOSE, __FUNCTION__, "Executing " + std::to_string(stackSize) + " task" + plural + " in the cleanup stack...");
+	Log::Print(Log::T_VERBOSE, __FUNCTION__, "Executing " + std::to_string(stackSize) + " task" + plural + " in the cleanup stack...");
 
 	while (!m_cleanupStack.empty()) {
 		uint32_t id = (m_cleanupStack.size() - 1);
@@ -94,7 +94,7 @@ bool GarbageCollector::executeTask(CleanupTask& task, uint32_t taskID) {
 
 	// Checks whether the task is already invalid
 	if (!task.validTask) {
-		Log::print(Log::T_WARNING, __FUNCTION__, "Skipped cleanup task for object(s) " + objectNamesStr + ".");
+		Log::Print(Log::T_WARNING, __FUNCTION__, "Skipped cleanup task for object(s) " + objectNamesStr + ".");
 		return false;
 	}
 
@@ -117,7 +117,7 @@ bool GarbageCollector::executeTask(CleanupTask& task, uint32_t taskID) {
 	}
 
 	if (!proceedCleanup) {
-		Log::print(Log::T_WARNING, __FUNCTION__, "Skipped cleanup task for object(s) " + objectNamesStr + " due to an invalid Vulkan object used in their destroy/free callback function.");
+		Log::Print(Log::T_WARNING, __FUNCTION__, "Skipped cleanup task for object(s) " + objectNamesStr + " due to an invalid Vulkan object used in their destroy/free callback function.");
 		return false;
 	}
 
@@ -125,7 +125,7 @@ bool GarbageCollector::executeTask(CleanupTask& task, uint32_t taskID) {
 	// Executes the task and invalidates it to prevent future executions
 	task.cleanupFunc();
 
-	Log::print(Log::T_VERBOSE, __FUNCTION__, "Executed cleanup task for object(s) " + objectNamesStr + ".");
+	Log::Print(Log::T_VERBOSE, __FUNCTION__, "Executed cleanup task for object(s) " + objectNamesStr + ".");
 
 	task.validTask = false;
 	m_invalidTaskCount++;
@@ -170,8 +170,8 @@ void GarbageCollector::optimizeStack() {
 
 	size_t newSize = m_cleanupStack.size();
 	if (newSize < oldSize)
-		Log::print(Log::T_SUCCESS, __FUNCTION__, "Shrunk stack size from " + std::to_string(oldSize) + " down to " + std::to_string(newSize) + ".");
+		Log::Print(Log::T_SUCCESS, __FUNCTION__, "Shrunk stack size from " + std::to_string(oldSize) + " down to " + std::to_string(newSize) + ".");
 
 	else
-		Log::print(Log::T_INFO, __FUNCTION__, "Cleanup stack cannot be optimized further.");
+		Log::Print(Log::T_INFO, __FUNCTION__, "Cleanup stack cannot be optimized further.");
 }

@@ -9,7 +9,7 @@ VkInstanceManager::VkInstanceManager(VulkanContext& context):
     
     m_garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
 
-    Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
+    Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
 
 VkInstanceManager::~VkInstanceManager() {}
@@ -28,8 +28,8 @@ void VkInstanceManager::initVulkan() {
         // Caches supported extensions and layers
     m_supportedExtensions = getSupportedVulkanExtensions();
     m_supportedLayers = getSupportedVulkanValidationLayers();
-    Log::print(Log::T_INFO, __FUNCTION__, ("Supported extensions: " + std::to_string(m_supportedExtensions.size())));
-    Log::print(Log::T_INFO, __FUNCTION__, ("Supported layers: " + std::to_string(m_supportedLayers.size())));
+    Log::Print(Log::T_INFO, __FUNCTION__, ("Supported extensions: " + std::to_string(m_supportedExtensions.size())));
+    Log::Print(Log::T_INFO, __FUNCTION__, ("Supported layers: " + std::to_string(m_supportedLayers.size())));
 
     // Caches supported extension and validation layers for O(1) verification of extensions/layers to be added later
     for (const auto& extension : m_supportedExtensions)
@@ -185,7 +185,7 @@ bool VkInstanceManager::verifyVulkanExtensions(std::vector<const char*> extensio
     for (const auto& ext : extensions) {
         if (m_supportedExtensionNames.count(ext) == 0) {
             allOK = false;
-            Log::print(Log::T_ERROR, __FUNCTION__, ("Vulkan extension " + enquote(ext) + " is either invalid or unsupported!"));
+            Log::Print(Log::T_ERROR, __FUNCTION__, ("Vulkan extension " + enquote(ext) + " is either invalid or unsupported!"));
         }
 
     }
@@ -199,7 +199,7 @@ bool VkInstanceManager::verifyVulkanValidationLayers(std::vector<const char*>& l
     for (const auto& layer : layers) {
         if (m_supportedLayerNames.count(layer) == 0) {
             allOK = false;
-            Log::print(Log::T_ERROR, __FUNCTION__, ("Vulkan validation layer " + enquote(layer) + " is either invalid or unsupported!"));
+            Log::Print(Log::T_ERROR, __FUNCTION__, ("Vulkan validation layer " + enquote(layer) + " is either invalid or unsupported!"));
         }
     }
 
@@ -236,7 +236,7 @@ void VkInstanceManager::addVulkanExtensions(std::vector<const char*> extensions)
 
     for (const auto& ext : extensions) {
         if (m_UTIL_enabledExtensionSet.count(ext) == 0) {
-            Log::print(Log::T_DEBUG, __FUNCTION__, ("Extension " + enquote(ext) + " verified. Enabling..."));
+            Log::Print(Log::T_DEBUG, __FUNCTION__, ("Extension " + enquote(ext) + " verified. Enabling..."));
             m_enabledExtensions.push_back(ext);
             m_UTIL_enabledExtensionSet.insert(ext);
         }
@@ -251,7 +251,7 @@ void VkInstanceManager::addVulkanValidationLayers(std::vector<const char*> layer
 
     for (const auto& layer : layers) {
         if (m_UTIL_enabledValidationLayerSet.count(layer) == 0) {
-            Log::print(Log::T_DEBUG, __FUNCTION__, ("Validation layer " + enquote(layer) + " verified. Enabling..."));
+            Log::Print(Log::T_DEBUG, __FUNCTION__, ("Validation layer " + enquote(layer) + " verified. Enabling..."));
             m_enabledValidationLayers.push_back(layer);
             m_UTIL_enabledValidationLayerSet.insert(layer);
         }

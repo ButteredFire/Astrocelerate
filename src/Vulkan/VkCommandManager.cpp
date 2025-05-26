@@ -10,7 +10,7 @@ VkCommandManager::VkCommandManager(VulkanContext& context):
 	m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
 	m_garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
 
-	Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
+	Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 };
 
 VkCommandManager::~VkCommandManager() {};
@@ -214,7 +214,7 @@ VkCommandPool VkCommandManager::createCommandPool(VulkanContext& vkContext, VkDe
 	createInfo.flags = flags;
 
 	if (cmdPoolMappings.find(createInfo) != cmdPoolMappings.end()) {
-		Log::print(Log::T_WARNING, __FUNCTION__, "The command pool to be created has creation parameters matching those of an existing pool, which will be used instead.");
+		Log::Print(Log::T_WARNING, __FUNCTION__, "The command pool to be created has creation parameters matching those of an existing pool, which will be used instead.");
 		return cmdPoolMappings[createInfo];
 	}
 

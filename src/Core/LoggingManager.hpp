@@ -47,7 +47,7 @@ namespace Log {
 	/* Outputs a color to the output stream based on message type.
 		Optionally, set outputColor to False to get the message type (as a string).
 	*/
-	static void logColor(MsgType type, std::string& msgType, bool outputColor = true) {
+	static void LogColor(MsgType type, std::string& msgType, bool outputColor = true) {
 		switch (type) {
 			case T_VERBOSE:
 				msgType = "VERBOSE";
@@ -94,17 +94,17 @@ namespace Log {
 		@param message: The message to be logged.
 		@param newline (default: true): A boolean determining whether the message ends with a newline character (true), or not (false).
 	*/
-	static void print(MsgType type, const char* caller, const std::string& message, bool newline = true) {
+	static void Print(MsgType type, const char* caller, const std::string& message, bool newline = true) {
 		std::string msgType = "Unknown message type";
 		
-		logColor(type, msgType);
+		LogColor(type, msgType);
 
 		std::cout << "[" << msgType << " @ " << caller << "]: " << message << ((newline) ? "\n" : "") << termcolor::reset;
 	}
 
 
 	/* Logs application information to the console. */
-	static void printAppInfo() {
+	static void PrintAppInfo() {
 		std::cout << "Project " << APP_NAME << " (version: " << APP_VERSION << ").\n";
 		std::cout << "Project is run in ";
 		if (inDebugMode)

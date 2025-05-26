@@ -20,7 +20,7 @@ Renderer::Renderer(VulkanContext& context):
 
     m_imguiRenderer = ServiceLocator::GetService<UIRenderer>(__FUNCTION__);
 
-    Log::print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
+    Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
 
 
@@ -33,7 +33,6 @@ void Renderer::update(glm::dvec3& renderOrigin) {
 
 
 void Renderer::init() {
-    m_imguiRenderer->initializeImGui();
     initializeRenderables();
 }
 
@@ -45,42 +44,9 @@ void Renderer::initializeRenderables() {
 
 
 void Renderer::drawFrame(glm::dvec3& renderOrigin) {
-    //m_vertexRenderComponent.descriptorSet = m_vkContext.GraphicsPipeline.descriptorSets[m_currentFrame];
     m_guiRenderComponent.guiDrawData = ImGui::GetDrawData();
 
-    //m_globalRegistry->updateComponent(m_vertexRenderable.id, m_vertexRenderComponent);
     m_globalRegistry->updateComponent(m_guiRenderable.id, m_guiRenderComponent);
-
-    /*
-    
-    // Specifies renderable components
-    ComponentArray<Component::Renderable> renderableComponents(m_globalEntityManager);
-
-        // Vertex rendering
-    Component::Renderable vertexRenderComponent{};
-    vertexRenderComponent.type = ComponentType::Renderable::T_RENDERABLE_VERTEX;
-    vertexRenderComponent.vertexBuffers = {
-        m_bufferManager->getVertexBuffer()
-    };
-    vertexRenderComponent.vertexBufferOffsets = { 0 };
-
-    vertexRenderComponent.indexBuffer = m_bufferManager->getIndexBuffer();
-    vertexRenderComponent.vertexIndexData = m_bufferManager->getVertexIndexData();
-
-    vertexRenderComponent.descriptorSet = m_vkContext.GraphicsPipeline.descriptorSets[m_currentFrame];
-
-        // GUI rendering
-    Component::Renderable guiRenderComponent{};
-    guiRenderComponent.type = ComponentType::Renderable::T_RENDERABLE_GUI;
-    guiRenderComponent.guiDrawData = ImGui::GetDrawData();
-
-
-    renderableComponents.attach(m_vertexRenderable, vertexRenderComponent);
-    renderableComponents.attach(m_guiRenderable, guiRenderComponent);
-    
-    
-    */
-
 
     /* How a frame is drawn:
     * 1. Wait for the previous frame to finish rendering (i.e., waiting for its fence)
