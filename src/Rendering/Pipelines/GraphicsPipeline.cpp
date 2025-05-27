@@ -75,61 +75,25 @@ void GraphicsPipeline::init() {
 
 
 void GraphicsPipeline::createGraphicsPipeline() {
-	VkGraphicsPipelineCreateInfo pipelineCreateInfo{};
-	pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO; // Specify the pipeline as the graphics pipeline
+	PipelineBuilder builder;
+	builder.dynamicStateCreateInfo = m_dynamicStateCreateInfo;
+	builder.inputAssemblyCreateInfo = m_inputAssemblyCreateInfo;
+	builder.viewportStateCreateInfo = m_viewportStateCreateInfo;
+	builder.rasterizerCreateInfo = m_rasterizerCreateInfo;
+	builder.multisampleStateCreateInfo = m_multisampleStateCreateInfo;
+	builder.depthStencilStateCreateInfo = m_depthStencilStateCreateInfo;
+	builder.colorBlendStateCreateInfo = m_colorBlendCreateInfo;
+	builder.tessellationStateCreateInfo = m_tessStateCreateInfo;
+	builder.vertexInputStateCreateInfo = m_vertInputState;
 
-	// Shader stage
-	pipelineCreateInfo.stageCount = static_cast<uint32_t>(m_shaderStages.size());
-	pipelineCreateInfo.pStages = m_shaderStages.data();
+	builder.shaderStages = m_shaderStages;
 
-	// Fixed-function states
-	pipelineCreateInfo.pDynamicState = &m_dynamicStateCreateInfo;
-	pipelineCreateInfo.pInputAssemblyState = &m_inputAssemblyCreateInfo;
-	pipelineCreateInfo.pViewportState = &m_viewportStateCreateInfo;
-	pipelineCreateInfo.pRasterizationState = &m_rasterizerCreateInfo;
-	pipelineCreateInfo.pMultisampleState = &m_multisampleStateCreateInfo;
-	pipelineCreateInfo.pDepthStencilState = &m_depthStencilStateCreateInfo;
-	pipelineCreateInfo.pColorBlendState = &m_colorBlendCreateInfo;
-	pipelineCreateInfo.pTessellationState = nullptr;
-	pipelineCreateInfo.pVertexInputState = &m_vertInputState;
+	builder.renderPass = m_renderPass;
+	builder.pipelineLayout = m_pipelineLayout;
 
-	// Render pass
-	pipelineCreateInfo.renderPass = m_renderPass;
-	pipelineCreateInfo.subpass = 0; // Index of the subpass
-		/* NOTE:
-		* It is also possible to use other render passes with this pipeline instead of this specific instance, but they have to be compatible with m_renderPass. The requirements for compatibility are described here: https://docs.vulkan.org/spec/latest/chapters/renderpass.html#renderpass-compatibility
-		*/
-
-	// Pipeline properties
-		/* NOTE:
-		* Vulkan allows you to create a new graphics pipeline by deriving from an existing pipeline. 
-		* The idea of pipeline derivatives is that it is less expensive to set up pipelines when they have much functionality in common with an existing pipeline and switching between pipelines from the same parent can also be done quicker. 
-		* 
-		* You can either specify the handle of an existing pipeline with basePipelineHandle or reference another pipeline that is about to be created by index with basePipelineIndex.
-		* These values are only used if the VK_PIPELINE_CREATE_DERIVATIVE_BIT flag is also specified in the flags field of VkGraphicsPipelineCreateInfo.
-		*/
-		// Right now, there is only a single pipeline, so we'll specify the handle and index as null and -1 (an invalid index)
-	//pipelineCreateInfo.flags;
-	pipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
-	pipelineCreateInfo.basePipelineIndex = -1;
-
-	pipelineCreateInfo.layout = m_pipelineLayout;
-
-	VkResult result = vkCreateGraphicsPipelines(m_vkContext.Device.logicalDevice, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &m_graphicsPipeline);
-	if (result != VK_SUCCESS) {
-		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create graphics pipeline!");
-	}
+	m_graphicsPipeline = builder.buildGraphicsPipeline(m_vkContext.Device.logicalDevice);
 
 	m_vkContext.GraphicsPipeline.pipeline = m_graphicsPipeline;
-
-
-	CleanupTask task{};
-	task.caller = __FUNCTION__;
-	task.objectNames = { VARIABLE_NAME(m_graphicsPipeline) };
-	task.vkObjects = { m_vkContext.Device.logicalDevice, m_graphicsPipeline };
-	task.cleanupFunc = [this]() { vkDestroyPipeline(m_vkContext.Device.logicalDevice, m_graphicsPipeline, nullptr); };
-
-	m_garbageCollector->createCleanupTask(task);
 }
 
 
@@ -562,20 +526,16 @@ void GraphicsPipeline::initShaderStage() {
 	m_vertInputState.pVertexAttributeDescriptions = m_vertAttribDescriptions.data();
 
 
-	CleanupTask vertCleanupTask{}, fragCleanupTask{};
-	vertCleanupTask.caller = fragCleanupTask.caller = __FUNCTION__;
+	CleanupTask cleanupTask{};
+	cleanupTask.caller = __FUNCTION__;
+	cleanupTask.objectNames = { VARIABLE_NAME(m_vertShaderModule), VARIABLE_NAME(m_fragShaderModule) };
+	cleanupTask.vkObjects = { m_vkContext.Device.logicalDevice, m_vertShaderModule, m_fragShaderModule };
+	cleanupTask.cleanupFunc = [&]() {
+		vkDestroyShaderModule(m_vkContext.Device.logicalDevice, m_vertShaderModule, nullptr);
+		vkDestroyShaderModule(m_vkContext.Device.logicalDevice, m_fragShaderModule, nullptr);
+	};
 
-	vertCleanupTask.objectNames = { VARIABLE_NAME(m_vertShaderModule) };
-	fragCleanupTask.objectNames = { VARIABLE_NAME(m_fragShaderModule) };
-
-	vertCleanupTask.vkObjects = { m_vkContext.Device.logicalDevice, m_vertShaderModule };
-	fragCleanupTask.vkObjects = { m_vkContext.Device.logicalDevice, m_fragShaderModule };
-
-	vertCleanupTask.cleanupFunc = [&]() { vkDestroyShaderModule(m_vkContext.Device.logicalDevice, m_vertShaderModule, nullptr); };
-	fragCleanupTask.cleanupFunc = [&]() { vkDestroyShaderModule(m_vkContext.Device.logicalDevice, m_fragShaderModule, nullptr); };
-
-	m_garbageCollector->createCleanupTask(vertCleanupTask);
-	m_garbageCollector->createCleanupTask(fragCleanupTask);
+	m_garbageCollector->createCleanupTask(cleanupTask);
 }
 
 

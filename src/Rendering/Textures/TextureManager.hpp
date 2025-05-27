@@ -4,8 +4,7 @@
 #pragma once
 
 // GLFW & Vulkan
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
+#include <glfw_vulkan.hpp>
 #include <vk_mem_alloc.h>
 
 // STB

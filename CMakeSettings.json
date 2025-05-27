@@ -15,12 +15,12 @@
             "name": "x64-Release",
             "generator": "Ninja",
             "configurationType": "RelWithDebInfo",
+            "inheritEnvironments": [ "msvc_x64_x64" ],
             "buildRoot": "${projectDir}\\out\\build\\${name}",
             "installRoot": "${projectDir}\\out\\install\\${name}",
-            "cmakeCommandArgs": "-DCMAKE_TOOLCHAIN_FILE=./vcpkg/scripts/buildsystems/vcpkg.cmake",
-            "buildCommandArgs": "",
+            "buildCommandArgs": "-v",
             "ctestCommandArgs": "",
-            "inheritEnvironments": [ "msvc_x64_x64" ]
+            "cmakeCommandArgs": "-DCMAKE_TOOLCHAIN_FILE=./vcpkg/scripts/buildsystems/vcpkg.cmake"
         }
     ]
 }

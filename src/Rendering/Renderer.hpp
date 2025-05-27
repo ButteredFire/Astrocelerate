@@ -7,8 +7,7 @@
 #pragma once
 
 // GLFW & Vulkan
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
+#include <glfw_vulkan.hpp>
 
 // GLM
 #include <glm_config.hpp>

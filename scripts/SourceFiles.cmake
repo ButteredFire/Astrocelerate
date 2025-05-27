@@ -20,6 +20,7 @@ set(SOURCE_FILES
 	"src/Rendering/Geometry/GeometryLoader.cpp"
 	"src/Rendering/Geometry/ModelParser.cpp"
 	"src/Rendering/Pipelines/GraphicsPipeline.cpp"
+	"src/Rendering/Pipelines/OffscreenGraphicsPipeline.cpp"
 	"src/Rendering/Textures/TextureManager.cpp"
 	"src/Scene/Camera.cpp"
 	"src/Scene/GUI/UIPanelManager.cpp"

@@ -5,8 +5,7 @@
 #pragma once
 
 // GLFW & Vulkan
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
+#include <glfw_vulkan.hpp>
 
 // C++ STLs
 #include <filesystem>
@@ -31,6 +30,8 @@
 #include <CoreStructs/Geometry.hpp>
 
 #include <Rendering/Textures/TextureManager.hpp>
+
+#include <Rendering/Pipelines/PipelineBuilder.hpp>
 
 #include <Utils/FilePathUtils.hpp>
 
