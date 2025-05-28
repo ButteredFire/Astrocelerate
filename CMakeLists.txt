@@ -76,7 +76,7 @@ include(FetchContent)
 
 
 # Add source files to the project's executable
-add_executable(Astrocelerate ${SOURCE_FILES} )
+add_executable(Astrocelerate ${SOURCE_FILES})
 
 
 # Functions

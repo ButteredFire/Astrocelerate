@@ -82,9 +82,9 @@ void Engine::update() {
         }
 
         // Process key input events
-        Event::UpdateInput updateInputEvent{};
-        updateInputEvent.deltaTime = deltaTime;
-        m_eventDispatcher->publish(updateInputEvent, true);
+        m_eventDispatcher->publish(Event::UpdateInput{
+            .deltaTime = deltaTime
+        }, true);
         
 
         // Update rendering

@@ -95,10 +95,18 @@ struct VulkanContext {
        std::vector<VkSemaphore> imageReadySemaphores;
        std::vector<VkSemaphore> renderFinishedSemaphores;
        std::vector<VkFence> inFlightFences;
-   } SyncObjects;  
+   } SyncObjects;
 
-   // Graphics pipeline  
-   struct GraphicsPipeline {  
+   // Presentation pipeline (graphics pipeline)
+   struct PresentPipeline {
+       VkPipeline pipeline = VK_NULL_HANDLE;
+       VkPipelineLayout layout = VK_NULL_HANDLE;
+       VkRenderPass renderPass = VK_NULL_HANDLE;
+       uint32_t subpassCount = 0;
+   } PresentPipeline;
+
+   // Offscreen pipeline (graphics pipeline)
+   struct OffscreenPipeline {  
        VkPipeline pipeline = VK_NULL_HANDLE;
        VkPipelineLayout layout = VK_NULL_HANDLE;
        VkRenderPass renderPass = VK_NULL_HANDLE;
@@ -107,7 +115,7 @@ struct VulkanContext {
        VkImageView depthImageView = VK_NULL_HANDLE;
 
        std::vector<VkDescriptorSet> descriptorSets;
-   } GraphicsPipeline;
+   } OffscreenPipeline;
 };
 
 

@@ -275,9 +275,6 @@ void VkSwapchainManager::createFrameBuffers() {
 
 
         VkResult result = vkCreateFramebuffer(m_vkContext.Device.logicalDevice, &bufferCreateInfo, nullptr, &m_imageFrameBuffers[i]);
-        if (result != VK_SUCCESS) {
-            throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create frame buffer for image #" + std::to_string(i) + "!");
-        }
 
         VkFramebuffer framebuffer = m_imageFrameBuffers[i];
 
@@ -289,6 +286,11 @@ void VkSwapchainManager::createFrameBuffers() {
 
         uint32_t framebufferTaskID = m_garbageCollector->createCleanupTask(task);
         m_cleanupTaskIDs.push_back(framebufferTaskID);
+
+
+        if (result != VK_SUCCESS) {
+            throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create frame buffer for image #" + std::to_string(i) + "!");
+        }
     }
 
     m_vkContext.SwapChain.imageFrameBuffers = m_imageFrameBuffers;
