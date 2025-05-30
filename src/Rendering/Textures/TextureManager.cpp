@@ -270,7 +270,7 @@ void TextureManager::switchImageLayout(VulkanContext& vkContext, VkImage image, 
 	if (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
 		imgMemBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
 
-		if (GraphicsPipeline::formatHasStencilComponent(imgFormat)) {
+		if (VulkanUtils::FormatHasStencilComponent(imgFormat)) {
 			imgMemBarrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
 		}
 	}

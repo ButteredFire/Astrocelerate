@@ -58,7 +58,7 @@ int main() {
     std::shared_ptr<UIPanelManager> uiPanelManager = std::make_shared<UIPanelManager>();
     ServiceLocator::RegisterService(uiPanelManager);
 
-
+    
     // Subpass binder
     std::shared_ptr<SubpassBinder> subpassBinder = std::make_shared<SubpassBinder>();
     ServiceLocator::RegisterService(subpassBinder);
@@ -121,13 +121,17 @@ int main() {
         m_bufferManager->init();
 
 
-        //  TODO: Load geometry here!
+        // TODO: Load geometry here!
         
 
-            // Graphics pipeline
-        std::shared_ptr<GraphicsPipeline> graphicsPipeline = std::make_shared<GraphicsPipeline>(vkContext);
-        ServiceLocator::RegisterService(graphicsPipeline);
-        graphicsPipeline->init();
+            // Pipelines
+        std::shared_ptr<OffscreenPipeline> offscreenPipeline = std::make_shared<OffscreenPipeline>(vkContext);
+        ServiceLocator::RegisterService(offscreenPipeline);
+        offscreenPipeline->init();
+
+        std::shared_ptr<PresentPipeline> presentPipeline = std::make_shared<PresentPipeline>(vkContext);
+        ServiceLocator::RegisterService(presentPipeline);
+        presentPipeline->init();
 
 
             // Synchronization manager

@@ -30,6 +30,7 @@ set(SOURCE_FILES
 	"src/Vulkan/VkBufferManager.cpp"
 	"src/Vulkan/VkCommandManager.cpp"
 	"src/Vulkan/VkDeviceManager.cpp"
+	"src/Vulkan/VkImageManager.cpp"
 	"src/Vulkan/VkInstanceManager.cpp"
 	"src/Vulkan/VkSwapchainManager.cpp"
 	"src/Vulkan/VkSyncManager.cpp"

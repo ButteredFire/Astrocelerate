@@ -4,6 +4,7 @@
 #pragma once
 
 #include <glfw_vulkan.hpp>
+#include <vma_impl.cpp>
 
 #include <vector>
 
@@ -15,8 +16,9 @@
 #include <Rendering/Pipelines/PipelineBuilder.hpp>
 
 #include <Vulkan/VkBufferManager.hpp>
+#include <Vulkan/VkImageManager.hpp>
 
-#include <Utils/SystemUtils.hpp>
+#include <Utils/VulkanUtils.hpp>
 
 
 class OffscreenPipeline {
@@ -27,14 +29,7 @@ public:
 	void init();
 
 	// Descriptor handling could be abstracted further
-	void createDescriptorPool(std::vector<VkDescriptorPoolSize> poolSizes, VkDescriptorPool& descriptorPool, VkDescriptorPoolCreateFlags createFlags = VkDescriptorPoolCreateFlags());
-
-
-	/* Does the (depth) format contain a stencil component? */
-	inline static bool formatHasStencilComponent(VkFormat format) {
-		return (format == VK_FORMAT_D32_SFLOAT_S8_UINT) ||
-			(format == VK_FORMAT_D24_UNORM_S8_UINT);
-	}
+	static void CreateDescriptorPool(VulkanContext& vkContext, VkDescriptorPool& descriptorPool, std::vector<VkDescriptorPoolSize> poolSizes, VkDescriptorPoolCreateFlags createFlags = VkDescriptorPoolCreateFlags());
 
 private:
 	VulkanContext& m_vkContext;
@@ -54,7 +49,7 @@ private:
 	VkVertexInputBindingDescription m_vertBindingDescription = VkVertexInputBindingDescription();
 	std::vector<VkVertexInputAttributeDescription> m_vertAttribDescriptions{};
 
-	// Fragment shader
+		// Fragment shader
 	std::vector<char> m_fragShaderBytecode;
 	VkShaderModule m_fragShaderModule = VK_NULL_HANDLE;
 	std::vector<VkPipelineShaderStageCreateInfo> m_shaderStages;
@@ -77,8 +72,8 @@ private:
 
 	// Depth buffering
 	VkImage m_depthImage = VK_NULL_HANDLE;
-	VmaAllocation m_depthImageAllocation = VK_NULL_HANDLE;
-	VkImageView m_depthImageView = VK_NULL_HANDLE;
+	VmaAllocation m_depthImgAllocation = VK_NULL_HANDLE;
+	VkImageView m_depthImgView = VK_NULL_HANDLE;
 
 	// Tessellation state
 	VkPipelineTessellationStateCreateInfo m_tessStateCreateInfo{};
@@ -92,6 +87,13 @@ private:
 
 	// Pipeline layout
 	VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
+
+	// Offscreen resources
+	VkImage m_colorImage;
+	VmaAllocation m_colorImgAlloc;
+	VkImageView m_colorImgView;
+	VkSampler m_colorImgSampler;
+	VkFramebuffer m_colorImgFramebuffer;
 
 
 	void bindEvents();
@@ -165,8 +167,10 @@ private:
 	void initTessellationState();
 
 
-	/* Creates depth buffering resources. */
 	void initDepthBufferingResources();
+	void initOffscreenColorResources();
+	void initOffscreenSampler();
+	void initOffscreenFramebuffer();
 
 
 	/* Creates a shader module to pass the code to the pipeline.

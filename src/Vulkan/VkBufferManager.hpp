@@ -195,7 +195,7 @@ private:
         @param uboIndex: The mesh's index into its UBO.
     */
     inline void* getObjectUBO(uint32_t currentImage, size_t uboIndex) {
-        static size_t alignedUBOSize = SystemUtils::align(sizeof(Buffer::ObjectUBO), m_vkContext.Device.deviceProperties.limits.minUniformBufferOffsetAlignment);
+        static size_t alignedUBOSize = SystemUtils::Align(sizeof(Buffer::ObjectUBO), m_vkContext.Device.deviceProperties.limits.minUniformBufferOffsetAlignment);
 
         /*
             First, we retrieve the pointer to the master object UBO of the current frame. We must cast it to a Byte pointer so that subsequent pointer increments will mean incrementing by bytes.

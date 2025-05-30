@@ -124,12 +124,14 @@ void PresentPipeline::createRenderPass() {
 	mainColorAttachment.format = m_vkContext.SwapChain.surfaceFormat.format;
 	mainColorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;				// Use 1 sample since multisampling is not enabled yet
 
+	// NOTE: loadOp = CLEAR is fine if we don't care about the "background" of the application (because the GUI is probably going to completely cover the screen anyway)
+	// HOWEVER, if we want to draw/fill the background first then set loadOp = LOAD, and initialLayout = COLOR_ATTACHMENT_OPTIMAL.
 	mainColorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	mainColorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
 	mainColorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	mainColorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-
+	
 	mainColorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	mainColorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
@@ -141,7 +143,7 @@ void PresentPipeline::createRenderPass() {
 
 	// Depth attachment
 	VkAttachmentDescription depthAttachment{};
-	depthAttachment.format = SystemUtils::GetBestDepthImageFormat(m_vkContext.Device.physicalDevice);
+	depthAttachment.format = VulkanUtils::GetBestDepthImageFormat(m_vkContext.Device.physicalDevice);
 	depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 
 	depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;

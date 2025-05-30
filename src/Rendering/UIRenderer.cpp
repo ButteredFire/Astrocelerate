@@ -11,8 +11,6 @@ UIRenderer::UIRenderer(VulkanContext& context):
     m_garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
     m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
 
-    m_graphicsPipeline = ServiceLocator::GetService<GraphicsPipeline>(__FUNCTION__);
-
     m_uiPanelManager = ServiceLocator::GetService<UIPanelManager>(__FUNCTION__);
 
     initImGui();
@@ -79,12 +77,12 @@ void UIRenderer::initImGui(UIRenderer::Appearance appearance) {
         { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE }
     };
     VkDescriptorPoolCreateFlags imgui_DescPoolCreateFlags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-    m_graphicsPipeline->createDescriptorPool(imgui_PoolSizes, m_descriptorPool, imgui_DescPoolCreateFlags);
+    OffscreenPipeline::CreateDescriptorPool(m_vkContext, m_descriptorPool, imgui_PoolSizes, imgui_DescPoolCreateFlags);
     vkInitInfo.DescriptorPool = m_descriptorPool;
 
 
     // Render pass & subpass
-    vkInitInfo.RenderPass = m_vkContext.GraphicsPipeline.renderPass;
+    vkInitInfo.RenderPass = m_vkContext.PresentPipeline.renderPass;
     vkInitInfo.Subpass = 1;
 
     // Image count

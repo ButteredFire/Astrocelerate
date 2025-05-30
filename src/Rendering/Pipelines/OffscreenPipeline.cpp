@@ -56,6 +56,14 @@ void OffscreenPipeline::init() {
 
 	// Create the graphics pipeline
 	createGraphicsPipeline();
+
+
+	// Initialize offscreen resources
+		// TODO: Abstract this init procedure
+		// TODO: Handle window resizing
+	initOffscreenColorResources();
+	initOffscreenSampler();
+	initOffscreenFramebuffer();
 }
 
 
@@ -68,7 +76,9 @@ void OffscreenPipeline::bindEvents() {
 }
 
 
-void OffscreenPipeline::createDescriptorPool(std::vector<VkDescriptorPoolSize> poolSizes, VkDescriptorPool& descriptorPool, VkDescriptorPoolCreateFlags createFlags = VkDescriptorPoolCreateFlags()) {
+void OffscreenPipeline::CreateDescriptorPool(VulkanContext& vkContext, VkDescriptorPool& descriptorPool, std::vector<VkDescriptorPoolSize> poolSizes, VkDescriptorPoolCreateFlags createFlags = VkDescriptorPoolCreateFlags()) {
+	std::shared_ptr<GarbageCollector> garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
+
 	VkDescriptorPoolCreateInfo descPoolCreateInfo{};
 	descPoolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 	descPoolCreateInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
@@ -80,19 +90,19 @@ void OffscreenPipeline::createDescriptorPool(std::vector<VkDescriptorPoolSize> p
 	//descPoolCreateInfo.maxSets = maxDescriptorSetCount;
 	descPoolCreateInfo.maxSets = SimulationConsts::MAX_FRAMES_IN_FLIGHT;
 
-	VkResult result = vkCreateDescriptorPool(m_vkContext.Device.logicalDevice, &descPoolCreateInfo, nullptr, &descriptorPool);
+	CleanupTask task{};
+	task.caller = __FUNCTION__;
+	task.objectNames = { VARIABLE_NAME(descriptorPool) };
+	task.vkObjects = { vkContext.Device.logicalDevice, descriptorPool };
+	task.cleanupFunc = [device = vkContext.Device.logicalDevice, descriptorPool]() { vkDestroyDescriptorPool(device, descriptorPool, nullptr); };
+
+	garbageCollector->createCleanupTask(task);
+
+
+	VkResult result = vkCreateDescriptorPool(vkContext.Device.logicalDevice, &descPoolCreateInfo, nullptr, &descriptorPool);
 	if (result != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create descriptor pool!");
 	}
-
-
-	CleanupTask task{};
-	task.caller = __FUNCTION__;
-	task.objectNames = { VARIABLE_NAME(m_descriptorPool) };
-	task.vkObjects = { m_vkContext.Device.logicalDevice, descriptorPool };
-	task.cleanupFunc = [this, descriptorPool]() { vkDestroyDescriptorPool(m_vkContext.Device.logicalDevice, descriptorPool, nullptr); };
-
-	m_garbageCollector->createCleanupTask(task);
 }
 
 
@@ -172,7 +182,7 @@ void OffscreenPipeline::createRenderPass() {
 
 	// Depth attachment
 	VkAttachmentDescription depthAttachment{};
-	depthAttachment.format = SystemUtils::GetBestDepthImageFormat(m_vkContext.Device.physicalDevice);
+	depthAttachment.format = VulkanUtils::GetBestDepthImageFormat(m_vkContext.Device.physicalDevice);
 	depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 
 	depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -310,7 +320,7 @@ void OffscreenPipeline::setUpDescriptors() {
 
 	// Descriptor creation
 	createDescriptorSetLayout(layoutBindings);
-	createDescriptorPool(poolSize, m_descriptorPool);
+	CreateDescriptorPool(m_vkContext, m_descriptorPool, poolSize);
 	createDescriptorSets();
 }
 
@@ -587,9 +597,9 @@ void OffscreenPipeline::initDepthBufferingResources() {
 	uint32_t imgHeight = m_vkContext.SwapChain.extent.height;
 	uint32_t imgDepth = 1;
 
-	VkFormat depthFormat = SystemUtils::GetBestDepthImageFormat(m_vkContext.Device.physicalDevice);
+	VkFormat depthFormat = VulkanUtils::GetBestDepthImageFormat(m_vkContext.Device.physicalDevice);
 
-	bool hasStencilComponent = formatHasStencilComponent(depthFormat);
+	bool hasStencilComponent = VulkanUtils::FormatHasStencilComponent(depthFormat);
 
 
 	// Creates a depth image
@@ -597,17 +607,103 @@ void OffscreenPipeline::initDepthBufferingResources() {
 	imgAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
 	imgAllocInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 
-	TextureManager::createImage(m_vkContext, m_depthImage, m_depthImageAllocation, imgWidth, imgHeight, imgDepth, depthFormat, imgTiling, imgUsage, imgAllocInfo);
+	TextureManager::createImage(m_vkContext, m_depthImage, m_depthImgAllocation, imgWidth, imgHeight, imgDepth, depthFormat, imgTiling, imgUsage, imgAllocInfo);
 
 
 	// Creates a depth image view
-	VkSwapchainManager::createImageView(m_vkContext, m_depthImage, m_depthImageView, depthFormat, imgAspectFlags);
-	m_vkContext.OffscreenPipeline.depthImageView = m_depthImageView;
+	VkSwapchainManager::createImageView(m_vkContext, m_depthImage, m_depthImgView, depthFormat, imgAspectFlags);
+	m_vkContext.OffscreenPipeline.depthImageView = m_depthImgView;
 
 
 	// Explicitly transitions the layout of the depth image to a depth attachment.
 	// This is not necessary, since it will be done in the render pass anyway. This is rather being explicit for the sake of being explicit. 
 	TextureManager::switchImageLayout(m_vkContext, m_depthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+}
+
+
+void OffscreenPipeline::initOffscreenColorResources() {
+	// Image
+	VkImage image{};
+
+	uint32_t width = m_vkContext.SwapChain.extent.width;
+	uint32_t height = m_vkContext.SwapChain.extent.height;
+	uint32_t depth = 1;
+	
+	VkFormat imgFormat = VK_FORMAT_R8G8B8A8_SRGB;
+	VkImageTiling imgTiling = VK_IMAGE_TILING_OPTIMAL;
+	VkImageUsageFlags imgUsageFlags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT; // NOTE: Use SAMPLED_BIT as we will be sampling the simulation render as a texture later
+	VkImageType imgType = VK_IMAGE_TYPE_2D;
+
+
+	// Image allocation
+	VmaAllocationCreateInfo imgAllocInfo{};
+	imgAllocInfo.flags = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+	imgAllocInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+
+
+	// Image view
+	VkImageAspectFlags imgAspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
+	VkImageViewType viewType = VK_IMAGE_VIEW_TYPE_2D;
+	uint32_t levelCount = 1;
+	uint32_t layerCount = 1;
+
+
+	VkImageManager::CreateImage(m_vkContext, m_colorImage, m_colorImgAlloc, imgAllocInfo, width, height, depth, imgFormat, imgTiling, imgUsageFlags, imgType);
+
+	VkImageManager::CreateImageView(m_vkContext, m_colorImgView, m_colorImage, imgFormat, imgAspectFlags, viewType, levelCount, layerCount);
+}
+
+void OffscreenPipeline::initOffscreenSampler() {
+	VkSamplerCreateInfo samplerInfo{};
+	samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+	samplerInfo.magFilter = VK_FILTER_LINEAR; // How to interpolate when magnifying
+	samplerInfo.minFilter = VK_FILTER_LINEAR; // How to interpolate when minifying
+	samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE; // How to handle UVs outside [0,1]
+	samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+	samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+	samplerInfo.anisotropyEnable = VK_TRUE; // Enable anisotropic filtering
+	samplerInfo.maxAnisotropy = m_vkContext.Device.deviceProperties.limits.maxSamplerAnisotropy; // Use max supported by device
+	samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK; // Color for clamp_to_border
+	samplerInfo.unnormalizedCoordinates = VK_FALSE; // UVs are [0,1]
+	samplerInfo.compareEnable = VK_FALSE; // No depth comparison
+	samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+	samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR; // How to interpolate between mip levels
+	samplerInfo.mipLodBias = 0.0f;
+	samplerInfo.minLod = 0.0f;
+	samplerInfo.maxLod = 0.0f; // No mipmaps for now, so use 0.0f
+
+	CleanupTask task{};
+	task.caller = __FUNCTION__;
+	task.objectNames = { VARIABLE_NAME(m_colorImgSampler) };
+	task.vkObjects = { m_vkContext.Device.logicalDevice, m_colorImgSampler };
+
+	task.cleanupFunc = [this]() {
+		vkDestroySampler(m_vkContext.Device.logicalDevice, m_colorImgSampler, nullptr);
+		};
+
+	m_garbageCollector->createCleanupTask(task);
+
+
+	VkResult result = vkCreateSampler(m_vkContext.Device.logicalDevice, &samplerInfo, nullptr, &m_colorImgSampler);
+	if (result != VK_SUCCESS) {
+		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create offscreen sampler!");
+	}
+
+
+	m_vkContext.OffscreenResources.sampler = m_colorImgSampler;
+}
+
+
+void OffscreenPipeline::initOffscreenFramebuffer() {
+	std::vector<VkImageView> attachments = {
+		m_colorImgView,
+		m_depthImgView
+	};
+
+	uint32_t width = m_vkContext.SwapChain.extent.width;
+	uint32_t height = m_vkContext.SwapChain.extent.height;
+
+	VkImageManager::CreateFramebuffer(m_vkContext, m_colorImgFramebuffer, m_renderPass, attachments, width, height);
 }
 
 

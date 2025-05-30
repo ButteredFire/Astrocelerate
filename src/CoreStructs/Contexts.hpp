@@ -75,14 +75,20 @@ struct VulkanContext {
        VkExtent2D extent = VkExtent2D();  
        VkSurfaceFormatKHR surfaceFormat = VkSurfaceFormatKHR();  
        uint32_t minImageCount = 0;  
-   } SwapChain;  
+   } SwapChain;
+
+   // Offscreen rendering resources
+   struct OffscreenResources {
+       VkSampler sampler;
+       VkFramebuffer framebuffer;
+   } OffscreenResources;
 
    // Textures  
    struct Texture {  
        VkImageLayout imageLayout;  
        VkImageView imageView;  
        VkSampler sampler;  
-   } Texture;  
+   } Texture;
 
    // Command objects  
    struct CommandObjects {  

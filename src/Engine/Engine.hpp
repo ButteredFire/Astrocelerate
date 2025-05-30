@@ -18,7 +18,8 @@
 
 #include <Rendering/Renderer.hpp>
 #include <Rendering/Textures/TextureManager.hpp>
-#include <Rendering/Pipelines/GraphicsPipeline.hpp>
+#include <Rendering/Pipelines/OffscreenPipeline.hpp>
+#include <Rendering/Pipelines/PresentPipeline.hpp>
 #include <Rendering/Geometry/GeometryLoader.hpp>
 
 #include <Core/ECS.hpp>

@@ -154,11 +154,11 @@ namespace std {
 	struct hash<Geometry::Vertex> {
 		inline std::size_t operator()(const Geometry::Vertex& vertex) const noexcept {
 			size_t seed = 0;
-			SystemUtils::combineHash(seed, vertex.position);
-			SystemUtils::combineHash(seed, vertex.color);
-			SystemUtils::combineHash(seed, vertex.texCoord);
-			SystemUtils::combineHash(seed, vertex.normal);
-			SystemUtils::combineHash(seed, vertex.tangent);
+			SystemUtils::CombineHash(seed, vertex.position);
+			SystemUtils::CombineHash(seed, vertex.color);
+			SystemUtils::CombineHash(seed, vertex.texCoord);
+			SystemUtils::CombineHash(seed, vertex.normal);
+			SystemUtils::CombineHash(seed, vertex.tangent);
 			return seed;
 		}
 	};

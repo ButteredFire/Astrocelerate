@@ -19,11 +19,13 @@
 #include <Core/Constants.h>
 #include <Core/LoggingManager.hpp>
 #include <Core/ServiceLocator.hpp>
+#include <Core/GarbageCollector.hpp>
+
 #include <CoreStructs/Contexts.hpp>
 
-#include <Rendering/Pipelines/GraphicsPipeline.hpp>
-
 #include <Scene/GUI/UIPanelManager.hpp>
+
+#include <Rendering/Pipelines/OffscreenPipeline.hpp>
 
 #include <Utils/ColorUtils.hpp>
 
@@ -69,8 +71,6 @@ private:
 	std::shared_ptr<Registry> m_registry;
 	std::shared_ptr<GarbageCollector> m_garbageCollector;
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
-
-	std::shared_ptr<GraphicsPipeline> m_graphicsPipeline;
 
 	std::shared_ptr<UIPanelManager> m_uiPanelManager;
 
