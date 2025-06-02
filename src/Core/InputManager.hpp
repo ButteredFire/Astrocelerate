@@ -66,5 +66,5 @@ private:
 
 	void bindEvents();
 
-	bool isHoveringOverGUI();
+	bool isViewportFocused();
 };

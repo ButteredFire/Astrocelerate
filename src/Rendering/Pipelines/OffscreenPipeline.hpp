@@ -4,7 +4,6 @@
 #pragma once
 
 #include <glfw_vulkan.hpp>
-#include <vma_impl.cpp>
 
 #include <vector>
 
@@ -16,9 +15,12 @@
 #include <Rendering/Pipelines/PipelineBuilder.hpp>
 
 #include <Vulkan/VkBufferManager.hpp>
+class VkBufferManager;
+
 #include <Vulkan/VkImageManager.hpp>
 
-#include <Utils/VulkanUtils.hpp>
+#include <Utils/Vulkan/VkFormatUtils.hpp>
+#include <Utils/Vulkan/VkDescriptorUtils.hpp>
 
 
 class OffscreenPipeline {
@@ -27,9 +29,6 @@ public:
 	~OffscreenPipeline() = default;
 
 	void init();
-
-	// Descriptor handling could be abstracted further
-	static void CreateDescriptorPool(VulkanContext& vkContext, VkDescriptorPool& descriptorPool, std::vector<VkDescriptorPoolSize> poolSizes, VkDescriptorPoolCreateFlags createFlags = VkDescriptorPoolCreateFlags());
 
 private:
 	VulkanContext& m_vkContext;
@@ -64,11 +63,24 @@ private:
 	// Assembly state
 	VkPipelineInputAssemblyStateCreateInfo m_inputAssemblyCreateInfo{};
 
+	// Viewport state & scissor rectangle
+	VkViewport m_viewport{};
+	VkPipelineViewportStateCreateInfo m_viewportStateCreateInfo{};
+
+	VkRect2D m_scissorRectangle{};
+
+	// Rasterization state
+	VkPipelineRasterizationStateCreateInfo m_rasterizerCreateInfo{};
+
 	// Multisampling state
 	VkPipelineMultisampleStateCreateInfo m_multisampleStateCreateInfo{};
 
 	// Depth stencil state
 	VkPipelineDepthStencilStateCreateInfo m_depthStencilStateCreateInfo{};
+
+	// Color blending state
+	VkPipelineColorBlendAttachmentState m_colorBlendAttachment{};
+	VkPipelineColorBlendStateCreateInfo m_colorBlendCreateInfo{};
 
 	// Depth buffering
 	VkImage m_depthImage = VK_NULL_HANDLE;
@@ -83,17 +95,15 @@ private:
 	VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
 	std::vector<VkDescriptorSet> m_descriptorSets;
 
-	uint32_t m_descriptorCount = 0;
-
 	// Pipeline layout
 	VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
 
 	// Offscreen resources
-	VkImage m_colorImage;
-	VmaAllocation m_colorImgAlloc;
-	VkImageView m_colorImgView;
-	VkSampler m_colorImgSampler;
-	VkFramebuffer m_colorImgFramebuffer;
+	VkImage m_colorImage{};
+	VmaAllocation m_colorImgAlloc{};
+	VkImageView m_colorImgView{};
+	VkSampler m_colorImgSampler{};
+	VkFramebuffer m_colorImgFramebuffer{};
 
 
 	void bindEvents();
@@ -136,6 +146,25 @@ private:
 	void initInputAssemblyState();
 
 
+	/* Initializes viewport state and scissor rectangles.
+		A viewport essentially defines a region of the framebuffer that the output will be rendered to (i.e., the transformation from the image to the buffer).
+		A scissor rectangle defines the region in which pixels are actually stored (pixels outside of which will be ignored by the rasterizer).
+	*/
+	void initViewportState();
+
+
+	/* Initializes the rasterizer.
+		The rasterizer turns the geometry shaped by vertices (that are created from the vertex shader) into fragments to be colored in the fragment shader.
+		It also performs depth testing, face culling and the scissor test.
+		It can be configured to output fragments that fill entire polygons or just the edges (i.e., wireframe rendering).
+
+		NOTE ON WIREFRAME RENDERING:
+		- Switching between polygon fill mode (normal rendering) and polygon line mode (wireframe rendering) requires creating an entirely new pipeline, since the rasterization state cannot be made dynamic.
+		- An alternative is to use mesh shaders. In modern Vulkan (e.g., Vulkan 1.3+ with mesh shading), we could theoretically implement a custom mesh shader that dynamically renders as wireframe. However, this is an advanced topic and requires shader-based geometry processing.
+	*/
+	void initRasterizationState();
+
+
 	/* Initializes multisampling state.
 		TODO: FINISH FUNCTION
 	*/
@@ -158,6 +187,12 @@ private:
 				+ Common use: Enables effects such as masking, outlining, rendering specific regions of the screen, etc..
 	*/
 	void initDepthStencilState();
+
+
+	/* Initializes color blending.
+		After a fragment shader has returned a color, it needs to be combined with the color that is already in the framebuffer. This transformation is known as color blending.
+	*/
+	void initColorBlendingState();
 
 
 	/* Initializes tessellation state.

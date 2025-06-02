@@ -21,7 +21,7 @@
 
 #include <Vulkan/VkBufferManager.hpp>
 
-#include <Utils/VulkanUtils.hpp>
+#include <Utils/Vulkan/VkFormatUtils.hpp>
 
 
 class TextureManager {

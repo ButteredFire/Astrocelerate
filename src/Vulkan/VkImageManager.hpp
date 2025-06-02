@@ -4,14 +4,11 @@
 #include <vector>
 
 #include <glfw_vulkan.hpp>
-#include <vma_impl.cpp>
 
 #include <Core/GarbageCollector.hpp>
 #include <Core/ServiceLocator.hpp>
 
 #include <CoreStructs/Contexts.hpp>
-
-#include <Utils/VulkanUtils.hpp>
 
 
 class VkImageManager {
@@ -53,7 +50,7 @@ public:
 
 	/* Creates a framebuffer.
 		@param vkContext: The application context.
-		@param frameBuffer: The framebuffer to be created.
+		@param framebuffer: The framebuffer to be created.
 		@param renderPass: The render pass to be used.
 		@param attachments: The image views to be used as attachments in the framebuffer.
 		@param width, height: The width and height of the framebuffer.
@@ -62,5 +59,5 @@ public:
 
 		@note This function assumes the garbage collector service has already been registered.
 	*/
-	static uint32_t CreateFramebuffer(VulkanContext& vkContext, VkFramebuffer& frameBuffer, VkRenderPass& renderPass, std::vector<VkImageView> attachments, uint32_t width, uint32_t height);
+	static uint32_t CreateFramebuffer(VulkanContext& vkContext, VkFramebuffer& framebuffer, VkRenderPass& renderPass, std::vector<VkImageView> attachments, uint32_t width, uint32_t height);
 };

@@ -109,7 +109,7 @@ void Renderer::drawFrame(glm::dvec3& renderOrigin) {
 
     
         // Records commands
-    m_imguiRenderer->renderFrames();
+    //m_imguiRenderer->renderFrames();
     
     m_commandManager->recordRenderingCommandBuffer(m_vkContext.CommandObjects.graphicsCmdBuffers[m_currentFrame], imageIndex, m_currentFrame);
 

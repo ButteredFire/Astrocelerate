@@ -77,13 +77,13 @@ void UIRenderer::initImGui(UIRenderer::Appearance appearance) {
         { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE }
     };
     VkDescriptorPoolCreateFlags imgui_DescPoolCreateFlags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-    OffscreenPipeline::CreateDescriptorPool(m_vkContext, m_descriptorPool, imgui_PoolSizes, imgui_DescPoolCreateFlags);
+    VkDescriptorUtils::CreateDescriptorPool(m_vkContext, m_descriptorPool, imgui_PoolSizes, imgui_DescPoolCreateFlags);
     vkInitInfo.DescriptorPool = m_descriptorPool;
 
 
     // Render pass & subpass
     vkInitInfo.RenderPass = m_vkContext.PresentPipeline.renderPass;
-    vkInitInfo.Subpass = 1;
+    vkInitInfo.Subpass = 0;
 
     // Image count
     vkInitInfo.MinImageCount = m_vkContext.SwapChain.minImageCount; // For some reason, ImGui does not actually use this property
@@ -93,11 +93,25 @@ void UIRenderer::initImGui(UIRenderer::Appearance appearance) {
     vkInitInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
     vkInitInfo.Allocator = nullptr;
 
-    vkInitInfo.CheckVkResultFn = [](VkResult result) {
-        if (result != VK_SUCCESS) {
-            throw Log::RuntimeException(__FUNCTION__, __LINE__, "An error occurred while setting up or running Dear Imgui!");
-        }
-    };
+        // Actually show the real error origin in debug mode instead of a flashy error message box
+    if (!inDebugMode) {
+        vkInitInfo.CheckVkResultFn = [](VkResult result) {
+            if (result != VK_SUCCESS) {
+                throw Log::RuntimeException(__FUNCTION__, __LINE__, "An error occurred while setting up or running Dear Imgui!");
+            }
+        };
+    }
+
+    CleanupTask task{};
+    task.caller = __FUNCTION__;
+    task.objectNames = { "ImGui destruction calls" };
+    task.cleanupFunc = []() {
+        ImGui_ImplVulkan_DestroyFontsTexture();
+        ImGui_ImplVulkan_Shutdown();
+        };
+
+    m_garbageCollector->createCleanupTask(task);
+
 
     ImGui_ImplVulkan_Init(&vkInitInfo);
 
@@ -112,24 +126,12 @@ void UIRenderer::initImGui(UIRenderer::Appearance appearance) {
 
     ImGui_ImplVulkan_CreateFontsTexture();
 
-
-    // (your code submit a queue)
-    //ImGui_ImplVulkan_DestroyFontUploadObjects();
-
     // Implements custom style
     m_currentAppearance = appearance;
     updateAppearance(m_currentAppearance);
 
 
-    CleanupTask task{};
-    task.caller = __FUNCTION__;
-    task.objectNames = { "ImGui destruction calls" };
-    task.cleanupFunc = []() {
-        ImGui_ImplVulkan_DestroyFontsTexture();
-        ImGui_ImplVulkan_Shutdown();
-    };
-
-    m_garbageCollector->createCleanupTask(task);
+    m_eventDispatcher->publish(Event::GUIContextIsValid{});
 }
 
 
@@ -180,7 +182,7 @@ void UIRenderer::renderFrames() {
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    //initDockspace();
+    initDockspace();
 
 
     ImGui::PushFont(m_pFont);

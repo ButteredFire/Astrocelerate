@@ -156,7 +156,7 @@ void VkBufferManager::init() {
 
 	m_camera->movementSpeed = 50;
 
-	m_alignedObjectUBOSize = SystemUtils::align(sizeof(Buffer::ObjectUBO), m_vkContext.Device.deviceProperties.limits.minUniformBufferOffsetAlignment);
+	m_alignedObjectUBOSize = SystemUtils::Align(sizeof(Buffer::ObjectUBO), m_vkContext.Device.deviceProperties.limits.minUniformBufferOffsetAlignment);
 	createUniformBuffers();
 }
 

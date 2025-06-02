@@ -223,6 +223,8 @@ void VkSwapchainManager::createSwapChain() {
     m_vkContext.SwapChain.minImageCount = imageCount;
     vkGetSwapchainImagesKHR(m_vkContext.Device.logicalDevice, m_vkContext.SwapChain.swapChain, &imageCount, m_images.data());
 
+    m_vkContext.SwapChain.images = m_images;
+
 
     CleanupTask task;
     task.caller = __FUNCTION__;
@@ -260,13 +262,12 @@ void VkSwapchainManager::createFrameBuffers() {
         }
 
         VkImageView attachments[] = {
-            m_imageViews[i],
-            m_vkContext.GraphicsPipeline.depthImageView
+            m_imageViews[i]
         };
 
         VkFramebufferCreateInfo bufferCreateInfo{};
         bufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        bufferCreateInfo.renderPass = m_vkContext.GraphicsPipeline.renderPass;
+        bufferCreateInfo.renderPass = m_vkContext.PresentPipeline.renderPass;
         bufferCreateInfo.attachmentCount = (sizeof(attachments) / sizeof(VkImageView));
         bufferCreateInfo.pAttachments = attachments;
         bufferCreateInfo.width = m_vkContext.SwapChain.extent.width;

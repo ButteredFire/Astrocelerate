@@ -52,23 +52,21 @@ void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, 
 	}
 
 
-	// Starts a render pass to start recording the drawing commands
-	VkRenderPassBeginInfo renderPassBeginInfo{};
-	renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	renderPassBeginInfo.renderPass = m_vkContext.GraphicsPipeline.renderPass;
-	renderPassBeginInfo.framebuffer = m_vkContext.SwapChain.imageFrameBuffers[imageIndex];
 
-		// Defines the render area (from (0, 0) to (extent.width, extent.height))
-	renderPassBeginInfo.renderArea.offset = { 0, 0 };
-	renderPassBeginInfo.renderArea.extent = m_vkContext.SwapChain.extent;
 
-		// Defines the clear values to use
-			// Color (we must specify this since the color attachment's load operation is VK_ATTACHMENT_LOAD_OP_CLEAR)
-	VkClearValue clearValue{};
+
+	// OFFSCREEN RENDER PASS
+	VkRenderPassBeginInfo offscreenRenderPassBeginInfo{};
+	offscreenRenderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	offscreenRenderPassBeginInfo.renderPass = m_vkContext.OffscreenPipeline.renderPass;
+	offscreenRenderPassBeginInfo.framebuffer = m_vkContext.OffscreenResources.framebuffer;
+	offscreenRenderPassBeginInfo.renderArea.offset = { 0, 0 };
+	offscreenRenderPassBeginInfo.renderArea.extent = m_vkContext.SwapChain.extent;
+
+	VkClearValue clearValue{};  // NOTE: we must specify this since the color attachment's load operation is VK_ATTACHMENT_LOAD_OP_CLEAR
 	clearValue.color = { 0.0f, 0.0f, 0.0f, 1.0f }; // (0, 0, 0, 1) -> Black
 	clearValue.depthStencil = VkClearDepthStencilValue(); // Null for now (if depth stencil is implemented, you must also specify the color attachment load and store operations before specifying the clear value here)
 
-			// Depth-stencil
 	VkClearValue depthStencilClearValue{};
 	depthStencilClearValue.depthStencil.depth = 1.0f;
 	depthStencilClearValue.depthStencil.stencil = 0;
@@ -78,24 +76,20 @@ void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, 
 		depthStencilClearValue
 	};
 
-	renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(sizeof(clearValues) / sizeof(clearValues[0]));
-	renderPassBeginInfo.pClearValues = clearValues;
+	offscreenRenderPassBeginInfo.clearValueCount = static_cast<uint32_t>(sizeof(clearValues) / sizeof(clearValues[0]));
+	offscreenRenderPassBeginInfo.pClearValues = clearValues;
 
 		/* The final parameter controls how the drawing commands within the render pass will be provided. It can have 2 values: VK_SUBPASS_...
 			...CONTENTS_INLINE: The render pass commands will be embedded in the primary command buffer itself and no secondary command buffers will be executed
 			..SECONDARY_COMMAND_BUFFERS: The render pass commands will be executed from secondary command buffers
 		*/
-	vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+	vkCmdBeginRenderPass(cmdBuffer, &offscreenRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 
-	// Commands are now ready to record. Functions that record commands begin with the vkCmd prefix.
+	vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_vkContext.OffscreenPipeline.pipeline);
 
-
-	// Binds graphics pipeline
-	vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_vkContext.GraphicsPipeline.pipeline);
-
-	// Specify viewport and scissor states (since they're dynamic states)
-		// Viewport
+		// Specify viewport and scissor states (since they're dynamic states)
+			// Viewport
 	VkViewport viewport{};
 	viewport.x = 0.0f;
 	viewport.y = 0.0f;
@@ -105,21 +99,86 @@ void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, 
 	viewport.maxDepth = 1.0f;
 	vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
 
-		// Scissor
+			// Scissor
 	VkRect2D scissor{};
 	scissor.offset = { 0, 0 };
 	scissor.extent = m_vkContext.SwapChain.extent;
 	vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
 
 
-	// Processes renderables
-	Event::UpdateRenderables event{};
-	event.commandBuffer = cmdBuffer;
-	event.descriptorSet = m_vkContext.GraphicsPipeline.descriptorSets[currentFrame];
-	m_eventDispatcher->publish<Event::UpdateRenderables>(event, true);
+		// Processes renderables
+	m_eventDispatcher->publish<Event::UpdateRenderables>(Event::UpdateRenderables {
+		.commandBuffer = cmdBuffer,
+		.descriptorSet = m_vkContext.OffscreenPipeline.descriptorSets[currentFrame]
+	}, true);
 
 
-	// End the render pass
+	vkCmdEndRenderPass(cmdBuffer);
+
+
+
+	// Transitions swapchain image to the layout COLOR_ATTACHMENT_OPTIMAL before the presentation render pass
+	VkImageMemoryBarrier swapchainImgToPresentBarrier{};
+	swapchainImgToPresentBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+	swapchainImgToPresentBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	swapchainImgToPresentBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
+	swapchainImgToPresentBarrier.image = m_vkContext.SwapChain.images[imageIndex];
+	swapchainImgToPresentBarrier.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+	swapchainImgToPresentBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	swapchainImgToPresentBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	
+		// We must account for the fact that the layout of the first image is UNDEFINED, but subsequent images is PRESENT_SRC_KHR
+	static std::vector<bool> imageFirstAcquired;
+	if (imageFirstAcquired.empty() || imageFirstAcquired.size() != m_vkContext.SwapChain.images.size()) {
+		imageFirstAcquired.assign(m_vkContext.SwapChain.images.size(), true);
+	}
+
+	VkPipelineStageFlags srcStage;
+
+	if (imageFirstAcquired[imageIndex]) {
+		swapchainImgToPresentBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		swapchainImgToPresentBarrier.srcAccessMask = 0;
+
+		srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+
+		imageFirstAcquired[imageIndex] = false;
+	}
+	else {
+		swapchainImgToPresentBarrier.oldLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+		swapchainImgToPresentBarrier.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+
+		srcStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	}
+
+	vkCmdPipelineBarrier(
+		cmdBuffer,
+		srcStage,
+		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+		0,
+		0, nullptr,
+		0, nullptr,
+		1, &swapchainImgToPresentBarrier
+	);
+
+
+	
+	// PRESENTATION RENDER PASS
+	VkRenderPassBeginInfo presentRenderPassBeginInfo{};
+	presentRenderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	presentRenderPassBeginInfo.renderPass = m_vkContext.PresentPipeline.renderPass;
+	presentRenderPassBeginInfo.framebuffer = m_vkContext.SwapChain.imageFrameBuffers[imageIndex];
+	presentRenderPassBeginInfo.renderArea.offset = { 0, 0 };
+	presentRenderPassBeginInfo.renderArea.extent = m_vkContext.SwapChain.extent;
+	presentRenderPassBeginInfo.clearValueCount = offscreenRenderPassBeginInfo.clearValueCount;
+	presentRenderPassBeginInfo.pClearValues = offscreenRenderPassBeginInfo.pClearValues;
+
+
+	vkCmdBeginRenderPass(cmdBuffer, &presentRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+	m_eventDispatcher->publish<Event::UpdateGUI>(Event::UpdateGUI {
+		.commandBuffer = cmdBuffer
+	}, true);
+
 	vkCmdEndRenderPass(cmdBuffer);
 
 

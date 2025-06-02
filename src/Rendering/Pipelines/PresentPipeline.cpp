@@ -49,7 +49,7 @@ void PresentPipeline::init() {
 
 
 	// Create the pipeline layout
-	createPipelineLayout();
+	//createPipelineLayout();
 
 
 	// Create the render pass
@@ -57,7 +57,7 @@ void PresentPipeline::init() {
 
 
 	// Create the graphics pipeline
-	createGraphicsPipeline();
+	//createGraphicsPipeline();
 
 
 	// Post-initialization: Data is ready to be used for framebuffer creation
@@ -66,14 +66,15 @@ void PresentPipeline::init() {
 
 
 void PresentPipeline::createGraphicsPipeline() {
+	/*
 	PipelineBuilder builder;
 	//builder.dynamicStateCreateInfo = m_dynamicStateCreateInfo;
 	//builder.inputAssemblyCreateInfo = m_inputAssemblyCreateInfo;
-	builder.viewportStateCreateInfo = m_viewportStateCreateInfo;
-	builder.rasterizerCreateInfo = m_rasterizerCreateInfo;
+	builder.viewportStateCreateInfo = &m_viewportStateCreateInfo;
+	builder.rasterizerCreateInfo = &m_rasterizerCreateInfo;
 	//builder.multisampleStateCreateInfo = m_multisampleStateCreateInfo;
 	//builder.depthStencilStateCreateInfo = m_depthStencilStateCreateInfo;
-	builder.colorBlendStateCreateInfo = m_colorBlendCreateInfo;
+	builder.colorBlendStateCreateInfo = &m_colorBlendCreateInfo;
 	//builder.tessellationStateCreateInfo = m_tessStateCreateInfo;
 	//builder.vertexInputStateCreateInfo = m_vertInputState;
 
@@ -85,6 +86,7 @@ void PresentPipeline::createGraphicsPipeline() {
 	m_graphicsPipeline = builder.buildGraphicsPipeline(m_vkContext.Device.logicalDevice);
 
 	m_vkContext.PresentPipeline.pipeline = m_graphicsPipeline;
+	*/
 }
 
 
@@ -141,34 +143,13 @@ void PresentPipeline::createRenderPass() {
 	mainColorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 
-	// Depth attachment
-	VkAttachmentDescription depthAttachment{};
-	depthAttachment.format = VulkanUtils::GetBestDepthImageFormat(m_vkContext.Device.physicalDevice);
-	depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-
-	depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-
-	depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-
-	depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-
-	VkAttachmentReference depthAttachmentRef{};
-	depthAttachmentRef.attachment = 1;
-	depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-
-
 	// Subpasses
 		// Main/ImGui subpass
 	VkSubpassDescription mainSubpass{};
 	mainSubpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 	mainSubpass.colorAttachmentCount = 1;
 	mainSubpass.pColorAttachments = &mainColorAttachmentRef;
-	mainSubpass.pDepthStencilAttachment = &depthAttachmentRef;
+	//mainSubpass.pDepthStencilAttachment = &depthAttachmentRef;
 
 
 	/* NOTE: Dear Imgui uses the same color attachment as the main one, since Vulkan only allows for 1 color attachment per render pass.
@@ -182,8 +163,8 @@ void PresentPipeline::createRenderPass() {
 	VkSubpassDependency mainDependency{};
 	mainDependency.srcSubpass = VK_SUBPASS_EXTERNAL;
 	mainDependency.dstSubpass = 0;
-	mainDependency.srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;  // Prior operations (e.g., image sampling) must reach the end of the pipeline
-	mainDependency.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+	mainDependency.srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+	mainDependency.srcAccessMask = 0;
 	mainDependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 	mainDependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 	mainDependency.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT; // NOTE: Alternatively, disable for global dependency
@@ -191,8 +172,8 @@ void PresentPipeline::createRenderPass() {
 
 	// Creates render pass
 	VkAttachmentDescription attachments[] = {
-		mainColorAttachment,
-		depthAttachment
+		mainColorAttachment
+		//depthAttachment
 	};
 
 	VkSubpassDescription subpasses[] = {
@@ -216,6 +197,15 @@ void PresentPipeline::createRenderPass() {
 	m_renderPassCreateInfo.pDependencies = dependencies;
 
 	VkResult result = vkCreateRenderPass(m_vkContext.Device.logicalDevice, &m_renderPassCreateInfo, nullptr, &m_renderPass);
+
+	CleanupTask task{};
+	task.caller = __FUNCTION__;
+	task.objectNames = { VARIABLE_NAME(m_renderPass) };
+	task.vkObjects = { m_vkContext.Device.logicalDevice, m_renderPass };
+	task.cleanupFunc = [this]() { vkDestroyRenderPass(m_vkContext.Device.logicalDevice, m_renderPass, nullptr); };
+
+	m_garbageCollector->createCleanupTask(task);
+
 
 	if (result != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create render pass!");

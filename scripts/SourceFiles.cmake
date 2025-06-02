@@ -27,6 +27,7 @@ set(SOURCE_FILES
 	"src/Simulation/Systems/ReferenceFrameSystem.cpp"
 	"src/Systems/PhysicsSystem.cpp"
 	"src/Systems/RenderSystem.cpp"
+	"src/Utils/Vulkan/VkDescriptorUtils.cpp"
 	"src/Vulkan/VkBufferManager.cpp"
 	"src/Vulkan/VkCommandManager.cpp"
 	"src/Vulkan/VkDeviceManager.cpp"

@@ -1,7 +1,10 @@
 #include "UIPanelManager.hpp"
 
-UIPanelManager::UIPanelManager() {
+UIPanelManager::UIPanelManager(VulkanContext& context):
+	m_vkContext(context) {
 
+	m_garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
+	m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
 	m_registry = ServiceLocator::GetService<Registry>(__FUNCTION__);
 
 
@@ -14,8 +17,19 @@ UIPanelManager::UIPanelManager() {
 	GUI::TogglePanel(m_panelMask, GUI::PanelFlag::PANEL_TELEMETRY, GUI::TOGGLE_ON);
 
 	initPanelsFromMask(m_panelMask);
+	
+	bindEvents();
 
 	Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
+}
+
+
+void UIPanelManager::bindEvents() {
+	m_eventDispatcher->subscribe<Event::GUIContextIsValid>(
+		[this](const Event::GUIContextIsValid& event) {
+			initViewportTextureDescriptorSet();
+		}
+	);
 }
 
 
@@ -64,6 +78,77 @@ void UIPanelManager::bindPanelFlags() {
 }
 
 
+void UIPanelManager::initViewportTextureDescriptorSet() {
+	// Descriptor pool
+	std::vector<VkDescriptorPoolSize> poolSizes = {
+		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE }
+	};
+
+	// Use the flag CREATE_UPDATE_AFTER_BIND_BIT to allow descriptor sets allocated from this pool to be updated (i.e., not immutable).
+	// Since we must update the viewport texture descriptor set once per frame, we must have this flag and a corresponding flag for descriptor bindings (see below).
+	VkDescriptorUtils::CreateDescriptorPool(m_vkContext, m_descriptorPool, poolSizes, VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT);
+
+
+	// Descriptor set layout
+	VkDescriptorSetLayoutBinding layoutBinding{};
+	layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	layoutBinding.binding = 0;
+	layoutBinding.descriptorCount = 1;
+	layoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+	VkDescriptorBindingFlags bindingFlags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT; // Binding count: 1
+	VkDescriptorSetLayoutBindingFlagsCreateInfo layoutBindingFlagsInfo{};
+	layoutBindingFlagsInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
+	layoutBindingFlagsInfo.bindingCount = 1;
+	layoutBindingFlagsInfo.pBindingFlags = &bindingFlags;
+
+	VkDescriptorSetLayoutCreateInfo layoutInfo{};
+	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	layoutInfo.bindingCount = 1;
+	layoutInfo.pBindings = &layoutBinding;
+	layoutInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
+	layoutInfo.pNext = &layoutBindingFlagsInfo; // Chain the binding flags create info
+
+	VkResult layoutResult = vkCreateDescriptorSetLayout(m_vkContext.Device.logicalDevice, &layoutInfo, nullptr, &m_viewportTextureDescSetLayout);
+
+	CleanupTask layoutTask{};
+	layoutTask.caller = __FUNCTION__;
+	layoutTask.objectNames = { VARIABLE_NAME(m_viewportTextureDescSetLayout) };
+	layoutTask.vkObjects = { m_vkContext.Device.logicalDevice, m_viewportTextureDescSetLayout };
+	layoutTask.cleanupFunc = [this]() {
+		vkDestroyDescriptorSetLayout(m_vkContext.Device.logicalDevice, m_viewportTextureDescSetLayout, nullptr);
+	};
+
+	m_garbageCollector->createCleanupTask(layoutTask);
+
+
+	LOG_ASSERT(layoutResult == VK_SUCCESS, "Failed to create viewport texture descriptor set layout!");
+
+
+	// Descriptor set
+	VkDescriptorSetAllocateInfo allocInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	allocInfo.descriptorPool = m_descriptorPool;
+	allocInfo.descriptorSetCount = 1;
+	allocInfo.pSetLayouts = &m_viewportTextureDescSetLayout;
+
+	VkResult allocResult = vkAllocateDescriptorSets(m_vkContext.Device.logicalDevice, &allocInfo, &m_viewportRenderTextureDescSet);
+
+	CleanupTask allocTask{};
+	allocTask.caller = __FUNCTION__;
+	allocTask.objectNames = { VARIABLE_NAME(m_viewportRenderTextureDescSet) };
+	allocTask.vkObjects = { m_vkContext.Device.logicalDevice, m_descriptorPool, m_viewportRenderTextureDescSet };
+	allocTask.cleanupFunc = [this]() {
+		vkFreeDescriptorSets(m_vkContext.Device.logicalDevice, m_descriptorPool, 1, &m_viewportRenderTextureDescSet);
+	};
+
+	m_garbageCollector->createCleanupTask(allocTask);
+	
+
+	LOG_ASSERT(allocResult == VK_SUCCESS, "Failed to allocate viewport render texture descriptor set!");
+}
+
+
 void UIPanelManager::renderPanelsMenu() {
 	using namespace GUI;
 
@@ -91,7 +176,30 @@ void UIPanelManager::renderViewportPanel() {
 
 	ImGui::Begin("Viewport");		// This panel must be docked
 
-	ImGui::Text("Simulation viewport (TBD)");
+	ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
+	m_viewportFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
+
+	ImGui::Text("Panel size: (%.2f, %.2f)", viewportPanelSize.x, viewportPanelSize.y);
+
+
+	VkDescriptorImageInfo imageInfo{};
+	imageInfo.imageView = m_vkContext.OffscreenResources.imageView;
+	imageInfo.sampler = m_vkContext.OffscreenResources.sampler;
+	imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+	VkWriteDescriptorSet imageDescSetWrite{};
+	imageDescSetWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	imageDescSetWrite.dstBinding = 0;
+	imageDescSetWrite.descriptorCount = 1;
+	imageDescSetWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	imageDescSetWrite.dstSet = m_viewportRenderTextureDescSet;
+	imageDescSetWrite.pImageInfo = &imageInfo;
+
+	vkUpdateDescriptorSets(m_vkContext.Device.logicalDevice, 1, &imageDescSetWrite, 0, nullptr);
+	
+
+	ImTextureID renderTextureID = (ImTextureID) m_viewportRenderTextureDescSet;
+	ImGui::Image(renderTextureID, viewportPanelSize);
 
 	ImGui::End();
 }

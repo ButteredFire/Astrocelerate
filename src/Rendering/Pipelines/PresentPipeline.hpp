@@ -16,8 +16,6 @@
 
 #include <Vulkan/VkBufferManager.hpp>
 
-#include <Utils/VulkanUtils.hpp>
-
 
 class PresentPipeline {
 public:

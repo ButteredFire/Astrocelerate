@@ -69,6 +69,7 @@ struct VulkanContext {
    struct SwapChain {  
        VkSwapchainKHR swapChain = VK_NULL_HANDLE;  
 
+       std::vector<VkImage> images;
        std::vector<VkImageView> imageViews;  
        std::vector<VkFramebuffer> imageFrameBuffers;  
 
@@ -79,6 +80,8 @@ struct VulkanContext {
 
    // Offscreen rendering resources
    struct OffscreenResources {
+       VkImage image;
+       VkImageView imageView;
        VkSampler sampler;
        VkFramebuffer framebuffer;
    } OffscreenResources;

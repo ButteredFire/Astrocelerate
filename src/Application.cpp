@@ -55,7 +55,7 @@ int main() {
 
 
     // GUI panel manager
-    std::shared_ptr<UIPanelManager> uiPanelManager = std::make_shared<UIPanelManager>();
+    std::shared_ptr<UIPanelManager> uiPanelManager = std::make_shared<UIPanelManager>(vkContext);
     ServiceLocator::RegisterService(uiPanelManager);
 
     

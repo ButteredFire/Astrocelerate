@@ -18,20 +18,20 @@ public:
 	};
 	~PipelineBuilder() = default;
 
-	VkPipelineDynamicStateCreateInfo dynamicStateCreateInfo{};
-    VkPipelineInputAssemblyStateCreateInfo inputAssemblyCreateInfo{};
-	VkPipelineViewportStateCreateInfo viewportStateCreateInfo{};
-    VkPipelineRasterizationStateCreateInfo rasterizerCreateInfo{};
-    VkPipelineMultisampleStateCreateInfo multisampleStateCreateInfo{};
-	VkPipelineDepthStencilStateCreateInfo depthStencilStateCreateInfo{};
-	VkPipelineColorBlendStateCreateInfo colorBlendStateCreateInfo{};
-	VkPipelineTessellationStateCreateInfo tessellationStateCreateInfo{};
-	VkPipelineVertexInputStateCreateInfo vertexInputStateCreateInfo{};
+	VkPipelineDynamicStateCreateInfo* dynamicStateCreateInfo;
+    VkPipelineInputAssemblyStateCreateInfo* inputAssemblyCreateInfo;
+	VkPipelineViewportStateCreateInfo* viewportStateCreateInfo;
+    VkPipelineRasterizationStateCreateInfo* rasterizerCreateInfo;
+    VkPipelineMultisampleStateCreateInfo* multisampleStateCreateInfo;
+	VkPipelineDepthStencilStateCreateInfo* depthStencilStateCreateInfo;
+	VkPipelineColorBlendStateCreateInfo* colorBlendStateCreateInfo;
+	VkPipelineTessellationStateCreateInfo* tessellationStateCreateInfo;
+	VkPipelineVertexInputStateCreateInfo* vertexInputStateCreateInfo;
 
     std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
 
     VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
-    VkRenderPass renderPass = VK_NULL_HANDLE;
+    VkRenderPass renderPass;
 	
 
 	inline VkPipeline buildGraphicsPipeline(VkDevice& logicalDevice) {
@@ -43,15 +43,15 @@ public:
 		pipelineCreateInfo.pStages = shaderStages.data();
 
 		// Fixed-function states
-		pipelineCreateInfo.pDynamicState = &dynamicStateCreateInfo;
-		pipelineCreateInfo.pInputAssemblyState = &inputAssemblyCreateInfo;
-		pipelineCreateInfo.pViewportState = &viewportStateCreateInfo;
-		pipelineCreateInfo.pRasterizationState = &rasterizerCreateInfo;
-		pipelineCreateInfo.pMultisampleState = &multisampleStateCreateInfo;
-		pipelineCreateInfo.pDepthStencilState = &depthStencilStateCreateInfo;
-		pipelineCreateInfo.pColorBlendState = &colorBlendStateCreateInfo;
-		pipelineCreateInfo.pTessellationState = &tessellationStateCreateInfo;
-		pipelineCreateInfo.pVertexInputState = &vertexInputStateCreateInfo;
+		pipelineCreateInfo.pDynamicState = dynamicStateCreateInfo;
+		pipelineCreateInfo.pInputAssemblyState = inputAssemblyCreateInfo;
+		pipelineCreateInfo.pViewportState = viewportStateCreateInfo;
+		pipelineCreateInfo.pRasterizationState = rasterizerCreateInfo;
+		pipelineCreateInfo.pMultisampleState = multisampleStateCreateInfo;
+		pipelineCreateInfo.pDepthStencilState = depthStencilStateCreateInfo;
+		pipelineCreateInfo.pColorBlendState = colorBlendStateCreateInfo;
+		pipelineCreateInfo.pTessellationState = tessellationStateCreateInfo;
+		pipelineCreateInfo.pVertexInputState = vertexInputStateCreateInfo;
 
 		// Render pass
 		pipelineCreateInfo.renderPass = renderPass;

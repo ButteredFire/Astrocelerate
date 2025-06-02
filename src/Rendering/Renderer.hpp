@@ -34,7 +34,6 @@
 #include <Engine/Components/RenderComponents.hpp>
 
 #include <Rendering/UIRenderer.hpp>
-#include <Rendering/Pipelines/GraphicsPipeline.hpp>
 
 #include <Vulkan/VkBufferManager.hpp>
 

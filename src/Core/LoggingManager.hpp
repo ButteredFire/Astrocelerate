@@ -11,6 +11,14 @@
 #define enquoteCOUT(S) '"' << (S) << '"'
 #define VARIABLE_NAME(V) std::string(#V)
 
+// Usage: LOG_ASSERT(condition, message [, severity])
+#define LOG_ASSERT(cond, msg, ...) \
+    do { \
+        if (!(cond)) { \
+            throw Log::RuntimeException(__FUNCTION__, __LINE__, (msg), ##__VA_ARGS__); \
+        } \
+    } while (0)
+
 namespace Log {
 	/* Purpose of each message type:
 	* - INFO: Used to log general information about the application's operation. This includes high-level events that are part of the normal operation.

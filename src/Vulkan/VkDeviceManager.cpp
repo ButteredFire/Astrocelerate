@@ -66,12 +66,7 @@ void VkDeviceManager::createPhysicalDevice() {
     bool isDeviceCompatible = bestDevice.isCompatible;
     uint32_t physicalDeviceScore = bestDevice.optionalScore;
 
-    //std::cout << "\nFinal GPU evaluation:\n";
-    //for (auto& score : m_GPUScores)
-    //    std::cout << "\t(GPU: " << enquoteCOUT(score.deviceName) << "; Compatible: " << std::boolalpha << score.isCompatible << "; Optional Score: " << score.optionalScore << ")\n";
-
     Log::Print(Log::T_INFO, __FUNCTION__, ("Out of " + std::to_string(physDeviceCount) + " GPU(s), GPU " + enquote(bestDevice.deviceName) + " was selected with the highest grading score of " + std::to_string(physicalDeviceScore) + "."));
-    //std::cout << "Most suitable GPU: (GPU: " << enquoteCOUT(bestDevice.deviceName) << "; Compatible: " << std::boolalpha << isDeviceCompatible << "; Optional Score: " << physicalDeviceScore << ")\n\n";
 
     if (physicalDevice == nullptr || !isDeviceCompatible) {
         throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to find a GPU that supports required features!");
@@ -124,6 +119,7 @@ void VkDeviceManager::createLogicalDevice() {
     deviceVk12Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
     deviceVk12Features.bufferDeviceAddress = VK_TRUE;
     deviceVk12Features.descriptorIndexing = VK_TRUE;
+    deviceVk12Features.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
 
 
     // Creates the logical device

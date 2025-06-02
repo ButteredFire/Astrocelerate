@@ -1,4 +1,4 @@
-/* VulkanUtils.hpp - Utilities pertaining to Vulkan.
+/* VkFormatUtils.hpp - Utilities pertaining to image formats.
 */
 
 #pragma once
@@ -10,28 +10,11 @@
 #include <Core/LoggingManager.hpp>
 
 
-namespace VulkanUtils {
-	/* Does the (depth) format contain a stencil component? */
-	bool FormatHasStencilComponent(VkFormat format) {
-		return (format == VK_FORMAT_D32_SFLOAT_S8_UINT) ||
-			(format == VK_FORMAT_D24_UNORM_S8_UINT);
-	}
-
-
-    /* Gets the most suitable image format for depth images.
-        @return The most suitable image format.
-    */
-    VkFormat GetBestDepthImageFormat(VkPhysicalDevice& physicalDevice) {
-        std::vector<VkFormat> candidates = {
-            VK_FORMAT_D32_SFLOAT,
-            VK_FORMAT_D32_SFLOAT_S8_UINT,
-            VK_FORMAT_D24_UNORM_S8_UINT
-        };
-
-        VkImageTiling imgTiling = VK_IMAGE_TILING_OPTIMAL;
-        VkFormatFeatureFlagBits formatFeatures = VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
-
-        return VulkanUtils::FindSuppportedImageFormat(physicalDevice, candidates, imgTiling, formatFeatures);
+namespace VkFormatUtils {
+    /* Does the (depth) format contain a stencil component? */
+    inline bool FormatHasStencilComponent(VkFormat format) {
+        return (format == VK_FORMAT_D32_SFLOAT_S8_UINT) ||
+            (format == VK_FORMAT_D24_UNORM_S8_UINT);
     }
 
 
@@ -58,5 +41,22 @@ namespace VulkanUtils {
 
 
         throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to find a suitable image format!");
+    }
+
+
+    /* Gets the most suitable image format for depth images.
+        @return The most suitable image format.
+    */
+    inline VkFormat GetBestDepthImageFormat(VkPhysicalDevice& physicalDevice) {
+        std::vector<VkFormat> candidates = {
+            VK_FORMAT_D32_SFLOAT,
+            VK_FORMAT_D32_SFLOAT_S8_UINT,
+            VK_FORMAT_D24_UNORM_S8_UINT
+        };
+
+        VkImageTiling imgTiling = VK_IMAGE_TILING_OPTIMAL;
+        VkFormatFeatureFlagBits formatFeatures = VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
+
+        return FindSuppportedImageFormat(physicalDevice, candidates, imgTiling, formatFeatures);
     }
 }

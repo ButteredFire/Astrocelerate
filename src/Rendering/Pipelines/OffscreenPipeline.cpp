@@ -8,6 +8,7 @@ OffscreenPipeline::OffscreenPipeline(VulkanContext& context):
 	m_garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
 	m_bufferManager = ServiceLocator::GetService<VkBufferManager>(__FUNCTION__);
 
+	Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
 
 
@@ -23,19 +24,20 @@ void OffscreenPipeline::init() {
 
 	initInputAssemblyState();		// Input assembly state
 
-	//initViewportState();			// Viewport state
+	initViewportState();			// Viewport state
 
-	//initRasterizationState();		// Rasterization state
+	initRasterizationState();		// Rasterization state
 
 	initMultisamplingState();		// Multisampling state
 
 	initDepthStencilState();		// Depth stencil state
 
-	//initColorBlendingState();		// Blending state
+	initColorBlendingState();		// Blending state
 
 	initDepthBufferingResources();	// Depth buffering image and view
 
 	initTessellationState();		// Tessellation state
+
 
 
 	// Load shaders
@@ -76,47 +78,17 @@ void OffscreenPipeline::bindEvents() {
 }
 
 
-void OffscreenPipeline::CreateDescriptorPool(VulkanContext& vkContext, VkDescriptorPool& descriptorPool, std::vector<VkDescriptorPoolSize> poolSizes, VkDescriptorPoolCreateFlags createFlags = VkDescriptorPoolCreateFlags()) {
-	std::shared_ptr<GarbageCollector> garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
-
-	VkDescriptorPoolCreateInfo descPoolCreateInfo{};
-	descPoolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-	descPoolCreateInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
-	descPoolCreateInfo.pPoolSizes = poolSizes.data();
-	descPoolCreateInfo.flags = createFlags;
-
-	// TODO: See why the hell `maxSets` is the number of frames in flight
-	// Specifies the maximum number of descriptor sets that can be allocated
-	//descPoolCreateInfo.maxSets = maxDescriptorSetCount;
-	descPoolCreateInfo.maxSets = SimulationConsts::MAX_FRAMES_IN_FLIGHT;
-
-	CleanupTask task{};
-	task.caller = __FUNCTION__;
-	task.objectNames = { VARIABLE_NAME(descriptorPool) };
-	task.vkObjects = { vkContext.Device.logicalDevice, descriptorPool };
-	task.cleanupFunc = [device = vkContext.Device.logicalDevice, descriptorPool]() { vkDestroyDescriptorPool(device, descriptorPool, nullptr); };
-
-	garbageCollector->createCleanupTask(task);
-
-
-	VkResult result = vkCreateDescriptorPool(vkContext.Device.logicalDevice, &descPoolCreateInfo, nullptr, &descriptorPool);
-	if (result != VK_SUCCESS) {
-		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create descriptor pool!");
-	}
-}
-
-
 void OffscreenPipeline::createGraphicsPipeline() {
 	PipelineBuilder builder;
-	builder.dynamicStateCreateInfo = m_dynamicStateCreateInfo;
-	builder.inputAssemblyCreateInfo = m_inputAssemblyCreateInfo;
-	//builder.viewportStateCreateInfo = m_viewportStateCreateInfo;
-	//builder.rasterizerCreateInfo = m_rasterizerCreateInfo;
-	builder.multisampleStateCreateInfo = m_multisampleStateCreateInfo;
-	builder.depthStencilStateCreateInfo = m_depthStencilStateCreateInfo;
-	//builder.colorBlendStateCreateInfo = m_colorBlendCreateInfo;
-	builder.tessellationStateCreateInfo = m_tessStateCreateInfo;
-	builder.vertexInputStateCreateInfo = m_vertInputState;
+	builder.dynamicStateCreateInfo = &m_dynamicStateCreateInfo;
+	builder.inputAssemblyCreateInfo = &m_inputAssemblyCreateInfo;
+	builder.viewportStateCreateInfo = &m_viewportStateCreateInfo;
+	builder.rasterizerCreateInfo = &m_rasterizerCreateInfo;
+	builder.multisampleStateCreateInfo = &m_multisampleStateCreateInfo;
+	builder.depthStencilStateCreateInfo = &m_depthStencilStateCreateInfo;
+	builder.colorBlendStateCreateInfo = &m_colorBlendCreateInfo;
+	builder.tessellationStateCreateInfo = &m_tessStateCreateInfo;
+	builder.vertexInputStateCreateInfo = &m_vertInputState;
 
 	builder.shaderStages = m_shaderStages;
 
@@ -132,8 +104,8 @@ void OffscreenPipeline::createGraphicsPipeline() {
 void OffscreenPipeline::createPipelineLayout() {
 	VkPipelineLayoutCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	createInfo.setLayoutCount = 0;
-	createInfo.pSetLayouts = nullptr;
+	createInfo.setLayoutCount = 1;
+	createInfo.pSetLayouts = &m_descriptorSetLayout;
 
 	// Push constants are a way of passing dynamic values to shaders
 	createInfo.pushConstantRangeCount = 0;
@@ -182,7 +154,7 @@ void OffscreenPipeline::createRenderPass() {
 
 	// Depth attachment
 	VkAttachmentDescription depthAttachment{};
-	depthAttachment.format = VulkanUtils::GetBestDepthImageFormat(m_vkContext.Device.physicalDevice);
+	depthAttachment.format = VkFormatUtils::GetBestDepthImageFormat(m_vkContext.Device.physicalDevice);
 	depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 
 	depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -320,7 +292,7 @@ void OffscreenPipeline::setUpDescriptors() {
 
 	// Descriptor creation
 	createDescriptorSetLayout(layoutBindings);
-	CreateDescriptorPool(m_vkContext, m_descriptorPool, poolSize);
+	VkDescriptorUtils::CreateDescriptorPool(m_vkContext, m_descriptorPool, poolSize, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT);
 	createDescriptorSets();
 }
 
@@ -333,18 +305,19 @@ void OffscreenPipeline::createDescriptorSetLayout(std::vector<VkDescriptorSetLay
 
 
 	VkResult result = vkCreateDescriptorSetLayout(m_vkContext.Device.logicalDevice, &layoutCreateInfo, nullptr, &m_descriptorSetLayout);
-	if (result != VK_SUCCESS) {
-		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create descriptor set layout!");
-	}
-
-
+	
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(m_descriptorSetLayout) };
 	task.vkObjects = { m_vkContext.Device.logicalDevice, m_descriptorSetLayout };
 	task.cleanupFunc = [this]() { vkDestroyDescriptorSetLayout(m_vkContext.Device.logicalDevice, m_descriptorSetLayout, nullptr); };
-
+	
 	m_garbageCollector->createCleanupTask(task);
+
+
+	if (result != VK_SUCCESS) {
+		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create descriptor set layout!");
+	}
 }
 
 
@@ -366,6 +339,18 @@ void OffscreenPipeline::createDescriptorSets() {
 	m_descriptorSets.resize(descSetLayouts.size());
 
 	VkResult result = vkAllocateDescriptorSets(m_vkContext.Device.logicalDevice, &descSetAllocInfo, m_descriptorSets.data());
+	
+	CleanupTask task{};
+	task.caller = __FUNCTION__;
+	task.objectNames = { VARIABLE_NAME(m_descriptorSets) };
+	task.vkObjects = { m_vkContext.Device.logicalDevice, m_descriptorPool };
+	task.cleanupFunc = [this]() {
+		vkFreeDescriptorSets(m_vkContext.Device.logicalDevice, m_descriptorPool, m_descriptorSets.size(), m_descriptorSets.data());
+	};
+	
+	m_garbageCollector->createCleanupTask(task);
+
+	
 	if (result != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create descriptor sets!");
 	}
@@ -373,7 +358,6 @@ void OffscreenPipeline::createDescriptorSets() {
 
 	// Configures the descriptors within the newly allocated descriptor sets
 	std::vector<VkWriteDescriptorSet> descriptorWrites;
-	descriptorWrites.reserve(m_descriptorCount);
 
 	for (size_t i = 0; i < descSetLayouts.size(); i++) {
 		descriptorWrites.clear();
@@ -540,6 +524,55 @@ void OffscreenPipeline::initInputAssemblyState() {
 }
 
 
+void OffscreenPipeline::initViewportState() {
+	m_viewport.x = m_viewport.y = 0.0f;
+	m_viewport.width = static_cast<float>(m_vkContext.SwapChain.extent.width);
+	m_viewport.height = static_cast<float>(m_vkContext.SwapChain.extent.height);
+	m_viewport.minDepth = 0.0f;
+	m_viewport.maxDepth = 1.0f;
+
+	// Since we want to draw the entire framebuffer, we'll specify a scissor rectangle that covers it entirely (i.e., that has the same extent as the swap chain's)
+	// If we want to (re)draw only a partial part of the framebuffer from (a, b) to (x, y), we'll specify the offset as {a, b} and extent as {x, y}
+	m_scissorRectangle.offset = { 0, 0 };
+	m_scissorRectangle.extent = m_vkContext.SwapChain.extent;
+
+	// NOTE: We don't need to specify pViewports and pScissors since the m_viewport was set as a dynamic state. Therefore, we only need to specify the m_viewport and scissor counts at pipeline creation time. The actual objects can be set up later at drawing time.
+	m_viewportStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+	//m_viewportStateCreateInfo.pViewports = &m_viewport;
+	m_viewportStateCreateInfo.viewportCount = 1;
+	//m_viewportStateCreateInfo.pScissors = &m_scissorRectangle;
+	m_viewportStateCreateInfo.scissorCount = 1;
+}
+
+
+void OffscreenPipeline::initRasterizationState() {
+	m_rasterizerCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+
+	// If depth clamp is enabled, then fragments that are beyond the near and far planes are clamped to them rather than discarded.
+	// This is useful in some cases like shadow maps, but using this requires enabling a GPU feature.
+	m_rasterizerCreateInfo.depthClampEnable = VK_FALSE;
+
+	// If rasterizerDiscardEnable is set to TRUE, then geometry will never be passed through the rasterizer stage. This effectively disables any output to the framebuffer.
+	m_rasterizerCreateInfo.rasterizerDiscardEnable = VK_FALSE;
+
+	// NOTE: Using any mode other than FILL requires enabling a GPU feature.
+	m_rasterizerCreateInfo.polygonMode = VK_POLYGON_MODE_FILL; // Use VK_POLYGON_MODE_LINE for wireframe rendering
+
+	m_rasterizerCreateInfo.lineWidth = 1.0f;
+
+	m_rasterizerCreateInfo.cullMode = VK_CULL_MODE_BACK_BIT; // Determines the type of culling to use
+
+	// Specifies the vertex order for faces to be considered front-facing (can be clockwise/counter-clockwise)
+	// Since we flipped the Y-coordinate of the clip coordinates in `VkBufferManager::updateUniformBuffer` to prevent images from being rendered upside-down, we must also specify that the vertex order should be counter-clockwise. If we keep it as clockwise, in our Y-flip case, backface culling will appear and prevent any geometry from being drawn.
+	m_rasterizerCreateInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+
+	m_rasterizerCreateInfo.depthBiasEnable = VK_FALSE;
+	m_rasterizerCreateInfo.depthBiasConstantFactor = 0.0f;
+	m_rasterizerCreateInfo.depthBiasClamp = 0.0f;
+	m_rasterizerCreateInfo.depthBiasSlopeFactor = 0.0f;
+}
+
+
 void OffscreenPipeline::initMultisamplingState() {
 	m_multisampleStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
 	m_multisampleStateCreateInfo.sampleShadingEnable = VK_FALSE;
@@ -581,6 +614,33 @@ void OffscreenPipeline::initDepthStencilState() {
 }
 
 
+void OffscreenPipeline::initColorBlendingState() {
+	// ColorBlendAttachmentState contains the configuration per attached framebuffer
+	m_colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+	m_colorBlendAttachment.blendEnable = VK_TRUE;
+
+	// Alpha blending implementation (requires blendEnable to be TRUE)
+	m_colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+	m_colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+	m_colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+
+	m_colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+	m_colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+	m_colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+
+	// ColorBlendStateCreateInfo references the array of structures for all of the framebuffers and allows us to set blend constants that we can use as blend factors.
+	m_colorBlendCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+	m_colorBlendCreateInfo.logicOpEnable = VK_FALSE;
+	m_colorBlendCreateInfo.logicOp = VK_LOGIC_OP_COPY;
+	m_colorBlendCreateInfo.attachmentCount = 1;
+	m_colorBlendCreateInfo.pAttachments = &m_colorBlendAttachment;
+	m_colorBlendCreateInfo.blendConstants[0] = 0.0f;
+	m_colorBlendCreateInfo.blendConstants[1] = 0.0f;
+	m_colorBlendCreateInfo.blendConstants[2] = 0.0f;
+	m_colorBlendCreateInfo.blendConstants[3] = 0.0f;
+}
+
+
 void OffscreenPipeline::initTessellationState() {
 	m_tessStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO;
 	m_tessStateCreateInfo.patchControlPoints = 3; // Number of control points per patch (e.g., 3 for triangles)
@@ -597,9 +657,9 @@ void OffscreenPipeline::initDepthBufferingResources() {
 	uint32_t imgHeight = m_vkContext.SwapChain.extent.height;
 	uint32_t imgDepth = 1;
 
-	VkFormat depthFormat = VulkanUtils::GetBestDepthImageFormat(m_vkContext.Device.physicalDevice);
+	VkFormat depthFormat = VkFormatUtils::GetBestDepthImageFormat(m_vkContext.Device.physicalDevice);
 
-	bool hasStencilComponent = VulkanUtils::FormatHasStencilComponent(depthFormat);
+	bool hasStencilComponent = VkFormatUtils::FormatHasStencilComponent(depthFormat);
 
 
 	// Creates a depth image
@@ -651,6 +711,9 @@ void OffscreenPipeline::initOffscreenColorResources() {
 	VkImageManager::CreateImage(m_vkContext, m_colorImage, m_colorImgAlloc, imgAllocInfo, width, height, depth, imgFormat, imgTiling, imgUsageFlags, imgType);
 
 	VkImageManager::CreateImageView(m_vkContext, m_colorImgView, m_colorImage, imgFormat, imgAspectFlags, viewType, levelCount, layerCount);
+
+	m_vkContext.OffscreenResources.image = m_colorImage;
+	m_vkContext.OffscreenResources.imageView = m_colorImgView;
 }
 
 void OffscreenPipeline::initOffscreenSampler() {
@@ -704,6 +767,8 @@ void OffscreenPipeline::initOffscreenFramebuffer() {
 	uint32_t height = m_vkContext.SwapChain.extent.height;
 
 	VkImageManager::CreateFramebuffer(m_vkContext, m_colorImgFramebuffer, m_renderPass, attachments, width, height);
+
+	m_vkContext.OffscreenResources.framebuffer = m_colorImgFramebuffer;
 }
 
 

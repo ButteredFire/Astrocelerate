@@ -19,6 +19,7 @@ enum EventType {
 
 	EVENT_ID_UPDATE_INPUT,
 	EVENT_ID_UPDATE_RENDERABLES,
+	EVENT_ID_UPDATE_GUI,
 	EVENT_ID_UPDATE_PHYSICS,
 	EVENT_ID_UPDATE_UBOS,
 
@@ -61,6 +62,13 @@ namespace Event {
 		const EventType eventType = EventType::EVENT_ID_UPDATE_RENDERABLES;
 		VkCommandBuffer commandBuffer;
 		VkDescriptorSet descriptorSet;
+	};
+
+
+	/* Used when the ImGui GUI needs to be updated. */
+	struct UpdateGUI {
+		const EventType eventType = EventType::EVENT_ID_UPDATE_GUI;
+		VkCommandBuffer commandBuffer;
 	};
 
 

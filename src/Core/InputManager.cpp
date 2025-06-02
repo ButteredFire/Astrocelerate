@@ -22,8 +22,8 @@ void InputManager::bindEvents() {
 }
 
 
-bool InputManager::isHoveringOverGUI() {
-	return m_guiIO.WantCaptureMouse;
+bool InputManager::isViewportFocused() {
+	return m_guiIO.WantCaptureMouse && 0;
 	// NOTE: See m_guiIO.WantCaptureMouseUnlessPopupClose
 }
 
@@ -73,7 +73,7 @@ void InputManager::processKeyboardInput(double dt) {
 }
 
 void InputManager::processMouseClicks(GLFWwindow* window, int button, int action, int mods) {
-	if (isHoveringOverGUI()) return;
+	if (isViewportFocused()) return;
 
 	if (button == GLFW_MOUSE_BUTTON_LEFT) {
 		m_cursorLocked = true;
@@ -115,7 +115,7 @@ void InputManager::processMouseMovement(double dposX, double dposY) {
 
 
 void InputManager::processMouseScroll(double deltaX, double deltaY) {
-	if (isHoveringOverGUI()) return;
+	if (isViewportFocused()) return;
 
 	if (m_cursorLocked)
 		m_camera->processMouseScroll(static_cast<float>(deltaY));

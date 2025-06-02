@@ -24,8 +24,6 @@
 #include <CoreStructs/Contexts.hpp>
 #include <Core/EventDispatcher.hpp>
 
-//#include<Rendering/GraphicsPipeline.hpp>
-
 
 // A structure that manages properties of a swap chain.
 typedef struct SwapChainProperties {

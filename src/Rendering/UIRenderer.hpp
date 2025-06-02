@@ -28,6 +28,7 @@
 #include <Rendering/Pipelines/OffscreenPipeline.hpp>
 
 #include <Utils/ColorUtils.hpp>
+#include <Utils/Vulkan/VkDescriptorUtils.hpp>
 
 // Font
 #include <../assets/DefaultFont.hpp>
