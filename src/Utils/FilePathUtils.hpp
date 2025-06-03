@@ -7,6 +7,8 @@
 #include <concepts>
 #include <filesystem>
 
+#include <Core/LoggingManager.hpp>
+
 
 namespace FilePathUtils {
 	/* Joins multiple paths.

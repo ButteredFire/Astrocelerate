@@ -39,7 +39,7 @@ public:
 
 
     /* Creates an image object.
-        @param vkContext: The application context.
+        @param vkContext: The Vulkan context.
         @param image: The image to be created.
         @param imgAllocation: The memory allocation for the image.
         @param width: The width of the image.
@@ -54,7 +54,7 @@ public:
 
 
     /* Handles image layout transition.
-        @param vkContext: The application context.
+        @param vkContext: The Vulkan context.
         @param image: The image to be used in the image memory barrier.
         @param imgFormat: The format of the image.
         @param oldLayout: The old image layout.

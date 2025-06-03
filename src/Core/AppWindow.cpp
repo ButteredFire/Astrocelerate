@@ -2,6 +2,7 @@
 */
 
 #include "AppWindow.hpp"
+#include <Core/InputManager.hpp>
 
 Window::Window(int width, int height, std::string windowName)
     : m_WIDTH(width), m_HEIGHT(height), m_windowName(windowName) {

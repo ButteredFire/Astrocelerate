@@ -59,7 +59,7 @@ void UIRenderer::initImGui(UIRenderer::Appearance appearance) {
 
 
     // Initialization info
-    ImGui_ImplVulkan_InitInfo vkInitInfo = {};
+    ImGui_ImplVulkan_InitInfo vkInitInfo{};
     vkInitInfo.Instance = m_vkContext.vulkanInstance;         // Instance
     vkInitInfo.PhysicalDevice = m_vkContext.Device.physicalDevice;   // Physical device
     vkInitInfo.Device = m_vkContext.Device.logicalDevice;            // Logical device
@@ -76,7 +76,7 @@ void UIRenderer::initImGui(UIRenderer::Appearance appearance) {
     std::vector<VkDescriptorPoolSize> imgui_PoolSizes = {
         { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE }
     };
-    VkDescriptorPoolCreateFlags imgui_DescPoolCreateFlags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+    VkDescriptorPoolCreateFlags imgui_DescPoolCreateFlags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
     VkDescriptorUtils::CreateDescriptorPool(m_vkContext, m_descriptorPool, imgui_PoolSizes, imgui_DescPoolCreateFlags);
     vkInitInfo.DescriptorPool = m_descriptorPool;
 
@@ -106,9 +106,10 @@ void UIRenderer::initImGui(UIRenderer::Appearance appearance) {
     task.caller = __FUNCTION__;
     task.objectNames = { "ImGui destruction calls" };
     task.cleanupFunc = []() {
+        ImGui::SaveIniSettingsToDisk(ConfigConsts::IMGUI_DEFAULT_CONFIG.c_str());
         ImGui_ImplVulkan_DestroyFontsTexture();
         ImGui_ImplVulkan_Shutdown();
-        };
+    };
 
     m_garbageCollector->createCleanupTask(task);
 
@@ -130,6 +131,8 @@ void UIRenderer::initImGui(UIRenderer::Appearance appearance) {
     m_currentAppearance = appearance;
     updateAppearance(m_currentAppearance);
 
+    auto iniBuffer = FilePathUtils::readFile(ConfigConsts::IMGUI_DEFAULT_CONFIG);
+    ImGui::LoadIniSettingsFromMemory(iniBuffer.data(), iniBuffer.size());
 
     m_eventDispatcher->publish(Event::GUIContextIsValid{});
 }
@@ -156,6 +159,9 @@ void UIRenderer::initDockspace() {
     ImGui::Begin("MainDockspace", nullptr, viewportFlags);
     ImGui::PopStyleVar(2);
 
+    ImGui::PushFont(m_pFont);
+    m_uiPanelManager->renderMenuBar();
+    ImGui::PopFont();
 
     ImGuiID dockspaceID = ImGui::GetID("Dockspace");
     ImGui::DockSpace(dockspaceID, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
@@ -211,55 +217,57 @@ void UIRenderer::updateAppearance(UIRenderer::Appearance appearance) {
         Log::Print(Log::T_VERBOSE, __FUNCTION__, "Updating GUI appearance to dark mode...");
 
         // Backgrounds
-        colors[ImGuiCol_WindowBg] = linearRGBA(0.10f, 0.10f, 0.10f, 1.0f); // Dark gray
-        colors[ImGuiCol_ChildBg] = linearRGBA(0.12f, 0.12f, 0.12f, 1.0f); // Slightly lighter gray
-        colors[ImGuiCol_PopupBg] = linearRGBA(0.08f, 0.08f, 0.08f, 0.94f); // Almost black
+        colors[ImGuiCol_WindowBg] = ColorUtils::sRGBToLinear(0.10f, 0.10f, 0.10f, 1.0f); // Dark gray
+        colors[ImGuiCol_MenuBarBg] = colors[ImGuiCol_WindowBg];
+        style.Colors[ImGuiCol_DockingEmptyBg] = colors[ImGuiCol_WindowBg];
+        colors[ImGuiCol_ChildBg] = ColorUtils::sRGBToLinear(0.12f, 0.12f, 0.12f, 1.0f); // Slightly lighter gray
+        colors[ImGuiCol_PopupBg] = ColorUtils::sRGBToLinear(0.08f, 0.08f, 0.08f, 0.94f); // Almost black
 
         // Headers (collapsing sections, menus)
-        colors[ImGuiCol_Header] = linearRGBA(0.25f, 0.25f, 0.25f, 1.0f);
-        colors[ImGuiCol_HeaderHovered] = linearRGBA(0.30f, 0.30f, 0.30f, 1.0f);
-        colors[ImGuiCol_HeaderActive] = linearRGBA(0.35f, 0.35f, 0.35f, 1.0f);
+        colors[ImGuiCol_Header] = ColorUtils::sRGBToLinear(0.25f, 0.25f, 0.25f, 1.0f);
+        colors[ImGuiCol_HeaderHovered] = ColorUtils::sRGBToLinear(0.30f, 0.30f, 0.30f, 1.0f);
+        colors[ImGuiCol_HeaderActive] = ColorUtils::sRGBToLinear(0.35f, 0.35f, 0.35f, 1.0f);
 
         // Borders and separators
-        colors[ImGuiCol_Border] = linearRGBA(0.25f, 0.25f, 0.25f, 0.50f);
-        colors[ImGuiCol_BorderShadow] = linearRGBA(0, 0, 0, 0); // Remove shadow
+        colors[ImGuiCol_Border] = ColorUtils::sRGBToLinear(0.25f, 0.25f, 0.25f, 0.50f);
+        colors[ImGuiCol_BorderShadow] = ColorUtils::sRGBToLinear(0, 0, 0, 0); // Remove shadow
 
         // Text
-        colors[ImGuiCol_Text] = linearRGBA(0.95f, 0.96f, 0.98f, 1.00f); // White
-        colors[ImGuiCol_TextDisabled] = linearRGBA(0.50f, 0.50f, 0.50f, 1.00f); // Dim gray
+        colors[ImGuiCol_Text] = ColorUtils::sRGBToLinear(0.95f, 0.96f, 0.98f, 1.00f); // White
+        colors[ImGuiCol_TextDisabled] = ColorUtils::sRGBToLinear(0.50f, 0.50f, 0.50f, 1.00f); // Dim gray
 
         // Frames (inputs, sliders, etc.)
-        colors[ImGuiCol_FrameBg] = linearRGBA(0.15f, 0.15f, 0.15f, 1.0f);
-        colors[ImGuiCol_FrameBgHovered] = linearRGBA(0.20f, 0.20f, 0.20f, 1.0f);
-        colors[ImGuiCol_FrameBgActive] = linearRGBA(0.25f, 0.25f, 0.25f, 1.0f);
+        colors[ImGuiCol_FrameBg] = ColorUtils::sRGBToLinear(0.15f, 0.15f, 0.15f, 1.0f);
+        colors[ImGuiCol_FrameBgHovered] = ColorUtils::sRGBToLinear(0.20f, 0.20f, 0.20f, 1.0f);
+        colors[ImGuiCol_FrameBgActive] = ColorUtils::sRGBToLinear(0.25f, 0.25f, 0.25f, 1.0f);
 
         // Buttons
-        colors[ImGuiCol_Button] = linearRGBA(0.20f, 0.22f, 0.27f, 1.0f); // Dark blue-gray
-        colors[ImGuiCol_ButtonHovered] = linearRGBA(0.30f, 0.33f, 0.38f, 1.0f);
-        colors[ImGuiCol_ButtonActive] = linearRGBA(0.35f, 0.40f, 0.45f, 1.0f);
+        colors[ImGuiCol_Button] = ColorUtils::sRGBToLinear(0.20f, 0.22f, 0.27f, 1.0f); // Dark blue-gray
+        colors[ImGuiCol_ButtonHovered] = ColorUtils::sRGBToLinear(0.30f, 0.33f, 0.38f, 1.0f);
+        colors[ImGuiCol_ButtonActive] = ColorUtils::sRGBToLinear(0.35f, 0.40f, 0.45f, 1.0f);
 
         // Scrollbars
-        colors[ImGuiCol_ScrollbarBg] = linearRGBA(0.10f, 0.10f, 0.10f, 1.0f);
-        colors[ImGuiCol_ScrollbarGrab] = linearRGBA(0.20f, 0.25f, 0.30f, 1.0f);
-        colors[ImGuiCol_ScrollbarGrabHovered] = linearRGBA(0.25f, 0.30f, 0.35f, 1.0f);
-        colors[ImGuiCol_ScrollbarGrabActive] = linearRGBA(0.30f, 0.35f, 0.40f, 1.0f);
+        colors[ImGuiCol_ScrollbarBg] = ColorUtils::sRGBToLinear(0.10f, 0.10f, 0.10f, 1.0f);
+        colors[ImGuiCol_ScrollbarGrab] = ColorUtils::sRGBToLinear(0.20f, 0.25f, 0.30f, 1.0f);
+        colors[ImGuiCol_ScrollbarGrabHovered] = ColorUtils::sRGBToLinear(0.25f, 0.30f, 0.35f, 1.0f);
+        colors[ImGuiCol_ScrollbarGrabActive] = ColorUtils::sRGBToLinear(0.30f, 0.35f, 0.40f, 1.0f);
 
         // Tabs (used for docking)
-        colors[ImGuiCol_Tab] = linearRGBA(0.18f, 0.18f, 0.18f, 1.0f);
-        colors[ImGuiCol_TabHovered] = linearRGBA(0.26f, 0.26f, 0.26f, 1.0f);
-        colors[ImGuiCol_TabActive] = linearRGBA(0.28f, 0.28f, 0.28f, 1.0f);
-        colors[ImGuiCol_TabUnfocused] = linearRGBA(0.15f, 0.15f, 0.15f, 1.0f);
-        colors[ImGuiCol_TabUnfocusedActive] = linearRGBA(0.20f, 0.20f, 0.20f, 1.0f);
+        colors[ImGuiCol_Tab] = ColorUtils::sRGBToLinear(0.18f, 0.18f, 0.18f, 1.0f);
+        colors[ImGuiCol_TabHovered] = ColorUtils::sRGBToLinear(0.26f, 0.26f, 0.26f, 1.0f);
+        colors[ImGuiCol_TabActive] = ColorUtils::sRGBToLinear(0.28f, 0.28f, 0.28f, 1.0f);
+        colors[ImGuiCol_TabUnfocused] = ColorUtils::sRGBToLinear(0.15f, 0.15f, 0.15f, 1.0f);
+        colors[ImGuiCol_TabUnfocusedActive] = ColorUtils::sRGBToLinear(0.20f, 0.20f, 0.20f, 1.0f);
 
         // Title bar
-        colors[ImGuiCol_TitleBg] = linearRGBA(0.10f, 0.10f, 0.10f, 1.0f);
-        colors[ImGuiCol_TitleBgActive] = linearRGBA(0.15f, 0.15f, 0.15f, 1.0f);
-        colors[ImGuiCol_TitleBgCollapsed] = linearRGBA(0.10f, 0.10f, 0.10f, 0.75f);
+        colors[ImGuiCol_TitleBg] = ColorUtils::sRGBToLinear(0.10f, 0.10f, 0.10f, 1.0f);
+        colors[ImGuiCol_TitleBgActive] = ColorUtils::sRGBToLinear(0.15f, 0.15f, 0.15f, 1.0f);
+        colors[ImGuiCol_TitleBgCollapsed] = ColorUtils::sRGBToLinear(0.10f, 0.10f, 0.10f, 0.75f);
 
         // Resize grips (bottom-right corner)
-        colors[ImGuiCol_ResizeGrip] = linearRGBA(0.30f, 0.30f, 0.30f, 0.5f);
-        colors[ImGuiCol_ResizeGripHovered] = linearRGBA(0.40f, 0.40f, 0.40f, 0.75f);
-        colors[ImGuiCol_ResizeGripActive] = linearRGBA(0.45f, 0.45f, 0.45f, 1.0f);
+        colors[ImGuiCol_ResizeGrip] = ColorUtils::sRGBToLinear(0.30f, 0.30f, 0.30f, 0.5f);
+        colors[ImGuiCol_ResizeGripHovered] = ColorUtils::sRGBToLinear(0.40f, 0.40f, 0.40f, 0.75f);
+        colors[ImGuiCol_ResizeGripActive] = ColorUtils::sRGBToLinear(0.45f, 0.45f, 0.45f, 1.0f);
 
         break;
 

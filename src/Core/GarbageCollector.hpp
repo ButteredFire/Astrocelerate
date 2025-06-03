@@ -29,7 +29,7 @@ public:
 	~GarbageCollector();
 
 
-	/* Creates the Vulkan Memory Allocator. The VMA object is automatically added to the application context, and its cleanup task created.
+	/* Creates the Vulkan Memory Allocator. The VMA object is automatically added to the Vulkan context, and its cleanup task created.
 		@param instance: The Vulkan instance.
 		@param physicalDevice: The selected physical device.
 		@param device: The selected logical device.

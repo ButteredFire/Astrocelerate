@@ -2,9 +2,8 @@
 
 
 uint32_t VkImageManager::CreateImage(VulkanContext& vkContext, VkImage& image, VmaAllocation& imgAllocation, VmaAllocationCreateInfo& imgAllocationCreateInfo, uint32_t width, uint32_t height, uint32_t depth, VkFormat imgFormat, VkImageTiling imgTiling, VkImageUsageFlags imgUsageFlags, VkImageType imgType) {
-	if ((imgType & VK_IMAGE_TYPE_2D) && depth != 1) {
-		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Unable to create image: Depth must be 1 if the image type is 2D!");
-	}
+	LOG_ASSERT(((imgType & VK_IMAGE_TYPE_2D == 1) && depth == 1),
+		"Unable to create image: Depth must be 1 if the image type is 2D!");
 
 
 	std::shared_ptr<GarbageCollector> garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
@@ -62,10 +61,7 @@ uint32_t VkImageManager::CreateImage(VulkanContext& vkContext, VkImage& image, V
 
 	uint32_t taskID = garbageCollector->createCleanupTask(imgTask);
 
-
-	if (imgCreateResult != VK_SUCCESS) {
-		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create image!");
-	}
+	LOG_ASSERT(imgCreateResult == VK_SUCCESS, "Failed to create image!");
 
 	return taskID;
 }
@@ -122,10 +118,7 @@ uint32_t VkImageManager::CreateImageView(VulkanContext& vkContext, VkImageView& 
 
 	uint32_t taskID = garbageCollector->createCleanupTask(task);
 
-
-	if (result != VK_SUCCESS) {
-		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create image view!");
-	}
+	LOG_ASSERT(result == VK_SUCCESS, "Failed to create image view!");
 
 	return taskID;
 }
@@ -141,7 +134,7 @@ uint32_t VkImageManager::CreateFramebuffer(VulkanContext& vkContext, VkFramebuff
 	bufferCreateInfo.pAttachments = attachments.data();
 	bufferCreateInfo.width = width;
 	bufferCreateInfo.height = height;
-	bufferCreateInfo.layers = 1; // Refer to swapChainCreateInfo.imageArrayLayers in createSwapChain()
+	bufferCreateInfo.layers = 1;
 
 	VkResult result = vkCreateFramebuffer(vkContext.Device.logicalDevice, &bufferCreateInfo, nullptr, &framebuffer);
 	
@@ -155,10 +148,7 @@ uint32_t VkImageManager::CreateFramebuffer(VulkanContext& vkContext, VkFramebuff
 
 	uint32_t taskID = garbageCollector->createCleanupTask(task);
 
-
-	if (result != VK_SUCCESS) {
-		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create frame buffer!");
-	}
+	LOG_ASSERT(result == VK_SUCCESS, "Failed to create framebuffer!");
 	
 	return taskID;
 }

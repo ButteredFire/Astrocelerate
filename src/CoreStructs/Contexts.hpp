@@ -1,15 +1,14 @@
 #pragma once  
 
-// VMA  
-#include <vk_mem_alloc.h>  
+#include <glfw_vulkan.hpp>
+#include <vk_mem_alloc.h> 
 
 // C++ STLs  
 #include <variant>  
 #include <vector>  
 #include <map>  
 
-// Local  
-#include <Core/InputManager.hpp>
+// Local
 #include <Core/LoggingManager.hpp>  
 #include <CoreStructs/Device.hpp>
 
@@ -128,8 +127,19 @@ struct VulkanContext {
 };
 
 
+// General application context
+struct AppContext {
+    struct Input {
+        bool isViewportHoveredOver = false;
+        bool isViewportFocused = false;
+    } Input;
+};
+
+
 
 // Used for GLFW
+class InputManager;
+
 struct CallbackContext {
     InputManager* inputManager;
 };

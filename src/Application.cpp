@@ -20,10 +20,9 @@ const int WIN_HEIGHT = WindowConsts::DEFAULT_WINDOW_HEIGHT;
 int main() {
     Log::PrintAppInfo();
 
-    // Binds members in the VulkanInstanceContext struct to their corresponding active Vulkan objects
+    // Contexts
     VulkanContext vkContext{};
-
-    // GLFW callback context
+    AppContext appContext{};
     CallbackContext* callbackContext = new CallbackContext{};
 
 
@@ -55,7 +54,7 @@ int main() {
 
 
     // GUI panel manager
-    std::shared_ptr<UIPanelManager> uiPanelManager = std::make_shared<UIPanelManager>(vkContext);
+    std::shared_ptr<UIPanelManager> uiPanelManager = std::make_shared<UIPanelManager>(vkContext, appContext);
     ServiceLocator::RegisterService(uiPanelManager);
 
     
@@ -145,8 +144,9 @@ int main() {
         ServiceLocator::RegisterService(uiRenderer);
 
                 // Input (only usable after ImGui initialization)
-        std::shared_ptr<InputManager> inputManager = std::make_shared<InputManager>();
+        std::shared_ptr<InputManager> inputManager = std::make_shared<InputManager>(appContext);
         ServiceLocator::RegisterService(inputManager);
+        inputManager->init();
         callbackContext->inputManager = inputManager.get();
 
         std::shared_ptr<Renderer> renderer = std::make_shared<Renderer>(vkContext);

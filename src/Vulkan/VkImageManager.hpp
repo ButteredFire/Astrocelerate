@@ -14,7 +14,7 @@
 class VkImageManager {
 public:
 	/* Creates an image.
-		@param vkContext: The application context.
+		@param vkContext: The Vulkan context.
 		@param image: The image to be created.
 		@param imgAllocation: The memory allocation for the image.
 		@param imgAllocationCreateInfo: The allocation create info for the image.
@@ -32,7 +32,7 @@ public:
 
 
 	/* Creates an image view.
-		@param vkContext: The application context.
+		@param vkContext: The Vulkan context.
 		@param imageView: The image view to be created.
 		@param image: The image to be used.
 		@param imgFormat: The format of the image.
@@ -49,7 +49,7 @@ public:
 
 
 	/* Creates a framebuffer.
-		@param vkContext: The application context.
+		@param vkContext: The Vulkan context.
 		@param framebuffer: The framebuffer to be created.
 		@param renderPass: The render pass to be used.
 		@param attachments: The image views to be used as attachments in the framebuffer.

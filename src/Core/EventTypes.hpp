@@ -23,7 +23,8 @@ enum EventType {
 	EVENT_ID_UPDATE_PHYSICS,
 	EVENT_ID_UPDATE_UBOS,
 
-	EVENT_ID_GUI_CONTEXT_IS_VALID
+	EVENT_ID_GUI_CONTEXT_IS_VALID,
+	EVENT_ID_INPUT_IS_VALID
 };
 
 
@@ -90,5 +91,11 @@ namespace Event {
 	/* Used when the ImGui context is available. */
 	struct GUIContextIsValid {
 		const EventType eventType = EventType::EVENT_ID_GUI_CONTEXT_IS_VALID;
+	};
+
+
+	/* Used when the input manager is initialized. */
+	struct InputIsValid {
+		const EventType eventType = EventType::EVENT_ID_INPUT_IS_VALID;
 	};
 }

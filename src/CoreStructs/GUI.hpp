@@ -18,7 +18,8 @@ namespace GUI {
 		PANEL_SIMULATION_CONTROL,  
 		PANEL_RENDER_SETTINGS,  
 		PANEL_ORBITAL_PLANNER,  
-		PANEL_DEBUG_CONSOLE  
+		PANEL_DEBUG_CONSOLE,
+		PANEL_DEBUG_INPUT
 	};
 
 	inline constexpr PanelFlag PanelFlagsArray[] = {
@@ -28,7 +29,8 @@ namespace GUI {
 		PanelFlag::PANEL_SIMULATION_CONTROL,
 		PanelFlag::PANEL_RENDER_SETTINGS,
 		PanelFlag::PANEL_ORBITAL_PLANNER,
-		PanelFlag::PANEL_DEBUG_CONSOLE
+		PanelFlag::PANEL_DEBUG_CONSOLE,
+		PanelFlag::PANEL_DEBUG_INPUT
 	};
 
 
@@ -39,7 +41,8 @@ namespace GUI {
 		{PanelFlag::PANEL_SIMULATION_CONTROL,		"Simulation Control Panel"},
 		{PanelFlag::PANEL_RENDER_SETTINGS,			"Render Settings"},
 		{PanelFlag::PANEL_ORBITAL_PLANNER,			"Orbital Planner"},
-		{PanelFlag::PANEL_DEBUG_CONSOLE	,			"Debug Console"}
+		{PanelFlag::PANEL_DEBUG_CONSOLE,			"Console"},
+		{PanelFlag::PANEL_DEBUG_INPUT,				"Input Debugger"}
 	};
 
 

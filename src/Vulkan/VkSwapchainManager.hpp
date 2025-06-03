@@ -24,6 +24,8 @@
 #include <CoreStructs/Contexts.hpp>
 #include <Core/EventDispatcher.hpp>
 
+#include <Vulkan/VkImageManager.hpp>
+
 
 // A structure that manages properties of a swap chain.
 typedef struct SwapChainProperties {
@@ -48,18 +50,6 @@ public:
 
 	/* Recreates the swap-chain. */
 	void recreateSwapchain();
-
-
-	/* Creates an image view.
-		@param vkContext: The application context.
-		@param image: The image to be used.
-		@param imageView: The image view to be created.
-		@param imgFormat: The image format.
-		@param imgAspectFlags: The image aspect flags specifying which aspect(s) of the image are to be included in the image view.
-
-		@return The image view's cleanup task ID.
-	*/
-	static uint32_t createImageView(VulkanContext& vkContext, VkImage& image, VkImageView& imageView, VkFormat imgFormat, VkImageAspectFlags imgAspectFlags);
 
 
 	/* Queries the properties of a GPU's swap-chain.

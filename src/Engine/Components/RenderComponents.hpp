@@ -17,7 +17,7 @@
 namespace Component {
     struct MeshRenderable {
         Geometry::MeshOffset meshOffset;                    // Mesh offset into the global vertex and index buffers.
-        size_t uboIndex;                                    // Index into the mesh's uniform buffer object,
+        size_t uboIndex;                                    // Index into the mesh's uniform buffer object.
     };
 
 

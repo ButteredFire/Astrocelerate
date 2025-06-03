@@ -9,9 +9,11 @@
 #include <imgui/imgui_impl_vulkan.h>
 
 #include <Core/ECS.hpp>
+#include <Core/InputManager.hpp>
 #include <Core/ServiceLocator.hpp>
 #include <Core/LoggingManager.hpp>
 #include <Core/EventDispatcher.hpp>
+#include <Core/GarbageCollector.hpp>
 
 #include <CoreStructs/GUI.hpp>
 #include <CoreStructs/Contexts.hpp>
@@ -19,26 +21,28 @@
 #include <Engine/Components/PhysicsComponents.hpp>
 #include <Engine/Components/WorldSpaceComponents.hpp>
 
+#include <Utils/ColorUtils.hpp>
 #include <Utils/SpaceUtils.hpp>
 #include <Utils/Vulkan/VkDescriptorUtils.hpp>
 
 
 class UIPanelManager {
 public:
-	UIPanelManager(VulkanContext& context);
+	UIPanelManager(VulkanContext& vkContext, AppContext& appContext);
 	~UIPanelManager() = default;
 
 	/* Initializes panels from a panel mask bit-field. */
 	void initPanelsFromMask(GUI::PanelMask& mask);
 
-
 	/* Updates panels. */
 	void updatePanels();
 
+	/* Renders the menu bar. */
+	void renderMenuBar();
 
 	/* Is the viewport window focused? (Used for input management) */
 	inline bool isViewportFocused() {
-		return m_viewportFocused;
+		return m_appContext.Input.isViewportFocused;
 	}
 
 
@@ -46,9 +50,11 @@ public:
 
 private:
 	VulkanContext& m_vkContext;
+	AppContext& m_appContext;
 
 	std::shared_ptr<GarbageCollector> m_garbageCollector;
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
+	std::shared_ptr<InputManager> m_inputManager;
 	std::shared_ptr<Registry> m_registry;
 
 	GUI::PanelMask m_panelMask;
@@ -56,13 +62,16 @@ private:
 	typedef void(UIPanelManager::*PanelCallback)();  // void(void) function pointer
 	std::unordered_map<GUI::PanelFlag, PanelCallback> m_panelCallbacks;
 
+	// Common window flags
+	ImGuiWindowFlags m_windowFlags;
+
 	// Viewport sampling as a texture
+	ImTextureID m_viewportRenderTextureID = NULL;
 	VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
 	VkDescriptorSetLayout m_viewportTextureDescSetLayout = VK_NULL_HANDLE;
 	VkDescriptorSet m_viewportRenderTextureDescSet = VK_NULL_HANDLE;
 
-	// Viewport
-	bool m_viewportFocused = false;
+	bool m_inputBlockerIsOn = false;
 
 
 	void bindEvents();
@@ -82,5 +91,7 @@ private:
 	void renderSimulationControlPanel();
 	void renderRenderSettingsPanel();
 	void renderOrbitalPlannerPanel();
+
 	void renderDebugConsole();
+	void renderDebugInput();
 };

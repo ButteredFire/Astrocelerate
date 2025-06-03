@@ -93,6 +93,12 @@ namespace WindowConsts {
 }
 
 
+// Configuration properties
+namespace ConfigConsts {
+	const std::string IMGUI_DEFAULT_CONFIG = std::string(APP_SOURCE_DIR) + std::string("/configs/DefaultImGuiConfig.ini");
+}
+
+
 // Gamma correction constants
 namespace Gamma {
 	constexpr float THRESHOLD = 0.04045f;

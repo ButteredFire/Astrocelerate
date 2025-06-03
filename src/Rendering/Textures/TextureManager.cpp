@@ -97,7 +97,7 @@ void TextureManager::createTextureImage(const char* texSource, int channels) {
 
 
 void TextureManager::createTextureImageView() {
-	VkSwapchainManager::createImageView(m_vkContext, m_textureImage, m_textureImageView, m_textureImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
+	VkImageManager::CreateImageView(m_vkContext, m_textureImageView, m_textureImage, m_textureImageFormat, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_VIEW_TYPE_2D, 1, 1);
 	m_vkContext.Texture.imageView = m_textureImageView;
 }
 

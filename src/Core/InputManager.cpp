@@ -2,14 +2,33 @@
 #include <Core/EventDispatcher.hpp>
 
 
-InputManager::InputManager():
+InputManager::InputManager(AppContext& appContext):
+	m_appContext(appContext),
 	m_guiIO(ImGui::GetIO()) {
+	using namespace Input;
+
 	m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
 	m_camera = ServiceLocator::GetService<Camera>(__FUNCTION__);
 
 	bindEvents();
 
+	m_keyToCamMovementBindings = {
+		{GLFW_KEY_W,					CameraMovement::FORWARD},
+		{GLFW_KEY_S,					CameraMovement::BACKWARD},
+		{GLFW_KEY_A,					CameraMovement::LEFT},
+		{GLFW_KEY_D,					CameraMovement::RIGHT},
+		{GLFW_KEY_SPACE,				CameraMovement::UP},
+		{GLFW_KEY_LEFT_SHIFT,			CameraMovement::DOWN}
+	};
+
+	
+
 	Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
+}
+
+
+void InputManager::init() {
+	m_eventDispatcher->publish(Event::InputIsValid{});
 }
 
 
@@ -22,9 +41,16 @@ void InputManager::bindEvents() {
 }
 
 
+bool InputManager::isViewportInputAllowed() {
+	return isViewportFocused() && m_cursorLocked;
+}
+
 bool InputManager::isViewportFocused() {
-	return m_guiIO.WantCaptureMouse && 0;
-	// NOTE: See m_guiIO.WantCaptureMouseUnlessPopupClose
+	return m_appContext.Input.isViewportFocused && m_appContext.Input.isViewportHoveredOver;
+}
+
+bool InputManager::isViewportUnfocused() {
+	return !isViewportFocused() && m_cursorLocked;
 }
 
 
@@ -41,47 +67,29 @@ void InputManager::glfwDeferKeyInput(int key, int scancode, int action, int mods
 void InputManager::processKeyboardInput(double dt) {
 	using namespace Input;
 
+	static int cock = 0;
+
+	// Unlocks the cursor when the viewport loses focus (this solves desynchronization between m_appContext.Input.isViewportFocused and m_cursorLocked)
+	if (m_pressedKeys.contains(GLFW_KEY_ESCAPE) || isViewportUnfocused()) {
+		m_cursorLocked = false;
+		glfwSetInputMode(m_camera->m_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+	}
+
 	for (const int key : m_pressedKeys) {
-		// This only happens when the cursor is locked.
-		// When the cursor is not locked, such keys can be bound to other actions.
-		if (m_cursorLocked) {
-			if (key == GLFW_KEY_W) {
-				m_camera->processKeyboardInput(CameraMovement::FORWARD, dt);
-			}
-
-			if (key == GLFW_KEY_S) {
-				m_camera->processKeyboardInput(CameraMovement::BACKWARD, dt);
-			}
-
-			if (key == GLFW_KEY_A) {
-				m_camera->processKeyboardInput(CameraMovement::LEFT, dt);
-			}
-
-			if (key == GLFW_KEY_D) {
-				m_camera->processKeyboardInput(CameraMovement::RIGHT, dt);
-			}
-
-			if (key == GLFW_KEY_SPACE) {
-				m_camera->processKeyboardInput(CameraMovement::UP, dt);
-			}
-
-			if (key == GLFW_KEY_LEFT_SHIFT) {
-				m_camera->processKeyboardInput(CameraMovement::DOWN, dt);
-			}
+		if (isViewportInputAllowed()) {
+			if (m_keyToCamMovementBindings.count(key))
+				m_camera->processKeyboardInput(m_keyToCamMovementBindings[key], dt);
 		}
+
+		if (key == GLFW_KEY_G)
+			Log::Print(Log::T_WARNING, __FUNCTION__, "cock and balls test " + std::to_string(cock++));
 	}
 }
 
 void InputManager::processMouseClicks(GLFWwindow* window, int button, int action, int mods) {
-	if (isViewportFocused()) return;
-
-	if (button == GLFW_MOUSE_BUTTON_LEFT) {
+	if (button == GLFW_MOUSE_BUTTON_LEFT && isViewportFocused()) {
 		m_cursorLocked = true;
 		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-	}
-	else if (button == GLFW_MOUSE_BUTTON_RIGHT) {
-		m_cursorLocked = false;
-		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 	}
 }
 
@@ -109,14 +117,12 @@ void InputManager::processMouseMovement(double dposX, double dposY) {
 	lastX = posX;
 	lastY = posY;
 
-	if (m_cursorLocked)
+	if (isViewportInputAllowed())
 		m_camera->processMouseInput(deltaX, deltaY);
 }
 
 
 void InputManager::processMouseScroll(double deltaX, double deltaY) {
-	if (isViewportFocused()) return;
-
-	if (m_cursorLocked)
+	if (isViewportInputAllowed())
 		m_camera->processMouseScroll(static_cast<float>(deltaY));
 }

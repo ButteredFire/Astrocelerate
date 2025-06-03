@@ -10,6 +10,7 @@
 #include <Core/ServiceLocator.hpp>
 #include <Core/LoggingManager.hpp>
 
+#include <CoreStructs/Contexts.hpp>
 #include <CoreStructs/Input.hpp>
 
 #include <Scene/Camera.hpp>
@@ -20,7 +21,7 @@ class EventDispatcher;
 
 class InputManager {
 public:
-	InputManager();
+	InputManager(AppContext& appContext);
 	~InputManager() = default;
 
 
@@ -28,6 +29,8 @@ public:
 	inline Camera* getCamera() {
 		return m_camera.get();
 	}
+
+	void init();
 
 
 	/* GLFW keyboard input: Defer input processing to update loop.
@@ -54,17 +57,24 @@ public:
 	/* Processes mouse scroll. */
 	void processMouseScroll(double deltaX, double deltaY);
 
-private:
-	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 
+	bool isViewportInputAllowed();
+	bool isViewportFocused();
+	bool isViewportUnfocused();
+
+private:
+	AppContext& m_appContext;
+
+	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 	std::shared_ptr<Camera> m_camera;
+
 	std::set<int> m_pressedKeys;
+
+	std::unordered_map<int, Input::CameraMovement> m_keyToCamMovementBindings;
 
 	ImGuiIO& m_guiIO;
 
 	bool m_cursorLocked = false;
 
 	void bindEvents();
-
-	bool isViewportFocused();
 };

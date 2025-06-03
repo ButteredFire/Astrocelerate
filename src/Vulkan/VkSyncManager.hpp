@@ -25,7 +25,7 @@ public:
 	void init();
 
 	/* Creates a single-use fence.
-		@param vkContext: The application context.
+		@param vkContext: The Vulkan context.
 		@param signaled (Default: False): A boolean specifying whether the fence's initial state should be signaled (True), or not (False).
 
 		@return The fence in question.
@@ -34,7 +34,7 @@ public:
 
 
 	/* Waits for a single-use fence to be signaled. After waiting, the fence will be destroyed.
-		@param vkContext: The application context.
+		@param vkContext: The Vulkan context.
 		@param fence: The fence in question.
 		@param timeout: The fence wait time.
 	*/

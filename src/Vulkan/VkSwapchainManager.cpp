@@ -75,65 +75,6 @@ void VkSwapchainManager::recreateSwapchain() {
 }
 
 
-uint32_t VkSwapchainManager::createImageView(VulkanContext& vkContext, VkImage& image, VkImageView& imageView, VkFormat imgFormat, VkImageAspectFlags imgAspectFlags) {
-    std::shared_ptr<GarbageCollector> m_garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
-
-    VkImageViewCreateInfo viewCreateInfo{};
-    viewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    viewCreateInfo.image = image;
-
-    // Specifies how the data is interpreted
-    viewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D; // Treats m_images as 2D textures
-    viewCreateInfo.format = imgFormat; // Specifies image format
-
-    /* Defines how the color channels of the image should be interpreted (swizzling).
-    * In essence, swizzling remaps the color channels of the image to how they should be interpreted by the image view.
-    *
-    * Since we have already chosen an image format in getBestSurfaceFormat(...) as "VK_FORMAT_R8G8B8A8_SRGB" (which stores data in RGBA order), we leave the swizzle mappings as "identity" (i.e., unchanged). This means: Red maps to Red, Green maps to Green, Blue maps to Blue, and Alpha maps to Alpha.
-    *
-    * In cases where the image format differs from what the shaders or rendering pipeline expect, swizzling can be used to remap the channels.
-    * For instance, if we want to change our image format to "B8G8R8A8" (BGRA order instead of RGBA), we must swap the Red and Blue channels:
-    *
-    * componentMapping.r = VK_COMPONENT_SWIZZLE_B; // Red -> Blue (R -> B)
-    * componentMapping.g = VK_COMPONENT_SWIZZLE_IDENTITY; // Green value is the same (RG -> BG)
-    * componentMapping.b = VK_COMPONENT_SWIZZLE_R; // Blue -> Red (RGB -> BGR)
-    * componentMapping.a = VK_COMPONENT_SWIZZLE_IDENTITY; // Green value is the same (RGBA -> BGRA)
-    */
-    VkComponentMapping colorMappingStruct{};
-    colorMappingStruct.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-    colorMappingStruct.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-    colorMappingStruct.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-    colorMappingStruct.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-
-    viewCreateInfo.components = colorMappingStruct;
-
-    // Specifies the image's purpose and which part of it should be accessed
-    viewCreateInfo.subresourceRange.aspectMask = imgAspectFlags; // Images will be used as color targets
-    viewCreateInfo.subresourceRange.baseMipLevel = 0; // Images will have no mipmapping levels
-    viewCreateInfo.subresourceRange.levelCount = 1;
-    viewCreateInfo.subresourceRange.baseArrayLayer = 0; // Images will have no multiple layers
-    viewCreateInfo.subresourceRange.layerCount = 1;
-
-
-    VkResult result = vkCreateImageView(vkContext.Device.logicalDevice, &viewCreateInfo, nullptr, &imageView);
-    if (result != VK_SUCCESS) {
-        throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create image view!");
-    }
-
-
-    CleanupTask task{};
-    task.caller = __FUNCTION__;
-    task.objectNames = { VARIABLE_NAME(imageView) };
-    task.vkObjects = { vkContext.Device.logicalDevice, imageView };
-    task.cleanupFunc = [vkContext, imageView]() { vkDestroyImageView(vkContext.Device.logicalDevice, imageView, nullptr); };
-
-    uint32_t imageViewTaskID = m_garbageCollector->createCleanupTask(task);
-
-
-    return imageViewTaskID;
-}
-
-
 void VkSwapchainManager::createSwapChain() {
     SwapChainProperties swapChainProperties = getSwapChainProperties(m_vkContext.Device.physicalDevice, m_vkContext.vkSurface);
 
@@ -246,7 +187,8 @@ void VkSwapchainManager::createImageViews() {
     m_imageViews.resize(m_images.size());
 
     for (size_t i = 0; i < m_images.size(); i++) {
-        uint32_t viewCleanupID = createImageView(m_vkContext, m_images[i], m_imageViews[i], m_vkContext.SwapChain.surfaceFormat.format, VK_IMAGE_ASPECT_COLOR_BIT);
+        //uint32_t viewCleanupID = createImageView(m_vkContext, m_images[i], m_imageViews[i], m_vkContext.SwapChain.surfaceFormat.format, VK_IMAGE_ASPECT_COLOR_BIT);
+        uint32_t viewCleanupID = VkImageManager::CreateImageView(m_vkContext, m_imageViews[i], m_images[i], m_vkContext.SwapChain.surfaceFormat.format, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_VIEW_TYPE_2D, 1, 1);
 
         m_cleanupTaskIDs.push_back(viewCleanupID);
     }
@@ -257,41 +199,12 @@ void VkSwapchainManager::createFrameBuffers() {
     m_imageFrameBuffers.resize(m_imageViews.size());
 
     for (size_t i = 0; i < m_imageFrameBuffers.size(); i++) {
-        if (m_imageViews[i] == VK_NULL_HANDLE) {
-            throw Log::RuntimeException(__FUNCTION__, __LINE__, "Cannot read null image view!");
-        }
+        LOG_ASSERT((m_imageViews[i] != VK_NULL_HANDLE), "Cannot read null image view!");
 
-        VkImageView attachments[] = {
+        std::vector<VkImageView> attachments = {
             m_imageViews[i]
         };
-
-        VkFramebufferCreateInfo bufferCreateInfo{};
-        bufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        bufferCreateInfo.renderPass = m_vkContext.PresentPipeline.renderPass;
-        bufferCreateInfo.attachmentCount = (sizeof(attachments) / sizeof(VkImageView));
-        bufferCreateInfo.pAttachments = attachments;
-        bufferCreateInfo.width = m_vkContext.SwapChain.extent.width;
-        bufferCreateInfo.height = m_vkContext.SwapChain.extent.height;
-        bufferCreateInfo.layers = 1; // Refer to swapChainCreateInfo.imageArrayLayers in createSwapChain()
-
-
-        VkResult result = vkCreateFramebuffer(m_vkContext.Device.logicalDevice, &bufferCreateInfo, nullptr, &m_imageFrameBuffers[i]);
-
-        VkFramebuffer framebuffer = m_imageFrameBuffers[i];
-
-        CleanupTask task{};
-        task.caller = __FUNCTION__;
-        task.objectNames = { VARIABLE_NAME(m_framebuffer) };
-        task.vkObjects = { m_vkContext.Device.logicalDevice, framebuffer };
-        task.cleanupFunc = [this, framebuffer]() { vkDestroyFramebuffer(m_vkContext.Device.logicalDevice, framebuffer, nullptr); };
-
-        uint32_t framebufferTaskID = m_garbageCollector->createCleanupTask(task);
-        m_cleanupTaskIDs.push_back(framebufferTaskID);
-
-
-        if (result != VK_SUCCESS) {
-            throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create frame buffer for image #" + std::to_string(i) + "!");
-        }
+        VkImageManager::CreateFramebuffer(m_vkContext, m_imageFrameBuffers[i], m_vkContext.PresentPipeline.renderPass, attachments, m_vkContext.SwapChain.extent.width, m_vkContext.SwapChain.extent.height);
     }
 
     m_vkContext.SwapChain.imageFrameBuffers = m_imageFrameBuffers;
@@ -331,9 +244,7 @@ SwapChainProperties VkSwapchainManager::getSwapChainProperties(VkPhysicalDevice&
 
 
 VkSurfaceFormatKHR VkSwapchainManager::getBestSurfaceFormat(std::vector<VkSurfaceFormatKHR>& formats) {
-    if (formats.empty()) {
-        throw Log::RuntimeException(__FUNCTION__, __LINE__, "Unable to get surface formats from an empty vector!");
-    }
+    LOG_ASSERT(!formats.empty(), "Unable to get surface formats from an empty vector!");
 
     for (const auto& format : formats) {
         if (format.format == VK_FORMAT_R8G8B8A8_SRGB && format.colorSpace == VK_COLORSPACE_SRGB_NONLINEAR_KHR)

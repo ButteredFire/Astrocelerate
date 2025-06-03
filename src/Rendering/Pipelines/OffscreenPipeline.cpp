@@ -671,7 +671,7 @@ void OffscreenPipeline::initDepthBufferingResources() {
 
 
 	// Creates a depth image view
-	VkSwapchainManager::createImageView(m_vkContext, m_depthImage, m_depthImgView, depthFormat, imgAspectFlags);
+	VkImageManager::CreateImageView(m_vkContext, m_depthImgView, m_depthImage, depthFormat, imgAspectFlags, VK_IMAGE_VIEW_TYPE_2D, 1, 1);
 	m_vkContext.OffscreenPipeline.depthImageView = m_depthImgView;
 
 
@@ -715,6 +715,7 @@ void OffscreenPipeline::initOffscreenColorResources() {
 	m_vkContext.OffscreenResources.image = m_colorImage;
 	m_vkContext.OffscreenResources.imageView = m_colorImgView;
 }
+
 
 void OffscreenPipeline::initOffscreenSampler() {
 	VkSamplerCreateInfo samplerInfo{};

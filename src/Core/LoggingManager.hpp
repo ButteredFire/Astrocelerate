@@ -3,13 +3,16 @@
 #include <iostream>
 #include <string>
 #include <exception>
+#include <deque>
 #include <termcolor/termcolor.hpp>
 
 #include <Core/Constants.h>
 
 #define enquote(S) std::string(std::string("\"") + S + std::string("\""))
 #define enquoteCOUT(S) '"' << (S) << '"'
-#define VARIABLE_NAME(V) std::string(#V)
+#define VARIABLE_NAME(V) std::string((#V))
+#define BOOLALPHA(COND) ((COND) ? "true" : "false")
+#define BOOLALPHACAP(COND) ((COND) ? "True" : "False")
 
 // Usage: LOG_ASSERT(condition, message [, severity])
 #define LOG_ASSERT(cond, msg, ...) \
@@ -52,10 +55,34 @@ namespace Log {
 		T_SUCCESS
 	};
 
+
+	struct LogMessage {
+		MsgType type;				// The message type.
+		std::string displayType;	// The message type in the form of a string.
+		std::string caller;			// The origin of the message.
+		std::string message;		// The message content.
+	};
+
+
+	// The log buffer (used for logging to the GUI console)
+	extern std::deque<LogMessage> LogBuffer;
+	static constexpr size_t MAX_LOG_LINES = 500;
+
+
+	/* Adds a message to the log buffer.
+		@param logMsg: The message to be added to the log buffer.
+	*/
+	inline void AddToLogBuffer(LogMessage& logMsg) {
+		LogBuffer.push_back(logMsg);
+		if (LogBuffer.size() > MAX_LOG_LINES)
+			LogBuffer.pop_front();
+	}
+
+
 	/* Outputs a color to the output stream based on message type.
 		Optionally, set outputColor to False to get the message type (as a string).
 	*/
-	static void LogColor(MsgType type, std::string& msgType, bool outputColor = true) {
+	inline void LogColor(MsgType type, std::string& msgType, bool outputColor = true) {
 		switch (type) {
 			case T_VERBOSE:
 				msgType = "VERBOSE";
@@ -102,17 +129,25 @@ namespace Log {
 		@param message: The message to be logged.
 		@param newline (default: true): A boolean determining whether the message ends with a newline character (true), or not (false).
 	*/
-	static void Print(MsgType type, const char* caller, const std::string& message, bool newline = true) {
-		std::string msgType = "Unknown message type";
+	inline void Print(MsgType type, const char* caller, const std::string& message, bool newline = true) {
+		std::string displayType = "Unknown message type";
 		
-		LogColor(type, msgType);
+		LogColor(type, displayType);
 
-		std::cout << "[" << msgType << " @ " << caller << "]: " << message << ((newline) ? "\n" : "") << termcolor::reset;
+		std::cout << "[" << displayType << " @ " << caller << "]: " << message << ((newline) ? "\n" : "") << termcolor::reset;
+
+		LogMessage msg{};
+		msg.type = type;
+		msg.displayType = displayType;
+		msg.caller = caller;
+		msg.message = message;
+
+		AddToLogBuffer(msg);
 	}
 
 
 	/* Logs application information to the console. */
-	static void PrintAppInfo() {
+	inline void PrintAppInfo() {
 		std::cout << "Project " << APP_NAME << " (version: " << APP_VERSION << ").\n";
 		std::cout << "Project is run in ";
 		if (inDebugMode)
@@ -141,14 +176,26 @@ namespace Log {
 			std::cout << "\t- Compiler: Unknown\n";
 		#endif
 
-		std::cout << "\nCopyright (C) 2024-2025 " << AUTHOR << ".\n\n";
+		std::cout << "\nCopyright (c) 2024-2025 " << AUTHOR << ".\n\n";
 	}
 	
 
 	/* Custom RTE exception class that allows for origin specification. */
 	class RuntimeException : public std::exception {
 	public:
-		RuntimeException(const std::string& functionName, const int errLine, const std::string& message, MsgType severity = T_ERROR) : m_funcName(functionName), errLine(errLine), m_exceptionMessage(message), m_msgType(severity) {}
+		RuntimeException(const std::string& functionName, const int errLine, const std::string& message, MsgType severity = T_ERROR) : m_funcName(functionName), errLine(errLine), m_exceptionMessage(message), m_msgType(severity) {
+		
+			std::string displayType = "Unknown message type";
+			LogColor(m_msgType, displayType);
+
+			LogMessage msg{};
+			msg.type = m_msgType;
+			msg.displayType = displayType;
+			msg.caller = m_funcName;
+			msg.message = m_exceptionMessage;
+
+			AddToLogBuffer(msg);
+		}
 
 		/* Gets the name of the origin from which the exception was raised. 
 			@return The name of the origin.

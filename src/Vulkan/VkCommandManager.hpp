@@ -102,7 +102,7 @@ public:
 
 
 	/* Stops recording a single-use/anonymous command buffer and submit its data to the GPU.
-		@param vkContext: The application context.
+		@param vkContext: The Vulkan context.
 		@param commandBufInfo: The command buffer configuration.
 		@param cmdBuffer: The command buffer.
 	*/
@@ -110,7 +110,7 @@ public:
 
 
 	/* Creates a command pool.
-		@param vkContext: The application context.
+		@param vkContext: The Vulkan context.
 		@param device: The logical device.
 		@param queueFamilyIndex: The index of the queue family for which the command pool is to be created.
 		@param flags (Default: VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT): The command pool flags.

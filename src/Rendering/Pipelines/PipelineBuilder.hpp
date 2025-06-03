@@ -18,20 +18,20 @@ public:
 	};
 	~PipelineBuilder() = default;
 
-	VkPipelineDynamicStateCreateInfo* dynamicStateCreateInfo;
-    VkPipelineInputAssemblyStateCreateInfo* inputAssemblyCreateInfo;
-	VkPipelineViewportStateCreateInfo* viewportStateCreateInfo;
-    VkPipelineRasterizationStateCreateInfo* rasterizerCreateInfo;
-    VkPipelineMultisampleStateCreateInfo* multisampleStateCreateInfo;
-	VkPipelineDepthStencilStateCreateInfo* depthStencilStateCreateInfo;
-	VkPipelineColorBlendStateCreateInfo* colorBlendStateCreateInfo;
-	VkPipelineTessellationStateCreateInfo* tessellationStateCreateInfo;
-	VkPipelineVertexInputStateCreateInfo* vertexInputStateCreateInfo;
+	VkPipelineDynamicStateCreateInfo* dynamicStateCreateInfo = nullptr;
+    VkPipelineInputAssemblyStateCreateInfo* inputAssemblyCreateInfo = nullptr;
+	VkPipelineViewportStateCreateInfo* viewportStateCreateInfo = nullptr;
+    VkPipelineRasterizationStateCreateInfo* rasterizerCreateInfo = nullptr;
+    VkPipelineMultisampleStateCreateInfo* multisampleStateCreateInfo = nullptr;
+	VkPipelineDepthStencilStateCreateInfo* depthStencilStateCreateInfo = nullptr;
+	VkPipelineColorBlendStateCreateInfo* colorBlendStateCreateInfo = nullptr;
+	VkPipelineTessellationStateCreateInfo* tessellationStateCreateInfo = nullptr;
+	VkPipelineVertexInputStateCreateInfo* vertexInputStateCreateInfo = nullptr;
 
     std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
 
     VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
-    VkRenderPass renderPass;
+    VkRenderPass renderPass = VK_NULL_HANDLE;
 	
 
 	inline VkPipeline buildGraphicsPipeline(VkDevice& logicalDevice) {

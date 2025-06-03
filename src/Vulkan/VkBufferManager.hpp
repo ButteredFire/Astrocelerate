@@ -93,7 +93,7 @@ public:
 
 
     /* Creates a buffer.
-        @param vkContext: The application context.
+        @param vkContext: The Vulkan context.
         @param &buffer: The buffer to be created.
         @param bufferSize: The size of the buffer (in bytes).
         @param usageFlags: Flags specifying how the buffer will be used.
