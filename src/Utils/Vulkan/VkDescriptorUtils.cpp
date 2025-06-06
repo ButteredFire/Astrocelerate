@@ -1,7 +1,7 @@
 #include "VkDescriptorUtils.hpp"
 
 
-void VkDescriptorUtils::CreateDescriptorPool(VulkanContext& vkContext, VkDescriptorPool& descriptorPool, std::vector<VkDescriptorPoolSize> poolSizes, VkDescriptorPoolCreateFlags createFlags) {
+void VkDescriptorUtils::CreateDescriptorPool(VkDescriptorPool& descriptorPool, std::vector<VkDescriptorPoolSize> poolSizes, VkDescriptorPoolCreateFlags createFlags) {
 	std::shared_ptr<GarbageCollector> garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
 
 	VkDescriptorPoolCreateInfo descPoolCreateInfo{};
@@ -15,13 +15,13 @@ void VkDescriptorUtils::CreateDescriptorPool(VulkanContext& vkContext, VkDescrip
 	//descPoolCreateInfo.maxSets = maxDescriptorSetCount;
 	descPoolCreateInfo.maxSets = 100;
 
-	VkResult result = vkCreateDescriptorPool(vkContext.Device.logicalDevice, &descPoolCreateInfo, nullptr, &descriptorPool);
+	VkResult result = vkCreateDescriptorPool(g_vkContext.Device.logicalDevice, &descPoolCreateInfo, nullptr, &descriptorPool);
 
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(descriptorPool) };
-	task.vkObjects = { vkContext.Device.logicalDevice, descriptorPool };
-	task.cleanupFunc = [device = vkContext.Device.logicalDevice, descriptorPool]() {
+	task.vkObjects = { g_vkContext.Device.logicalDevice, descriptorPool };
+	task.cleanupFunc = [device = g_vkContext.Device.logicalDevice, descriptorPool]() {
 		vkDestroyDescriptorPool(device, descriptorPool, nullptr);
 	};
 

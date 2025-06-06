@@ -5,6 +5,7 @@
 
 #include <vector>
 #include <optional>
+#include <iostream>
 
 
 /* Rationale behind using std::optional<uint32_t> instead of uint32_t:

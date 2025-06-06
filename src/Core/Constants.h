@@ -99,6 +99,25 @@ namespace ConfigConsts {
 }
 
 
+// Fonts
+namespace FontConsts {
+	struct {
+		const std::string BLACK				= std::string(APP_SOURCE_DIR) + std::string("/assets/Fonts/Roboto/Roboto-Black.ttf");
+		const std::string BLACK_ITALIC		= std::string(APP_SOURCE_DIR) + std::string("/assets/Fonts/Roboto/Roboto-BlackItalic.ttf");
+		const std::string BOLD				= std::string(APP_SOURCE_DIR) + std::string("/assets/Fonts/Roboto/Roboto-Bold.ttf");
+		const std::string BOLD_ITALIC		= std::string(APP_SOURCE_DIR) + std::string("/assets/Fonts/Roboto/Roboto-BoldItalic.ttf");
+		const std::string ITALIC			= std::string(APP_SOURCE_DIR) + std::string("/assets/Fonts/Roboto/Roboto-Italic.ttf");
+		const std::string LIGHT				= std::string(APP_SOURCE_DIR) + std::string("/assets/Fonts/Roboto/Roboto-Light.ttf");
+		const std::string LIGHT_ITALIC		= std::string(APP_SOURCE_DIR) + std::string("/assets/Fonts/Roboto/Roboto-LightItalic.ttf");
+		const std::string MEDIUM			= std::string(APP_SOURCE_DIR) + std::string("/assets/Fonts/Roboto/Roboto-Medium.ttf");
+		const std::string MEDIUM_ITALIC		= std::string(APP_SOURCE_DIR) + std::string("/assets/Fonts/Roboto/Roboto-MediumItalic.ttf");
+		const std::string REGULAR			= std::string(APP_SOURCE_DIR) + std::string("/assets/Fonts/Roboto/Roboto-Regular.ttf");
+		const std::string THIN				= std::string(APP_SOURCE_DIR) + std::string("/assets/Fonts/Roboto/Roboto-Thin.ttf");
+		const std::string THIN_ITALIC		= std::string(APP_SOURCE_DIR) + std::string("/assets/Fonts/Roboto/Roboto-ThinItalic.ttf");
+	} Roboto;
+}
+
+
 // Gamma correction constants
 namespace Gamma {
 	constexpr float THRESHOLD = 0.04045f;

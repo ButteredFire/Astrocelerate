@@ -1,8 +1,6 @@
 ﻿#include "UIPanelManager.hpp"
 
-UIPanelManager::UIPanelManager(VulkanContext& vkContext, AppContext& appContext):
-	m_vkContext(vkContext),
-	m_appContext(appContext) {
+UIPanelManager::UIPanelManager() {
 
 	m_garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
 	m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
@@ -35,7 +33,7 @@ UIPanelManager::UIPanelManager(VulkanContext& vkContext, AppContext& appContext)
 void UIPanelManager::bindEvents() {
 	m_eventDispatcher->subscribe<Event::GUIContextIsValid>(
 		[this](const Event::GUIContextIsValid& event) {
-			initViewportTextureDescriptorSet();
+			this->onImGuiInit();
 		}
 	);
 
@@ -44,6 +42,13 @@ void UIPanelManager::bindEvents() {
 			m_inputManager = ServiceLocator::GetService<InputManager>(__FUNCTION__);
 		}
 	);
+}
+
+
+void UIPanelManager::onImGuiInit() {
+	initViewportTextureDescriptorSet();
+
+	//setFocusedPanel(GUI::PanelFlag::PANEL_VIEWPORT);
 }
 
 
@@ -69,13 +74,23 @@ void UIPanelManager::initPanelsFromMask(GUI::PanelMask& mask) {
 }
 
 
-void UIPanelManager::updatePanels() {
+void UIPanelManager::updatePanels(uint32_t currentFrame) {
+	m_currentFrame = currentFrame;
 	renderPanelsMenu();
 
 	for (auto&& [flag, callback] : m_panelCallbacks) {
-		if (GUI::IsPanelOpen(m_panelMask, flag))
+		if (GUI::IsPanelOpen(m_panelMask, flag)) {
+			//if (m_currentFocusedPanel == flag) {
+			//	ImGui::SetNextWindowFocus();
+			//	(this->*callback)();
+			//	m_currentFocusedPanel = GUI::PanelFlag::NULL_PANEL;
+			//}
+			//else
 			(this->*callback)();
+		}
 	}
+
+	//Log::Print(Log::T_WARNING, __FUNCTION__, "Currently focused panel: " + std::string(GUI::GetPanelName(m_currentFocusedPanel)));
 
 
 	// This window will capture all input and prevent interaction with other widgets
@@ -98,7 +113,9 @@ void UIPanelManager::updatePanels() {
 
 void UIPanelManager::renderMenuBar() {
 	if (ImGui::BeginMenuBar()) {
+		ImGui::PushFont(g_fontContext.Roboto.light);
 		ImGui::Text("%s (version %s). Copyright (c) 2024-2025 %s.", APP_NAME, APP_VERSION, AUTHOR);
+		ImGui::PopFont();
 
 		/*
 		if (ImGui::BeginMenu("File")) {
@@ -127,6 +144,41 @@ void UIPanelManager::renderMenuBar() {
 }
 
 
+void UIPanelManager::performBackgroundChecks(GUI::PanelFlag flag) {
+	{
+		static uint32_t panelsChecked = 0;
+		static bool initialCheckCompleted = false;
+		static bool populatedMap = false;
+		static std::unordered_map<GUI::PanelFlag, bool> panelHasCheckFunc;
+
+		if (!initialCheckCompleted) {
+			if (!populatedMap) {
+				for (size_t i = 0; i < SIZE_OF(GUI::PanelFlagsArray); i++) {
+					panelHasCheckFunc[GUI::PanelFlagsArray[i]] = false;
+				}
+				populatedMap = true;
+			}
+
+			panelHasCheckFunc[flag] = true;
+			panelsChecked++;
+			std::cout;
+		}
+
+		if (panelsChecked == SIZE_OF(GUI::PanelFlagsArray)) {
+			for (auto& [flag, hasCheckFunc] : panelHasCheckFunc)
+				LOG_ASSERT(hasCheckFunc, "Render function for panel " + enquote(GUI::GetPanelName(flag)) + " does not perform background checks! Please include the background check function between ImGui::Begin(...) and ImGui::End() (preferably right after the former).");
+
+			initialCheckCompleted = true;
+		}
+	}
+
+
+
+	if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows))
+		m_currentFocusedPanel = flag;
+}
+
+
 void UIPanelManager::bindPanelFlags() {
 	using namespace GUI;
 
@@ -142,11 +194,15 @@ void UIPanelManager::bindPanelFlags() {
 
 
 void UIPanelManager::initViewportTextureDescriptorSet() {
-	m_viewportRenderTextureID = (ImTextureID) ImGui_ImplVulkan_AddTexture(
-		m_vkContext.OffscreenResources.sampler,
-		m_vkContext.OffscreenResources.imageView,
-		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-	);
+	m_viewportRenderTextureIDs.resize(SimulationConsts::MAX_FRAMES_IN_FLIGHT);
+
+	for (size_t i = 0; i < SimulationConsts::MAX_FRAMES_IN_FLIGHT; i++) {
+		m_viewportRenderTextureIDs[i] = (ImTextureID)ImGui_ImplVulkan_AddTexture(
+			g_vkContext.OffscreenResources.samplers[i],
+			g_vkContext.OffscreenResources.imageViews[i],
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+		);
+	}
 }
 
 
@@ -177,16 +233,33 @@ void UIPanelManager::renderViewportPanel() {
 
 	ImGui::Begin(GUI::GetPanelName(flag), nullptr, m_windowFlags);		// This panel must be docked
 	{
+		performBackgroundChecks(flag);
+
 		ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
-		m_appContext.Input.isViewportHoveredOver = ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows) || m_inputBlockerIsOn;
-		m_appContext.Input.isViewportFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) || m_inputBlockerIsOn;
+
+		// If the viewport panel size has changed, resize the viewport
+		//viewportPanelSize.x != m_lastViewportPanelSize.x || viewportPanelSize.y != m_lastViewportPanelSize.y
+		if (ImGui::Button("Resize")) {
+			Log::Print(Log::T_WARNING, __FUNCTION__, "Resize initiated.");
+			m_lastViewportPanelSize = viewportPanelSize;
+
+			m_eventDispatcher->publish(Event::ViewportIsResized{
+				.currentFrame = m_currentFrame,
+				.newWidth = static_cast<uint32_t>(viewportPanelSize.x),
+				.newHeight = static_cast<uint32_t>(viewportPanelSize.y)
+			});
+		}
+
+
+		g_appContext.Input.isViewportHoveredOver = ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows) || m_inputBlockerIsOn;
+		g_appContext.Input.isViewportFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) || m_inputBlockerIsOn;
 
 		//ImGui::Text("Panel size: (%.2f, %.2f)", viewportPanelSize.x, viewportPanelSize.y);
 
 
 		VkDescriptorImageInfo imageInfo{};
-		imageInfo.imageView = m_vkContext.OffscreenResources.imageView;
-		imageInfo.sampler = m_vkContext.OffscreenResources.sampler;
+		imageInfo.imageView = g_vkContext.OffscreenResources.imageViews[m_currentFrame];
+		imageInfo.sampler = g_vkContext.OffscreenResources.samplers[m_currentFrame];
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 		VkWriteDescriptorSet imageDescSetWrite{};
@@ -194,12 +267,12 @@ void UIPanelManager::renderViewportPanel() {
 		imageDescSetWrite.dstBinding = 0;
 		imageDescSetWrite.descriptorCount = 1;
 		imageDescSetWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		imageDescSetWrite.dstSet = (VkDescriptorSet)m_viewportRenderTextureID;
+		imageDescSetWrite.dstSet = (VkDescriptorSet)m_viewportRenderTextureIDs[m_currentFrame];
 		imageDescSetWrite.pImageInfo = &imageInfo;
 
-		vkUpdateDescriptorSets(m_vkContext.Device.logicalDevice, 1, &imageDescSetWrite, 0, nullptr);
+		vkUpdateDescriptorSets(g_vkContext.Device.logicalDevice, 1, &imageDescSetWrite, 0, nullptr);
 
-		ImGui::Image(m_viewportRenderTextureID, viewportPanelSize);
+		ImGui::Image(m_viewportRenderTextureIDs[m_currentFrame], viewportPanelSize);
 	}
 	ImGui::End();
 }
@@ -211,6 +284,8 @@ void UIPanelManager::renderTelemetryPanel() {
 
 	ImGui::Begin(GUI::GetPanelName(flag), nullptr, m_windowFlags);
 	{
+		performBackgroundChecks(flag);
+
 		auto view = m_registry->getView<Component::RigidBody, Component::ReferenceFrame>();
 		size_t entityCount = 0;
 
@@ -226,13 +301,20 @@ void UIPanelManager::renderTelemetryPanel() {
 			// --- Rigid-body Entity Debug Info ---
 			if (ImGui::CollapsingHeader("Rigid-body Entity Debug Info")) {
 				float velocityAbs = glm::length(rigidBody.velocity);
+				ImGui::PushFont(g_fontContext.Roboto.bold);
 				ImGui::Text("\tVelocity:");
+				ImGui::PopFont();
+
 				ImGui::Text("\t\tVector: (x: %.2f, y: %.2f, z: %.2f)", rigidBody.velocity.x, rigidBody.velocity.y, rigidBody.velocity.z);
 				ImGui::Text("\t\tAbsolute: |v| ~= %.4f m/s", velocityAbs);
 
+				ImGui::Dummy(ImVec2(0.5f, 0.5f));
 
 				float accelerationAbs = glm::length(rigidBody.acceleration);
+				ImGui::PushFont(g_fontContext.Roboto.bold);
 				ImGui::Text("\tAcceleration:");
+				ImGui::PopFont();
+
 				ImGui::Text("\t\tVector: (x: %.2f, y: %.2f, z: %.2f)", rigidBody.acceleration.x, rigidBody.acceleration.y, rigidBody.acceleration.z);
 				ImGui::Text("\t\tAbsolute: |a| ~= %.4f m/s^2", accelerationAbs);
 
@@ -251,12 +333,14 @@ void UIPanelManager::renderTelemetryPanel() {
 			// --- Reference Frame Entity Debug Info ---
 			if (ImGui::CollapsingHeader("Reference Frame Entity Debug Info")) {
 				// Parent ID
+				ImGui::PushFont(g_fontContext.Roboto.bold);
 				if (refFrame.parentID.has_value()) {
 					ImGui::Text("\tParent Entity ID: %d", refFrame.parentID.value());
 				}
 				else {
 					ImGui::Text("\tParent Entity ID: None");
 				}
+				ImGui::PopFont();
 
 				ImGui::Text("\t\tScale (simulation): %.10f m (radius)",
 					refFrame.scale);
@@ -264,7 +348,10 @@ void UIPanelManager::renderTelemetryPanel() {
 					SpaceUtils::GetRenderableScale(SpaceUtils::ToRenderSpace(refFrame.scale)));
 
 				// Local Transform
+				ImGui::PushFont(g_fontContext.Roboto.bold);
 				ImGui::Text("\tLocal Transform:");
+				ImGui::PopFont();
+
 				ImGui::Text("\t\tPosition: (x: %.2f, y: %.2f, z: %.2f)",
 					refFrame.localTransform.position.x,
 					refFrame.localTransform.position.y,
@@ -278,7 +365,10 @@ void UIPanelManager::renderTelemetryPanel() {
 					refFrame.localTransform.rotation.w);
 
 				// Global Transform
+				ImGui::PushFont(g_fontContext.Roboto.bold);
 				ImGui::Text("\tGlobal Transform (normalized):");
+				ImGui::PopFont();
+				
 				ImGui::Text("\t\tPosition: (x: %.2f, y: %.2f, z: %.2f)",
 					refFrame.globalTransform.position.x,
 					refFrame.globalTransform.position.y,
@@ -313,6 +403,8 @@ void UIPanelManager::renderEntityInspectorPanel() {
 
 	ImGui::Begin(GUI::GetPanelName(flag), nullptr, m_windowFlags);
 	{
+		performBackgroundChecks(flag);
+
 		ImGui::TextWrapped("Pushing the boundaries of space exploration, one line of code at a time.");
 	}
 	ImGui::End();
@@ -325,7 +417,11 @@ void UIPanelManager::renderSimulationControlPanel() {
 
 	ImGui::Begin(GUI::GetPanelName(flag), nullptr, m_windowFlags);
 	{
-		ImGui::TextWrapped("Pushing the boundaries of space exploration, one line of code at a time.");
+		performBackgroundChecks(flag);
+
+		static float timeScale = Time::GetTimeScale();
+		ImGui::DragFloat("Time scale", &timeScale, 100.0f, 1.0f, 1e5f);
+		Time::SetTimeScale(timeScale);
 	}
 	ImGui::End();
 }
@@ -337,6 +433,8 @@ void UIPanelManager::renderRenderSettingsPanel() {
 
 	ImGui::Begin(GUI::GetPanelName(flag), nullptr, m_windowFlags);
 	{
+		performBackgroundChecks(flag);
+
 		ImGui::TextWrapped("Pushing the boundaries of space exploration, one line of code at a time.");
 	}
 	ImGui::End();
@@ -349,6 +447,8 @@ void UIPanelManager::renderOrbitalPlannerPanel() {
 
 	ImGui::Begin(GUI::GetPanelName(flag), nullptr, m_windowFlags);
 	{
+		performBackgroundChecks(flag);
+
 		ImGui::TextWrapped("Pushing the boundaries of space exploration, one line of code at a time.");
 	}
 	ImGui::End();
@@ -366,13 +466,15 @@ void UIPanelManager::renderDebugConsole() {
 
 	ImGui::Begin(GUI::GetPanelName(flag), nullptr, m_windowFlags);
 	{
+		performBackgroundChecks(flag);
+
 		const float buttonHeight = ImGui::GetFrameHeight();
 		const float spacing = ImGui::GetStyle().ItemSpacing.y;
 		ImVec2 avail = ImGui::GetContentRegionAvail();
 		ImVec2 scrollRegionSize = ImVec2(avail.x, avail.y - buttonHeight - spacing);
 
-
-		ImGui::BeginChild("ConsoleScrollRegion", scrollRegionSize, true, ImGuiWindowFlags_HorizontalScrollbar);
+		// Optional flag: ImGuiWindowFlags_HorizontalScrollbar
+		ImGui::BeginChild("ConsoleScrollRegion", scrollRegionSize, true, m_windowFlags);
 		{
 			notAtBottom = (ImGui::GetScrollY() < ImGui::GetScrollMaxY() - 1.0f);
 
@@ -389,7 +491,6 @@ void UIPanelManager::renderDebugConsole() {
 
 			// Auto-scroll to bottom once on switching to this panel
 			if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootWindow) && !scrolledOnWindowFocus) {
-				std::cout << "Scrolled once\n";
 				ImGui::SetScrollHereY(1.0f);
 				scrolledOnWindowFocus = true;
 			}
@@ -428,10 +529,12 @@ void UIPanelManager::renderDebugInput() {
 
 	ImGui::Begin(GUI::GetPanelName(flag), nullptr, m_windowFlags);
 	{
+		performBackgroundChecks(flag);
+
 		ImGui::Text("Viewport:");
 		{
-			ImGui::BulletText("Hovered over: %s", BOOLALPHACAP(m_appContext.Input.isViewportHoveredOver));
-			ImGui::BulletText("Focused: %s", BOOLALPHACAP(m_appContext.Input.isViewportFocused));
+			ImGui::BulletText("Hovered over: %s", BOOLALPHACAP(g_appContext.Input.isViewportHoveredOver));
+			ImGui::BulletText("Focused: %s", BOOLALPHACAP(g_appContext.Input.isViewportFocused));
 			ImGui::BulletText("Input blocker on: %s", BOOLALPHACAP(m_inputBlockerIsOn));
 		}
 

@@ -11,7 +11,7 @@
 #include <Core/ServiceLocator.hpp>
 #include <Core/EventDispatcher.hpp>
 
-#include <CoreStructs/Contexts.hpp>
+#include <CoreStructs/Contexts/VulkanContext.hpp>
 #include <CoreStructs/Buffer.hpp>
 
 #include <Engine/Components/RenderComponents.hpp>
@@ -27,12 +27,10 @@ class VkBufferManager;
 
 class RenderSystem {
 public:
-	RenderSystem(VulkanContext& context);
+	RenderSystem();
 	~RenderSystem() = default;
 
 private:
-	VulkanContext& m_vkContext;
-
 	std::shared_ptr<Registry> m_registry;
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 	std::shared_ptr<VkBufferManager> m_bufferManager;
@@ -48,5 +46,5 @@ private:
 
 
 	/* Processes the GUI. */
-	void processGUIRenderable(const VkCommandBuffer& cmdBuffer, const Component::GUIRenderable& renderable);
+	void processGUIRenderable(const VkCommandBuffer& cmdBuffer, const Component::GUIRenderable& renderable, uint32_t currentFrame);
 };

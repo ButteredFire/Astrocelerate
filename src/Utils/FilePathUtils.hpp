@@ -79,9 +79,7 @@ namespace FilePathUtils {
 
 
 		// If file is incomplete/not read successfully
-		if (!file) {
-			throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to read file " + enquote(filePath) + "!");
-		}
+		LOG_ASSERT(file, "Failed to read file " + enquote(filePath) + "!");
 
 		file.close();
 

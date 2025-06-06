@@ -6,13 +6,16 @@
 #include <bitset>  
 #include <unordered_map>
 
+#include <imgui/imgui.h>
+
 
 namespace GUI {  
 	constexpr uint32_t MAX_PANEL_COUNT = 32;  
 	using PanelMask = std::bitset<MAX_PANEL_COUNT>;  
 
 	enum class PanelFlag {
-		PANEL_VIEWPORT = 0,
+		NULL_PANEL = 0,
+		PANEL_VIEWPORT,
 		PANEL_TELEMETRY,  
 		PANEL_ENTITY_INSPECTOR,  
 		PANEL_SIMULATION_CONTROL,  
@@ -34,6 +37,7 @@ namespace GUI {
 	};
 
 
+	// IMPORTANT: Panel flag names must be unique, since they will be used as ImGui IDs.
 	const std::unordered_map<PanelFlag, std::string> PanelNames = {
 		{PanelFlag::PANEL_VIEWPORT,					"Viewport"},
 		{PanelFlag::PANEL_TELEMETRY,				"Telemetry Data"},

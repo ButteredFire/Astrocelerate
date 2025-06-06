@@ -28,7 +28,7 @@
 #include <Core/LoggingManager.hpp>
 #include <Core/GarbageCollector.hpp>
 #include <Core/ServiceLocator.hpp>
-#include <CoreStructs/Contexts.hpp>
+#include <CoreStructs/Contexts/VulkanContext.hpp>
 
 
 
@@ -47,7 +47,7 @@ inline bool ScoreComparator(const PhysicalDeviceScoreProperties& s1, const Physi
 
 class VkDeviceManager {
 public:
-	VkDeviceManager(VulkanContext& context);
+	VkDeviceManager();
 	~VkDeviceManager();
 
 	/* Initializes the device creation process. */
@@ -62,7 +62,6 @@ public:
 
 private:
 	VkInstance m_vulkInst = VK_NULL_HANDLE;
-	VulkanContext& m_vkContext;
 	std::shared_ptr<GarbageCollector> m_garbageCollector;
 
 	VmaAllocator m_vmaAllocator = VK_NULL_HANDLE;

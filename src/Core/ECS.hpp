@@ -333,7 +333,7 @@ private:
 		@return The newly created component mask.
 	*/
 	template<typename... SpecifiedComponents>
-	inline ComponentMask& buildComponentMask() {
+	inline ComponentMask buildComponentMask() {
 		ComponentMask mask{};
 		(mask.set(ComponentTypeID::get<SpecifiedComponents>()), ...);
 		return mask;

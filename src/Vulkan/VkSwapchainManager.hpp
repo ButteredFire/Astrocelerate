@@ -21,7 +21,7 @@
 #include <Core/GarbageCollector.hpp>
 #include <Core/ServiceLocator.hpp>
 #include <Core/Constants.h>
-#include <CoreStructs/Contexts.hpp>
+#include <CoreStructs/Contexts/VulkanContext.hpp>
 #include <Core/EventDispatcher.hpp>
 
 #include <Vulkan/VkImageManager.hpp>
@@ -37,8 +37,8 @@ typedef struct SwapChainProperties {
 
 class VkSwapchainManager {
 public:
-	VkSwapchainManager(VulkanContext& context);
-	~VkSwapchainManager();
+	VkSwapchainManager();
+	~VkSwapchainManager() = default;
 
 	/* Initializes the swap-chain manager. */
 	void init();
@@ -49,7 +49,7 @@ public:
 
 
 	/* Recreates the swap-chain. */
-	void recreateSwapchain();
+	void recreateSwapchain(uint32_t currentFrame);
 
 
 	/* Queries the properties of a GPU's swap-chain.
@@ -61,8 +61,6 @@ public:
 	static SwapChainProperties getSwapChainProperties(VkPhysicalDevice& device, VkSurfaceKHR& surface);
 
 private:
-	VulkanContext& m_vkContext;
-
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 	std::shared_ptr<GarbageCollector> m_garbageCollector;
 	std::vector<uint32_t> m_cleanupTaskIDs; // Stores cleanup task IDs (used exclusively in the swap-chain recreation process)
@@ -74,6 +72,7 @@ private:
 
 	std::vector<VkFramebuffer> m_imageFrameBuffers;
 
+	void bindEvents();
 
 	/* Creates a swap-chain. */
 	void createSwapChain();
@@ -90,7 +89,6 @@ private:
 		The "VkImage + VkImageView" concept is conceptually akin to OpenGL's "Vertex Buffer + Vertex Buffer Layout".
 	*/
 	void createImageViews();
-
 
 
 	/* Gets the surface format that is the most suitable for Astrocelerate.

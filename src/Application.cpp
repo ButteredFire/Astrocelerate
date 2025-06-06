@@ -6,7 +6,9 @@
 #include <Core/ServiceLocator.hpp>
 #include <Core/Constants.h>
 
-#include <CoreStructs/Contexts.hpp>
+#include <CoreStructs/Contexts/VulkanContext.hpp>
+#include <CoreStructs/Contexts/AppContext.hpp>
+#include <CoreStructs/Contexts/CallbackContext.hpp>
 
 #include <iostream>
 #include <stdexcept>
@@ -21,15 +23,13 @@ int main() {
     Log::PrintAppInfo();
 
     // Contexts
-    VulkanContext vkContext{};
-    AppContext appContext{};
     CallbackContext* callbackContext = new CallbackContext{};
 
 
     // Creates a window
     Window window(WIN_WIDTH, WIN_HEIGHT, APP_NAME);
     GLFWwindow *windowPtr = window.getGLFWwindowPtr();
-    vkContext.window = windowPtr;
+    g_vkContext.window = windowPtr;
 
     window.initGLFWBindings(callbackContext);
 
@@ -39,7 +39,7 @@ int main() {
 
 
     // Garbage collector
-    std::shared_ptr<GarbageCollector> garbageCollector = std::make_shared<GarbageCollector>(vkContext);
+    std::shared_ptr<GarbageCollector> garbageCollector = std::make_shared<GarbageCollector>();
     ServiceLocator::RegisterService(garbageCollector);
 
 
@@ -48,56 +48,56 @@ int main() {
     ServiceLocator::RegisterService(globalRegistry);
 
 
-    // Texture manager
-    std::shared_ptr<TextureManager> textureManager = std::make_shared<TextureManager>(vkContext);
-    ServiceLocator::RegisterService(textureManager);
+    try {
+        // Texture manager
+        std::shared_ptr<TextureManager> textureManager = std::make_shared<TextureManager>();
+        ServiceLocator::RegisterService(textureManager);
 
 
-    // GUI panel manager
-    std::shared_ptr<UIPanelManager> uiPanelManager = std::make_shared<UIPanelManager>(vkContext, appContext);
-    ServiceLocator::RegisterService(uiPanelManager);
+        // GUI panel manager
+        std::shared_ptr<UIPanelManager> uiPanelManager = std::make_shared<UIPanelManager>();
+        ServiceLocator::RegisterService(uiPanelManager);
 
     
-    // Subpass binder
-    std::shared_ptr<SubpassBinder> subpassBinder = std::make_shared<SubpassBinder>();
-    ServiceLocator::RegisterService(subpassBinder);
+        // Subpass binder
+        std::shared_ptr<SubpassBinder> subpassBinder = std::make_shared<SubpassBinder>();
+        ServiceLocator::RegisterService(subpassBinder);
 
 
-    // Camera
-    glm::dvec3 cameraPosition = glm::vec3(20e6f, 1.5005e+11f, 0.0f);
-    std::shared_ptr<Camera> camera = std::make_shared<Camera>(
-        windowPtr,
-        SpaceUtils::ToRenderSpace(cameraPosition),
-        glm::quat()
-    );
-    ServiceLocator::RegisterService(camera);
+        // Camera
+        glm::dvec3 cameraPosition = glm::vec3(20e6f, 1.5005e+11f, 0.0f);
+        std::shared_ptr<Camera> camera = std::make_shared<Camera>(
+            windowPtr,
+            SpaceUtils::ToRenderSpace(cameraPosition),
+            glm::quat()
+        );
+        ServiceLocator::RegisterService(camera);
 
 
-    try {
         // Pipeline initialization
 
-        Engine engine(windowPtr, vkContext);
+        Engine engine(windowPtr);
         engine.initComponents();
 
 
             // Instance manager
-        VkInstanceManager instanceManager(vkContext);
+        VkInstanceManager instanceManager;
         instanceManager.init();
 
 
             // Device manager
-        VkDeviceManager deviceManager(vkContext);
+        VkDeviceManager deviceManager;
         deviceManager.init();
 
 
             // Swap-chain manager
-        std::shared_ptr<VkSwapchainManager> swapchainManager = std::make_shared<VkSwapchainManager>(vkContext);
+        std::shared_ptr<VkSwapchainManager> swapchainManager = std::make_shared<VkSwapchainManager>();
         ServiceLocator::RegisterService(swapchainManager);
         swapchainManager->init();
 
 
             // Command manager
-        std::shared_ptr<VkCommandManager> commandManager = std::make_shared<VkCommandManager>(vkContext);
+        std::shared_ptr<VkCommandManager> commandManager = std::make_shared<VkCommandManager>();
         ServiceLocator::RegisterService(commandManager);
         commandManager->init();
 
@@ -115,7 +115,7 @@ int main() {
 
 
             // Buffer manager
-        std::shared_ptr<VkBufferManager> m_bufferManager = std::make_shared<VkBufferManager>(vkContext);
+        std::shared_ptr<VkBufferManager> m_bufferManager = std::make_shared<VkBufferManager>();
         ServiceLocator::RegisterService(m_bufferManager);
         m_bufferManager->init();
 
@@ -124,38 +124,38 @@ int main() {
         
 
             // Pipelines
-        std::shared_ptr<OffscreenPipeline> offscreenPipeline = std::make_shared<OffscreenPipeline>(vkContext);
+        std::shared_ptr<OffscreenPipeline> offscreenPipeline = std::make_shared<OffscreenPipeline>();
         ServiceLocator::RegisterService(offscreenPipeline);
         offscreenPipeline->init();
 
-        std::shared_ptr<PresentPipeline> presentPipeline = std::make_shared<PresentPipeline>(vkContext);
+        std::shared_ptr<PresentPipeline> presentPipeline = std::make_shared<PresentPipeline>();
         ServiceLocator::RegisterService(presentPipeline);
         presentPipeline->init();
 
 
             // Synchronization manager
-        std::shared_ptr<VkSyncManager> syncManager = std::make_shared<VkSyncManager>(vkContext);
+        std::shared_ptr<VkSyncManager> syncManager = std::make_shared<VkSyncManager>();
         ServiceLocator::RegisterService(syncManager);
         syncManager->init();
 
 
             // Renderers
-        std::shared_ptr<UIRenderer> uiRenderer = std::make_shared<UIRenderer>(vkContext);
+        std::shared_ptr<UIRenderer> uiRenderer = std::make_shared<UIRenderer>();
         ServiceLocator::RegisterService(uiRenderer);
 
                 // Input (only usable after ImGui initialization)
-        std::shared_ptr<InputManager> inputManager = std::make_shared<InputManager>(appContext);
+        std::shared_ptr<InputManager> inputManager = std::make_shared<InputManager>();
         ServiceLocator::RegisterService(inputManager);
         inputManager->init();
         callbackContext->inputManager = inputManager.get();
 
-        std::shared_ptr<Renderer> renderer = std::make_shared<Renderer>(vkContext);
+        std::shared_ptr<Renderer> renderer = std::make_shared<Renderer>();
         ServiceLocator::RegisterService(renderer);
         renderer->init();
 
         
             // Systems
-        std::shared_ptr<RenderSystem> renderSystem = std::make_shared<RenderSystem>(vkContext);
+        std::shared_ptr<RenderSystem> renderSystem = std::make_shared<RenderSystem>();
         ServiceLocator::RegisterService(renderSystem);
 
         std::shared_ptr<PhysicsSystem> physicsSystem = std::make_shared<PhysicsSystem>();
@@ -169,8 +169,8 @@ int main() {
     catch (const Log::RuntimeException& e) {
         Log::Print(e.severity(), e.origin(), e.what());
 
-        if (vkContext.Device.logicalDevice != VK_NULL_HANDLE)
-            vkDeviceWaitIdle(vkContext.Device.logicalDevice);
+        if (g_vkContext.Device.logicalDevice != VK_NULL_HANDLE)
+            vkDeviceWaitIdle(g_vkContext.Device.logicalDevice);
 
         garbageCollector->processCleanupStack();
         Log::Print(Log::T_ERROR, APP_NAME, "Program exited with errors.");
@@ -189,7 +189,7 @@ int main() {
     }
 
 
-    vkDeviceWaitIdle(vkContext.Device.logicalDevice);
+    vkDeviceWaitIdle(g_vkContext.Device.logicalDevice);
     garbageCollector->processCleanupStack();
     Log::Print(Log::T_SUCCESS, APP_NAME, "Program exited successfully.");
     return EXIT_SUCCESS;

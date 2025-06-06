@@ -13,6 +13,10 @@
 
 
 namespace SystemUtils {
+    // Gets the size of a C array.
+#define SIZE_OF(arr) (sizeof((arr)) / sizeof((arr[0])))
+
+
     // Concept: Supports division by a double
     template<typename T>
     concept DivisibleByDouble = requires(T a, double b) {

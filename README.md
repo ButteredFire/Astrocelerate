@@ -24,13 +24,16 @@ The short term vision of Astrocelerate is to create a Minimum-Viable Product (MV
 # Installation
 > [!WARNING]
 > Astrocelerate has only been tested on Windows, although the application aims to be cross-platform-compatible.
-## Generating executable file
-- Step 1: Run `SetupRelease.bat`. When the script finishes, the `build` folder will be generated.
-- Step 2: Run the executable file in `build/Release`.
 
-## Generating Visual Studio solution file
-- Step 1: Open `SetupVisualStudioSolution.bat` in a text editor and edit the Visual Studio major version in the line `cmake -S . -B . -G "Visual Studio 17 2022"` to your own.
-- Step 2: Run `SetupVisualStudioSolution.bat`.
+## Prerequisites
+- The Vulkan SDK
+- Vcpkg dependency manager
+- Python 1.3+
+- C++20
+
+## Bootstrapping
+- Run `SetupDebug.bat` to set up a Debug configuration, or `SetupRelease.bat` to set up a Release configuration.
+- Alternatively, you can manually run `GenerateDirectories.bat` to ensure file discovery is up-to-date, then run `scripts/Bootstrap.py` and follow on-screen instructions.
 
 
 # History

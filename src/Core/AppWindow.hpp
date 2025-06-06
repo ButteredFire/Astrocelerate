@@ -8,9 +8,7 @@
 #include <iostream>
 #include <string>
 
-#include <CoreStructs/Contexts.hpp>
-
-#include <Scene/Camera.hpp>
+#include <CoreStructs/Contexts/CallbackContext.hpp>
 
 class Window {
 public:

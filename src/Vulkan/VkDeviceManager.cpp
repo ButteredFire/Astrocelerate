@@ -5,8 +5,8 @@
 #include "VkDeviceManager.hpp"
 
 
-VkDeviceManager::VkDeviceManager(VulkanContext &context):
-    m_vulkInst(context.vulkanInstance), m_vkContext(context) {
+VkDeviceManager::VkDeviceManager():
+    m_vulkInst(g_vkContext.vulkanInstance) {
 
     m_garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
 
@@ -14,7 +14,7 @@ VkDeviceManager::VkDeviceManager(VulkanContext &context):
         throw Log::RuntimeException(__FUNCTION__, __LINE__, "Cannot initialize device manager: Invalid Vulkan instance!");
     }
 
-    if (m_vkContext.vkSurface == VK_NULL_HANDLE) {
+    if (g_vkContext.vkSurface == VK_NULL_HANDLE) {
         throw Log::RuntimeException(__FUNCTION__, __LINE__, "Cannot initialize device manager: Invalid Vulkan window surface!");
     }
 
@@ -41,7 +41,7 @@ void VkDeviceManager::init() {
     createLogicalDevice();
 
     // Creates a VMA
-    m_vmaAllocator = m_garbageCollector->createVMAllocator(m_vkContext.vulkanInstance, m_GPUPhysicalDevice, m_GPULogicalDevice);
+    m_vmaAllocator = m_garbageCollector->createVMAllocator(g_vkContext.vulkanInstance, m_GPUPhysicalDevice, m_GPULogicalDevice);
 }
 
 
@@ -72,12 +72,12 @@ void VkDeviceManager::createPhysicalDevice() {
         throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to find a GPU that supports required features!");
     }
 
-    m_vkContext.Device.physicalDevice = m_GPUPhysicalDevice = physicalDevice;
+    g_vkContext.Device.physicalDevice = m_GPUPhysicalDevice = physicalDevice;
 }
 
 
 void VkDeviceManager::createLogicalDevice() {
-    QueueFamilyIndices queueFamilies = getQueueFamilies(m_GPUPhysicalDevice, m_vkContext.vkSurface);
+    QueueFamilyIndices queueFamilies = getQueueFamilies(m_GPUPhysicalDevice, g_vkContext.vkSurface);
 
     // Verifies that all queue families exist before proceeding with device creation
     std::vector<QueueFamilyIndices::QueueFamily*> allFamilies = queueFamilies.getAllQueueFamilies();
@@ -153,8 +153,8 @@ void VkDeviceManager::createLogicalDevice() {
 
     // Sets device-specific validation layers
     if (inDebugMode) {
-        deviceInfo.enabledLayerCount = static_cast<uint32_t> (m_vkContext.enabledValidationLayers.size());
-        deviceInfo.ppEnabledLayerNames = m_vkContext.enabledValidationLayers.data();
+        deviceInfo.enabledLayerCount = static_cast<uint32_t> (g_vkContext.enabledValidationLayers.size());
+        deviceInfo.ppEnabledLayerNames = g_vkContext.enabledValidationLayers.data();
     }
     else {
         deviceInfo.enabledLayerCount = 0;
@@ -178,8 +178,8 @@ void VkDeviceManager::createLogicalDevice() {
     }
 
 
-    m_vkContext.Device.logicalDevice = m_GPULogicalDevice;
-    m_vkContext.Device.queueFamilies = queueFamilies;
+    g_vkContext.Device.logicalDevice = m_GPULogicalDevice;
+    g_vkContext.Device.queueFamilies = queueFamilies;
 
 
     CleanupTask task{};
@@ -212,7 +212,7 @@ std::vector<PhysicalDeviceScoreProperties> VkDeviceManager::rateGPUSuitability(s
         vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
         vkGetPhysicalDeviceFeatures2(device, &deviceFeatures2); // Vulkan 1.2
 
-        m_vkContext.Device.deviceProperties = deviceProperties;
+        g_vkContext.Device.deviceProperties = deviceProperties;
 
         // Creates a device rating profile
         PhysicalDeviceScoreProperties deviceRating;
@@ -220,10 +220,10 @@ std::vector<PhysicalDeviceScoreProperties> VkDeviceManager::rateGPUSuitability(s
         deviceRating.deviceName = deviceProperties.deviceName;
 
         // Creates a list of indices of device-supported queue families for later checking
-        QueueFamilyIndices queueFamilyIndices = getQueueFamilies(device, m_vkContext.vkSurface);
+        QueueFamilyIndices queueFamilyIndices = getQueueFamilies(device, g_vkContext.vkSurface);
 
         // Creates the GPU's swap-chain properties
-        SwapChainProperties swapChain = VkSwapchainManager::getSwapChainProperties(device, m_vkContext.vkSurface);
+        SwapChainProperties swapChain = VkSwapchainManager::getSwapChainProperties(device, g_vkContext.vkSurface);
         
         // A "list" of minimum requirements; Variable will collapse to "true" if all are satisfied
         const bool meetsMinimumRequirements = (

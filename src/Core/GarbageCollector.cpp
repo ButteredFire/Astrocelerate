@@ -1,7 +1,6 @@
 #include "GarbageCollector.hpp"
 
-GarbageCollector::GarbageCollector(VulkanContext& context): 
-	m_vkContext(context),
+GarbageCollector::GarbageCollector():
 	m_nextID(0) {
 
 	Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
@@ -31,7 +30,7 @@ VmaAllocator GarbageCollector::createVMAllocator(VkInstance& instance, VkPhysica
 
 	createCleanupTask(task);
 
-	m_vkContext.vmaAllocator = m_vmaAllocator;
+	g_vkContext.vmaAllocator = m_vmaAllocator;
 	return m_vmaAllocator;
 }
 

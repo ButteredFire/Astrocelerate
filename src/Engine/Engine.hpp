@@ -29,7 +29,7 @@
 #include <Core/LoggingManager.hpp>
 #include <Core/EventDispatcher.hpp>
 
-#include <CoreStructs/Contexts.hpp>
+#include <CoreStructs/Contexts/VulkanContext.hpp>
 
 #include <Engine/Components/ModelComponents.hpp>
 #include <Engine/Components/RenderComponents.hpp>
@@ -50,7 +50,7 @@
 
 class Engine {
 public:
-	Engine(GLFWwindow *w, VulkanContext &context);
+	Engine(GLFWwindow *w);
 	~Engine();
 
 	void initComponents();
@@ -59,7 +59,6 @@ public:
 
 private:
 	GLFWwindow *window;
-	VulkanContext &m_vkContext;
 
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 	std::shared_ptr<Registry> m_registry;

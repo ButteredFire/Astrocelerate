@@ -8,7 +8,7 @@
 
 #include <Core/Constants.h>
 
-#define enquote(S) std::string(std::string("\"") + S + std::string("\""))
+#define enquote(S) std::string(std::string("\"") + std::string(S) + std::string("\""))
 #define enquoteCOUT(S) '"' << (S) << '"'
 #define VARIABLE_NAME(V) std::string((#V))
 #define BOOLALPHA(COND) ((COND) ? "true" : "false")
@@ -18,7 +18,7 @@
 #define LOG_ASSERT(cond, msg, ...) \
     do { \
         if (!(cond)) { \
-            throw Log::RuntimeException(__FUNCTION__, __LINE__, (msg), ##__VA_ARGS__); \
+            throw Log::RuntimeException(__FUNCTION__, __LINE__, std::string(msg), ##__VA_ARGS__); \
         } \
     } while (0)
 

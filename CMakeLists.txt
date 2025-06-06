@@ -137,6 +137,7 @@ find_package(Vulkan REQUIRED)    # Vulkan SDK
 find_package(glfw3 CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(VulkanMemoryAllocator CONFIG REQUIRED)
+find_package(assimp CONFIG REQUIRED)
 
 
 # Install libraries
@@ -163,12 +164,12 @@ find_package(VulkanMemoryAllocator CONFIG REQUIRED)
     #set(ASSIMP_OFFLINE_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/_deps/assimp-build")
 
     # Assimp
-    fetchDependency(
-        assimp
-        ${ASSIMP_GIT_REPO}
-        v5.4.3
-        ${ASSIMP_OFFLINE_SOURCE_DIR}
-    )
+    #fetchDependency(
+    #    assimp
+    #    ${ASSIMP_GIT_REPO}
+    #    v5.4.3
+    #    ${ASSIMP_OFFLINE_SOURCE_DIR}
+    #)
 
 
 # Organize libraries into variables
@@ -178,10 +179,11 @@ set(PKG_LIBS
     glfw
     glm::glm
     GPUOpen::VulkanMemoryAllocator
+    assimp::assimp
 )
 
 set(FETCHCONTENT_LIBS
-    assimp
+    #assimp
 )
 
 set(EXTERNAL_LIBS
@@ -231,20 +233,20 @@ set(FETCHCONTENT_LIBS_TARGET_INCLUDE_DIRS
         get_filename_component(SHADER_NAME ${SHADER} NAME)
         get_filename_component(SHADER_NAME_WE ${SHADER} NAME_WE)
 
-        set(SPIRV_FILE "${SHADER_NAME_WE}.spv")
+        set(CURRENT_SPIRV_FILE_PATH "${SHADER_OUTPUT_DIR}/${SHADER_NAME_WE}.spv")
 
         # Add a custom command to compile the shader to SPIR-V bytecode
         add_custom_command(
-            OUTPUT "${SPIRV_FILE}"
-            COMMAND "${Vulkan_GLSLC_EXECUTABLE}" "${SHADER_SOURCE_DIR}/${SHADER_NAME}" -o "${SHADER_OUTPUT_DIR}/${SPIRV_FILE}"
+            OUTPUT "${CURRENT_SPIRV_FILE_PATH}"
+            COMMAND "${Vulkan_GLSLC_EXECUTABLE}" "${SHADER_SOURCE_DIR}/${SHADER_NAME}" -o "${CURRENT_SPIRV_FILE_PATH}"
             DEPENDS ${SHADER}  # Ensure that the shader file is up to date
             COMMENT "Compiling \"${SHADER_NAME}\" to SPIR-V bytecode..."
             VERBATIM
         )
-        message(STATUS "Shader \"${SHADER_NAME}\" processed; generated SPIR-V bytecode file \"${SPIRV_FILE}\"")
+        message(STATUS "Shader \"${SHADER_NAME}\" processed; generated SPIR-V bytecode file \"${CURRENT_SPIRV_FILE_PATH}\"")
 
         # Append the generated SPIR-V file to the list of outputs
-        list(APPEND SPIRV_BINARY_FILES ${SPIRV_FILE})
+        list(APPEND SPIRV_BINARY_FILES ${CURRENT_SPIRV_FILE_PATH})
     endforeach()
 
     # Create a custom build target for shaders
@@ -257,7 +259,12 @@ set(FETCHCONTENT_LIBS_TARGET_INCLUDE_DIRS
 
 
 # Add subdirectories
-add_subdirectory("external/boxer")
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/external/boxer")
+
+    # Enable UTF-8 support on Windows machines
+    if (WIN32)
+       target_compile_definitions(Boxer PRIVATE UNICODE)
+    endif (WIN32)
 
 
 # Link libraries

@@ -42,13 +42,10 @@
 #include <Core/LoggingManager.hpp>
 #include <Core/ServiceLocator.hpp>
 
-// Font
-#include <../assets/DefaultFont.hpp>
-
 
 class Renderer {
 public:
-	Renderer(VulkanContext &context);
+	Renderer();
 	~Renderer();
 
 	void init();
@@ -58,11 +55,11 @@ public:
 
 private:
 	VkInstance& m_vulkInst;
-	VulkanContext& m_vkContext;
 
 	std::shared_ptr<Registry> m_globalRegistry;
-
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
+	std::shared_ptr<GarbageCollector> m_garbageCollector;
+
 	std::shared_ptr<VkSwapchainManager> m_swapchainManager;
 	std::shared_ptr<VkBufferManager> m_bufferManager;
 	std::shared_ptr<VkCommandManager> m_commandManager;

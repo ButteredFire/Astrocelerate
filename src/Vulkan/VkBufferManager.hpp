@@ -14,6 +14,7 @@
 #include <iostream>
 #include <string>
 #include <array>
+#include <limits>
 
 // Other
 #include <Vulkan/VkDeviceManager.hpp>
@@ -28,7 +29,7 @@
 
 #include <CoreStructs/Buffer.hpp>
 #include <CoreStructs/Geometry.hpp>
-#include <CoreStructs/Contexts.hpp>
+#include <CoreStructs/Contexts/VulkanContext.hpp>
 
 #include <Engine/Components/ModelComponents.hpp>
 #include <Engine/Components/PhysicsComponents.hpp>
@@ -86,14 +87,13 @@ struct UniformBufferObject {
 
 class VkBufferManager {
 public:
-    VkBufferManager(VulkanContext& context);
+    VkBufferManager();
     ~VkBufferManager();
 
     void init();
 
 
     /* Creates a buffer.
-        @param vkContext: The Vulkan context.
         @param &buffer: The buffer to be created.
         @param bufferSize: The size of the buffer (in bytes).
         @param usageFlags: Flags specifying how the buffer will be used.
@@ -102,7 +102,7 @@ public:
         
         @return The cleanup task ID for the newly created buffer.
     */
-    static uint32_t createBuffer(VulkanContext& vkContext, VkBuffer& buffer, VkDeviceSize bufferSize, VkBufferUsageFlags usageFlags, VmaAllocation& bufferAllocation, VmaAllocationCreateInfo bufferAllocationCreateInfo);
+    static uint32_t createBuffer(VkBuffer& buffer, VkDeviceSize bufferSize, VkBufferUsageFlags usageFlags, VmaAllocation& bufferAllocation, VmaAllocationCreateInfo bufferAllocationCreateInfo);
 
 
     /* Creates the global vertex buffer. */
@@ -156,8 +156,6 @@ public:
     inline const std::vector<Buffer::BufferAndAlloc>& getObjectUBOs() const { return m_objectUBOs; }
 
 private:
-    VulkanContext& m_vkContext;
-
     std::shared_ptr<Registry> m_registry;
     std::shared_ptr<EventDispatcher> m_eventDispatcher;
     std::shared_ptr<GarbageCollector> m_garbageCollector;
@@ -195,7 +193,7 @@ private:
         @param uboIndex: The mesh's index into its UBO.
     */
     inline void* getObjectUBO(uint32_t currentImage, size_t uboIndex) {
-        static size_t alignedUBOSize = SystemUtils::Align(sizeof(Buffer::ObjectUBO), m_vkContext.Device.deviceProperties.limits.minUniformBufferOffsetAlignment);
+        static size_t alignedUBOSize = SystemUtils::Align(sizeof(Buffer::ObjectUBO), g_vkContext.Device.deviceProperties.limits.minUniformBufferOffsetAlignment);
 
         /*
             First, we retrieve the pointer to the master object UBO of the current frame. We must cast it to a Byte pointer so that subsequent pointer increments will mean incrementing by bytes.

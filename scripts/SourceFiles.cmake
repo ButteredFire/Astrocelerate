@@ -1,6 +1,4 @@
 set(SOURCE_FILES
-	"assets/DefaultFont.cpp"
-	"external/boxer/src/boxer_win.cpp"
 	"external/imgui/imgui.cpp"
 	"external/imgui/imgui_demo.cpp"
 	"external/imgui/imgui_draw.cpp"
@@ -15,6 +13,7 @@ set(SOURCE_FILES
 	"src/Core/GarbageCollector.cpp"
 	"src/Core/InputManager.cpp"
 	"src/Core/LoggingManager.cpp"
+	"src/CoreStructs/Contexts.cpp"
 	"src/Engine/Engine.cpp"
 	"src/Rendering/Renderer.cpp"
 	"src/Rendering/UIRenderer.cpp"

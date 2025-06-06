@@ -1,7 +1,7 @@
 #include "VkImageManager.hpp"
 
 
-uint32_t VkImageManager::CreateImage(VulkanContext& vkContext, VkImage& image, VmaAllocation& imgAllocation, VmaAllocationCreateInfo& imgAllocationCreateInfo, uint32_t width, uint32_t height, uint32_t depth, VkFormat imgFormat, VkImageTiling imgTiling, VkImageUsageFlags imgUsageFlags, VkImageType imgType) {
+uint32_t VkImageManager::CreateImage(VkImage& image, VmaAllocation& imgAllocation, VmaAllocationCreateInfo& imgAllocationCreateInfo, uint32_t width, uint32_t height, uint32_t depth, VkFormat imgFormat, VkImageTiling imgTiling, VkImageUsageFlags imgUsageFlags, VkImageType imgType) {
 	LOG_ASSERT(((imgType & VK_IMAGE_TYPE_2D == 1) && depth == 1),
 		"Unable to create image: Depth must be 1 if the image type is 2D!");
 
@@ -49,13 +49,13 @@ uint32_t VkImageManager::CreateImage(VulkanContext& vkContext, VkImage& image, V
 	imgCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
 
-	VkResult imgCreateResult = vmaCreateImage(vkContext.vmaAllocator, &imgCreateInfo, &imgAllocationCreateInfo, &image, &imgAllocation, nullptr);
+	VkResult imgCreateResult = vmaCreateImage(g_vkContext.vmaAllocator, &imgCreateInfo, &imgAllocationCreateInfo, &image, &imgAllocation, nullptr);
 
 	CleanupTask imgTask{};
 	imgTask.caller = __FUNCTION__;
 	imgTask.objectNames = { VARIABLE_NAME(imgAllocation) };
-	imgTask.vkObjects = { vkContext.vmaAllocator, imgAllocation };
-	imgTask.cleanupFunc = [allocator = vkContext.vmaAllocator, image, imgAllocation]() {
+	imgTask.vkObjects = { g_vkContext.vmaAllocator, imgAllocation };
+	imgTask.cleanupFunc = [allocator = g_vkContext.vmaAllocator, image, imgAllocation]() {
 		vmaDestroyImage(allocator, image, imgAllocation);
 	};
 
@@ -67,7 +67,7 @@ uint32_t VkImageManager::CreateImage(VulkanContext& vkContext, VkImage& image, V
 }
 
 
-uint32_t VkImageManager::CreateImageView(VulkanContext& vkContext, VkImageView& imageView, VkImage& image, VkFormat imgFormat, VkImageAspectFlags imgAspectFlags, VkImageViewType viewType, uint32_t levelCount, uint32_t layerCount) {
+uint32_t VkImageManager::CreateImageView(VkImageView& imageView, VkImage& image, VkFormat imgFormat, VkImageAspectFlags imgAspectFlags, VkImageViewType viewType, uint32_t levelCount, uint32_t layerCount) {
 	std::shared_ptr<GarbageCollector> garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
 
 	VkImageViewCreateInfo viewCreateInfo{};
@@ -106,13 +106,13 @@ uint32_t VkImageManager::CreateImageView(VulkanContext& vkContext, VkImageView& 
 	viewCreateInfo.subresourceRange.baseArrayLayer = 0; // Images will have no multiple layers
 	viewCreateInfo.subresourceRange.layerCount = layerCount;
 
-	VkResult result = vkCreateImageView(vkContext.Device.logicalDevice, &viewCreateInfo, nullptr, &imageView);
+	VkResult result = vkCreateImageView(g_vkContext.Device.logicalDevice, &viewCreateInfo, nullptr, &imageView);
 	
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(imageView) };
-	task.vkObjects = { vkContext.Device.logicalDevice, imageView };
-	task.cleanupFunc = [device = vkContext.Device.logicalDevice, imageView]() {
+	task.vkObjects = { g_vkContext.Device.logicalDevice, imageView };
+	task.cleanupFunc = [device = g_vkContext.Device.logicalDevice, imageView]() {
 		vkDestroyImageView(device, imageView, nullptr);
 	};
 
@@ -124,7 +124,7 @@ uint32_t VkImageManager::CreateImageView(VulkanContext& vkContext, VkImageView& 
 }
 
 
-uint32_t VkImageManager::CreateFramebuffer(VulkanContext& vkContext, VkFramebuffer& framebuffer, VkRenderPass& renderPass, std::vector<VkImageView> attachments, uint32_t width, uint32_t height) {
+uint32_t VkImageManager::CreateFramebuffer(VkFramebuffer& framebuffer, VkRenderPass& renderPass, std::vector<VkImageView> attachments, uint32_t width, uint32_t height) {
 	std::shared_ptr<GarbageCollector> garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
 
 	VkFramebufferCreateInfo bufferCreateInfo{};
@@ -136,13 +136,13 @@ uint32_t VkImageManager::CreateFramebuffer(VulkanContext& vkContext, VkFramebuff
 	bufferCreateInfo.height = height;
 	bufferCreateInfo.layers = 1;
 
-	VkResult result = vkCreateFramebuffer(vkContext.Device.logicalDevice, &bufferCreateInfo, nullptr, &framebuffer);
+	VkResult result = vkCreateFramebuffer(g_vkContext.Device.logicalDevice, &bufferCreateInfo, nullptr, &framebuffer);
 	
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(framebuffer) };
-	task.vkObjects = { vkContext.Device.logicalDevice, framebuffer };
-	task.cleanupFunc = [device = vkContext.Device.logicalDevice, framebuffer]() {
+	task.vkObjects = { g_vkContext.Device.logicalDevice, framebuffer };
+	task.cleanupFunc = [device = g_vkContext.Device.logicalDevice, framebuffer]() {
 		vkDestroyFramebuffer(device, framebuffer, nullptr);
 	};
 

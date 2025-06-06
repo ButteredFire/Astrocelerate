@@ -25,14 +25,12 @@ class VkBufferManager;
 
 class OffscreenPipeline {
 public:
-	OffscreenPipeline(VulkanContext& context);
+	OffscreenPipeline();
 	~OffscreenPipeline() = default;
 
 	void init();
 
 private:
-	VulkanContext& m_vkContext;
-
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 	std::shared_ptr<GarbageCollector> m_garbageCollector;
 	std::shared_ptr<VkBufferManager> m_bufferManager;
@@ -99,11 +97,17 @@ private:
 	VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
 
 	// Offscreen resources
-	VkImage m_colorImage{};
+	//VkImage m_colorImage{};
 	VmaAllocation m_colorImgAlloc{};
-	VkImageView m_colorImgView{};
-	VkSampler m_colorImgSampler{};
-	VkFramebuffer m_colorImgFramebuffer{};
+	//VkImageView m_colorImgView{};
+	//VkFramebuffer m_colorImgFramebuffer{};
+
+	std::array<VkImage, SimulationConsts::MAX_FRAMES_IN_FLIGHT> m_colorImages;
+	std::array<VkImageView, SimulationConsts::MAX_FRAMES_IN_FLIGHT> m_colorImgViews;
+	std::array<VkSampler, SimulationConsts::MAX_FRAMES_IN_FLIGHT> m_colorImgSamplers;
+	std::array<VkFramebuffer, SimulationConsts::MAX_FRAMES_IN_FLIGHT> m_colorImgFramebuffers;
+
+	std::array<std::vector<uint32_t>, SimulationConsts::MAX_FRAMES_IN_FLIGHT> m_offscreenCleanupIDs;
 
 
 	void bindEvents();
@@ -201,11 +205,12 @@ private:
 	*/
 	void initTessellationState();
 
-
 	void initDepthBufferingResources();
-	void initOffscreenColorResources();
-	void initOffscreenSampler();
-	void initOffscreenFramebuffer();
+	
+	void recreateOffscreenResources(uint32_t currentFrame, uint32_t width, uint32_t height);
+	void initOffscreenColorResources(uint32_t currentFrame, uint32_t width, uint32_t height);
+	void initOffscreenSampler(uint32_t currentFrame);
+	void initOffscreenFramebuffer(uint32_t currentFrame, uint32_t width, uint32_t height);
 
 
 	/* Creates a shader module to pass the code to the pipeline.

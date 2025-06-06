@@ -8,7 +8,7 @@
 #include <variant>
 #include <functional>
 
-#include <CoreStructs/Contexts.hpp>
+#include <CoreStructs/Contexts/VulkanContext.hpp>
 #include <Core/LoggingManager.hpp>
 
 
@@ -25,7 +25,7 @@ struct CleanupTask {
 
 class GarbageCollector {
 public:
-	GarbageCollector(VulkanContext& context);
+	GarbageCollector();
 	~GarbageCollector();
 
 
@@ -68,7 +68,6 @@ public:
 
 private:
 	VmaAllocator m_vmaAllocator = VK_NULL_HANDLE;
-	VulkanContext& m_vkContext;
 
 	std::deque<CleanupTask> m_cleanupStack;
 

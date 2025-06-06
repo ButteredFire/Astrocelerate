@@ -4,8 +4,7 @@
 #include "UIRenderer.hpp"
 
 
-UIRenderer::UIRenderer(VulkanContext& context):
-    m_vkContext(context) {
+UIRenderer::UIRenderer() {
 
     m_registry = ServiceLocator::GetService<Registry>(__FUNCTION__);
     m_garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
@@ -32,7 +31,7 @@ void UIRenderer::initImGui(UIRenderer::Appearance appearance) {
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // IF using Docking Branch
 
     // Setup Platform/Renderer backends
-    ImGui_ImplGlfw_InitForVulkan(m_vkContext.window, true);
+    ImGui_ImplGlfw_InitForVulkan(g_vkContext.window, true);
 
 
     // Setup Dear ImGui style
@@ -60,12 +59,12 @@ void UIRenderer::initImGui(UIRenderer::Appearance appearance) {
 
     // Initialization info
     ImGui_ImplVulkan_InitInfo vkInitInfo{};
-    vkInitInfo.Instance = m_vkContext.vulkanInstance;         // Instance
-    vkInitInfo.PhysicalDevice = m_vkContext.Device.physicalDevice;   // Physical device
-    vkInitInfo.Device = m_vkContext.Device.logicalDevice;            // Logical device
+    vkInitInfo.Instance = g_vkContext.vulkanInstance;         // Instance
+    vkInitInfo.PhysicalDevice = g_vkContext.Device.physicalDevice;   // Physical device
+    vkInitInfo.Device = g_vkContext.Device.logicalDevice;            // Logical device
 
     // Queue
-    QueueFamilyIndices familyIndices = m_vkContext.Device.queueFamilies;
+    QueueFamilyIndices familyIndices = g_vkContext.Device.queueFamilies;
     vkInitInfo.QueueFamily = familyIndices.graphicsFamily.index.value();
     vkInitInfo.Queue = familyIndices.graphicsFamily.deviceQueue;
 
@@ -77,17 +76,17 @@ void UIRenderer::initImGui(UIRenderer::Appearance appearance) {
         { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE }
     };
     VkDescriptorPoolCreateFlags imgui_DescPoolCreateFlags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
-    VkDescriptorUtils::CreateDescriptorPool(m_vkContext, m_descriptorPool, imgui_PoolSizes, imgui_DescPoolCreateFlags);
+    VkDescriptorUtils::CreateDescriptorPool( m_descriptorPool, imgui_PoolSizes, imgui_DescPoolCreateFlags);
     vkInitInfo.DescriptorPool = m_descriptorPool;
 
 
     // Render pass & subpass
-    vkInitInfo.RenderPass = m_vkContext.PresentPipeline.renderPass;
+    vkInitInfo.RenderPass = g_vkContext.PresentPipeline.renderPass;
     vkInitInfo.Subpass = 0;
 
     // Image count
-    vkInitInfo.MinImageCount = m_vkContext.SwapChain.minImageCount; // For some reason, ImGui does not actually use this property
-    vkInitInfo.ImageCount = m_vkContext.SwapChain.minImageCount;
+    vkInitInfo.MinImageCount = g_vkContext.SwapChain.minImageCount; // For some reason, ImGui does not actually use this property
+    vkInitInfo.ImageCount = g_vkContext.SwapChain.minImageCount;
 
     // Other
     vkInitInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
@@ -117,13 +116,8 @@ void UIRenderer::initImGui(UIRenderer::Appearance appearance) {
     ImGui_ImplVulkan_Init(&vkInitInfo);
 
 
-    // Loads m_pFont
-    m_pFont = io.Fonts->AddFontFromMemoryTTF((void*)DefaultFontData, static_cast<int>(DefaultFontLength), 20.0f);
-
-    // Default to Imgui's default m_pFont if loading from memory fails
-    if (m_pFont == nullptr) {
-        m_pFont = io.Fonts->AddFontDefault();
-    }
+    // Loads default fonts
+    initFonts();
 
     ImGui_ImplVulkan_CreateFontsTexture();
 
@@ -135,6 +129,40 @@ void UIRenderer::initImGui(UIRenderer::Appearance appearance) {
     ImGui::LoadIniSettingsFromMemory(iniBuffer.data(), iniBuffer.size());
 
     m_eventDispatcher->publish(Event::GUIContextIsValid{});
+}
+
+
+void UIRenderer::initFonts() {
+    ImGuiIO& io = ImGui::GetIO();
+
+    const float pixelSize = 25.0f;
+
+    // Roboto
+    g_fontContext.Roboto.black = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.BLACK.c_str(), pixelSize);
+    g_fontContext.Roboto.blackItalic = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.BLACK_ITALIC.c_str(), pixelSize);
+    g_fontContext.Roboto.bold = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.BOLD.c_str(), pixelSize);
+    g_fontContext.Roboto.boldItalic = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.BOLD_ITALIC.c_str(), pixelSize);
+    g_fontContext.Roboto.italic = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.ITALIC.c_str(), pixelSize);
+    g_fontContext.Roboto.light = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.LIGHT.c_str(), pixelSize);
+    g_fontContext.Roboto.lightItalic = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.LIGHT_ITALIC.c_str(), pixelSize);
+    g_fontContext.Roboto.medium = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.MEDIUM.c_str(), pixelSize);
+    g_fontContext.Roboto.mediumItalic = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.MEDIUM_ITALIC.c_str(), pixelSize);
+    g_fontContext.Roboto.regular = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.REGULAR.c_str(), pixelSize);
+    g_fontContext.Roboto.thin = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.THIN.c_str(), pixelSize);
+    g_fontContext.Roboto.thinItalic = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.THIN_ITALIC.c_str(), pixelSize);
+
+
+	// You can also add icons or other special fonts here
+	// io.Fonts->AddFontFromFileTTF("path/to/icons.ttf", pixelSize, nullptr, io.Fonts->GetGlyphRangesDefault());
+
+	// Set the default font to Roboto Regular
+    LOG_ASSERT(g_fontContext.Roboto.regular, "Failed to load (default) Roboto regular font!");
+	m_pFont = g_fontContext.Roboto.regular;
+
+    // Default to Imgui's default m_pFont if loading from memory fails
+    if (m_pFont == nullptr) {
+        m_pFont = io.Fonts->AddFontDefault();
+    }
 }
 
 
@@ -173,17 +201,17 @@ void UIRenderer::initDockspace() {
 
 void UIRenderer::refreshImGui() {
     int width = 0, height = 0;
-    glfwGetFramebufferSize(m_vkContext.window, &width, &height);
+    glfwGetFramebufferSize(g_vkContext.window, &width, &height);
 
-    QueueFamilyIndices familyIndices = m_vkContext.Device.queueFamilies;
+    QueueFamilyIndices familyIndices = g_vkContext.Device.queueFamilies;
     uint32_t queueFamily = familyIndices.graphicsFamily.index.value();
 
-    ImGui_ImplVulkan_SetMinImageCount(m_vkContext.SwapChain.minImageCount);
-    //ImGui_ImplVulkanH_CreateOrResizeWindow(m_vkContext.vulkanInstance, m_vkContext.Device.physicalDevice, m_vkContext.Device.logicalDevice, WINDOW, queueFamily, nullptr, width, height, m_vkContext.minImageCount);
+    ImGui_ImplVulkan_SetMinImageCount(g_vkContext.SwapChain.minImageCount);
+    //ImGui_ImplVulkanH_CreateOrResizeWindow(g_vkContext.vulkanInstance, g_vkContext.Device.physicalDevice, g_vkContext.Device.logicalDevice, WINDOW, queueFamily, nullptr, width, height, g_vkContext.minImageCount);
 }
 
 
-void UIRenderer::renderFrames() {
+void UIRenderer::renderFrames(uint32_t currentFrame) {
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
@@ -192,7 +220,7 @@ void UIRenderer::renderFrames() {
 
 
     ImGui::PushFont(m_pFont);
-    m_uiPanelManager->updatePanels();
+    m_uiPanelManager->updatePanels(currentFrame);
     ImGui::PopFont();
 
 

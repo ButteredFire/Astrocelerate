@@ -50,22 +50,17 @@ public:
 	inline void publish(const EventType& event, bool suppressLogs = false) {
 		std::type_index eventTypeIndex = std::type_index(typeid(EventType));
 
-		if (m_subscribers.find(eventTypeIndex) == m_subscribers.end()) {
-			throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to find event of type " + enquote(typeid(EventType).name()) + ": Event does not exist!");
-		}
+		if (m_subscribers.find(eventTypeIndex) == m_subscribers.end())
+			Log::Print(Log::T_WARNING, __FUNCTION__, "There are no subscribers to event " + enquote(typeid(EventType).name()) + "!");
 
 		std::vector<HandlerCallback> callbacks = m_subscribers[eventTypeIndex];
-
-		if (callbacks.size() == 0) {
-			throw Log::RuntimeException(__FUNCTION__, __LINE__, "There are no subscribers to the event of type " + enquote(typeid(EventType).name()) + "!");
-		}
 
 		for (auto& callback : callbacks) {
 			callback(&event);
 		}
 
-		if (!suppressLogs)
-			Log::Print(Log::T_SUCCESS, __FUNCTION__, "	Invoked " + std::to_string(callbacks.size()) + " callback(s) for event type " + enquote(typeid(EventType).name()) + ".");
+		if (!suppressLogs && m_subscribers.count(eventTypeIndex))
+			Log::Print(Log::T_SUCCESS, __FUNCTION__, "Invoked " + std::to_string(callbacks.size()) + " callback(s) for event type " + enquote(typeid(EventType).name()) + ".");
 	}
 
 	

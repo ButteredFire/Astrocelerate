@@ -5,14 +5,14 @@
 #include "Renderer.hpp"
 
 
-Renderer::Renderer(VulkanContext& context):
-    m_vulkInst(context.vulkanInstance),
-    m_vkContext(context) {
+Renderer::Renderer():
+    m_vulkInst(g_vkContext.vulkanInstance) {
 
     m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
 
     // TODO: I've just realized that having multiple entity managers (which is very likely) will be problematic for the service locator.
     m_globalRegistry = ServiceLocator::GetService<Registry>(__FUNCTION__);
+    m_garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
 
     m_swapchainManager = ServiceLocator::GetService<VkSwapchainManager>(__FUNCTION__);
     m_bufferManager = ServiceLocator::GetService<VkBufferManager>(__FUNCTION__);
@@ -61,18 +61,21 @@ void Renderer::drawFrame(glm::dvec3& renderOrigin) {
 
     // VK_TRUE: Indicates that the vkWaitForFences should wait for all fences.
     // UINT64_MAX: The maximum time to wait (timeout) (in nanoseconds). UINT64_MAX means to wait indefinitely (i.e., to disable the timeout)
-    VkResult waitResult = vkWaitForFences(m_vkContext.Device.logicalDevice, 1, &m_vkContext.SyncObjects.inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
-    if (waitResult != VK_SUCCESS) {
-        throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to wait for in-flight fence!");
-    }
+    VkResult waitResult = vkWaitForFences(g_vkContext.Device.logicalDevice, 1, &g_vkContext.SyncObjects.inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
+    LOG_ASSERT(waitResult == VK_SUCCESS, "Failed to wait for in-flight fence!");
+
+    for (auto& cleanupID : g_vkContext.OffscreenResources.pendingCleanupIDs[m_currentFrame])
+        m_garbageCollector->executeCleanupTask(cleanupID);
+
+    g_vkContext.OffscreenResources.pendingCleanupIDs[m_currentFrame].clear();
 
 
     // Acquires an image from the swap-chain
     uint32_t imageIndex;
-    VkResult imgAcquisitionResult = vkAcquireNextImageKHR(m_vkContext.Device.logicalDevice, m_vkContext.SwapChain.swapChain, UINT64_MAX, m_vkContext.SyncObjects.imageReadySemaphores[m_currentFrame], VK_NULL_HANDLE, &imageIndex);
+    VkResult imgAcquisitionResult = vkAcquireNextImageKHR(g_vkContext.Device.logicalDevice, g_vkContext.SwapChain.swapChain, UINT64_MAX, g_vkContext.SyncObjects.imageReadySemaphores[m_currentFrame], VK_NULL_HANDLE, &imageIndex);
     if (imgAcquisitionResult != VK_SUCCESS) {
         if (imgAcquisitionResult == VK_ERROR_OUT_OF_DATE_KHR || imgAcquisitionResult == VK_SUBOPTIMAL_KHR) {
-            m_swapchainManager->recreateSwapchain();
+            m_swapchainManager->recreateSwapchain(m_currentFrame);
             m_imguiRenderer->refreshImGui();
             return;
         }
@@ -86,18 +89,14 @@ void Renderer::drawFrame(glm::dvec3& renderOrigin) {
     // Only reset the fence when we're submitting work
 
     // After waiting, reset fence to unsignaled
-    VkResult resetFenceResult = vkResetFences(m_vkContext.Device.logicalDevice, 1, &m_vkContext.SyncObjects.inFlightFences[m_currentFrame]);
-    if (resetFenceResult != VK_SUCCESS) {
-        throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to reset fence!");
-    }
+    VkResult resetFenceResult = vkResetFences(g_vkContext.Device.logicalDevice, 1, &g_vkContext.SyncObjects.inFlightFences[m_currentFrame]);
+    LOG_ASSERT(resetFenceResult == VK_SUCCESS, "Failed to reset fence!");
 
 
     // Records the command buffer
         // Resets the command buffer first to ensure it is able to be recorded
-    VkResult cmdBufResetResult = vkResetCommandBuffer(m_vkContext.CommandObjects.graphicsCmdBuffers[m_currentFrame], 0);
-    if (cmdBufResetResult != VK_SUCCESS) {
-        throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to reset command buffer!");
-    }
+    VkResult cmdBufResetResult = vkResetCommandBuffer(g_vkContext.CommandObjects.graphicsCmdBuffers[m_currentFrame], 0);
+    LOG_ASSERT(cmdBufResetResult == VK_SUCCESS, "Failed to reset command buffer!");
 
 
         // Updates the uniform buffer
@@ -109,9 +108,7 @@ void Renderer::drawFrame(glm::dvec3& renderOrigin) {
 
     
         // Records commands
-    //m_imguiRenderer->renderFrames();
-    
-    m_commandManager->recordRenderingCommandBuffer(m_vkContext.CommandObjects.graphicsCmdBuffers[m_currentFrame], imageIndex, m_currentFrame);
+    m_commandManager->recordRenderingCommandBuffer(g_vkContext.CommandObjects.graphicsCmdBuffers[m_currentFrame], imageIndex, m_currentFrame);
 
 
         // Submits the buffer to the queue
@@ -120,13 +117,13 @@ void Renderer::drawFrame(glm::dvec3& renderOrigin) {
 
             // Specifies the command buffer to be submitted
     submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &m_vkContext.CommandObjects.graphicsCmdBuffers[m_currentFrame];
+    submitInfo.pCommandBuffers = &g_vkContext.CommandObjects.graphicsCmdBuffers[m_currentFrame];
 
             /* NOTE:
             * Each stage in waitStages[] corresponds to a semaphore in waitSemaphores[].
             */
     VkSemaphore waitSemaphores[] = {
-        m_vkContext.SyncObjects.imageReadySemaphores[m_currentFrame] // Wait for the image to be available (see waitStages[0])
+        g_vkContext.SyncObjects.imageReadySemaphores[m_currentFrame] // Wait for the image to be available (see waitStages[0])
     };
     VkPipelineStageFlags waitStages[] = {
         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT // Wait for the colors to first be written to the image, because (theoretically) our vertex shader could be executed prematurely (before the image is available).
@@ -141,16 +138,14 @@ void Renderer::drawFrame(glm::dvec3& renderOrigin) {
 
             // Specifies which semaphores to signal once the command buffer's execution is finished
     VkSemaphore signalSemaphores[] = {
-        m_vkContext.SyncObjects.renderFinishedSemaphores[m_currentFrame]
+        g_vkContext.SyncObjects.renderFinishedSemaphores[m_currentFrame]
     };
     submitInfo.signalSemaphoreCount = (sizeof(signalSemaphores) / sizeof(VkSemaphore));
     submitInfo.pSignalSemaphores = signalSemaphores;
 
-    VkQueue graphicsQueue = m_vkContext.Device.queueFamilies.graphicsFamily.deviceQueue;
-    VkResult submitResult = vkQueueSubmit(graphicsQueue, 1, &submitInfo, m_vkContext.SyncObjects.inFlightFences[m_currentFrame]);
-    if (submitResult != VK_SUCCESS) {
-        throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to submit draw command buffer!");
-    }
+    VkQueue graphicsQueue = g_vkContext.Device.queueFamilies.graphicsFamily.deviceQueue;
+    VkResult submitResult = vkQueueSubmit(graphicsQueue, 1, &submitInfo, g_vkContext.SyncObjects.inFlightFences[m_currentFrame]);
+    LOG_ASSERT(submitResult == VK_SUCCESS, "Failed to submit draw command buffer!");
 
 
     // To finally draw the frame, we submit the result back to the swap-chain to have it eventually show up on screen
@@ -164,7 +159,7 @@ void Renderer::drawFrame(glm::dvec3& renderOrigin) {
 
         // Specifies the swap-chains to present images to, and the image index for each swap-chain (this will almost always be a single one)
     VkSwapchainKHR swapChains[] = {
-        m_vkContext.SwapChain.swapChain
+        g_vkContext.SwapChain.swapChain
     };
     presentationInfo.swapchainCount = (sizeof(swapChains) / sizeof(VkSwapchainKHR));
     presentationInfo.pSwapchains = swapChains;
@@ -176,7 +171,7 @@ void Renderer::drawFrame(glm::dvec3& renderOrigin) {
     VkResult presentResult = vkQueuePresentKHR(graphicsQueue, &presentationInfo);
     if (presentResult != VK_SUCCESS) {
         if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR) {
-            m_swapchainManager->recreateSwapchain();
+            m_swapchainManager->recreateSwapchain(m_currentFrame);
             m_imguiRenderer->refreshImGui();
             return;
         }

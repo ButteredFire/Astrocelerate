@@ -8,11 +8,11 @@
 #include <glm_config.hpp>
 
 #include <CoreStructs/Geometry.hpp>
-#include <CoreStructs/Contexts.hpp>
 
 
 enum EventType {
-	EVENT_ID_SWAPCHAIN_RECREATION,
+	EVENT_ID_SWAPCHAIN_IS_RECREATED,
+	EVENT_ID_VIEWPORT_IS_RESIZED,
 
 	EVENT_ID_INIT_FRAMEBUFFERS,
 	EVENT_ID_INIT_GLOBAL_BUFFERS,
@@ -32,8 +32,18 @@ enum EventType {
 namespace Event {
 
 	/* Used when the swapchain is recreated. */
-	struct SwapchainRecreation {
-		const EventType eventType = EventType::EVENT_ID_SWAPCHAIN_RECREATION;
+	struct SwapchainIsRecreated {
+		const EventType eventType = EventType::EVENT_ID_SWAPCHAIN_IS_RECREATED;
+		uint32_t currentFrame;
+	};
+
+
+	/* Used when the simulation viewport is resized. */
+	struct ViewportIsResized {
+		const EventType eventType = EventType::EVENT_ID_VIEWPORT_IS_RESIZED;
+		uint32_t currentFrame;
+		uint32_t newWidth;
+		uint32_t newHeight;
 	};
 
 
@@ -70,6 +80,7 @@ namespace Event {
 	struct UpdateGUI {
 		const EventType eventType = EventType::EVENT_ID_UPDATE_GUI;
 		VkCommandBuffer commandBuffer;
+		uint32_t currentFrame;
 	};
 
 

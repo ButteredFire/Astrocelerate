@@ -9,7 +9,7 @@
             "installRoot": "${projectDir}\\out\\install\\${name}",
             "buildCommandArgs": "-v",
             "ctestCommandArgs": "",
-            "cmakeCommandArgs": "-DCMAKE_TOOLCHAIN_FILE=./vcpkg/scripts/buildsystems/vcpkg.cmake"
+            "cmakeCommandArgs": "-DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake"
         },
         {
             "name": "x64-Release",
@@ -20,7 +20,7 @@
             "installRoot": "${projectDir}\\out\\install\\${name}",
             "buildCommandArgs": "-v",
             "ctestCommandArgs": "",
-            "cmakeCommandArgs": "-DCMAKE_TOOLCHAIN_FILE=./vcpkg/scripts/buildsystems/vcpkg.cmake"
+            "cmakeCommandArgs": "-DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake"
         }
     ]
 }

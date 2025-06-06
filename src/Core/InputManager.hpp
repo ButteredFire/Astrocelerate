@@ -10,7 +10,8 @@
 #include <Core/ServiceLocator.hpp>
 #include <Core/LoggingManager.hpp>
 
-#include <CoreStructs/Contexts.hpp>
+#include <CoreStructs/Contexts/VulkanContext.hpp>
+#include <CoreStructs/Contexts/AppContext.hpp>
 #include <CoreStructs/Input.hpp>
 
 #include <Scene/Camera.hpp>
@@ -21,7 +22,7 @@ class EventDispatcher;
 
 class InputManager {
 public:
-	InputManager(AppContext& appContext);
+	InputManager();
 	~InputManager() = default;
 
 
@@ -63,8 +64,6 @@ public:
 	bool isViewportUnfocused();
 
 private:
-	AppContext& m_appContext;
-
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 	std::shared_ptr<Camera> m_camera;
 

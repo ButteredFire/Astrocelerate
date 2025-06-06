@@ -2,8 +2,7 @@
 #include <Core/EventDispatcher.hpp>
 
 
-InputManager::InputManager(AppContext& appContext):
-	m_appContext(appContext),
+InputManager::InputManager():
 	m_guiIO(ImGui::GetIO()) {
 	using namespace Input;
 
@@ -46,7 +45,7 @@ bool InputManager::isViewportInputAllowed() {
 }
 
 bool InputManager::isViewportFocused() {
-	return m_appContext.Input.isViewportFocused && m_appContext.Input.isViewportHoveredOver;
+	return g_appContext.Input.isViewportFocused && g_appContext.Input.isViewportHoveredOver;
 }
 
 bool InputManager::isViewportUnfocused() {
@@ -67,9 +66,7 @@ void InputManager::glfwDeferKeyInput(int key, int scancode, int action, int mods
 void InputManager::processKeyboardInput(double dt) {
 	using namespace Input;
 
-	static int cock = 0;
-
-	// Unlocks the cursor when the viewport loses focus (this solves desynchronization between m_appContext.Input.isViewportFocused and m_cursorLocked)
+	// Unlocks the cursor when the viewport loses focus (this solves desynchronization between g_appContext.Input.isViewportFocused and m_cursorLocked)
 	if (m_pressedKeys.contains(GLFW_KEY_ESCAPE) || isViewportUnfocused()) {
 		m_cursorLocked = false;
 		glfwSetInputMode(m_camera->m_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
@@ -80,9 +77,6 @@ void InputManager::processKeyboardInput(double dt) {
 			if (m_keyToCamMovementBindings.count(key))
 				m_camera->processKeyboardInput(m_keyToCamMovementBindings[key], dt);
 		}
-
-		if (key == GLFW_KEY_G)
-			Log::Print(Log::T_WARNING, __FUNCTION__, "cock and balls test " + std::to_string(cock++));
 	}
 }
 

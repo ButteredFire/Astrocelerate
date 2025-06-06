@@ -4,8 +4,7 @@
 #include "RenderSystem.hpp"
 
 
-RenderSystem::RenderSystem(VulkanContext& context):
-	m_vkContext(context) {
+RenderSystem::RenderSystem() {
 
 	m_registry = ServiceLocator::GetService<Registry>(__FUNCTION__);
 	m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
@@ -22,7 +21,7 @@ void RenderSystem::bindEvents() {
 	m_eventDispatcher->subscribe<Event::UpdateRenderables>(
 		[this](const Event::UpdateRenderables& event) {
 			// Compute dynamic alignment
-			m_dynamicAlignment = SystemUtils::Align(sizeof(Buffer::ObjectUBO), m_vkContext.Device.deviceProperties.limits.minUniformBufferOffsetAlignment);
+			m_dynamicAlignment = SystemUtils::Align(sizeof(Buffer::ObjectUBO), g_vkContext.Device.deviceProperties.limits.minUniformBufferOffsetAlignment);
 
 
 			// Bind vertex and index buffers
@@ -53,7 +52,7 @@ void RenderSystem::bindEvents() {
 		[this](const Event::UpdateGUI& event) {
 			auto view = m_registry->getView<Component::GUIRenderable>();
 			for (const auto& [entity, guiRenderable] : view) {
-				this->processGUIRenderable(event.commandBuffer, guiRenderable);
+				this->processGUIRenderable(event.commandBuffer, guiRenderable, event.currentFrame);
 			}
 		}
 	);
@@ -66,21 +65,14 @@ void RenderSystem::processMeshRenderable(const VkCommandBuffer& cmdBuffer, const
 	// Draw call
 		// Binds descriptor sets
 			// Descriptor set 0
-	vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_vkContext.OffscreenPipeline.layout, 0, 1, &descriptorSet, 1, &dynamicOffset);
+	vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, g_vkContext.OffscreenPipeline.layout, 0, 1, &descriptorSet, 1, &dynamicOffset);
 
 	// Draws vertices based on the index buffer
-	//vkCmdDraw(cmdBuffer, renderable.vertexData.size(), 1, 0, 0);
 	vkCmdDrawIndexed(cmdBuffer, renderable.meshOffset.indexCount, 1, renderable.meshOffset.indexOffset, renderable.meshOffset.vertexOffset, 0); // Use vkCmdDrawIndexed instead of vkCmdDraw to draw with the index buffer
 }
 
 
-void RenderSystem::processGUIRenderable(const VkCommandBuffer& cmdBuffer, const Component::GUIRenderable& renderable) {
-	try {
-		m_imguiRenderer->renderFrames();
-		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmdBuffer);
-	}
-	catch (const std::out_of_range& e) {
-		// This usually means there is no draw data to render (only happens at end of program).
-		return;
-	}
+void RenderSystem::processGUIRenderable(const VkCommandBuffer& cmdBuffer, const Component::GUIRenderable& renderable, uint32_t currentFrame) {
+	m_imguiRenderer->renderFrames(currentFrame);
+	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmdBuffer);
 }

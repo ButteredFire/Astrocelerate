@@ -9,6 +9,7 @@
 #include <imgui/imgui_impl_vulkan.h>
 
 #include <Core/ECS.hpp>
+#include <Core/Constants.h>
 #include <Core/InputManager.hpp>
 #include <Core/ServiceLocator.hpp>
 #include <Core/LoggingManager.hpp>
@@ -16,42 +17,46 @@
 #include <Core/GarbageCollector.hpp>
 
 #include <CoreStructs/GUI.hpp>
-#include <CoreStructs/Contexts.hpp>
+#include <CoreStructs/Contexts/VulkanContext.hpp>
+#include <CoreStructs/Contexts/AppContext.hpp>
 
 #include <Engine/Components/PhysicsComponents.hpp>
 #include <Engine/Components/WorldSpaceComponents.hpp>
 
 #include <Utils/ColorUtils.hpp>
 #include <Utils/SpaceUtils.hpp>
+#include <Utils/SystemUtils.hpp>
 #include <Utils/Vulkan/VkDescriptorUtils.hpp>
 
 
 class UIPanelManager {
 public:
-	UIPanelManager(VulkanContext& vkContext, AppContext& appContext);
+	UIPanelManager();
 	~UIPanelManager() = default;
 
 	/* Initializes panels from a panel mask bit-field. */
 	void initPanelsFromMask(GUI::PanelMask& mask);
 
 	/* Updates panels. */
-	void updatePanels();
+	void updatePanels(uint32_t currentFrame);
 
 	/* Renders the menu bar. */
 	void renderMenuBar();
 
-	/* Is the viewport window focused? (Used for input management) */
+	/* Is the viewport panel focused? (Used for input management) */
 	inline bool isViewportFocused() {
-		return m_appContext.Input.isViewportFocused;
+		return g_appContext.Input.isViewportFocused;
 	}
+
+	/* Sets the currently focused panel.
+		@param panel: The panel to be focused on.
+	*/
+	inline void setFocusedPanel(GUI::PanelFlag panel) { m_currentFocusedPanel = panel; }
 
 
 	const size_t FLAG_COUNT = sizeof(GUI::PanelFlagsArray) / sizeof(GUI::PanelFlagsArray[0]);
 
 private:
-	VulkanContext& m_vkContext;
-	AppContext& m_appContext;
-
 	std::shared_ptr<GarbageCollector> m_garbageCollector;
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 	std::shared_ptr<InputManager> m_inputManager;
@@ -66,18 +71,30 @@ private:
 	ImGuiWindowFlags m_windowFlags;
 
 	// Viewport sampling as a texture
-	ImTextureID m_viewportRenderTextureID = NULL;
-	VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
-	VkDescriptorSetLayout m_viewportTextureDescSetLayout = VK_NULL_HANDLE;
-	VkDescriptorSet m_viewportRenderTextureDescSet = VK_NULL_HANDLE;
+	std::vector<ImTextureID> m_viewportRenderTextureIDs;
+	ImVec2 m_lastViewportPanelSize = { 0.0f, 0.0f };
+	uint32_t m_currentFrame = 0;
 
 	bool m_inputBlockerIsOn = false;
+
+	GUI::PanelFlag m_currentFocusedPanel = GUI::PanelFlag::NULL_PANEL;
 
 
 	void bindEvents();
 
+	/* Initialization procedures that require the ImGui context to be initialized must be done here. */
+	void onImGuiInit();
+
+
+	/* ImGui calls that must happen between ImGui::Begin() and ImGui::End() will be invoked here.
+		@important All render*() functions must call this function right after ImGui::Begin()!
+	*/
+	void performBackgroundChecks(GUI::PanelFlag flag);
+
+
 	/* Binds the panel flags to their respective initalization callback functions. */
 	void bindPanelFlags();
+
 
 	/* Initializes a descriptor set for the viewport texture. */
 	void initViewportTextureDescriptorSet();

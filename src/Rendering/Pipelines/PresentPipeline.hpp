@@ -10,7 +10,7 @@
 #include <Core/EventDispatcher.hpp>
 #include <Core/GarbageCollector.hpp>
 
-#include <CoreStructs/Contexts.hpp>
+#include <CoreStructs/Contexts/VulkanContext.hpp>
 
 #include <Rendering/Pipelines/PipelineBuilder.hpp>
 
@@ -19,14 +19,12 @@
 
 class PresentPipeline {
 public:
-	PresentPipeline(VulkanContext& context);
+	PresentPipeline();
 	~PresentPipeline() = default;
 
 	void init();
 
 private:
-	VulkanContext& m_vkContext;
-
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 	std::shared_ptr<GarbageCollector> m_garbageCollector;
 	std::shared_ptr<VkBufferManager> m_bufferManager;

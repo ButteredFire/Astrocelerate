@@ -9,10 +9,10 @@
 #include <Core/GarbageCollector.hpp>
 #include <Core/ServiceLocator.hpp>
 
-#include <CoreStructs/Contexts.hpp>
+#include <CoreStructs/Contexts/VulkanContext.hpp>
 
 
 class VkDescriptorUtils {
 public:
-	static void CreateDescriptorPool(VulkanContext& vkContext, VkDescriptorPool& descriptorPool, std::vector<VkDescriptorPoolSize> poolSizes, VkDescriptorPoolCreateFlags createFlags);
+	static void CreateDescriptorPool(VkDescriptorPool& descriptorPool, std::vector<VkDescriptorPoolSize> poolSizes, VkDescriptorPoolCreateFlags createFlags);
 };

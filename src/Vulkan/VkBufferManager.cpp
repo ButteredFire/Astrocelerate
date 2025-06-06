@@ -1,7 +1,6 @@
 #include "VkBufferManager.hpp"
 
-VkBufferManager::VkBufferManager(VulkanContext& context):
-	m_vkContext(context) {
+VkBufferManager::VkBufferManager() {
 
 	m_registry = ServiceLocator::GetService<Registry>(__FUNCTION__);
 	m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
@@ -156,12 +155,12 @@ void VkBufferManager::init() {
 
 	m_camera->movementSpeed = 50;
 
-	m_alignedObjectUBOSize = SystemUtils::Align(sizeof(Buffer::ObjectUBO), m_vkContext.Device.deviceProperties.limits.minUniformBufferOffsetAlignment);
+	m_alignedObjectUBOSize = SystemUtils::Align(sizeof(Buffer::ObjectUBO), g_vkContext.Device.deviceProperties.limits.minUniformBufferOffsetAlignment);
 	createUniformBuffers();
 }
 
 
-uint32_t VkBufferManager::createBuffer(VulkanContext& vkContext, VkBuffer& buffer, VkDeviceSize bufferSize, VkBufferUsageFlags usageFlags, VmaAllocation& bufferAllocation, VmaAllocationCreateInfo bufferAllocationCreateInfo) {
+uint32_t VkBufferManager::createBuffer(VkBuffer& buffer, VkDeviceSize bufferSize, VkBufferUsageFlags usageFlags, VmaAllocation& bufferAllocation, VmaAllocationCreateInfo bufferAllocationCreateInfo) {
 
 	std::shared_ptr<GarbageCollector> m_garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
 
@@ -177,7 +176,7 @@ uint32_t VkBufferManager::createBuffer(VulkanContext& vkContext, VkBuffer& buffe
 	bufCreateInfo.sharingMode = VK_SHARING_MODE_CONCURRENT;
 
 		// If the sharing mode is CONCURRENT, we must specify queue families
-	QueueFamilyIndices familyIndices = vkContext.Device.queueFamilies;
+	QueueFamilyIndices familyIndices = g_vkContext.Device.queueFamilies;
 	uint32_t queueFamilyIndices[] = {
 		familyIndices.graphicsFamily.index.value(),
 		familyIndices.transferFamily.index.value()
@@ -189,7 +188,7 @@ uint32_t VkBufferManager::createBuffer(VulkanContext& vkContext, VkBuffer& buffe
 	bufCreateInfo.flags = 0;
 
 
-	VkResult bufCreateResult = vmaCreateBuffer(vkContext.vmaAllocator, &bufCreateInfo, &bufferAllocationCreateInfo, &buffer, &bufferAllocation, nullptr);
+	VkResult bufCreateResult = vmaCreateBuffer(g_vkContext.vmaAllocator, &bufCreateInfo, &bufferAllocationCreateInfo, &buffer, &bufferAllocation, nullptr);
 	if (bufCreateResult != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create buffer!");
 	}
@@ -198,8 +197,8 @@ uint32_t VkBufferManager::createBuffer(VulkanContext& vkContext, VkBuffer& buffe
 	CleanupTask bufTask{};
 	bufTask.caller = __FUNCTION__;
 	bufTask.objectNames = { VARIABLE_NAME(m_buffer) };
-	bufTask.vkObjects = { vkContext.vmaAllocator, buffer, bufferAllocation };
-	bufTask.cleanupFunc = [vkContext, buffer, bufferAllocation]() { vmaDestroyBuffer(vkContext.vmaAllocator, buffer, bufferAllocation); };
+	bufTask.vkObjects = { g_vkContext.vmaAllocator, buffer, bufferAllocation };
+	bufTask.cleanupFunc = [buffer, bufferAllocation]() { vmaDestroyBuffer(g_vkContext.vmaAllocator, buffer, bufferAllocation); };
 
 	uint32_t bufferTaskID = m_garbageCollector->createCleanupTask(bufTask);
 
@@ -218,7 +217,7 @@ void VkBufferManager::createGlobalVertexBuffer(const std::vector<Geometry::Verte
 	vertBufAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE; // PREFERS fast device-local memory
 	vertBufAllocInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT; // FORCES device-local memory
 
-	createBuffer(m_vkContext, m_vertexBuffer, bufferSize, vertBufUsage, m_vertexBufferAllocation, vertBufAllocInfo);
+	createBuffer( m_vertexBuffer, bufferSize, vertBufUsage, m_vertexBufferAllocation, vertBufAllocInfo);
 
 	writeDataToGPUBuffer(vertexData.data(), m_vertexBuffer, bufferSize);
 }
@@ -234,7 +233,7 @@ void VkBufferManager::createGlobalIndexBuffer(const std::vector<uint32_t>& index
 	indexBufAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE; // PREFERS fast device-local memory
 	indexBufAllocInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT; // FORCES device-local memory
 
-	createBuffer(m_vkContext, m_indexBuffer, bufferSize, indexBufUsage, m_indexBufferAllocation, indexBufAllocInfo);
+	createBuffer( m_indexBuffer, bufferSize, indexBufUsage, m_indexBufferAllocation, indexBufAllocInfo);
 
 	writeDataToGPUBuffer(indexData.data(), m_indexBuffer, bufferSize);
 }
@@ -242,21 +241,21 @@ void VkBufferManager::createGlobalIndexBuffer(const std::vector<uint32_t>& index
 
 void VkBufferManager::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize deviceSize) {
 	// Uses the transfer queue by default, but if it does not exist, switch to the graphics queue
-	QueueFamilyIndices::QueueFamily queueFamily = m_vkContext.Device.queueFamilies.transferFamily;
+	QueueFamilyIndices::QueueFamily queueFamily = g_vkContext.Device.queueFamilies.transferFamily;
 	if (queueFamily.deviceQueue == VK_NULL_HANDLE || !queueFamily.index.has_value()) {
 		Log::Print(Log::T_WARNING, __FUNCTION__, "Transfer queue family is not valid. Switching to graphics queue family...");
-		queueFamily = m_vkContext.Device.queueFamilies.graphicsFamily;
+		queueFamily = g_vkContext.Device.queueFamilies.graphicsFamily;
 	}
 
 
 	// Begins recording a command buffer to send data to the GPU
 	SingleUseCommandBufferInfo cmdBufInfo{};
-	cmdBufInfo.commandPool = VkCommandManager::createCommandPool(m_vkContext, m_vkContext.Device.logicalDevice, queueFamily.index.value(), VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
-	cmdBufInfo.fence = VkSyncManager::createSingleUseFence(m_vkContext);
+	cmdBufInfo.commandPool = VkCommandManager::createCommandPool(g_vkContext.Device.logicalDevice, queueFamily.index.value(), VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
+	cmdBufInfo.fence = VkSyncManager::createSingleUseFence();
 	cmdBufInfo.usingSingleUseFence = true;
 	cmdBufInfo.queue = queueFamily.deviceQueue;
 
-	VkCommandBuffer commandBuffer = VkCommandManager::beginSingleUseCommandBuffer(m_vkContext, &cmdBufInfo);
+	VkCommandBuffer commandBuffer = VkCommandManager::beginSingleUseCommandBuffer(&cmdBufInfo);
 
 
 	// Copies the data
@@ -269,7 +268,7 @@ void VkBufferManager::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDevic
 
 
 	// Stops recording the command buffer and submits recorded data to the GPU
-	VkCommandManager::endSingleUseCommandBuffer(m_vkContext, &cmdBufInfo, commandBuffer);
+	VkCommandManager::endSingleUseCommandBuffer(&cmdBufInfo, commandBuffer);
 }
 
 
@@ -289,9 +288,9 @@ void VkBufferManager::updateGlobalUBO(uint32_t currentImage) {
 		// glm::perspective(fieldOfView, aspectRatio, nearClipPlane, farClipPlane);
 
 	const float fieldOfView = glm::radians(m_camera->zoom);
-	float aspectRatio = static_cast<float>(m_vkContext.SwapChain.extent.width) / static_cast<float>(m_vkContext.SwapChain.extent.height);
+	float aspectRatio = static_cast<float>(g_vkContext.SwapChain.extent.width) / static_cast<float>(g_vkContext.SwapChain.extent.height);
 	float nearClipPlane = 0.01f;
-	float farClipPlane = 1e10f;
+	float farClipPlane = 1e8f;
 
 	ubo.projection = glm::perspective(fieldOfView, aspectRatio, nearClipPlane, farClipPlane);
 
@@ -399,13 +398,13 @@ void VkBufferManager::writeDataToGPUBuffer(const void* data, VkBuffer& buffer, V
 	*/
 	stagingBufAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
 
-	uint32_t stagingBufTaskID = createBuffer(m_vkContext, stagingBuffer, bufferSize, stagingBufUsage, stagingBufAllocation, stagingBufAllocInfo);
+	uint32_t stagingBufTaskID = createBuffer(stagingBuffer, bufferSize, stagingBufUsage, stagingBufAllocation, stagingBufAllocInfo);
 
 	// Copies data to the staging buffer
 	void* mappedData;
-	vmaMapMemory(m_vkContext.vmaAllocator, stagingBufAllocation, &mappedData);	// Maps the buffer memory into CPU-accessible memory so that we can write data to it
+	vmaMapMemory(g_vkContext.vmaAllocator, stagingBufAllocation, &mappedData);	// Maps the buffer memory into CPU-accessible memory so that we can write data to it
 	memcpy(mappedData, data, static_cast<size_t>(bufferSize));	// Copies the data to the mapped buffer memory
-	vmaUnmapMemory(m_vkContext.vmaAllocator, stagingBufAllocation);		// Unmaps the mapped buffer memory
+	vmaUnmapMemory(g_vkContext.vmaAllocator, stagingBufAllocation);		// Unmaps the mapped buffer memory
 
 
 	// Copies the contents from the staging buffer to the destination buffer
@@ -452,18 +451,18 @@ void VkBufferManager::createUniformBuffers() {
 		*/
 		
 			// Global UBO (per frame)
-		createBuffer(m_vkContext, m_globalUBOs[i].buffer, globalBufSize, uniformBufUsageFlags, m_globalUBOs[i].allocation, uniformBufAllocInfo);
+		createBuffer(m_globalUBOs[i].buffer, globalBufSize, uniformBufUsageFlags, m_globalUBOs[i].allocation, uniformBufAllocInfo);
 
 			/*
 			The buffer allocation stays mapped to the pointer for the application's whole lifetime.
 			This technique is called "persistent mapping". We use it here because, as aforementioned, the UBOs are updated with new data every single frame, and mapping them alone costs a little performance, much less every frame.
 			*/
-		vmaMapMemory(m_vkContext.vmaAllocator, m_globalUBOs[i].allocation, &m_globalUBOMappedData[i]);
+		vmaMapMemory(g_vkContext.vmaAllocator, m_globalUBOs[i].allocation, &m_globalUBOMappedData[i]);
 
 
 			// Object UBO (per object per frame)
-		createBuffer(m_vkContext, m_objectUBOs[i].buffer, objectBufSize, uniformBufUsageFlags, m_objectUBOs[i].allocation, uniformBufAllocInfo);
-		vmaMapMemory(m_vkContext.vmaAllocator, m_objectUBOs[i].allocation, &m_objectUBOMappedData[i]);
+		createBuffer(m_objectUBOs[i].buffer, objectBufSize, uniformBufUsageFlags, m_objectUBOs[i].allocation, uniformBufAllocInfo);
+		vmaMapMemory(g_vkContext.vmaAllocator, m_objectUBOs[i].allocation, &m_objectUBOMappedData[i]);
 		
 		/*
 		for (size_t j = 0; j < m_totalObjects; j++) {
@@ -479,10 +478,10 @@ void VkBufferManager::createUniformBuffers() {
 		CleanupTask task{};
 		task.caller = __FUNCTION__;
 		task.objectNames = { "Global and per-object UBOs" };
-		task.vkObjects = { m_vkContext.vmaAllocator, globalUBOAlloc, objectUBOAlloc };
+		task.vkObjects = { g_vkContext.vmaAllocator, globalUBOAlloc, objectUBOAlloc };
 		task.cleanupFunc = [this, i, globalUBOAlloc, objectUBOAlloc]() {
-			vmaUnmapMemory(m_vkContext.vmaAllocator, globalUBOAlloc);
-			vmaUnmapMemory(m_vkContext.vmaAllocator, objectUBOAlloc);
+			vmaUnmapMemory(g_vkContext.vmaAllocator, globalUBOAlloc);
+			vmaUnmapMemory(g_vkContext.vmaAllocator, objectUBOAlloc);
 			/*
 			for (size_t j = 0; j < m_totalObjects; j++) {
 				size_t index = i * m_totalObjects + j;
@@ -498,7 +497,7 @@ void VkBufferManager::createUniformBuffers() {
 uint32_t VkBufferManager::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
 	// Queries info about available memory types on the GPU
 	VkPhysicalDeviceMemoryProperties memoryProperties{};
-	vkGetPhysicalDeviceMemoryProperties(m_vkContext.Device.physicalDevice, &memoryProperties);
+	vkGetPhysicalDeviceMemoryProperties(g_vkContext.Device.physicalDevice, &memoryProperties);
 	
 	/* The VkPhysicalDeviceMemoryProperties struct has two arrays:
 	* - memoryHeaps: An array of structures, each describing a memory heap (i.e., distinct memory resources, e.g., VRAM, RAM) from which memory can be allocated. This is useful if we want to know what heap a memory type comes from.

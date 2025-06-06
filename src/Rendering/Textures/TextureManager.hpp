@@ -16,7 +16,7 @@
 // Other
 #include <Core/Constants.h>
 #include <Core/LoggingManager.hpp>
-#include <CoreStructs/Contexts.hpp>
+#include <CoreStructs/Contexts/VulkanContext.hpp>
 #include <Core/GarbageCollector.hpp>
 
 #include <Vulkan/VkBufferManager.hpp>
@@ -26,7 +26,7 @@
 
 class TextureManager {
 public:
-	TextureManager(VulkanContext& context);
+	TextureManager();
 	~TextureManager() = default;
 
 
@@ -39,7 +39,6 @@ public:
 
 
     /* Creates an image object.
-        @param vkContext: The Vulkan context.
         @param image: The image to be created.
         @param imgAllocation: The memory allocation for the image.
         @param width: The width of the image.
@@ -50,17 +49,16 @@ public:
         @param imgUsageFlags: The usage flags for the image.
         @param imgAllocCreateInfo: The allocation create info for the image.
     */
-    static void createImage(VulkanContext& vkContext, VkImage& image, VmaAllocation& imgAllocation, uint32_t width, uint32_t height, uint32_t depth, VkFormat imgFormat, VkImageTiling imgTiling, VkImageUsageFlags imgUsageFlags, VmaAllocationCreateInfo& imgAllocCreateInfo);
+    static void createImage(VkImage& image, VmaAllocation& imgAllocation, uint32_t width, uint32_t height, uint32_t depth, VkFormat imgFormat, VkImageTiling imgTiling, VkImageUsageFlags imgUsageFlags, VmaAllocationCreateInfo& imgAllocCreateInfo);
 
 
     /* Handles image layout transition.
-        @param vkContext: The Vulkan context.
         @param image: The image to be used in the image memory barrier.
         @param imgFormat: The format of the image.
         @param oldLayout: The old image layout.
         @param newLayout: The new image layout.
     */
-    static void switchImageLayout(VulkanContext& vkContext, VkImage image, VkFormat imgFormat, VkImageLayout oldLayout, VkImageLayout newLayout);
+    static void switchImageLayout(VkImage image, VkFormat imgFormat, VkImageLayout oldLayout, VkImageLayout newLayout);
 
 
     /* Defines the pipeline source and destination stages as image layout transition rules.
@@ -74,8 +72,6 @@ public:
     static void defineImageLayoutTransitionStages(VkAccessFlags* srcAccessMask, VkAccessFlags* dstAccessMask, VkPipelineStageFlags* srcStage, VkPipelineStageFlags* dstStage, VkImageLayout oldLayout, VkImageLayout newLayout);
 
 private:
-    VulkanContext& m_vkContext;
-
     std::shared_ptr<GarbageCollector> m_garbageCollector;
 
     VkImage m_textureImage = VK_NULL_HANDLE;

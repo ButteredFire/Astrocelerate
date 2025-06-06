@@ -4,9 +4,8 @@
 #include "Engine.hpp"
 
 
-Engine::Engine(GLFWwindow *w, VulkanContext& context):
-    window(w),
-    m_vkContext(context) {
+Engine::Engine(GLFWwindow *w):
+    window(w) {
 
     m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
     m_registry = ServiceLocator::GetService<Registry>(__FUNCTION__);
@@ -61,18 +60,21 @@ void Engine::run() {
 /* [MEMBER] Updates and processes all events */
 void Engine::update() {
     double accumulator = 0.0;
-    const float TIME_SCALE = 1.0f;
+    float timeScale = 0;
 
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
 
+        timeScale = Time::GetTimeScale();
+
         Time::UpdateDeltaTime();
         double deltaTime = Time::GetDeltaTime();
-        accumulator += deltaTime * TIME_SCALE;
+        accumulator += deltaTime * timeScale;
 
         // Update physics
+            // TODO: Implement adaptive timestepping instead of a constant TIME_STEP
         while (accumulator >= SimulationConsts::TIME_STEP) {
-            const double scaledDeltaTime = SimulationConsts::TIME_STEP * TIME_SCALE;
+            const double scaledDeltaTime = SimulationConsts::TIME_STEP * timeScale;
 
             m_refFrameSystem->updateAllFrames();
             m_physicsSystem->update(scaledDeltaTime);
@@ -95,5 +97,5 @@ void Engine::update() {
 
     // All of the operations in Renderer::drawFrame are asynchronous. That means that when we exit the loop in mainLoop, drawing and presentation operations may still be going on. Cleaning up resources while that is happening is a bad idea.
     // To fix that problem, we should wait for the logical device to finish operations before exiting mainLoop and destroying the window:
-    vkDeviceWaitIdle(m_vkContext.Device.logicalDevice);
+    vkDeviceWaitIdle(g_vkContext.Device.logicalDevice);
 }

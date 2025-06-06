@@ -21,7 +21,8 @@
 #include <Core/ServiceLocator.hpp>
 #include <Core/GarbageCollector.hpp>
 
-#include <CoreStructs/Contexts.hpp>
+#include <CoreStructs/Contexts/VulkanContext.hpp>
+#include <CoreStructs/Contexts/AppContext.hpp>
 
 #include <Scene/GUI/UIPanelManager.hpp>
 
@@ -29,9 +30,6 @@
 
 #include <Utils/ColorUtils.hpp>
 #include <Utils/Vulkan/VkDescriptorUtils.hpp>
-
-// Font
-#include <../assets/DefaultFont.hpp>
 
 
 class UIRenderer {
@@ -41,7 +39,7 @@ public:
 		IMGUI_APPEARANCE_LIGHT_MODE
 	};
 
-	UIRenderer(VulkanContext& context);
+	UIRenderer();
 	~UIRenderer();
 
 	/* Initializes ImGui.
@@ -49,6 +47,7 @@ public:
 	*/
 	void initImGui(UIRenderer::Appearance appearance = Appearance::IMGUI_APPEARANCE_DARK_MODE);
 
+	void initFonts();
 
 	void initDockspace();
 
@@ -58,7 +57,7 @@ public:
 
 
 	/* Renders ImGui windows. */
-	void renderFrames();
+	void renderFrames(uint32_t currentFrame);
 
 	/* Updates the GUI appearance.
 		@param appearance (Default is set by UIRenderer::initializeImGui): The appearance to update the GUI to.
@@ -66,7 +65,6 @@ public:
 	void updateAppearance(UIRenderer::Appearance appearance);
 
 private:
-	VulkanContext& m_vkContext;
 	UIRenderer::Appearance m_currentAppearance = Appearance::IMGUI_APPEARANCE_DARK_MODE;
 
 	std::shared_ptr<Registry> m_registry;

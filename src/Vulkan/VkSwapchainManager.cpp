@@ -3,35 +3,30 @@
 
 #include "VkSwapchainManager.hpp"
 
-VkSwapchainManager::VkSwapchainManager(VulkanContext& context):
-    m_vkContext(context) {
+VkSwapchainManager::VkSwapchainManager() {
 
     m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
     m_garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
 
-    if (m_vkContext.Device.physicalDevice == VK_NULL_HANDLE) {
-        throw Log::RuntimeException(__FUNCTION__, __LINE__, "Cannot initialize swap-chain manager: The GPU's physical device handle is null!");
-    }
+    LOG_ASSERT(g_vkContext.Device.physicalDevice != VK_NULL_HANDLE, "Cannot initialize swap-chain manager: The GPU's physical device handle is null!");
 
-    if (m_vkContext.Device.logicalDevice == VK_NULL_HANDLE) {
-        throw Log::RuntimeException(__FUNCTION__, __LINE__, "Cannot initialize swap-chain manager: The GPU's logical device handle is null!");
-    }
+    LOG_ASSERT(g_vkContext.Device.logicalDevice != VK_NULL_HANDLE, "Cannot initialize swap-chain manager: The GPU's logical device handle is null!");
 
-    m_swapChain = m_vkContext.SwapChain.swapChain;
+    m_swapChain = g_vkContext.SwapChain.swapChain;
+
+    bindEvents();
+
+    Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
+}
 
 
-    // Initializes framebuffers after graphics pipeline initialization
+void VkSwapchainManager::bindEvents() {
     m_eventDispatcher->subscribe<Event::InitFrameBuffers>(
         [this](const Event::InitFrameBuffers& event) {
             this->createFrameBuffers();
         }
     );
-
-
-    Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
-
-VkSwapchainManager::~VkSwapchainManager() {}
 
 
 void VkSwapchainManager::init() {
@@ -41,24 +36,22 @@ void VkSwapchainManager::init() {
 
     // Parses data for each image
     createImageViews();
-    m_vkContext.SwapChain.imageViews = m_imageViews;
+    g_vkContext.SwapChain.imageViews = m_imageViews;
 }
 
 
-void VkSwapchainManager::recreateSwapchain() {
-    Log::Print(Log::T_INFO, __FUNCTION__, "Recreating swap-chain...");
-
+void VkSwapchainManager::recreateSwapchain(uint32_t currentFrame) {
     // If the window is minimized (i.e., (width, height) = (0, 0), pause the window until it is in the foreground again
     int width = 0, height = 0;
-    glfwGetFramebufferSize(m_vkContext.window, &width, &height);
+    glfwGetFramebufferSize(g_vkContext.window, &width, &height);
     while (width == 0 || height == 0) {
-        glfwGetFramebufferSize(m_vkContext.window, &width, &height);
+        glfwGetFramebufferSize(g_vkContext.window, &width, &height);
         glfwWaitEvents();
     }
 
     // Recreates swap-chain
         // Waits for the host to be idle
-    vkDeviceWaitIdle(m_vkContext.Device.logicalDevice);
+    vkDeviceWaitIdle(g_vkContext.Device.logicalDevice);
 
         // Cleans up outdated swap-chain objects
     for (const auto& taskID : m_cleanupTaskIDs) {
@@ -68,15 +61,16 @@ void VkSwapchainManager::recreateSwapchain() {
 
 
     init();
-
-    m_eventDispatcher->publish(Event::SwapchainRecreation{});
-
     createFrameBuffers();
+
+    m_eventDispatcher->publish(Event::SwapchainIsRecreated{
+        .currentFrame = currentFrame
+    });
 }
 
 
 void VkSwapchainManager::createSwapChain() {
-    SwapChainProperties swapChainProperties = getSwapChainProperties(m_vkContext.Device.physicalDevice, m_vkContext.vkSurface);
+    SwapChainProperties swapChainProperties = getSwapChainProperties(g_vkContext.Device.physicalDevice, g_vkContext.vkSurface);
 
     VkExtent2D extent = getBestSwapExtent(swapChainProperties.surfaceCapabilities);
     VkSurfaceFormatKHR surfaceFormat = getBestSurfaceFormat(swapChainProperties.surfaceFormats);
@@ -96,7 +90,7 @@ void VkSwapchainManager::createSwapChain() {
     // Creates the swap-chain structure
     VkSwapchainCreateInfoKHR swapChainCreateInfo{};
     swapChainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    swapChainCreateInfo.surface = m_vkContext.vkSurface;
+    swapChainCreateInfo.surface = g_vkContext.vkSurface;
 
     swapChainCreateInfo.imageExtent = extent;
     swapChainCreateInfo.imageFormat = surfaceFormat.format;
@@ -117,7 +111,7 @@ void VkSwapchainManager::createSwapChain() {
     // use other bits like VK_IMAGE_USAGE_TRANSFER_DST_BIT.
     swapChainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-    QueueFamilyIndices families = VkDeviceManager::getQueueFamilies(m_vkContext.Device.physicalDevice, m_vkContext.vkSurface);
+    QueueFamilyIndices families = VkDeviceManager::getQueueFamilies(g_vkContext.Device.physicalDevice, g_vkContext.vkSurface);
     std::vector<uint32_t> familyIndices = families.getAvailableIndices();
 
     // If the graphics family supports presentation (i.e., the presentation family is not separate),
@@ -148,33 +142,33 @@ void VkSwapchainManager::createSwapChain() {
     swapChainCreateInfo.oldSwapchain = VK_NULL_HANDLE;
 
     // Creates a VkSwapchainKHR object
-    VkResult result = vkCreateSwapchainKHR(m_vkContext.Device.logicalDevice, &swapChainCreateInfo, nullptr, &m_swapChain);
+    VkResult result = vkCreateSwapchainKHR(g_vkContext.Device.logicalDevice, &swapChainCreateInfo, nullptr, &m_swapChain);
     if (result != VK_SUCCESS) {
         throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create swap-chain!");
     }
 
     // Saves swap-chain properties
-    m_vkContext.SwapChain.swapChain = m_swapChain;
-    m_vkContext.SwapChain.surfaceFormat = surfaceFormat;
-    m_vkContext.SwapChain.extent = extent;
+    g_vkContext.SwapChain.swapChain = m_swapChain;
+    g_vkContext.SwapChain.surfaceFormat = surfaceFormat;
+    g_vkContext.SwapChain.extent = extent;
 
     // Fills swapChainImages with a set of VkImage objects provided after swap-chain creation
-    vkGetSwapchainImagesKHR(m_vkContext.Device.logicalDevice, m_vkContext.SwapChain.swapChain, &imageCount, nullptr);
+    vkGetSwapchainImagesKHR(g_vkContext.Device.logicalDevice, g_vkContext.SwapChain.swapChain, &imageCount, nullptr);
     m_images.resize(imageCount);
-    m_vkContext.SwapChain.minImageCount = imageCount;
-    vkGetSwapchainImagesKHR(m_vkContext.Device.logicalDevice, m_vkContext.SwapChain.swapChain, &imageCount, m_images.data());
+    g_vkContext.SwapChain.minImageCount = imageCount;
+    vkGetSwapchainImagesKHR(g_vkContext.Device.logicalDevice, g_vkContext.SwapChain.swapChain, &imageCount, m_images.data());
 
-    m_vkContext.SwapChain.images = m_images;
+    g_vkContext.SwapChain.images = m_images;
 
 
     CleanupTask task;
     task.caller = __FUNCTION__;
     task.objectNames = { VARIABLE_NAME(m_swapChain) };
     task.vkObjects = { m_swapChain };
-    task.cleanupFunc = [&]() { vkDestroySwapchainKHR(m_vkContext.Device.logicalDevice, m_swapChain, nullptr); };
+    task.cleanupFunc = [&]() { vkDestroySwapchainKHR(g_vkContext.Device.logicalDevice, m_swapChain, nullptr); };
 
-    uint32_t swapChainTaskID = m_garbageCollector->createCleanupTask(task);
-    m_cleanupTaskIDs.push_back(swapChainTaskID);
+    uint32_t swapChainCleanupID = m_garbageCollector->createCleanupTask(task);
+    m_cleanupTaskIDs.push_back(swapChainCleanupID);
 }
 
 
@@ -187,8 +181,8 @@ void VkSwapchainManager::createImageViews() {
     m_imageViews.resize(m_images.size());
 
     for (size_t i = 0; i < m_images.size(); i++) {
-        //uint32_t viewCleanupID = createImageView(m_vkContext, m_images[i], m_imageViews[i], m_vkContext.SwapChain.surfaceFormat.format, VK_IMAGE_ASPECT_COLOR_BIT);
-        uint32_t viewCleanupID = VkImageManager::CreateImageView(m_vkContext, m_imageViews[i], m_images[i], m_vkContext.SwapChain.surfaceFormat.format, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_VIEW_TYPE_2D, 1, 1);
+        //uint32_t viewCleanupID = CreateImageView(m_images[i], m_imageViews[i], g_vkContext.SwapChain.surfaceFormat.format, VK_IMAGE_ASPECT_COLOR_BIT);
+        uint32_t viewCleanupID = VkImageManager::CreateImageView(m_imageViews[i], m_images[i], g_vkContext.SwapChain.surfaceFormat.format, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_VIEW_TYPE_2D, 1, 1);
 
         m_cleanupTaskIDs.push_back(viewCleanupID);
     }
@@ -204,10 +198,12 @@ void VkSwapchainManager::createFrameBuffers() {
         std::vector<VkImageView> attachments = {
             m_imageViews[i]
         };
-        VkImageManager::CreateFramebuffer(m_vkContext, m_imageFrameBuffers[i], m_vkContext.PresentPipeline.renderPass, attachments, m_vkContext.SwapChain.extent.width, m_vkContext.SwapChain.extent.height);
+        uint32_t framebufferCleanupID = VkImageManager::CreateFramebuffer(m_imageFrameBuffers[i], g_vkContext.PresentPipeline.renderPass, attachments, g_vkContext.SwapChain.extent.width, g_vkContext.SwapChain.extent.height);
+
+        m_cleanupTaskIDs.push_back(framebufferCleanupID);
     }
 
-    m_vkContext.SwapChain.imageFrameBuffers = m_imageFrameBuffers;
+    g_vkContext.SwapChain.imageFrameBuffers = m_imageFrameBuffers;
 }
 
 
@@ -277,7 +273,7 @@ VkExtent2D VkSwapchainManager::getBestSwapExtent(VkSurfaceCapabilitiesKHR& capab
     // Else, it means we can create possible resolutions within the [minImageExtent, maxImageExtent] range.
     // In this case, the best swap extent is the one whose resolution best matches the window.
     int width, height;
-    glfwGetFramebufferSize(m_vkContext.window, &width, &height); // Gets the window resolution in pixels
+    glfwGetFramebufferSize(g_vkContext.window, &width, &height); // Gets the window resolution in pixels
 
     // Creates the best swap extent and populate it with the current window resolution
     VkExtent2D bestExtent{};

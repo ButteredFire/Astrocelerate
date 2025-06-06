@@ -8,13 +8,12 @@
 #include <Core/GarbageCollector.hpp>
 #include <Core/ServiceLocator.hpp>
 
-#include <CoreStructs/Contexts.hpp>
+#include <CoreStructs/Contexts/VulkanContext.hpp>
 
 
 class VkImageManager {
 public:
 	/* Creates an image.
-		@param vkContext: The Vulkan context.
 		@param image: The image to be created.
 		@param imgAllocation: The memory allocation for the image.
 		@param imgAllocationCreateInfo: The allocation create info for the image.
@@ -28,11 +27,10 @@ public:
 		
 		@note This function assumes the garbage collector service has already been registered.
 	*/
-	static uint32_t CreateImage(VulkanContext& vkContext, VkImage& image, VmaAllocation& imgAllocation, VmaAllocationCreateInfo& imgAllocationCreateInfo, uint32_t width, uint32_t height, uint32_t depth, VkFormat imgFormat, VkImageTiling imgTiling, VkImageUsageFlags imgUsageFlags, VkImageType imgType);
+	static uint32_t CreateImage(VkImage& image, VmaAllocation& imgAllocation, VmaAllocationCreateInfo& imgAllocationCreateInfo, uint32_t width, uint32_t height, uint32_t depth, VkFormat imgFormat, VkImageTiling imgTiling, VkImageUsageFlags imgUsageFlags, VkImageType imgType);
 
 
 	/* Creates an image view.
-		@param vkContext: The Vulkan context.
 		@param imageView: The image view to be created.
 		@param image: The image to be used.
 		@param imgFormat: The format of the image.
@@ -45,11 +43,10 @@ public:
 
 		@note This function assumes the garbage collector service has already been registered.
 	*/
-	static uint32_t CreateImageView(VulkanContext& vkContext, VkImageView& imageView, VkImage& image, VkFormat imgFormat, VkImageAspectFlags imgAspectFlags, VkImageViewType viewType, uint32_t levelCount, uint32_t layerCount);
+	static uint32_t CreateImageView(VkImageView& imageView, VkImage& image, VkFormat imgFormat, VkImageAspectFlags imgAspectFlags, VkImageViewType viewType, uint32_t levelCount, uint32_t layerCount);
 
 
 	/* Creates a framebuffer.
-		@param vkContext: The Vulkan context.
 		@param framebuffer: The framebuffer to be created.
 		@param renderPass: The render pass to be used.
 		@param attachments: The image views to be used as attachments in the framebuffer.
@@ -59,5 +56,5 @@ public:
 
 		@note This function assumes the garbage collector service has already been registered.
 	*/
-	static uint32_t CreateFramebuffer(VulkanContext& vkContext, VkFramebuffer& framebuffer, VkRenderPass& renderPass, std::vector<VkImageView> attachments, uint32_t width, uint32_t height);
+	static uint32_t CreateFramebuffer(VkFramebuffer& framebuffer, VkRenderPass& renderPass, std::vector<VkImageView> attachments, uint32_t width, uint32_t height);
 };

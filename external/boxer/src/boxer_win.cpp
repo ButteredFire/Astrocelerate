@@ -1,4 +1,4 @@
-#include <boxer/boxer.h>
+#include "../include/boxer/boxer.h"
 #include <string>
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN

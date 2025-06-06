@@ -21,7 +21,7 @@
 #include <Core/LoggingManager.hpp>
 #include <Core/GarbageCollector.hpp>
 #include <Core/ServiceLocator.hpp>
-#include <CoreStructs/Contexts.hpp>
+#include <CoreStructs/Contexts/VulkanContext.hpp>
 #include <Core/Constants.h>
 
 
@@ -86,7 +86,7 @@ inline static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSe
 
 class VkInstanceManager {
 public:
-	VkInstanceManager(VulkanContext &context);
+	VkInstanceManager();
 	~VkInstanceManager();
 
 	/* Initializes the Vulkan instance setup process. */
@@ -131,7 +131,6 @@ public:
 
 private:
 	VkInstance m_vulkInst = VK_NULL_HANDLE;
-	VulkanContext& m_vkContext;
 	std::shared_ptr<GarbageCollector> m_garbageCollector;
 	VkSurfaceKHR m_windowSurface = VK_NULL_HANDLE;
 
