@@ -5,3 +5,5 @@ class InputManager;
 struct CallbackContext {
     InputManager* inputManager;
 };
+
+extern CallbackContext g_callbackContext;

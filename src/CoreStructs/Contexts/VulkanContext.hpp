@@ -78,13 +78,13 @@ struct VulkanContext {
 
     // Offscreen rendering resources
     struct OffscreenResources {
-        std::array<VkImage, SimulationConsts::MAX_FRAMES_IN_FLIGHT> images;
-        std::array<VkImageView, SimulationConsts::MAX_FRAMES_IN_FLIGHT> imageViews;
-        std::array<VkSampler, SimulationConsts::MAX_FRAMES_IN_FLIGHT> samplers;
-        std::array<VkFramebuffer, SimulationConsts::MAX_FRAMES_IN_FLIGHT> framebuffers;
+        std::vector<VkImage> images;
+        std::vector<VkImageView> imageViews;
+        std::vector<VkSampler> samplers;
+        std::vector<VkFramebuffer> framebuffers;
 
         // For outdated images, image views, and framebuffers on viewport resize
-        std::array<std::vector<uint32_t>, SimulationConsts::MAX_FRAMES_IN_FLIGHT> pendingCleanupIDs;
+        std::vector<uint32_t> pendingCleanupIDs;
     } OffscreenResources;
 
     // Textures  

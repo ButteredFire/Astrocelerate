@@ -7,6 +7,7 @@ UIPanelManager::UIPanelManager() {
 	m_registry = ServiceLocator::GetService<Registry>(__FUNCTION__);
 
 	m_windowFlags = ImGuiWindowFlags_NoCollapse;
+	m_popupWindowFlags = ImGuiWindowFlags_NoDocking;
 
 	bindPanelFlags();
 
@@ -15,12 +16,12 @@ UIPanelManager::UIPanelManager() {
 
 	GUI::TogglePanel(m_panelMask, GUI::PanelFlag::PANEL_VIEWPORT, GUI::TOGGLE_ON);
 	GUI::TogglePanel(m_panelMask, GUI::PanelFlag::PANEL_TELEMETRY, GUI::TOGGLE_ON);
-	GUI::TogglePanel(m_panelMask, GUI::PanelFlag::PANEL_ENTITY_INSPECTOR, GUI::TOGGLE_ON);
+	//GUI::TogglePanel(m_panelMask, GUI::PanelFlag::PANEL_ENTITY_INSPECTOR, GUI::TOGGLE_ON);
 	GUI::TogglePanel(m_panelMask, GUI::PanelFlag::PANEL_SIMULATION_CONTROL, GUI::TOGGLE_ON);
-	GUI::TogglePanel(m_panelMask, GUI::PanelFlag::PANEL_RENDER_SETTINGS, GUI::TOGGLE_ON);
-	GUI::TogglePanel(m_panelMask, GUI::PanelFlag::PANEL_ORBITAL_PLANNER, GUI::TOGGLE_ON);
-	GUI::TogglePanel(m_panelMask, GUI::PanelFlag::PANEL_DEBUG_INPUT, GUI::TOGGLE_ON);
+	//GUI::TogglePanel(m_panelMask, GUI::PanelFlag::PANEL_RENDER_SETTINGS, GUI::TOGGLE_ON);
+	//GUI::TogglePanel(m_panelMask, GUI::PanelFlag::PANEL_ORBITAL_PLANNER, GUI::TOGGLE_ON);
 	GUI::TogglePanel(m_panelMask, GUI::PanelFlag::PANEL_DEBUG_CONSOLE, GUI::TOGGLE_ON);
+	//GUI::TogglePanel(m_panelMask, GUI::PanelFlag::PANEL_DEBUG_INPUT, GUI::TOGGLE_ON);
 
 	initPanelsFromMask(m_panelMask);
 	
@@ -77,39 +78,33 @@ void UIPanelManager::initPanelsFromMask(GUI::PanelMask& mask) {
 void UIPanelManager::updatePanels(uint32_t currentFrame) {
 	m_currentFrame = currentFrame;
 	renderPanelsMenu();
-
+	
 	for (auto&& [flag, callback] : m_panelCallbacks) {
 		if (GUI::IsPanelOpen(m_panelMask, flag)) {
-			//if (m_currentFocusedPanel == flag) {
-			//	ImGui::SetNextWindowFocus();
-			//	(this->*callback)();
-			//	m_currentFocusedPanel = GUI::PanelFlag::NULL_PANEL;
-			//}
-			//else
 			(this->*callback)();
 		}
 	}
-
-	//Log::Print(Log::T_WARNING, __FUNCTION__, "Currently focused panel: " + std::string(GUI::GetPanelName(m_currentFocusedPanel)));
-
 
 	// This window will capture all input and prevent interaction with other widgets
 	if (m_inputManager->isViewportInputAllowed()) {
 		m_inputBlockerIsOn = true;
 		ImGui::SetNextWindowPos(ImVec2(0, 0));
 		ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
-		ImGui::Begin("##InputBlocker", nullptr,
+		if (ImGui::Begin("##InputBlocker", nullptr,
 			ImGuiWindowFlags_NoDecoration |
 			ImGuiWindowFlags_NoMove |
 			ImGuiWindowFlags_NoResize |
 			ImGuiWindowFlags_NoSavedSettings |
-			ImGuiWindowFlags_NoBackground);
-		ImGui::End();
+			ImGuiWindowFlags_NoBackground)) {
+
+			ImGui::End();
+		}
 	}
 	else {
 		m_inputBlockerIsOn = false;
 	}
 }
+
 
 void UIPanelManager::renderMenuBar() {
 	if (ImGui::BeginMenuBar()) {
@@ -145,35 +140,6 @@ void UIPanelManager::renderMenuBar() {
 
 
 void UIPanelManager::performBackgroundChecks(GUI::PanelFlag flag) {
-	{
-		static uint32_t panelsChecked = 0;
-		static bool initialCheckCompleted = false;
-		static bool populatedMap = false;
-		static std::unordered_map<GUI::PanelFlag, bool> panelHasCheckFunc;
-
-		if (!initialCheckCompleted) {
-			if (!populatedMap) {
-				for (size_t i = 0; i < SIZE_OF(GUI::PanelFlagsArray); i++) {
-					panelHasCheckFunc[GUI::PanelFlagsArray[i]] = false;
-				}
-				populatedMap = true;
-			}
-
-			panelHasCheckFunc[flag] = true;
-			panelsChecked++;
-			std::cout;
-		}
-
-		if (panelsChecked == SIZE_OF(GUI::PanelFlagsArray)) {
-			for (auto& [flag, hasCheckFunc] : panelHasCheckFunc)
-				LOG_ASSERT(hasCheckFunc, "Render function for panel " + enquote(GUI::GetPanelName(flag)) + " does not perform background checks! Please include the background check function between ImGui::Begin(...) and ImGui::End() (preferably right after the former).");
-
-			initialCheckCompleted = true;
-		}
-	}
-
-
-
 	if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows))
 		m_currentFocusedPanel = flag;
 }
@@ -194,9 +160,10 @@ void UIPanelManager::bindPanelFlags() {
 
 
 void UIPanelManager::initViewportTextureDescriptorSet() {
-	m_viewportRenderTextureIDs.resize(SimulationConsts::MAX_FRAMES_IN_FLIGHT);
+	const size_t OFFSCREEN_RESOURCE_COUNT = g_vkContext.OffscreenResources.images.size();
+	m_viewportRenderTextureIDs.resize(OFFSCREEN_RESOURCE_COUNT);
 
-	for (size_t i = 0; i < SimulationConsts::MAX_FRAMES_IN_FLIGHT; i++) {
+	for (size_t i = 0; i < OFFSCREEN_RESOURCE_COUNT; i++) {
 		m_viewportRenderTextureIDs[i] = (ImTextureID)ImGui_ImplVulkan_AddTexture(
 			g_vkContext.OffscreenResources.samplers[i],
 			g_vkContext.OffscreenResources.imageViews[i],
@@ -209,18 +176,24 @@ void UIPanelManager::initViewportTextureDescriptorSet() {
 void UIPanelManager::renderPanelsMenu() {
 	using namespace GUI;
 
-	ImGui::Begin("Panels Menu", nullptr, ImGuiWindowFlags_NoCollapse);
-	{
+	if (ImGui::Begin("Panels Menu", nullptr, m_windowFlags)) {
+		static bool isDemoWindowOpen = false;
+		ImGui::Checkbox("ImGui Demo Window", &isDemoWindowOpen);
+		if (isDemoWindowOpen)
+			ImGui::ShowDemoWindow();
+
+
 		for (size_t i = 0; i < FLAG_COUNT; i++) {
 			PanelFlag flag = PanelFlagsArray[i];
-			bool isOpen = IsPanelOpen(m_panelMask, flag);
 
+			bool isOpen = IsPanelOpen(m_panelMask, flag);
 			ImGui::Checkbox(GetPanelName(flag), &isOpen);
 
 			TogglePanel(m_panelMask, flag, isOpen ? TOGGLE_ON : TOGGLE_OFF);
 		}
+
+		ImGui::End();
 	}
-	ImGui::End();
 }
 
 
@@ -231,8 +204,7 @@ void UIPanelManager::renderViewportPanel() {
 		GUI::TogglePanel(m_panelMask, flag, GUI::TOGGLE_ON);
 	}
 
-	ImGui::Begin(GUI::GetPanelName(flag), nullptr, m_windowFlags);		// This panel must be docked
-	{
+	if (ImGui::Begin(GUI::GetPanelName(flag), nullptr, m_windowFlags)) {
 		performBackgroundChecks(flag);
 
 		ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
@@ -250,12 +222,39 @@ void UIPanelManager::renderViewportPanel() {
 			});
 		}
 
+		ImGui::SameLine();
+
+		// Pause/Play button
+		static bool initialLoad = true;
+		static float lastTimeScale = 1.0f;
+
+		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2f, 0.2f, 0.2f, 0.4f));
+		{
+			if (m_simulationIsPaused) {
+				if (initialLoad) {
+					Time::SetTimeScale(0.0f);
+					initialLoad = false;
+				}
+
+				if (ImGui::Button(ICON_FA_PLAY "  Play")) {
+					Time::SetTimeScale(lastTimeScale);
+					m_simulationIsPaused = false;
+				}
+			}
+			else {
+				if (ImGui::Button(ICON_FA_PAUSE "  Pause")) {
+					lastTimeScale = Time::GetTimeScale();
+					Time::SetTimeScale(0.0f);
+					m_simulationIsPaused = true;
+				}
+			}
+		}
+		ImGui::PopStyleColor(2);
+
 
 		g_appContext.Input.isViewportHoveredOver = ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows) || m_inputBlockerIsOn;
 		g_appContext.Input.isViewportFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) || m_inputBlockerIsOn;
-
-		//ImGui::Text("Panel size: (%.2f, %.2f)", viewportPanelSize.x, viewportPanelSize.y);
-
 
 		VkDescriptorImageInfo imageInfo{};
 		imageInfo.imageView = g_vkContext.OffscreenResources.imageViews[m_currentFrame];
@@ -273,17 +272,18 @@ void UIPanelManager::renderViewportPanel() {
 		vkUpdateDescriptorSets(g_vkContext.Device.logicalDevice, 1, &imageDescSetWrite, 0, nullptr);
 
 		ImGui::Image(m_viewportRenderTextureIDs[m_currentFrame], viewportPanelSize);
+	
+		ImGui::End();
 	}
-	ImGui::End();
 }
 
 
 void UIPanelManager::renderTelemetryPanel() {
 	const GUI::PanelFlag flag = GUI::PanelFlag::PANEL_TELEMETRY;
-	if (!GUI::IsPanelOpen(m_panelMask, flag)) return;
+	//if (!GUI::IsPanelOpen(m_panelMask, flag)) return;
 
-	ImGui::Begin(GUI::GetPanelName(flag), nullptr, m_windowFlags);
-	{
+	
+	if (ImGui::Begin(GUI::GetPanelName(flag), nullptr, m_windowFlags)) {
 		performBackgroundChecks(flag);
 
 		auto view = m_registry->getView<Component::RigidBody, Component::ReferenceFrame>();
@@ -368,7 +368,7 @@ void UIPanelManager::renderTelemetryPanel() {
 				ImGui::PushFont(g_fontContext.Roboto.bold);
 				ImGui::Text("\tGlobal Transform (normalized):");
 				ImGui::PopFont();
-				
+
 				ImGui::Text("\t\tPosition: (x: %.2f, y: %.2f, z: %.2f)",
 					refFrame.globalTransform.position.x,
 					refFrame.globalTransform.position.y,
@@ -392,22 +392,23 @@ void UIPanelManager::renderTelemetryPanel() {
 
 			ImGui::PopID();
 		}
+
+		ImGui::End();
 	}
-	ImGui::End();
 }
 
 
 void UIPanelManager::renderEntityInspectorPanel() {
 	const GUI::PanelFlag flag = GUI::PanelFlag::PANEL_ENTITY_INSPECTOR;
-	if (!GUI::IsPanelOpen(m_panelMask, flag)) return;
+	//if (!GUI::IsPanelOpen(m_panelMask, flag)) return;
 
-	ImGui::Begin(GUI::GetPanelName(flag), nullptr, m_windowFlags);
-	{
+	if (ImGui::Begin(GUI::GetPanelName(flag), nullptr, m_windowFlags)) {
 		performBackgroundChecks(flag);
 
 		ImGui::TextWrapped("Pushing the boundaries of space exploration, one line of code at a time.");
+	
+		ImGui::End();
 	}
-	ImGui::End();
 }
 
 
@@ -415,15 +416,69 @@ void UIPanelManager::renderSimulationControlPanel() {
 	const GUI::PanelFlag flag = GUI::PanelFlag::PANEL_SIMULATION_CONTROL;
 	if (!GUI::IsPanelOpen(m_panelMask, flag)) return;
 
-	ImGui::Begin(GUI::GetPanelName(flag), nullptr, m_windowFlags);
-	{
+	if (ImGui::Begin(GUI::GetPanelName(flag), nullptr, m_windowFlags))	{
 		performBackgroundChecks(flag);
 
-		static float timeScale = Time::GetTimeScale();
-		ImGui::DragFloat("Time scale", &timeScale, 100.0f, 1.0f, 1e5f);
-		Time::SetTimeScale(timeScale);
+
+		// Numerical integrator selector
+		// TODO: Implement integrator switching
+		static std::string currentIntegrator = "Fourth Order Runge-Kutta";
+		ImGui::Text("Numerical integrator");
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x * 0.85f); // Padding
+
+		ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+		ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+		{
+			if (ImGui::BeginCombo("##NumericalIntegratorCombo", currentIntegrator.c_str())) {
+				// TODO
+				ImGui::EndCombo();
+			}
+		}
+		ImGui::PopItemFlag();
+		ImGui::PopStyleVar();
+
+		if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+			ImGui::BeginTooltip();
+			ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 0, 0, 255));
+			ImGui::TextUnformatted("Numerical integrator switching is not currently supported.");
+			ImGui::PopStyleColor();
+			ImGui::EndTooltip();
+		}
+
+
+		// Slider to change time scale
+		static const char* sliderLabel = "Time scale";
+		static float timeScale = (Time::GetTimeScale() <= 0.0f) ? 1.0f : Time::GetTimeScale();
+		static const float MIN_VAL = 1.0f, MAX_VAL = 1000.0f;
+		static const float RECOMMENDED_SCALE_VAL_THRESHOLD = 100.0f;
+		if (m_simulationIsPaused) {
+			// Disable time-scale changing and grey out elements if the simulation is paused
+			ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+			ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+
+			ImGui::SliderFloat(sliderLabel, &timeScale, MIN_VAL, MAX_VAL);
+
+			ImGui::PopItemFlag();
+			ImGui::PopStyleVar();
+		}
+		else {
+			ImGui::SliderFloat(sliderLabel, &timeScale, MIN_VAL, MAX_VAL);
+			if (!m_simulationIsPaused) {
+				// Edge case: Prevents modifying the time scale when the simulation control panel is open while the simulation is still running
+				Time::SetTimeScale(timeScale);
+			}
+		}
+
+		if (timeScale > RECOMMENDED_SCALE_VAL_THRESHOLD)
+		{
+			ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 255, 0, 255));
+			ImGui::TextWrapped(ICON_FA_TRIANGLE_EXCLAMATION " Warning: Higher time scales may cause inaccuracies in the simulation.");
+			ImGui::PopStyleColor(); // Don't forget to pop the style color!
+		}
+
+		ImGui::End();
 	}
-	ImGui::End();
 }
 
 
@@ -431,13 +486,13 @@ void UIPanelManager::renderRenderSettingsPanel() {
 	const GUI::PanelFlag flag = GUI::PanelFlag::PANEL_RENDER_SETTINGS;
 	if (!GUI::IsPanelOpen(m_panelMask, flag)) return;
 
-	ImGui::Begin(GUI::GetPanelName(flag), nullptr, m_windowFlags);
-	{
+	if (ImGui::Begin(GUI::GetPanelName(flag), nullptr, m_windowFlags)) {
 		performBackgroundChecks(flag);
 
 		ImGui::TextWrapped("Pushing the boundaries of space exploration, one line of code at a time.");
+
+		ImGui::End();
 	}
-	ImGui::End();
 }
 
 
@@ -445,40 +500,72 @@ void UIPanelManager::renderOrbitalPlannerPanel() {
 	const GUI::PanelFlag flag = GUI::PanelFlag::PANEL_ORBITAL_PLANNER;
 	if (!GUI::IsPanelOpen(m_panelMask, flag)) return;
 
-	ImGui::Begin(GUI::GetPanelName(flag), nullptr, m_windowFlags);
-	{
+	if (ImGui::Begin(GUI::GetPanelName(flag), nullptr, m_windowFlags)) {
 		performBackgroundChecks(flag);
 
 		ImGui::TextWrapped("Pushing the boundaries of space exploration, one line of code at a time.");
+
+		ImGui::End();
 	}
-	ImGui::End();
 }
 
 
 void UIPanelManager::renderDebugConsole() {
 	static bool scrolledOnWindowFocus = false;
-	static bool scrollToBottom = false;
 	static bool notAtBottom = false;
 	static size_t prevLogBufSize = Log::LogBuffer.size();
 
-	const GUI::PanelFlag flag = GUI::PanelFlag::PANEL_DEBUG_CONSOLE;
-	if (!GUI::IsPanelOpen(m_panelMask, flag)) return;
+	static bool processedLogTypes = false;
+	static std::vector<std::string> logTypes;
 
-	ImGui::Begin(GUI::GetPanelName(flag), nullptr, m_windowFlags);
-	{
+	const GUI::PanelFlag flag = GUI::PanelFlag::PANEL_DEBUG_CONSOLE;
+	//if (!GUI::IsPanelOpen(m_panelMask, flag)) return;
+
+
+	if (!processedLogTypes) {
+		for (size_t i = 0; i < SIZE_OF(Log::MsgTypes); i++) {
+			std::string msgType;
+			Log::LogColor(Log::MsgTypes[i], msgType, false);
+			logTypes.push_back(msgType);
+		}
+		
+		processedLogTypes = true;
+	}
+
+	LOG_ASSERT(logTypes.size() > 0, "Unable to render debug console: Log types cannot be loaded!");
+	static std::string selectedLogType = logTypes[0]; // logTypes[0] = All log types
+
+
+	if (ImGui::Begin(GUI::GetPanelName(flag), nullptr, m_windowFlags)) {
 		performBackgroundChecks(flag);
 
-		const float buttonHeight = ImGui::GetFrameHeight();
-		const float spacing = ImGui::GetStyle().ItemSpacing.y;
-		ImVec2 avail = ImGui::GetContentRegionAvail();
-		ImVec2 scrollRegionSize = ImVec2(avail.x, avail.y - buttonHeight - spacing);
+
+		ImGui::Text("Sort by log type");
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(150.0f); // Sets a fixed width of 150 pixels
+		if (ImGui::BeginCombo("##SortByLogTypeCombo", selectedLogType.c_str())) {
+			// NOTE: The "##" prefix tells ImGui to use the label as the internal ID for the widget. This means the label will not be displayed.
+			for (const auto& logType : logTypes) {
+				bool isSelected = (selectedLogType == logType);
+				if (ImGui::Selectable(logType.c_str(), isSelected))
+					selectedLogType = logType;
+
+				if (isSelected)
+					ImGui::SetItemDefaultFocus();
+			}
+
+			ImGui::EndCombo();
+		}
+
 
 		// Optional flag: ImGuiWindowFlags_HorizontalScrollbar
-		ImGui::BeginChild("ConsoleScrollRegion", scrollRegionSize, true, m_windowFlags);
-		{
+		if (ImGui::BeginChild("ConsoleScrollRegion", ImVec2(0, 0), true, m_windowFlags)) {
 			notAtBottom = (ImGui::GetScrollY() < ImGui::GetScrollMaxY() - 1.0f);
 
 			for (const auto& log : Log::LogBuffer) {
+				if (selectedLogType != logTypes[0] && selectedLogType != log.displayType)
+					continue;
+
 				ImGui::PushStyleColor(ImGuiCol_Text, ColorUtils::LogMsgTypeToImVec4(log.type));
 				ImGui::TextWrapped("[%s] [%s]: %s", log.displayType.c_str(), log.caller.c_str(), log.message.c_str());
 				ImGui::PopStyleColor();
@@ -495,11 +582,6 @@ void UIPanelManager::renderDebugConsole() {
 				scrolledOnWindowFocus = true;
 			}
 
-			if (scrollToBottom) {
-				ImGui::SetScrollHereY(1.0f);
-				scrollToBottom = false;
-			}
-
 
 			prevLogBufSize = Log::LogBuffer.size();
 
@@ -507,19 +589,12 @@ void UIPanelManager::renderDebugConsole() {
 			if (!ImGui::IsWindowFocused(ImGuiFocusedFlags_RootWindow))
 				scrolledOnWindowFocus = false;
 
-		}
-		ImGui::EndChild();
 
-		// Show scroll-to-bottom button if not at the bottom
-		if (notAtBottom) {
-			if (ImGui::Button("\\/", ImVec2(avail.x, buttonHeight))) {
-				scrollToBottom = true;
-			}
+			ImGui::EndChild();
 		}
-		else
-			ImGui::Dummy(ImVec2(avail.x, buttonHeight));
+
+		ImGui::End();
 	}
-	ImGui::End();
 }
 
 
@@ -527,8 +602,7 @@ void UIPanelManager::renderDebugInput() {
 	const GUI::PanelFlag flag = GUI::PanelFlag::PANEL_DEBUG_INPUT;
 	if (!GUI::IsPanelOpen(m_panelMask, flag)) return;
 
-	ImGui::Begin(GUI::GetPanelName(flag), nullptr, m_windowFlags);
-	{
+	if (ImGui::Begin(GUI::GetPanelName(flag), nullptr, m_windowFlags)) {
 		performBackgroundChecks(flag);
 
 		ImGui::Text("Viewport:");
@@ -546,6 +620,7 @@ void UIPanelManager::renderDebugInput() {
 			ImGui::BulletText("Focused: %s", BOOLALPHACAP(m_inputManager->isViewportFocused()));
 			ImGui::BulletText("Unfocused: %s", BOOLALPHACAP(m_inputManager->isViewportUnfocused()));
 		}
+	
+		ImGui::End();
 	}
-	ImGui::End();
 }

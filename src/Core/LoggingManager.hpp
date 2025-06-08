@@ -46,6 +46,8 @@ namespace Log {
 	*		Examples: Successful task completion, successful data processing
 	*/
 	enum MsgType {
+		T_ALL_TYPES,  // Special type (only use this for GUI purposes (e.g., filtering logs)!)
+
 		T_VERBOSE,
 		T_DEBUG,
 		T_INFO,
@@ -53,6 +55,10 @@ namespace Log {
 		T_ERROR,
 		T_FATAL,
 		T_SUCCESS
+	};
+
+	inline MsgType MsgTypes[] = {
+		T_ALL_TYPES, T_VERBOSE, T_DEBUG, T_INFO, T_WARNING, T_ERROR, T_FATAL, T_SUCCESS
 	};
 
 
@@ -84,42 +90,47 @@ namespace Log {
 	*/
 	inline void LogColor(MsgType type, std::string& msgType, bool outputColor = true) {
 		switch (type) {
-			case T_VERBOSE:
-				msgType = "VERBOSE";
-				if (outputColor) std::cout << termcolor::bright_grey;
-				break;
+		case T_ALL_TYPES:
+			msgType = "ALL TYPES";
+			break;
 
-			case T_DEBUG:
-				msgType = "DEBUG";
-				if (outputColor) std::cout << termcolor::bright_grey;
-				break;
 
-			case T_INFO:
-				msgType = "INFO";
-				if (outputColor) std::cout << termcolor::white;
-				break;
+		case T_VERBOSE:
+			msgType = "VERBOSE";
+			if (outputColor) std::cout << termcolor::bright_grey;
+			break;
 
-			case T_WARNING:
-				msgType = "WARNING";
-				if (outputColor) std::cout << termcolor::yellow;
-				break;
+		case T_DEBUG:
+			msgType = "DEBUG";
+			if (outputColor) std::cout << termcolor::bright_grey;
+			break;
 
-			case T_ERROR:
-				msgType = "ERROR";
-				if (outputColor) std::cout << termcolor::red;
-				break;
+		case T_INFO:
+			msgType = "INFO";
+			if (outputColor) std::cout << termcolor::white;
+			break;
 
-			case T_FATAL:
-				msgType = "FATAL";
-				if (outputColor) std::cout << termcolor::white << termcolor::on_red;
-				break;
+		case T_WARNING:
+			msgType = "WARNING";
+			if (outputColor) std::cout << termcolor::yellow;
+			break;
 
-			case T_SUCCESS:
-				msgType = "SUCCESS";
-				std::cout << termcolor::bright_green;
-				break;
+		case T_ERROR:
+			msgType = "ERROR";
+			if (outputColor) std::cout << termcolor::red;
+			break;
 
-			default: break;
+		case T_FATAL:
+			msgType = "FATAL";
+			if (outputColor) std::cout << termcolor::white << termcolor::on_red;
+			break;
+
+		case T_SUCCESS:
+			msgType = "SUCCESS";
+			std::cout << termcolor::bright_green;
+			break;
+
+		default: break;
 		}
 	}
 

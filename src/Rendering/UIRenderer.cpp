@@ -135,34 +135,45 @@ void UIRenderer::initImGui(UIRenderer::Appearance appearance) {
 void UIRenderer::initFonts() {
     ImGuiIO& io = ImGui::GetIO();
 
-    const float pixelSize = 25.0f;
+    const float fontSize = 25.0f;
+    const float iconSize = 18.0f;
+
+
+    // Primary/Default text font: Roboto Regular
+    g_fontContext.Roboto.regular = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.REGULAR.c_str(), fontSize, nullptr, io.Fonts->GetGlyphRangesDefault());
+    LOG_ASSERT(g_fontContext.Roboto.regular, "Failed to load (default) Roboto Regular font!");
+
+        // NOTE: Use this config for subsequent fonts, as they need to merge into the default font
+    ImFontConfig mergeConfig;
+    mergeConfig.MergeMode = true;   // NOTE: This merges the new font/icons into the default font
+    mergeConfig.PixelSnapH = true;  // NOTE: This helps with crisp rendering of icons
+
+
+    // FontAwesome icons
+    const ImWchar faGlyphRanges[] = {
+        ICON_MIN_FA, ICON_MAX_FA, 0
+    };
+
+    //io.Fonts->AddFontFromFileTTF(FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Fonts", "FontAwesome", "FontAwesome-6-Brands-Regular-400.otf").c_str(), iconSize, &mergeConfig, faGlyphRanges);
+    //io.Fonts->AddFontFromFileTTF(FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Fonts", "FontAwesome", "FontAwesome-6-Free-Regular-400.otf").c_str(), iconSize, &mergeConfig, faGlyphRanges);
+    io.Fonts->AddFontFromFileTTF(FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Fonts", "FontAwesome", "FontAwesome-6-Free-Solid-900.otf").c_str(), iconSize, &mergeConfig, faGlyphRanges);
+    
 
     // Roboto
-    g_fontContext.Roboto.black = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.BLACK.c_str(), pixelSize);
-    g_fontContext.Roboto.blackItalic = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.BLACK_ITALIC.c_str(), pixelSize);
-    g_fontContext.Roboto.bold = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.BOLD.c_str(), pixelSize);
-    g_fontContext.Roboto.boldItalic = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.BOLD_ITALIC.c_str(), pixelSize);
-    g_fontContext.Roboto.italic = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.ITALIC.c_str(), pixelSize);
-    g_fontContext.Roboto.light = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.LIGHT.c_str(), pixelSize);
-    g_fontContext.Roboto.lightItalic = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.LIGHT_ITALIC.c_str(), pixelSize);
-    g_fontContext.Roboto.medium = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.MEDIUM.c_str(), pixelSize);
-    g_fontContext.Roboto.mediumItalic = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.MEDIUM_ITALIC.c_str(), pixelSize);
-    g_fontContext.Roboto.regular = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.REGULAR.c_str(), pixelSize);
-    g_fontContext.Roboto.thin = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.THIN.c_str(), pixelSize);
-    g_fontContext.Roboto.thinItalic = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.THIN_ITALIC.c_str(), pixelSize);
+    g_fontContext.Roboto.black = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.BLACK.c_str(), fontSize, &mergeConfig, io.Fonts->GetGlyphRangesDefault());
+    g_fontContext.Roboto.blackItalic = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.BLACK_ITALIC.c_str(), fontSize, &mergeConfig, io.Fonts->GetGlyphRangesDefault());
+    g_fontContext.Roboto.bold = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.BOLD.c_str(), fontSize, &mergeConfig, io.Fonts->GetGlyphRangesDefault());
+    g_fontContext.Roboto.boldItalic = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.BOLD_ITALIC.c_str(), fontSize, &mergeConfig, io.Fonts->GetGlyphRangesDefault());
+    g_fontContext.Roboto.italic = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.ITALIC.c_str(), fontSize, &mergeConfig, io.Fonts->GetGlyphRangesDefault());
+    g_fontContext.Roboto.light = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.LIGHT.c_str(), fontSize, &mergeConfig, io.Fonts->GetGlyphRangesDefault());
+    g_fontContext.Roboto.lightItalic = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.LIGHT_ITALIC.c_str(), fontSize, &mergeConfig, io.Fonts->GetGlyphRangesDefault());
+    g_fontContext.Roboto.medium = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.MEDIUM.c_str(), fontSize, &mergeConfig, io.Fonts->GetGlyphRangesDefault());
+    g_fontContext.Roboto.mediumItalic = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.MEDIUM_ITALIC.c_str(), fontSize, &mergeConfig, io.Fonts->GetGlyphRangesDefault());
+    g_fontContext.Roboto.thin = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.THIN.c_str(), fontSize, &mergeConfig, io.Fonts->GetGlyphRangesDefault());
+    g_fontContext.Roboto.thinItalic = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.THIN_ITALIC.c_str(), fontSize, &mergeConfig, io.Fonts->GetGlyphRangesDefault());
 
 
-	// You can also add icons or other special fonts here
-	// io.Fonts->AddFontFromFileTTF("path/to/icons.ttf", pixelSize, nullptr, io.Fonts->GetGlyphRangesDefault());
-
-	// Set the default font to Roboto Regular
-    LOG_ASSERT(g_fontContext.Roboto.regular, "Failed to load (default) Roboto regular font!");
-	m_pFont = g_fontContext.Roboto.regular;
-
-    // Default to Imgui's default m_pFont if loading from memory fails
-    if (m_pFont == nullptr) {
-        m_pFont = io.Fonts->AddFontDefault();
-    }
+    io.Fonts->Build();
 }
 
 
@@ -174,7 +185,7 @@ void UIRenderer::initDockspace() {
     ImGui::SetNextWindowViewport(viewport->ID);
 
 
-    ImGuiWindowFlags viewportFlags =
+    ImGuiWindowFlags dockspaceFlags =
         ImGuiWindowFlags_NoDocking  | ImGuiWindowFlags_NoTitleBar |
         ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
         ImGuiWindowFlags_NoMove     | ImGuiWindowFlags_NoBringToFrontOnFocus |
@@ -184,18 +195,19 @@ void UIRenderer::initDockspace() {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 
-    ImGui::Begin("MainDockspace", nullptr, viewportFlags);
-    ImGui::PopStyleVar(2);
+    if (ImGui::Begin("MainDockspace", nullptr, dockspaceFlags)) {
+        ImGui::PopStyleVar(2);
 
-    ImGui::PushFont(m_pFont);
-    m_uiPanelManager->renderMenuBar();
-    ImGui::PopFont();
+        ImGui::PushFont(g_fontContext.Roboto.regular);
+        m_uiPanelManager->renderMenuBar();
+        ImGui::PopFont();
 
-    ImGuiID dockspaceID = ImGui::GetID("Dockspace");
-    ImGui::DockSpace(dockspaceID, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
+        ImGuiID dockspaceID = ImGui::GetID("Dockspace");
+        ImGui::DockSpace(dockspaceID, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
 
 
-    ImGui::End();
+        ImGui::End();
+    }
 }
 
 
@@ -215,24 +227,22 @@ void UIRenderer::renderFrames(uint32_t currentFrame) {
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
+    {
+        initDockspace();
 
-    initDockspace();
+        ImGui::PushFont(g_fontContext.Roboto.regular);
+        m_uiPanelManager->updatePanels(currentFrame);
+        ImGui::PopFont();
 
-
-    ImGui::PushFont(m_pFont);
-    m_uiPanelManager->updatePanels(currentFrame);
-    ImGui::PopFont();
-
+        // Multi-viewport support
+        if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+            ImGui::UpdatePlatformWindows();
+            ImGui::RenderPlatformWindowsDefault();
+        }
+    }
+    ImGui::EndFrame();
 
     ImGui::Render();
-
-    // Multi-viewport support
-    if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
-        ImGui::UpdatePlatformWindows();
-        ImGui::RenderPlatformWindowsDefault();
-    }
-
-    ImGui::EndFrame();
 }
 
 

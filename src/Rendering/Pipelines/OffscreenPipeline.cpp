@@ -64,27 +64,39 @@ void OffscreenPipeline::init() {
 	// Initialize offscreen resources
 		// TODO: Abstract this init procedure
 		// TODO: Handle window resizing
-	for (size_t i = 0; i < SimulationConsts::MAX_FRAMES_IN_FLIGHT; i++) {
-		initOffscreenColorResources(i, g_vkContext.SwapChain.extent.width, g_vkContext.SwapChain.extent.height);
-		initOffscreenSampler(i);
-		initOffscreenFramebuffer(i, g_vkContext.SwapChain.extent.width, g_vkContext.SwapChain.extent.height);
-	}
+	//for (size_t i = 0; i < m_OFFSCREEN_RESOURCE_COUNT; i++) {
+	//for (size_t i = 0; i < m_OFFSCREEN_RESOURCE_COUNT; i++) {
+	//	m_colorImages.push_back(VkImage());
+	//	m_colorImgViews.push_back(VkImageView());
+	//	m_colorImgSamplers.push_back(VkSampler());
+	//	m_colorImgFramebuffers.push_back(VkFramebuffer());
+	//}
+
+	m_colorImages.resize(m_OFFSCREEN_RESOURCE_COUNT);
+	m_colorImgViews.resize(m_OFFSCREEN_RESOURCE_COUNT);
+	m_colorImgSamplers.resize(m_OFFSCREEN_RESOURCE_COUNT);
+	m_colorImgFramebuffers.resize(m_OFFSCREEN_RESOURCE_COUNT);
+
+	initOffscreenColorResources(g_vkContext.SwapChain.extent.width, g_vkContext.SwapChain.extent.height);
+	initOffscreenSampler();
+	initOffscreenFramebuffer(g_vkContext.SwapChain.extent.width, g_vkContext.SwapChain.extent.height);
+	//}
 }
 
 
 void OffscreenPipeline::bindEvents() {
 	m_eventDispatcher->subscribe<Event::SwapchainIsRecreated>(
 		[this](const Event::SwapchainIsRecreated& event) {
-			Log::Print(Log::T_WARNING, __FUNCTION__, "Recreating offscreen resources (swapchain)...");
-			this->recreateOffscreenResources(event.currentFrame, g_vkContext.SwapChain.extent.width, g_vkContext.SwapChain.extent.height);
+			Log::Print(Log::T_WARNING, __FUNCTION__, "Recreating offscreen resources (swapchain)... (frame " + std::to_string(event.currentFrame));
+			this->recreateOffscreenResources(g_vkContext.SwapChain.extent.width, g_vkContext.SwapChain.extent.height);
 		}
 	);
 
 
 	m_eventDispatcher->subscribe<Event::ViewportIsResized>(
 		[this](const Event::ViewportIsResized& event) {
-			Log::Print(Log::T_WARNING, __FUNCTION__, "Recreating offscreen resources (viewport)...");
-			this->recreateOffscreenResources(event.currentFrame, event.newWidth, event.newHeight);
+			Log::Print(Log::T_WARNING, __FUNCTION__, "Recreating offscreen resources (viewport)... (frame " + std::to_string(event.currentFrame));
+			this->recreateOffscreenResources(event.newWidth, event.newHeight);
 		}
 	);
 }
@@ -693,19 +705,18 @@ void OffscreenPipeline::initDepthBufferingResources() {
 }
 
 
-void OffscreenPipeline::recreateOffscreenResources(uint32_t currentFrame, uint32_t width, uint32_t height) {
-	vkDeviceWaitIdle(g_vkContext.Device.logicalDevice);
+void OffscreenPipeline::recreateOffscreenResources(uint32_t width, uint32_t height) {
+	g_vkContext.OffscreenResources.pendingCleanupIDs = m_offscreenCleanupIDs;
+	m_offscreenCleanupIDs.clear();
 
-	g_vkContext.OffscreenResources.pendingCleanupIDs[currentFrame] = m_offscreenCleanupIDs[currentFrame];
-	m_offscreenCleanupIDs[currentFrame].clear();
-
-	initOffscreenColorResources(currentFrame, width, height);
-	initOffscreenSampler(currentFrame);
-	initOffscreenFramebuffer(currentFrame, width, height);
+	initOffscreenColorResources(width, height);
+	initOffscreenSampler();
+	initOffscreenFramebuffer(width, height);
+	std::cout;
 }
 
 
-void OffscreenPipeline::initOffscreenColorResources(uint32_t currentFrame, uint32_t width, uint32_t height) {
+void OffscreenPipeline::initOffscreenColorResources(uint32_t width, uint32_t height) {
 	// Image
 	uint32_t depth = 1;
 
@@ -728,13 +739,13 @@ void OffscreenPipeline::initOffscreenColorResources(uint32_t currentFrame, uint3
 	uint32_t layerCount = 1;
 
 
-	for (size_t i = 0; i < SimulationConsts::MAX_FRAMES_IN_FLIGHT; i++) {
+	for (size_t i = 0; i < m_OFFSCREEN_RESOURCE_COUNT; i++) {
 		uint32_t imageCleanupID = VkImageManager::CreateImage(m_colorImages[i], m_colorImgAlloc, imgAllocInfo, width, height, depth, imgFormat, imgTiling, imgUsageFlags, imgType);
 
 		uint32_t imageViewCleanupID = VkImageManager::CreateImageView(m_colorImgViews[i], m_colorImages[i], imgFormat, imgAspectFlags, viewType, levelCount, layerCount);
 
-		m_offscreenCleanupIDs[currentFrame].push_back(imageCleanupID);
-		m_offscreenCleanupIDs[currentFrame].push_back(imageViewCleanupID);
+		m_offscreenCleanupIDs.push_back(imageCleanupID);
+		m_offscreenCleanupIDs.push_back(imageViewCleanupID);
 	}
 
 	g_vkContext.OffscreenResources.images = m_colorImages;
@@ -742,7 +753,7 @@ void OffscreenPipeline::initOffscreenColorResources(uint32_t currentFrame, uint3
 }
 
 
-void OffscreenPipeline::initOffscreenSampler(uint32_t currentFrame) {
+void OffscreenPipeline::initOffscreenSampler() {
 	VkSamplerCreateInfo samplerInfo{};
 	samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 	samplerInfo.magFilter = VK_FILTER_LINEAR;
@@ -761,7 +772,7 @@ void OffscreenPipeline::initOffscreenSampler(uint32_t currentFrame) {
 	samplerInfo.minLod = 0.0f;
 	samplerInfo.maxLod = 0.0f;
 
-	for (size_t i = 0; i < SimulationConsts::MAX_FRAMES_IN_FLIGHT; i++) {
+	for (size_t i = 0; i < m_OFFSCREEN_RESOURCE_COUNT; i++) {
 
 		VkResult result = vkCreateSampler(g_vkContext.Device.logicalDevice, &samplerInfo, nullptr, &m_colorImgSamplers[i]);
 		
@@ -776,7 +787,7 @@ void OffscreenPipeline::initOffscreenSampler(uint32_t currentFrame) {
 		};
 
 		uint32_t samplerCleanupID = m_garbageCollector->createCleanupTask(task);
-		m_offscreenCleanupIDs[currentFrame].push_back(samplerCleanupID);
+		m_offscreenCleanupIDs.push_back(samplerCleanupID);
 
 
 		LOG_ASSERT(result == VK_SUCCESS, "Failed to create offscreen sampler!");
@@ -786,16 +797,16 @@ void OffscreenPipeline::initOffscreenSampler(uint32_t currentFrame) {
 }
 
 
-void OffscreenPipeline::initOffscreenFramebuffer(uint32_t currentFrame, uint32_t width, uint32_t height) {
+void OffscreenPipeline::initOffscreenFramebuffer(uint32_t width, uint32_t height) {
 	for (size_t i = 0; i < m_colorImages.size(); i++) {
 		std::vector<VkImageView> attachments = {
-		m_colorImgViews[i],
-		m_depthImgView
+			m_colorImgViews[i],
+			m_depthImgView
 		};
 
 		uint32_t framebufferCleanupID = VkImageManager::CreateFramebuffer(m_colorImgFramebuffers[i], m_renderPass, attachments, width, height);
 
-		m_offscreenCleanupIDs[currentFrame].push_back(framebufferCleanupID);
+		m_offscreenCleanupIDs.push_back(framebufferCleanupID);
 	}
 
 	g_vkContext.OffscreenResources.framebuffers = m_colorImgFramebuffers;

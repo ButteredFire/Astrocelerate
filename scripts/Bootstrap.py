@@ -91,13 +91,13 @@ def runCMakeCONFIGURE(cmakeFileDir, buildDir, vcpkgRoot, buildType="Debug"):
     #
     # Pretty neat!
 
-    print(f"\n[INFO] Running CMake configure command: {' '.join(cmakeArgs)}")
+    print(f"[INFO] Running CMake configure command: {' '.join(cmakeArgs)}")
 
     try:
         subprocess.run(cmakeArgs, check=True)
-        print("[INFO] CMake configure successful!")
+        print("\n[INFO] CMake configure successful!")
     except subprocess.CalledProcessError as e:
-        print(f"[ERROR] CMake configure failed with exit code {e.returncode}")
+        print(f"\n[ERROR] CMake configure failed with exit code {e.returncode}")
         sys.exit(1)
 
 
@@ -114,12 +114,12 @@ def runCMakeBUILD(buildDir, buildType="Debug"):
         "--config", buildType # NOTE: This is important for multi-config generators like Visual Studio
     ]
 
-    print(f"\n[INFO] Running CMake build command: {' '.join(cmakeArgs)}")
+    print(f"[INFO] Running CMake build command: {' '.join(cmakeArgs)}")
     try:
         subprocess.run(cmakeArgs, check=True)
-        print("[INFO] CMake build successful!")
+        print("\n[INFO] CMake build successful!")
     except subprocess.CalledProcessError as e:
-        print(f"[ERROR] CMake build failed with exit code {e.returncode}")
+        print(f"\n[ERROR] CMake build failed with exit code {e.returncode}")
         sys.exit(1)
 
 
@@ -136,51 +136,55 @@ def cleanBuildDirectory(buildDir):
 
 def printUsage():
     print("Usage: python Bootstrap.py [configure|build|clean] [Debug|Release]")
-    print("\tconfigure: Configures the CMake project.")
-    print("\tbuild: Builds the CMake project.")
+    print("\tconfigure: Configures Astrocelerate.")
+    print("\tbuild: Builds Astrocelerate.")
     print("\tclean: Removes the build directory.")
     print("\t[Debug|Release]: Optional build type for configure/build commands (default: Debug).")
 
 
 def main():
-    print(f"RUNNING: {' '.join(sys.argv)}\n")
+    print(f"RUNNING: {' '.join(sys.argv)}")
+    try:
+        if len(sys.argv) < 2:
+            printUsage()
+            sys.exit(0)
 
-    if len(sys.argv) < 2:
-        printUsage()
-        sys.exit(0)
 
+        command = sys.argv[1].lower()
+        buildType = "Debug"
 
-    command = sys.argv[1].lower()
-    buildType = "Debug"
-
-    cmakeFileDir = Path(__file__).parent.parent.__str__()
-    buildDir = os.path.join(cmakeFileDir, "build", buildType)
-
-    if len(sys.argv) > 2:
-        argBuildType = sys.argv[2].lower()
-        if argBuildType in ["debug", "release", "relwithdebinfo", "minsizerelease"]:
-            buildType = argBuildType.capitalize() # Capitalizes first letter for CMake
+        if len(sys.argv) > 2:
+            argBuildType = sys.argv[2].lower()
+            if argBuildType in ["debug", "release", "relwithdebinfo", "minsizerelease"]:
+                buildType = argBuildType.capitalize() # Capitalizes first letter for CMake
+            else:
+                print(f"[WARNING] Unknown build type '{argBuildType}'. Using default '{buildType}'.")
         else:
-            print(f"[WARNING] Unknown build type '{argBuildType}'. Using default '{buildType}'.")
+            print(f"[INFO] Using default build type ({buildType}).")
 
+        cmakeFileDir = Path(__file__).parent.parent.__str__()
+        buildDir = os.path.join(cmakeFileDir, "build", buildType)
 
-    if command == "configure":
-        vcpkgRoot = findVcpkgRoot()
-        checkBootstrapVcpkg(vcpkgRoot)
+        if command == "configure":
+            vcpkgRoot = findVcpkgRoot()
+            checkBootstrapVcpkg(vcpkgRoot)
 
-        if vcpkgRoot:
-            runCMakeCONFIGURE(cmakeFileDir, buildDir, vcpkgRoot, buildType)
+            if vcpkgRoot:
+                runCMakeCONFIGURE(cmakeFileDir, buildDir, vcpkgRoot, buildType)
 
-    elif command == "build":
-        runCMakeBUILD(buildDir, buildType)
+        elif command == "build":
+            runCMakeBUILD(buildDir, buildType)
 
-    elif command == "clean":
-        cleanBuildDirectory(buildDir)
+        elif command == "clean":
+            cleanBuildDirectory(buildDir)
 
-    else:
-        print(f"Unknown command: {command}")
-        printUsage()
-        sys.exit(1)
+        else:
+            print(f"Unknown command: {command}")
+            printUsage()
+            sys.exit(1)
+
+    except KeyboardInterrupt:
+        print("\n[INFO] Exiting...")
 
 
 if __name__ == "__main__":

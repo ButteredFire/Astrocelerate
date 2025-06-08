@@ -1,5 +1,6 @@
 set(HEADER_FILES
 	"external/boxer/include/boxer/boxer.h"
+	"external/iconfontcppheaders/IconsFontAwesome6.h"
 	"external/imgui/imconfig.h"
 	"external/imgui/imgui.h"
 	"external/imgui/imgui_impl_glfw.h"
@@ -28,6 +29,7 @@ set(HEADER_FILES
 	"src/CoreStructs/Geometry.hpp"
 	"src/CoreStructs/GUI.hpp"
 	"src/CoreStructs/Input.hpp"
+	"src/CoreStructs/Physics.hpp"
 	"src/CoreStructs/Contexts/AppContext.hpp"
 	"src/CoreStructs/Contexts/CallbackContext.hpp"
 	"src/CoreStructs/Contexts/VulkanContext.hpp"

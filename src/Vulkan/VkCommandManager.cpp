@@ -54,7 +54,7 @@ void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, 
 	VkRenderPassBeginInfo offscreenRenderPassBeginInfo{};
 	offscreenRenderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	offscreenRenderPassBeginInfo.renderPass = g_vkContext.OffscreenPipeline.renderPass;
-	offscreenRenderPassBeginInfo.framebuffer = g_vkContext.OffscreenResources.framebuffers[currentFrame];
+	offscreenRenderPassBeginInfo.framebuffer = g_vkContext.OffscreenResources.framebuffers[imageIndex];
 	offscreenRenderPassBeginInfo.renderArea.offset = { 0, 0 };
 	offscreenRenderPassBeginInfo.renderArea.extent = g_vkContext.SwapChain.extent;
 
@@ -174,7 +174,7 @@ void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, 
 
 	m_eventDispatcher->publish<Event::UpdateGUI>(Event::UpdateGUI {
 		.commandBuffer = cmdBuffer,
-		.currentFrame = currentFrame
+		.currentFrame = imageIndex
 	}, true);
 
 	vkCmdEndRenderPass(cmdBuffer);

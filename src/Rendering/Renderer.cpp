@@ -64,10 +64,10 @@ void Renderer::drawFrame(glm::dvec3& renderOrigin) {
     VkResult waitResult = vkWaitForFences(g_vkContext.Device.logicalDevice, 1, &g_vkContext.SyncObjects.inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
     LOG_ASSERT(waitResult == VK_SUCCESS, "Failed to wait for in-flight fence!");
 
-    for (auto& cleanupID : g_vkContext.OffscreenResources.pendingCleanupIDs[m_currentFrame])
+    for (auto& cleanupID : g_vkContext.OffscreenResources.pendingCleanupIDs)
         m_garbageCollector->executeCleanupTask(cleanupID);
-
-    g_vkContext.OffscreenResources.pendingCleanupIDs[m_currentFrame].clear();
+    
+    g_vkContext.OffscreenResources.pendingCleanupIDs.clear();
 
 
     // Acquires an image from the swap-chain
@@ -182,4 +182,5 @@ void Renderer::drawFrame(glm::dvec3& renderOrigin) {
 
     // Updates current frame index
     m_currentFrame = (m_currentFrame + 1) % SimulationConsts::MAX_FRAMES_IN_FLIGHT;
+
 }

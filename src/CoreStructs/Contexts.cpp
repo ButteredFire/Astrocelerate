@@ -6,3 +6,5 @@
 VulkanContext g_vkContext{};
 AppContext g_appContext{};
 FontContext g_fontContext{};
+
+CallbackContext g_callbackContext;

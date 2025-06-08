@@ -6,7 +6,10 @@
 #include <unordered_map>
 
 #include <imgui/imgui.h>
+#include <imgui/imgui_internal.h>
 #include <imgui/imgui_impl_vulkan.h>
+
+#include <iconfontcppheaders/IconsFontAwesome6.h>
 
 #include <Core/ECS.hpp>
 #include <Core/Constants.h>
@@ -69,13 +72,20 @@ private:
 
 	// Common window flags
 	ImGuiWindowFlags m_windowFlags;
+	ImGuiWindowFlags m_popupWindowFlags;
 
-	// Viewport sampling as a texture
+	// Viewport
+		// Sampling as a texture
 	std::vector<ImTextureID> m_viewportRenderTextureIDs;
 	ImVec2 m_lastViewportPanelSize = { 0.0f, 0.0f };
 	uint32_t m_currentFrame = 0;
 
+		// Input blocker to prevent interactions with other GUI elements if the viewport is focused
 	bool m_inputBlockerIsOn = false;
+
+		// Other
+	bool m_simulationIsPaused = true;
+
 
 	GUI::PanelFlag m_currentFocusedPanel = GUI::PanelFlag::NULL_PANEL;
 

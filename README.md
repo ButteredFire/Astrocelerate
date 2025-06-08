@@ -7,12 +7,13 @@
 </div>
 
 # About Astrocelerate
-## What is it?
 Astrocelerate is a spaceflight simulation engine tailored to space missions, developed in C++ with the Vulkan graphics API. 
+
 ## Goal
 Astrocelerate aims to provide high-fidelity real-time and interactive visualizations with the accuracy of CPU-accelerated physics, the visual appeal and efficiency of GPU-accelerated rendering and parallelizable physics computing, and support for on-the-fly variable changes with real-time visual feedback.
 
 Astrocelerate also aims to incorporate modern design principles, standards, and GUI into the workflow, making it appealing for both professional researchers and students alike.
+
 ## Vision
 ### Short-term vision (MVP)
 The short term vision of Astrocelerate is to create a Minimum-Viable Product (MVP) that satisfies core features. Specifically, the MVP must be able to achieve these minima:
@@ -20,26 +21,60 @@ The short term vision of Astrocelerate is to create a Minimum-Viable Product (MV
 - A clean, polished GUI (planned to be made with *Dear ImGui*)
 - An Entity-Component-System (ECS)-based design
 
+## Design philosophy
+Astrocelerate's design philosophy takes inspiration from that of the Unity game engine and the GMAT spaceflight simulation engine.
+These principles are subject to change over time, as Astrocelerate (and I) become more mature.
+
+|              Core design principles              | Description                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| :----------------------------------------------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+|         **Open-source**          | Astrocelerate aims to be transparent and thrives on community feedback, modification, and extension. Therefore, to maximize contribution and growth, it is decided that the engine should be open-source.                                                                                                                                                              |
+| **ECS-based, Modular & Extensible Architecture** | Astrocelerate is structured to allow flexibility and modularity, allowing users to set up and develop their own environments, objects, gravity, etc. with built-in, third-party, and custom "modules". This is part of Astrocelerate's integration of Entity-Component-System principles.<br><br>Astrocelerate is built to allow third-party plug-ins and extensions, enabling researchers to integrate new models or solvers. |
+|      **Non-proprietary scripting language**      | Astrocelerate allows users to program their own modules and override built-in counterparts with C++.                                                                                                                                                                                                                                                                                                                           |
+|          **Support for real missions**           | Astrocelerate can be used for operational mission planning (e.g., lunar and interplanetary transfers, spacecraft launch-and-recovery procedures).                                                                                                                                                                                                                                                                              |
+
+
+# Features
+## Currently implemented
+- Real-time orbital propagation
+- Accurate 2-body simulation
+- Configurable physics time step
+- Reference frame system with fixed simulation scaling (maintains physical accuracy across polarized scales)
+- Custom ECS-based architecture with sparse-set storage (allows for performant simulation and efficient data flow between the GUI and backend)
+- Live telemetry data, console, etc.; Tweakable simulation settings
+- Offscreen rendering (allows for custom viewports, post-processing, etc.)
+
+## Near-future plans
+- Swappable numerical integrators (Symplectic Euler, RK4)
+- Data-caching in ECS for even more performance
+- Compute shaders and the offloading of parallelizable processes to the GPU
+- Dynamic scaling for seamless transitions (e.g., from terrain to planet)
+- N-body simulation capabilities
+- A more diverse range of numerical integration methods (Verlet, Simpson's Rule, Gaussian quadrature)
+- Solvers, coordinate systems, epochs
+- C++ scripting to allow for user-created simulations
+- Serialization of GUI and simulation data, with basic exporting capabilities
+- A more advanced model loader, with better, correctly mapped textures and visual fidelity
+
 
 # Installation
 > [!WARNING]
 > Astrocelerate has only been tested on Windows, although the application aims to be cross-platform-compatible.
 
 ## Prerequisites
-- The Vulkan SDK
+- Vulkan SDK (Vulkan 1.2+)
 - Vcpkg dependency manager
-- Python 1.3+
+- Python 3.9+
 - C++20
 
 ## Bootstrapping
-- Run `SetupDebug.bat` to set up a Debug configuration, or `SetupRelease.bat` to set up a Release configuration.
+- Run `SetupDebug.*` to set up a Debug configuration, or `SetupRelease.*` to set up a Release configuration, according to your operating system.
 - Alternatively, you can manually run `GenerateDirectories.bat` to ensure file discovery is up-to-date, then run `scripts/Bootstrap.py` and follow on-screen instructions.
 
 
 # History
-Astrocelerate made its first commit on November 28th, 2024. As of May 21st, 2025, it has been in development for 5 months:
+Astrocelerate made its first commit on November 28th, 2024. As of June 7th, 2025, it has been in development for 6 months:
 - Legacy engine (OpenGL): 2 months
-- Current engine (Vulkan): 3 months
+- Current engine (Vulkan): 4 months
 
 ## Screenshots
 The following screenshots document the development of Astrocelerate.

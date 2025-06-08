@@ -14,6 +14,8 @@
 #include <imgui/imgui_impl_glfw.h>
 #include <imgui/imgui_impl_vulkan.h>
 
+#include <iconfontcppheaders/IconsFontAwesome6.h>
+
 // Local
 #include <Core/ECS.hpp>
 #include <Core/Constants.h>
@@ -73,7 +75,6 @@ private:
 
 	std::shared_ptr<UIPanelManager> m_uiPanelManager;
 
-	ImFont* m_pFont = nullptr;
 	VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
 	bool m_showDemoWindow = true;
 };

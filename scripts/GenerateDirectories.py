@@ -115,7 +115,7 @@ def printUsage():
 
 def main():
     # python [FILE] [TARGET_SOURCE_AND_HEADER_ROOT_DIRS...]
-    print(f"RUNNING: {' '.join(sys.argv)}\n")
+    print(f"RUNNING: {' '.join(sys.argv)}")
 
     startDir = "scripts"
     rootAbsDir = Path(__file__).parent.parent

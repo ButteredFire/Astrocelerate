@@ -102,12 +102,13 @@ private:
 	//VkImageView m_colorImgView{};
 	//VkFramebuffer m_colorImgFramebuffer{};
 
-	std::array<VkImage, SimulationConsts::MAX_FRAMES_IN_FLIGHT> m_colorImages;
-	std::array<VkImageView, SimulationConsts::MAX_FRAMES_IN_FLIGHT> m_colorImgViews;
-	std::array<VkSampler, SimulationConsts::MAX_FRAMES_IN_FLIGHT> m_colorImgSamplers;
-	std::array<VkFramebuffer, SimulationConsts::MAX_FRAMES_IN_FLIGHT> m_colorImgFramebuffers;
+	const size_t m_OFFSCREEN_RESOURCE_COUNT = g_vkContext.SwapChain.images.size();
+	std::vector<VkImage> m_colorImages;
+	std::vector<VkImageView> m_colorImgViews;
+	std::vector<VkSampler> m_colorImgSamplers;
+	std::vector<VkFramebuffer> m_colorImgFramebuffers;
 
-	std::array<std::vector<uint32_t>, SimulationConsts::MAX_FRAMES_IN_FLIGHT> m_offscreenCleanupIDs;
+	std::vector<uint32_t> m_offscreenCleanupIDs;
 
 
 	void bindEvents();
@@ -207,10 +208,10 @@ private:
 
 	void initDepthBufferingResources();
 	
-	void recreateOffscreenResources(uint32_t currentFrame, uint32_t width, uint32_t height);
-	void initOffscreenColorResources(uint32_t currentFrame, uint32_t width, uint32_t height);
-	void initOffscreenSampler(uint32_t currentFrame);
-	void initOffscreenFramebuffer(uint32_t currentFrame, uint32_t width, uint32_t height);
+	void recreateOffscreenResources(uint32_t width, uint32_t height);
+	void initOffscreenColorResources(uint32_t width, uint32_t height);
+	void initOffscreenSampler();
+	void initOffscreenFramebuffer(uint32_t width, uint32_t height);
 
 
 	/* Creates a shader module to pass the code to the pipeline.

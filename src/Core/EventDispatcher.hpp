@@ -60,7 +60,7 @@ public:
 		}
 
 		if (!suppressLogs && m_subscribers.count(eventTypeIndex))
-			Log::Print(Log::T_SUCCESS, __FUNCTION__, "Invoked " + std::to_string(callbacks.size()) + " callback(s) for event type " + enquote(typeid(EventType).name()) + ".");
+			Log::Print(Log::T_SUCCESS, __FUNCTION__, "Invoked " + std::to_string(callbacks.size()) + " " + ((callbacks.size() == 1) ? "callback" : "callbacks") + " for event type " + enquote(typeid(EventType).name()) + ".");
 	}
 
 	

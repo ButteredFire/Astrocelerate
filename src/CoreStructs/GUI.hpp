@@ -14,7 +14,10 @@ namespace GUI {
 	using PanelMask = std::bitset<MAX_PANEL_COUNT>;  
 
 	enum class PanelFlag {
+		// Special panels
 		NULL_PANEL = 0,
+
+		// Normal panels
 		PANEL_VIEWPORT,
 		PANEL_TELEMETRY,  
 		PANEL_ENTITY_INSPECTOR,  

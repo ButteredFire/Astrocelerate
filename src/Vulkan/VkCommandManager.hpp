@@ -13,11 +13,6 @@
 #include <fstream>
 #include <vector>
 
-// Dear ImGui
-#include <imgui/imgui.h>
-#include <imgui/imgui_impl_glfw.h>
-#include <imgui/imgui_impl_vulkan.h>
-
 // Local
 #include <Core/ECS.hpp>
 #include <Core/Constants.h>

@@ -49,23 +49,17 @@ uint32_t GarbageCollector::createCleanupTask(CleanupTask task) {
 
 
 CleanupTask& GarbageCollector::modifyCleanupTask(uint32_t taskID) {
-	try {
-		return m_cleanupStack[m_idToIdxLookup.at(taskID)];
-	}
-	catch (const std::exception& e) {
-		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Task ID " + enquote(std::to_string(taskID)) + " is invalid!\nOriginal exception message: " + std::string(e.what()));
-	}
+	LOG_ASSERT(m_idToIdxLookup.count(taskID), "Cannot modify cleanup task: Task ID #" + std::to_string(taskID) + " is invalid!");
+	return m_cleanupStack[m_idToIdxLookup.at(taskID)];
 }
 
 
 bool GarbageCollector::executeCleanupTask(uint32_t taskID) {
-	try {
-		CleanupTask& task = m_cleanupStack[m_idToIdxLookup.at(taskID)];
-		return executeTask(task, taskID);
-	}
-	catch (const std::exception& e) {
-		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Task ID " + enquote(std::to_string(taskID)) + " is invalid!\nOriginal exception message: " + std::string(e.what()));
-	}
+	LOG_ASSERT(m_idToIdxLookup.count(taskID), "Cannot execute cleanup task: Task ID #" + std::to_string(taskID) + " is invalid!");
+	LOG_ASSERT(m_idToIdxLookup.at(taskID) < m_cleanupStack.size(), "Cannot execute cleanup task: Cannot retrieve task data for task ID #" + std::to_string(taskID) + "!");
+	
+	CleanupTask& task = m_cleanupStack[m_idToIdxLookup.at(taskID)];
+	return executeTask(task, taskID);
 }
 
 

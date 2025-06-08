@@ -8,9 +8,8 @@
 #include <glm_config.hpp>
 
 
-// TODO
 // Fourth-order Runge-Kutta Integrator
-template<typename State, typename DerivativeFunction>
+template<typename State, typename ODESystem>
 class RK4Integrator {
 public:
 	RK4Integrator() = default;
@@ -20,13 +19,13 @@ public:
 		@param state: The current state of the system.
 		@param t: The current time.
 		@param dt: The time step for integration.
-		@param derivativeFunction: A function that computes the derivative of the state.
+		@param f: The ODE system function that computes the derivatives.
 	*/
-	static void Integrate(State& state, double t, double dt, DerivativeFunction derivativeFunction) {
-		State k1 = derivativeFunction(state, t);
-		State k2 = derivativeFunction(state + 0.5 * dt * k1, t + 0.5 * dt);
-		State k3 = derivativeFunction(state + 0.5 * dt * k2, t + 0.5 * dt);
-		State k4 = derivativeFunction(state + dt * k3, t + dt);
-		state = state + (k1 + 2.0 * k2 + 2.0 * k3 + k4) / 6.0 * dt;
+	static void Integrate(State& state, double t, double dt, ODESystem f) {
+		State k1 = f(state, t);
+		State k2 = f(state + 0.5 * dt * k1, t + 0.5 * dt);
+		State k3 = f(state + 0.5 * dt * k2, t + 0.5 * dt);
+		State k4 = f(state + dt * k3, t + dt);
+		state = state + dt * (k1 + 2.0 * k2 + 2.0 * k3 + k4) / 6.0;
 	}
-}
+};

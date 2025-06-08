@@ -22,16 +22,12 @@ const int WIN_HEIGHT = WindowConsts::DEFAULT_WINDOW_HEIGHT;
 int main() {
     Log::PrintAppInfo();
 
-    // Contexts
-    CallbackContext* callbackContext = new CallbackContext{};
-
-
     // Creates a window
     Window window(WIN_WIDTH, WIN_HEIGHT, APP_NAME);
     GLFWwindow *windowPtr = window.getGLFWwindowPtr();
     g_vkContext.window = windowPtr;
 
-    window.initGLFWBindings(callbackContext);
+    window.initGLFWBindings(&g_callbackContext);
 
     // Event dispatcher
     std::shared_ptr<EventDispatcher> eventDispatcher = std::make_shared<EventDispatcher>();
@@ -147,7 +143,7 @@ int main() {
         std::shared_ptr<InputManager> inputManager = std::make_shared<InputManager>();
         ServiceLocator::RegisterService(inputManager);
         inputManager->init();
-        callbackContext->inputManager = inputManager.get();
+        g_callbackContext.inputManager = inputManager.get();
 
         std::shared_ptr<Renderer> renderer = std::make_shared<Renderer>();
         ServiceLocator::RegisterService(renderer);

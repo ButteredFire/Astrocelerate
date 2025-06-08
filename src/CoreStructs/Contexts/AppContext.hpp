@@ -2,7 +2,6 @@
 
 #include <imgui/imgui.h>
 
-
 // General application context
 struct AppContext {
     struct Input {
