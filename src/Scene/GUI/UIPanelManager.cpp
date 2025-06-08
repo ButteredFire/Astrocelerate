@@ -423,9 +423,10 @@ void UIPanelManager::renderSimulationControlPanel() {
 		// Numerical integrator selector
 		// TODO: Implement integrator switching
 		static std::string currentIntegrator = "Fourth Order Runge-Kutta";
+		static float padding = 0.85f;
 		ImGui::Text("Numerical integrator");
 		ImGui::SameLine();
-		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x * 0.85f); // Padding
+		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x * padding);
 
 		ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
 		ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
@@ -449,6 +450,7 @@ void UIPanelManager::renderSimulationControlPanel() {
 
 		// Slider to change time scale
 		static const char* sliderLabel = "Time scale";
+		static const char* sliderID = "##TimeScaleSliderFloat";
 		static float timeScale = (Time::GetTimeScale() <= 0.0f) ? 1.0f : Time::GetTimeScale();
 		static const float MIN_VAL = 1.0f, MAX_VAL = 1000.0f;
 		static const float RECOMMENDED_SCALE_VAL_THRESHOLD = 100.0f;
@@ -456,18 +458,20 @@ void UIPanelManager::renderSimulationControlPanel() {
 			// Disable time-scale changing and grey out elements if the simulation is paused
 			ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
 			ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+		}
 
-			ImGui::SliderFloat(sliderLabel, &timeScale, MIN_VAL, MAX_VAL);
+		ImGui::Text(sliderLabel);
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x * padding);
+		ImGui::SliderFloat(sliderID, &timeScale, MIN_VAL, MAX_VAL);
+		if (!m_simulationIsPaused) {
+			// Edge case: Prevents modifying the time scale when the simulation control panel is open while the simulation is still running
+			Time::SetTimeScale(timeScale);
+		}
 
+		if (m_simulationIsPaused) {
 			ImGui::PopItemFlag();
 			ImGui::PopStyleVar();
-		}
-		else {
-			ImGui::SliderFloat(sliderLabel, &timeScale, MIN_VAL, MAX_VAL);
-			if (!m_simulationIsPaused) {
-				// Edge case: Prevents modifying the time scale when the simulation control panel is open while the simulation is still running
-				Time::SetTimeScale(timeScale);
-			}
 		}
 
 		if (timeScale > RECOMMENDED_SCALE_VAL_THRESHOLD)
