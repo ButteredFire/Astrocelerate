@@ -43,13 +43,21 @@ void UIPanelManager::bindEvents() {
 			m_inputManager = ServiceLocator::GetService<InputManager>(__FUNCTION__);
 		}
 	);
+
+	m_eventDispatcher->subscribe<Event::OffscreenResourcesAreRecreated>(
+		[this](const Event::OffscreenResourcesAreRecreated& event) {
+			for (size_t i = 0; i < m_viewportRenderTextureIDs.size(); i++) {
+				ImGui_ImplVulkan_RemoveTexture((VkDescriptorSet) m_viewportRenderTextureIDs[i]);
+			}
+
+			initViewportTextures();
+		}
+	);
 }
 
 
 void UIPanelManager::onImGuiInit() {
-	initViewportTextureDescriptorSet();
-
-	//setFocusedPanel(GUI::PanelFlag::PANEL_VIEWPORT);
+	initViewportTextures();
 }
 
 
@@ -106,6 +114,58 @@ void UIPanelManager::updatePanels(uint32_t currentFrame) {
 }
 
 
+void UIPanelManager::bindPanelFlags() {
+	using namespace GUI;
+
+	m_panelCallbacks[PanelFlag::PANEL_VIEWPORT]				= &UIPanelManager::renderViewportPanel;
+	m_panelCallbacks[PanelFlag::PANEL_TELEMETRY]			= &UIPanelManager::renderTelemetryPanel;
+	m_panelCallbacks[PanelFlag::PANEL_ENTITY_INSPECTOR]		= &UIPanelManager::renderEntityInspectorPanel;
+	m_panelCallbacks[PanelFlag::PANEL_SIMULATION_CONTROL]	= &UIPanelManager::renderSimulationControlPanel;
+	m_panelCallbacks[PanelFlag::PANEL_RENDER_SETTINGS]		= &UIPanelManager::renderRenderSettingsPanel;
+	m_panelCallbacks[PanelFlag::PANEL_ORBITAL_PLANNER]		= &UIPanelManager::renderOrbitalPlannerPanel;
+	m_panelCallbacks[PanelFlag::PANEL_DEBUG_CONSOLE]		= &UIPanelManager::renderDebugConsole;
+	m_panelCallbacks[PanelFlag::PANEL_DEBUG_INPUT]			= &UIPanelManager::renderDebugInput;
+}
+
+
+void UIPanelManager::initViewportTextures() {
+	const size_t OFFSCREEN_RESOURCE_COUNT = g_vkContext.OffscreenResources.images.size();
+	m_viewportRenderTextureIDs.resize(OFFSCREEN_RESOURCE_COUNT);
+
+	for (size_t i = 0; i < OFFSCREEN_RESOURCE_COUNT; i++) {
+		m_viewportRenderTextureIDs[i] = (ImTextureID)ImGui_ImplVulkan_AddTexture(
+			g_vkContext.OffscreenResources.samplers[i],
+			g_vkContext.OffscreenResources.imageViews[i],
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+		);
+	}
+}
+
+
+void UIPanelManager::updateViewportTexture(uint32_t currentFrame) {
+	VkDescriptorImageInfo imageInfo{};
+	imageInfo.imageView = g_vkContext.OffscreenResources.imageViews[currentFrame];
+	imageInfo.sampler = g_vkContext.OffscreenResources.samplers[currentFrame];
+	imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+	VkWriteDescriptorSet imageDescSetWrite{};
+	imageDescSetWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	imageDescSetWrite.dstBinding = 0;
+	imageDescSetWrite.descriptorCount = 1;
+	imageDescSetWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	imageDescSetWrite.dstSet = (VkDescriptorSet)m_viewportRenderTextureIDs[currentFrame];
+	imageDescSetWrite.pImageInfo = &imageInfo;
+
+	vkUpdateDescriptorSets(g_vkContext.Device.logicalDevice, 1, &imageDescSetWrite, 0, nullptr);
+}
+
+
+void UIPanelManager::performBackgroundChecks(GUI::PanelFlag flag) {
+	if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows))
+		m_currentFocusedPanel = flag;
+}
+
+
 void UIPanelManager::renderMenuBar() {
 	if (ImGui::BeginMenuBar()) {
 		ImGui::PushFont(g_fontContext.Roboto.light);
@@ -139,40 +199,6 @@ void UIPanelManager::renderMenuBar() {
 }
 
 
-void UIPanelManager::performBackgroundChecks(GUI::PanelFlag flag) {
-	if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows))
-		m_currentFocusedPanel = flag;
-}
-
-
-void UIPanelManager::bindPanelFlags() {
-	using namespace GUI;
-
-	m_panelCallbacks[PanelFlag::PANEL_VIEWPORT]				= &UIPanelManager::renderViewportPanel;
-	m_panelCallbacks[PanelFlag::PANEL_TELEMETRY]			= &UIPanelManager::renderTelemetryPanel;
-	m_panelCallbacks[PanelFlag::PANEL_ENTITY_INSPECTOR]		= &UIPanelManager::renderEntityInspectorPanel;
-	m_panelCallbacks[PanelFlag::PANEL_SIMULATION_CONTROL]	= &UIPanelManager::renderSimulationControlPanel;
-	m_panelCallbacks[PanelFlag::PANEL_RENDER_SETTINGS]		= &UIPanelManager::renderRenderSettingsPanel;
-	m_panelCallbacks[PanelFlag::PANEL_ORBITAL_PLANNER]		= &UIPanelManager::renderOrbitalPlannerPanel;
-	m_panelCallbacks[PanelFlag::PANEL_DEBUG_CONSOLE]		= &UIPanelManager::renderDebugConsole;
-	m_panelCallbacks[PanelFlag::PANEL_DEBUG_INPUT]			= &UIPanelManager::renderDebugInput;
-}
-
-
-void UIPanelManager::initViewportTextureDescriptorSet() {
-	const size_t OFFSCREEN_RESOURCE_COUNT = g_vkContext.OffscreenResources.images.size();
-	m_viewportRenderTextureIDs.resize(OFFSCREEN_RESOURCE_COUNT);
-
-	for (size_t i = 0; i < OFFSCREEN_RESOURCE_COUNT; i++) {
-		m_viewportRenderTextureIDs[i] = (ImTextureID)ImGui_ImplVulkan_AddTexture(
-			g_vkContext.OffscreenResources.samplers[i],
-			g_vkContext.OffscreenResources.imageViews[i],
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-		);
-	}
-}
-
-
 void UIPanelManager::renderPanelsMenu() {
 	using namespace GUI;
 
@@ -198,31 +224,39 @@ void UIPanelManager::renderPanelsMenu() {
 
 
 void UIPanelManager::renderViewportPanel() {
+	/* Scales the simulation render from the original render dimensions down to viewport dimensions while preserving the original aspect ratio. */
+	static std::function<ImVec2(ImVec2&)> resizeSimulationRender = [](ImVec2& viewportSize) {
+		ImVec2 textureSize{};
+
+		float renderAspect = static_cast<float>(g_vkContext.SwapChain.extent.width) / g_vkContext.SwapChain.extent.height;
+		float panelAspect = viewportSize.x / viewportSize.y;
+
+		if (panelAspect > renderAspect) {
+			// Panel is wider than the render target
+			textureSize.x = viewportSize.y * renderAspect;
+			textureSize.y = viewportSize.y;
+		}
+		else {
+			// Panel is taller than the render target
+			textureSize.x = viewportSize.x;
+			textureSize.y = viewportSize.x / renderAspect;
+		}
+
+		return textureSize;
+	};
+
+
 	const GUI::PanelFlag flag = GUI::PanelFlag::PANEL_VIEWPORT;
 	if (!GUI::IsPanelOpen(m_panelMask, flag)) {
 		Log::Print(Log::T_ERROR, __FUNCTION__, "The viewport must not be closed!");
 		GUI::TogglePanel(m_panelMask, flag, GUI::TOGGLE_ON);
 	}
 
+
 	if (ImGui::Begin(GUI::GetPanelName(flag), nullptr, m_windowFlags)) {
 		performBackgroundChecks(flag);
 
 		ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
-
-		// If the viewport panel size has changed, resize the viewport
-		//viewportPanelSize.x != m_lastViewportPanelSize.x || viewportPanelSize.y != m_lastViewportPanelSize.y
-		if (ImGui::Button("Resize")) {
-			Log::Print(Log::T_WARNING, __FUNCTION__, "Resize initiated.");
-			m_lastViewportPanelSize = viewportPanelSize;
-
-			m_eventDispatcher->publish(Event::ViewportIsResized{
-				.currentFrame = m_currentFrame,
-				.newWidth = static_cast<uint32_t>(viewportPanelSize.x),
-				.newHeight = static_cast<uint32_t>(viewportPanelSize.y)
-			});
-		}
-
-		ImGui::SameLine();
 
 		// Pause/Play button
 		static bool initialLoad = true;
@@ -256,22 +290,18 @@ void UIPanelManager::renderViewportPanel() {
 		g_appContext.Input.isViewportHoveredOver = ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows) || m_inputBlockerIsOn;
 		g_appContext.Input.isViewportFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) || m_inputBlockerIsOn;
 
-		VkDescriptorImageInfo imageInfo{};
-		imageInfo.imageView = g_vkContext.OffscreenResources.imageViews[m_currentFrame];
-		imageInfo.sampler = g_vkContext.OffscreenResources.samplers[m_currentFrame];
-		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		// Resizes the texture to its original aspect ratio before rendering
+		ImVec2 textureSize = resizeSimulationRender(viewportPanelSize);
 
-		VkWriteDescriptorSet imageDescSetWrite{};
-		imageDescSetWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		imageDescSetWrite.dstBinding = 0;
-		imageDescSetWrite.descriptorCount = 1;
-		imageDescSetWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		imageDescSetWrite.dstSet = (VkDescriptorSet)m_viewportRenderTextureIDs[m_currentFrame];
-		imageDescSetWrite.pImageInfo = &imageInfo;
+			// Padding to center the texture
+		ImVec2 offset{};
+		offset.x = (viewportPanelSize.x - textureSize.x) * 0.5f;
+		offset.y = (viewportPanelSize.y - textureSize.y) * 0.5f;
 
-		vkUpdateDescriptorSets(g_vkContext.Device.logicalDevice, 1, &imageDescSetWrite, 0, nullptr);
+		ImVec2 cursorPos = ImGui::GetCursorPos();
+		ImGui::SetCursorPos({ cursorPos.x + offset.x, cursorPos.y + offset.y });
 
-		ImGui::Image(m_viewportRenderTextureIDs[m_currentFrame], viewportPanelSize);
+		ImGui::Image(m_viewportRenderTextureIDs[m_currentFrame], textureSize);
 	
 		ImGui::End();
 	}

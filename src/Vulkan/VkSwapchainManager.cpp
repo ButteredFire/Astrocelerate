@@ -36,11 +36,13 @@ void VkSwapchainManager::init() {
 
     // Parses data for each image
     createImageViews();
+
     g_vkContext.SwapChain.imageViews = m_imageViews;
+    g_vkContext.SwapChain.imageLayouts.assign(m_images.size(), VK_IMAGE_LAYOUT_UNDEFINED);
 }
 
 
-void VkSwapchainManager::recreateSwapchain(uint32_t currentFrame) {
+void VkSwapchainManager::recreateSwapchain(uint32_t imageIndex) {
     // If the window is minimized (i.e., (width, height) = (0, 0), pause the window until it is in the foreground again
     int width = 0, height = 0;
     glfwGetFramebufferSize(g_vkContext.window, &width, &height);
@@ -62,9 +64,10 @@ void VkSwapchainManager::recreateSwapchain(uint32_t currentFrame) {
 
     init();
     createFrameBuffers();
+    g_vkContext.SwapChain.imageLayouts[imageIndex] = VK_IMAGE_LAYOUT_UNDEFINED;
 
     m_eventDispatcher->publish(Event::SwapchainIsRecreated{
-        .currentFrame = currentFrame
+        .imageIndex = imageIndex
     });
 }
 

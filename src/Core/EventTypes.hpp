@@ -12,6 +12,7 @@
 
 enum EventType {
 	EVENT_ID_SWAPCHAIN_IS_RECREATED,
+	EVENT_ID_OFFSCREEN_RESOURCES_ARE_RECREATED,
 	EVENT_ID_VIEWPORT_IS_RESIZED,
 
 	EVENT_ID_INIT_FRAMEBUFFERS,
@@ -34,7 +35,13 @@ namespace Event {
 	/* Used when the swapchain is recreated. */
 	struct SwapchainIsRecreated {
 		const EventType eventType = EventType::EVENT_ID_SWAPCHAIN_IS_RECREATED;
-		uint32_t currentFrame;
+		uint32_t imageIndex;
+	};
+
+
+	/* Used when offscreen render targets are recreated. */
+	struct OffscreenResourcesAreRecreated {
+		const EventType eventType = EventType::EVENT_ID_OFFSCREEN_RESOURCES_ARE_RECREATED;
 	};
 
 

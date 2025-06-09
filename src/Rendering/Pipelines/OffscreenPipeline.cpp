@@ -80,23 +80,22 @@ void OffscreenPipeline::init() {
 	initOffscreenColorResources(g_vkContext.SwapChain.extent.width, g_vkContext.SwapChain.extent.height);
 	initOffscreenSampler();
 	initOffscreenFramebuffer(g_vkContext.SwapChain.extent.width, g_vkContext.SwapChain.extent.height);
-	//}
 }
 
 
 void OffscreenPipeline::bindEvents() {
 	m_eventDispatcher->subscribe<Event::SwapchainIsRecreated>(
 		[this](const Event::SwapchainIsRecreated& event) {
-			Log::Print(Log::T_WARNING, __FUNCTION__, "Recreating offscreen resources (swapchain)... (frame " + std::to_string(event.currentFrame));
-			this->recreateOffscreenResources(g_vkContext.SwapChain.extent.width, g_vkContext.SwapChain.extent.height);
+			Log::Print(Log::T_WARNING, __FUNCTION__, "Recreating offscreen resources (swapchain)... (image index " + std::to_string(event.imageIndex) + ")");
+			this->recreateOffscreenResources(g_vkContext.SwapChain.extent.width, g_vkContext.SwapChain.extent.height, event.imageIndex);
 		}
 	);
 
 
 	m_eventDispatcher->subscribe<Event::ViewportIsResized>(
 		[this](const Event::ViewportIsResized& event) {
-			Log::Print(Log::T_WARNING, __FUNCTION__, "Recreating offscreen resources (viewport)... (frame " + std::to_string(event.currentFrame));
-			this->recreateOffscreenResources(event.newWidth, event.newHeight);
+			Log::Print(Log::T_WARNING, __FUNCTION__, "Recreating offscreen resources (viewport)... (frame " + std::to_string(event.currentFrame) + ")");
+			this->recreateOffscreenResources(event.newWidth, event.newHeight, event.currentFrame);
 		}
 	);
 }
@@ -705,14 +704,17 @@ void OffscreenPipeline::initDepthBufferingResources() {
 }
 
 
-void OffscreenPipeline::recreateOffscreenResources(uint32_t width, uint32_t height) {
-	g_vkContext.OffscreenResources.pendingCleanupIDs = m_offscreenCleanupIDs;
+void OffscreenPipeline::recreateOffscreenResources(uint32_t width, uint32_t height, uint32_t currentFrame) {
+	for (auto& cleanupID : m_offscreenCleanupIDs)
+		m_garbageCollector->executeCleanupTask(cleanupID);
+
 	m_offscreenCleanupIDs.clear();
 
 	initOffscreenColorResources(width, height);
 	initOffscreenSampler();
 	initOffscreenFramebuffer(width, height);
-	std::cout;
+
+	m_eventDispatcher->publish(Event::OffscreenResourcesAreRecreated{});
 }
 
 

@@ -54,7 +54,7 @@ void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, 
 	VkRenderPassBeginInfo offscreenRenderPassBeginInfo{};
 	offscreenRenderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	offscreenRenderPassBeginInfo.renderPass = g_vkContext.OffscreenPipeline.renderPass;
-	offscreenRenderPassBeginInfo.framebuffer = g_vkContext.OffscreenResources.framebuffers[imageIndex];
+	offscreenRenderPassBeginInfo.framebuffer = g_vkContext.OffscreenResources.framebuffers[currentFrame];
 	offscreenRenderPassBeginInfo.renderArea.offset = { 0, 0 };
 	offscreenRenderPassBeginInfo.renderArea.extent = g_vkContext.SwapChain.extent;
 
@@ -117,6 +117,7 @@ void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, 
 	// 
 	VkImageMemoryBarrier swapchainImgToPresentBarrier{};
 	swapchainImgToPresentBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+	swapchainImgToPresentBarrier.oldLayout = g_vkContext.SwapChain.imageLayouts[imageIndex];
 	swapchainImgToPresentBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 	swapchainImgToPresentBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
 	swapchainImgToPresentBarrier.image = g_vkContext.SwapChain.images[imageIndex];
@@ -125,23 +126,19 @@ void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, 
 	swapchainImgToPresentBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 	
 		// We must account for the fact that the layout of the first image is UNDEFINED, but subsequent images is PRESENT_SRC_KHR
-	static std::vector<bool> imageFirstAcquired;
-	if (imageFirstAcquired.empty() || imageFirstAcquired.size() != g_vkContext.SwapChain.images.size()) {
-		imageFirstAcquired.assign(g_vkContext.SwapChain.images.size(), true);
-	}
+	//static std::vector<bool> imageFirstAcquired;
+	//if (imageFirstAcquired.empty() || imageFirstAcquired.size() != g_vkContext.SwapChain.images.size()) {
+	//	imageFirstAcquired.assign(g_vkContext.SwapChain.images.size(), true);
+	//}
 
 	VkPipelineStageFlags srcStage;
 
-	if (imageFirstAcquired[imageIndex]) {
-		swapchainImgToPresentBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	if (g_vkContext.SwapChain.imageLayouts[imageIndex] == VK_IMAGE_LAYOUT_UNDEFINED) {
 		swapchainImgToPresentBarrier.srcAccessMask = 0;
 
 		srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-
-		imageFirstAcquired[imageIndex] = false;
 	}
 	else {
-		swapchainImgToPresentBarrier.oldLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 		swapchainImgToPresentBarrier.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
 
 		srcStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -174,7 +171,7 @@ void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, 
 
 	m_eventDispatcher->publish<Event::UpdateGUI>(Event::UpdateGUI {
 		.commandBuffer = cmdBuffer,
-		.currentFrame = imageIndex
+		.currentFrame = currentFrame
 	}, true);
 
 	vkCmdEndRenderPass(cmdBuffer);

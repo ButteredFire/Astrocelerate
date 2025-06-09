@@ -64,11 +64,6 @@ void Renderer::drawFrame(glm::dvec3& renderOrigin) {
     VkResult waitResult = vkWaitForFences(g_vkContext.Device.logicalDevice, 1, &g_vkContext.SyncObjects.inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
     LOG_ASSERT(waitResult == VK_SUCCESS, "Failed to wait for in-flight fence!");
 
-    for (auto& cleanupID : g_vkContext.OffscreenResources.pendingCleanupIDs)
-        m_garbageCollector->executeCleanupTask(cleanupID);
-    
-    g_vkContext.OffscreenResources.pendingCleanupIDs.clear();
-
 
     // Acquires an image from the swap-chain
     uint32_t imageIndex;
@@ -106,6 +101,8 @@ void Renderer::drawFrame(glm::dvec3& renderOrigin) {
 
     m_eventDispatcher->publish<Event::UpdateUBOs>(updateUBOsEvent, true);
 
+        // Updates all ImGui textures (aka descriptor sets) after the current frame has been processed (i.e., its fence has been reset)
+    m_imguiRenderer->updateTextures(m_currentFrame);
     
         // Records commands
     m_commandManager->recordRenderingCommandBuffer(g_vkContext.CommandObjects.graphicsCmdBuffers[m_currentFrame], imageIndex, m_currentFrame);

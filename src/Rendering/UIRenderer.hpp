@@ -61,6 +61,11 @@ public:
 	/* Renders ImGui windows. */
 	void renderFrames(uint32_t currentFrame);
 
+
+	/* Updates ImGui textures (i.e., descriptor sets). */
+	void updateTextures(uint32_t currentFrame);
+
+
 	/* Updates the GUI appearance.
 		@param appearance (Default is set by UIRenderer::initializeImGui): The appearance to update the GUI to.
 	*/

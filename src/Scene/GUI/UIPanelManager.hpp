@@ -43,6 +43,9 @@ public:
 	/* Updates panels. */
 	void updatePanels(uint32_t currentFrame);
 
+	/* Updates the viewport texture descriptor set. */
+	void updateViewportTexture(uint32_t currentFrame);
+
 	/* Renders the menu bar. */
 	void renderMenuBar();
 
@@ -106,8 +109,8 @@ private:
 	void bindPanelFlags();
 
 
-	/* Initializes a descriptor set for the viewport texture. */
-	void initViewportTextureDescriptorSet();
+	/* Initializes descriptor sets for the viewport texture. */
+	void initViewportTextures();
 
 	void renderPanelsMenu();
 

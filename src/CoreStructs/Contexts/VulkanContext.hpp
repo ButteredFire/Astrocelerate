@@ -69,6 +69,7 @@ struct VulkanContext {
 
         std::vector<VkImage> images;
         std::vector<VkImageView> imageViews;
+        std::vector<VkImageLayout> imageLayouts;  // This is for swapchain recreation purposes (i.e., robust PRESENT_SRC_KHR vs UNDEFINED detection)
         std::vector<VkFramebuffer> imageFrameBuffers;
 
         VkExtent2D extent = VkExtent2D();
@@ -85,6 +86,7 @@ struct VulkanContext {
 
         // For outdated images, image views, and framebuffers on viewport resize
         std::vector<uint32_t> pendingCleanupIDs;
+        uint32_t resizedFrameIndex;
     } OffscreenResources;
 
     // Textures  

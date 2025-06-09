@@ -49,7 +49,7 @@ public:
 
 
 	/* Recreates the swap-chain. */
-	void recreateSwapchain(uint32_t currentFrame);
+	void recreateSwapchain(uint32_t imageIndex);
 
 
 	/* Queries the properties of a GPU's swap-chain.

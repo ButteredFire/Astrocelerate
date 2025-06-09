@@ -246,6 +246,11 @@ void UIRenderer::renderFrames(uint32_t currentFrame) {
 }
 
 
+void UIRenderer::updateTextures(uint32_t currentFrame) {
+    m_uiPanelManager->updateViewportTexture(currentFrame);
+}
+
+
 void UIRenderer::updateAppearance(UIRenderer::Appearance appearance) {
     ImGuiStyle& style = ImGui::GetStyle();
     ImVec4* colors = style.Colors;
