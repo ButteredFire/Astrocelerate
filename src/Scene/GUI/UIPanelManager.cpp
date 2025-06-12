@@ -21,7 +21,7 @@ UIPanelManager::UIPanelManager() {
 	//GUI::TogglePanel(m_panelMask, GUI::PanelFlag::PANEL_RENDER_SETTINGS, GUI::TOGGLE_ON);
 	//GUI::TogglePanel(m_panelMask, GUI::PanelFlag::PANEL_ORBITAL_PLANNER, GUI::TOGGLE_ON);
 	GUI::TogglePanel(m_panelMask, GUI::PanelFlag::PANEL_DEBUG_CONSOLE, GUI::TOGGLE_ON);
-	//GUI::TogglePanel(m_panelMask, GUI::PanelFlag::PANEL_DEBUG_INPUT, GUI::TOGGLE_ON);
+	//GUI::TogglePanel(m_panelMask, GUI::PanelFlag::PANEL_DEBUG_APP, GUI::TOGGLE_ON);
 
 	initPanelsFromMask(m_panelMask);
 	
@@ -124,7 +124,7 @@ void UIPanelManager::bindPanelFlags() {
 	m_panelCallbacks[PanelFlag::PANEL_RENDER_SETTINGS]		= &UIPanelManager::renderRenderSettingsPanel;
 	m_panelCallbacks[PanelFlag::PANEL_ORBITAL_PLANNER]		= &UIPanelManager::renderOrbitalPlannerPanel;
 	m_panelCallbacks[PanelFlag::PANEL_DEBUG_CONSOLE]		= &UIPanelManager::renderDebugConsole;
-	m_panelCallbacks[PanelFlag::PANEL_DEBUG_INPUT]			= &UIPanelManager::renderDebugInput;
+	m_panelCallbacks[PanelFlag::PANEL_DEBUG_APP]			= &UIPanelManager::renderDebugApplication;
 }
 
 
@@ -668,27 +668,35 @@ void UIPanelManager::renderDebugConsole() {
 }
 
 
-void UIPanelManager::renderDebugInput() {
-	const GUI::PanelFlag flag = GUI::PanelFlag::PANEL_DEBUG_INPUT;
+void UIPanelManager::renderDebugApplication() {
+	const GUI::PanelFlag flag = GUI::PanelFlag::PANEL_DEBUG_APP;
 	if (!GUI::IsPanelOpen(m_panelMask, flag)) return;
 
+	static ImGuiIO& io = ImGui::GetIO();
+	
 	if (ImGui::Begin(GUI::GetPanelName(flag), nullptr, m_windowFlags)) {
 		performBackgroundChecks(flag);
 
-		ImGui::Text("Viewport:");
+		io = ImGui::GetIO();
+		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+
+		ImGui::Dummy(ImVec2(2.0f, 2.0f));
+
+		ImGui::Text("Input:");
+		ImGui::Text("\tViewport:");
 		{
-			ImGui::BulletText("Hovered over: %s", BOOLALPHACAP(g_appContext.Input.isViewportHoveredOver));
-			ImGui::BulletText("Focused: %s", BOOLALPHACAP(g_appContext.Input.isViewportFocused));
-			ImGui::BulletText("Input blocker on: %s", BOOLALPHACAP(m_inputBlockerIsOn));
+			ImGui::BulletText("\tHovered over: %s", BOOLALPHACAP(g_appContext.Input.isViewportHoveredOver));
+			ImGui::BulletText("\tFocused: %s", BOOLALPHACAP(g_appContext.Input.isViewportFocused));
+			ImGui::BulletText("\tInput blocker on: %s", BOOLALPHACAP(m_inputBlockerIsOn));
 		}
 
 		ImGui::Separator();
 
-		ImGui::Text("Viewport controls (Input manager)");
+		ImGui::Text("\tViewport controls (Input manager)");
 		{
-			ImGui::BulletText("Input allowed: %s", BOOLALPHACAP(m_inputManager->isViewportInputAllowed()));
-			ImGui::BulletText("Focused: %s", BOOLALPHACAP(m_inputManager->isViewportFocused()));
-			ImGui::BulletText("Unfocused: %s", BOOLALPHACAP(m_inputManager->isViewportUnfocused()));
+			ImGui::BulletText("\tInput allowed: %s", BOOLALPHACAP(m_inputManager->isViewportInputAllowed()));
+			ImGui::BulletText("\tFocused: %s", BOOLALPHACAP(m_inputManager->isViewportFocused()));
+			ImGui::BulletText("\tUnfocused: %s", BOOLALPHACAP(m_inputManager->isViewportUnfocused()));
 		}
 	
 		ImGui::End();

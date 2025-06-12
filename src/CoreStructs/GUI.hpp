@@ -25,7 +25,7 @@ namespace GUI {
 		PANEL_RENDER_SETTINGS,  
 		PANEL_ORBITAL_PLANNER,  
 		PANEL_DEBUG_CONSOLE,
-		PANEL_DEBUG_INPUT
+		PANEL_DEBUG_APP
 	};
 
 	inline constexpr PanelFlag PanelFlagsArray[] = {
@@ -36,7 +36,7 @@ namespace GUI {
 		PanelFlag::PANEL_RENDER_SETTINGS,
 		PanelFlag::PANEL_ORBITAL_PLANNER,
 		PanelFlag::PANEL_DEBUG_CONSOLE,
-		PanelFlag::PANEL_DEBUG_INPUT
+		PanelFlag::PANEL_DEBUG_APP
 	};
 
 
@@ -49,7 +49,7 @@ namespace GUI {
 		{PanelFlag::PANEL_RENDER_SETTINGS,			"Render Settings"},
 		{PanelFlag::PANEL_ORBITAL_PLANNER,			"Orbital Planner"},
 		{PanelFlag::PANEL_DEBUG_CONSOLE,			"Console"},
-		{PanelFlag::PANEL_DEBUG_INPUT,				"Input Debugger"}
+		{PanelFlag::PANEL_DEBUG_APP,				"Application Debugger"}
 	};
 
 

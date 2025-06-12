@@ -124,5 +124,5 @@ private:
 	void renderOrbitalPlannerPanel();
 
 	void renderDebugConsole();
-	void renderDebugInput();
+	void renderDebugApplication();
 };
