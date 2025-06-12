@@ -42,9 +42,9 @@ private:
 	void bindEvents();
 
 	/* Processes a mesh. */
-	void processMeshRenderable(const VkCommandBuffer& cmdBuffer, const Component::MeshRenderable& renderable, const VkDescriptorSet& descriptorSet);
+	void processMeshRenderable(const VkCommandBuffer& cmdBuffer, const RenderComponent::MeshRenderable& renderable, const VkDescriptorSet& descriptorSet);
 
 
 	/* Processes the GUI. */
-	void processGUIRenderable(const VkCommandBuffer& cmdBuffer, const Component::GUIRenderable& renderable, uint32_t currentFrame);
+	void processGUIRenderable(const VkCommandBuffer& cmdBuffer, const RenderComponent::GUIRenderable& renderable, uint32_t currentFrame);
 };

@@ -316,100 +316,102 @@ void UIPanelManager::renderTelemetryPanel() {
 	if (ImGui::Begin(GUI::GetPanelName(flag), nullptr, m_windowFlags)) {
 		performBackgroundChecks(flag);
 
-		auto view = m_registry->getView<Component::RigidBody, Component::ReferenceFrame>();
+		auto view = m_registry->getView<PhysicsComponent::RigidBody, WorldSpaceComponent::ReferenceFrame, TelemetryComponent::RenderTransform>();
 		size_t entityCount = 0;
 
-		for (const auto& [entity, rigidBody, refFrame] : view) {
+		for (const auto& [entity, rigidBody, refFrame, renderT] : view) {
 			// As the content is dynamically generated, we need each iteration to have its ImGui ID to prevent conflicts.
 			// Since entity IDs are always unique, we can use them as ImGui IDs.
 			ImGui::PushID(static_cast<int>(entity));
 
 
-			ImGui::Text("Entity ID #%d", entity);
+			ImGui::TextWrapped("%s (ID: %d)", m_registry->getEntity(entity).name.c_str(), entity);
 
 
-			// --- Rigid-body Entity Debug Info ---
-			if (ImGui::CollapsingHeader("Rigid-body Entity Debug Info")) {
+			// --- Rigid-body Debug Info ---
+			if (ImGui::CollapsingHeader("Rigid-body Data")) {
 				float velocityAbs = glm::length(rigidBody.velocity);
 				ImGui::PushFont(g_fontContext.Roboto.bold);
-				ImGui::Text("\tVelocity:");
+				ImGui::TextWrapped("\tVelocity:");
 				ImGui::PopFont();
 
-				ImGui::Text("\t\tVector: (x: %.2f, y: %.2f, z: %.2f)", rigidBody.velocity.x, rigidBody.velocity.y, rigidBody.velocity.z);
-				ImGui::Text("\t\tAbsolute: |v| ~= %.4f m/s", velocityAbs);
+				ImGui::TextWrapped("\t\tVector: (x: %.2f, y: %.2f, z: %.2f)", rigidBody.velocity.x, rigidBody.velocity.y, rigidBody.velocity.z);
+				ImGui::TextWrapped("\t\tAbsolute: |v| ~= %.4f m/s", velocityAbs);
 
 				ImGui::Dummy(ImVec2(0.5f, 0.5f));
 
 				float accelerationAbs = glm::length(rigidBody.acceleration);
 				ImGui::PushFont(g_fontContext.Roboto.bold);
-				ImGui::Text("\tAcceleration:");
+				ImGui::TextWrapped("\tAcceleration:");
 				ImGui::PopFont();
 
-				ImGui::Text("\t\tVector: (x: %.2f, y: %.2f, z: %.2f)", rigidBody.acceleration.x, rigidBody.acceleration.y, rigidBody.acceleration.z);
-				ImGui::Text("\t\tAbsolute: |a| ~= %.4f m/s^2", accelerationAbs);
+				ImGui::TextWrapped("\t\tVector: (x: %.2f, y: %.2f, z: %.2f)", rigidBody.acceleration.x, rigidBody.acceleration.y, rigidBody.acceleration.z);
+				ImGui::TextWrapped("\t\tAbsolute: |a| ~= %.4f m/s^2", accelerationAbs);
 
 
 				// Display mass: scientific notation for large values, fixed for small
 				if (std::abs(rigidBody.mass) >= 1e6f) {
-					ImGui::Text("\tMass: %.2e kg", rigidBody.mass);
+					ImGui::TextWrapped("\tMass: %.2e kg", rigidBody.mass);
 				}
 				else {
-					ImGui::Text("\tMass: %.2f kg", rigidBody.mass);
+					ImGui::TextWrapped("\tMass: %.2f kg", rigidBody.mass);
 				}
 
 			}
 
 
-			// --- Reference Frame Entity Debug Info ---
-			if (ImGui::CollapsingHeader("Reference Frame Entity Debug Info")) {
+			// --- Reference Frame Debug Info ---
+			if (ImGui::CollapsingHeader("Reference Frame Data")) {
 				// Parent ID
 				ImGui::PushFont(g_fontContext.Roboto.bold);
 				if (refFrame.parentID.has_value()) {
-					ImGui::Text("\tParent Entity ID: %d", refFrame.parentID.value());
+					ImGui::TextWrapped("\tParent: %s (ID: %d)", m_registry->getEntity(refFrame.parentID.value()).name.c_str(), refFrame.parentID.value());
 				}
 				else {
-					ImGui::Text("\tParent Entity ID: None");
+					ImGui::TextWrapped("\tParent: None");
 				}
 				ImGui::PopFont();
 
-				ImGui::Text("\t\tScale (simulation): %.10f m (radius)",
-					refFrame.scale);
-				ImGui::Text("\t\tScale (render): %.10f m (radius)",
-					SpaceUtils::GetRenderableScale(SpaceUtils::ToRenderSpace(refFrame.scale)));
+				ImGui::TextWrapped("\t\tScale (simulation): %.10f m (radius)", refFrame.scale);
+				ImGui::TextWrapped("\t\tScale (render): %.10f units (radius)", renderT.scale);
 
 				// Local Transform
 				ImGui::PushFont(g_fontContext.Roboto.bold);
-				ImGui::Text("\tLocal Transform:");
+				ImGui::TextWrapped("\tLocal Transform:");
 				ImGui::PopFont();
 
-				ImGui::Text("\t\tPosition: (x: %.2f, y: %.2f, z: %.2f)",
+				ImGui::TextWrapped("\t\tPosition: (x: %.2f, y: %.2f, z: %.2f)",
 					refFrame.localTransform.position.x,
 					refFrame.localTransform.position.y,
 					refFrame.localTransform.position.z);
-				ImGui::Text("\t\t\tMagnitude: ||vec|| ~= %.2f m", glm::length(refFrame.localTransform.position));
+				ImGui::TextWrapped("\t\t\tMagnitude: ||vec|| ~= %.2f m", glm::length(refFrame.localTransform.position));
 
-				ImGui::Text("\t\tRotation: (x: %.2f, y: %.2f, z: %.2f, w: %.2f)",
+				ImGui::TextWrapped("\t\tRotation: (w: %.2f, x: %.2f, y: %.2f, z: %.2f)",
+					refFrame.localTransform.rotation.w,
 					refFrame.localTransform.rotation.x,
 					refFrame.localTransform.rotation.y,
-					refFrame.localTransform.rotation.z,
-					refFrame.localTransform.rotation.w);
+					refFrame.localTransform.rotation.z);
 
 				// Global Transform
 				ImGui::PushFont(g_fontContext.Roboto.bold);
-				ImGui::Text("\tGlobal Transform (normalized):");
+				ImGui::TextWrapped("\tGlobal Transform:");
 				ImGui::PopFont();
 
-				ImGui::Text("\t\tPosition: (x: %.2f, y: %.2f, z: %.2f)",
+				ImGui::TextWrapped("\t\tPosition (simulation): (x: %.2f, y: %.2f, z: %.2f)",
 					refFrame.globalTransform.position.x,
 					refFrame.globalTransform.position.y,
 					refFrame.globalTransform.position.z);
-				ImGui::Text("\t\t\tMagnitude: ||vec|| ~= %.2f m", glm::length(refFrame.globalTransform.position));
+				ImGui::TextWrapped("\t\t\tMagnitude: ||vec|| ~= %.2f m", glm::length(refFrame.globalTransform.position));
 
-				ImGui::Text("\t\tRotation: (x: %.2f, y: %.2f, z: %.2f, w: %.2f)",
+				ImGui::TextWrapped("\t\tPosition (render): (x: %.2f, y: %.2f, z: %.2f)",
+					renderT.position.x, renderT.position.y, renderT.position.z);
+				ImGui::TextWrapped("\t\t\tMagnitude: ||vec|| ~= %.2f units", glm::length(renderT.position));
+
+				ImGui::TextWrapped("\t\tRotation: (w: %.2f, x: %.2f, y: %.2f, z: %.2f)",
+					refFrame.globalTransform.rotation.w,
 					refFrame.globalTransform.rotation.x,
 					refFrame.globalTransform.rotation.y,
-					refFrame.globalTransform.rotation.z,
-					refFrame.globalTransform.rotation.w);
+					refFrame.globalTransform.rotation.z);
 
 			}
 
@@ -419,9 +421,27 @@ void UIPanelManager::renderTelemetryPanel() {
 			}
 			entityCount++;
 
-
 			ImGui::PopID();
 		}
+
+		ImGui::Separator();
+
+		ImGui::PushFont(g_fontContext.Roboto.bold);
+		ImGui::TextWrapped("Camera");
+		ImGui::PopFont();
+
+		WorldSpaceComponent::Transform cameraTransform = m_inputManager->getCamera()->getGlobalTransform();
+		glm::vec3 scaledCameraPosition = SpaceUtils::ToRenderSpace_Position(cameraTransform.position);
+
+		ImGui::TextWrapped("\tGlobal transform:");
+
+		ImGui::TextWrapped("\t\tPosition (simulation): (x: %.1e, y: %.1e, z: %.1e)",
+			cameraTransform.position.x, cameraTransform.position.y, cameraTransform.position.z);
+		ImGui::TextWrapped("\t\tPosition (render): (x: %.2f, y: %.2f, z: %.2f)",
+			scaledCameraPosition.x, scaledCameraPosition.y, scaledCameraPosition.z);
+
+		ImGui::TextWrapped("\t\tRotation: (w: %.2f, x: %.2f, y: %.2f, z: %.2f)",
+			cameraTransform.rotation.w, cameraTransform.rotation.x, cameraTransform.rotation.y, cameraTransform.rotation.z);
 
 		ImGui::End();
 	}
@@ -449,67 +469,83 @@ void UIPanelManager::renderSimulationControlPanel() {
 	if (ImGui::Begin(GUI::GetPanelName(flag), nullptr, m_windowFlags))	{
 		performBackgroundChecks(flag);
 
+		static float padding = 0.85f;
 
 		// Numerical integrator selector
 		// TODO: Implement integrator switching
-		static std::string currentIntegrator = "Fourth Order Runge-Kutta";
-		static float padding = 0.85f;
-		ImGui::Text("Numerical integrator");
-		ImGui::SameLine();
-		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x * padding);
-
-		ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-		ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
 		{
-			if (ImGui::BeginCombo("##NumericalIntegratorCombo", currentIntegrator.c_str())) {
-				// TODO
-				ImGui::EndCombo();
-			}
-		}
-		ImGui::PopItemFlag();
-		ImGui::PopStyleVar();
+			static std::string currentIntegrator = "Fourth Order Runge-Kutta";
+			ImGui::Text("Numerical Integrator");
+			ImGui::SameLine();
+			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x * padding);
 
-		if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
-			ImGui::BeginTooltip();
-			ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 0, 0, 255));
-			ImGui::TextUnformatted("Numerical integrator switching is not currently supported.");
-			ImGui::PopStyleColor();
-			ImGui::EndTooltip();
+			ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+			ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+			{
+				if (ImGui::BeginCombo("##NumericalIntegratorCombo", currentIntegrator.c_str())) {
+					// TODO
+					ImGui::EndCombo();
+				}
+			}
+			ImGui::PopItemFlag();
+			ImGui::PopStyleVar();
+
+			if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+				ImGui::BeginTooltip();
+				ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 0, 0, 255));
+				ImGui::TextUnformatted("Numerical integrator switching is not currently supported.");
+				ImGui::PopStyleColor();
+				ImGui::EndTooltip();
+			}
 		}
 
 
 		// Slider to change time scale
-		static const char* sliderLabel = "Time scale";
-		static const char* sliderID = "##TimeScaleSliderFloat";
-		static float timeScale = (Time::GetTimeScale() <= 0.0f) ? 1.0f : Time::GetTimeScale();
-		static const float MIN_VAL = 1.0f, MAX_VAL = 1000.0f;
-		static const float RECOMMENDED_SCALE_VAL_THRESHOLD = 100.0f;
-		if (m_simulationIsPaused) {
-			// Disable time-scale changing and grey out elements if the simulation is paused
-			ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-			ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
-		}
-
-		ImGui::Text(sliderLabel);
-		ImGui::SameLine();
-		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x * padding);
-		ImGui::SliderFloat(sliderID, &timeScale, MIN_VAL, MAX_VAL);
-		if (!m_simulationIsPaused) {
-			// Edge case: Prevents modifying the time scale when the simulation control panel is open while the simulation is still running
-			Time::SetTimeScale(timeScale);
-		}
-
-		if (m_simulationIsPaused) {
-			ImGui::PopItemFlag();
-			ImGui::PopStyleVar();
-		}
-
-		if (timeScale > RECOMMENDED_SCALE_VAL_THRESHOLD)
 		{
-			ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 255, 0, 255));
-			ImGui::TextWrapped(ICON_FA_TRIANGLE_EXCLAMATION " Warning: Higher time scales may cause inaccuracies in the simulation.");
-			ImGui::PopStyleColor(); // Don't forget to pop the style color!
+			static const char* sliderLabel = "Time Scale";
+			static const char* sliderID = "##TimeScaleSliderFloat";
+			static float timeScale = (Time::GetTimeScale() <= 0.0f) ? 1.0f : Time::GetTimeScale();
+			static const float MIN_VAL = 1.0f, MAX_VAL = 1000.0f;
+			static const float RECOMMENDED_SCALE_VAL_THRESHOLD = 100.0f;
+			if (m_simulationIsPaused) {
+				// Disable time-scale changing and grey out elements if the simulation is paused
+				ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+				ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+			}
+
+			ImGui::Text(sliderLabel);
+			ImGui::SameLine();
+			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x * padding);
+			ImGui::SliderFloat(sliderID, &timeScale, MIN_VAL, MAX_VAL);
+			if (!m_simulationIsPaused) {
+				// Edge case: Prevents modifying the time scale when the simulation control panel is open while the simulation is still running
+				Time::SetTimeScale(timeScale);
+			}
+
+			if (m_simulationIsPaused) {
+				ImGui::PopItemFlag();
+				ImGui::PopStyleVar();
+			}
+
+			if (timeScale > RECOMMENDED_SCALE_VAL_THRESHOLD) {
+				ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 255, 0, 255));
+				ImGui::TextWrapped(ICON_FA_TRIANGLE_EXCLAMATION " Warning: Higher time scales may cause inaccuracies in the simulation.");
+				ImGui::PopStyleColor(); // Don't forget to pop the style color!
+			}
 		}
+
+
+
+		// Camera settings
+		{
+			static Camera* camera = m_inputManager->getCamera();
+			static float speedMultiplier = 1.0f;
+			ImGui::Text("Camera Speed");
+			ImGui::SameLine();
+			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x * padding);
+			ImGui::SliderFloat("##CameraSpeedSliderFloat", &camera->movementSpeed, 1e1f, 1e10f, "%.1e");
+		}
+
 
 		ImGui::End();
 	}

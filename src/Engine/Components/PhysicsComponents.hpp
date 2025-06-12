@@ -6,7 +6,7 @@
 #include <glm_config.hpp>
 
 
-namespace Component {
+namespace PhysicsComponent {
 	/* Rigid-body */
 	struct RigidBody {
 		glm::dvec3 velocity;				// Velocity (m/s)

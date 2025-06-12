@@ -28,9 +28,12 @@ struct Entity {
 	EntityID id;
 	EntityVersion version;
 
+	std::string name;
+
 	inline bool operator==(const Entity& other) const {
 		return (id == other.id) &&
-				(version == other.version);
+				(version == other.version) &&
+				(name == other.name);
 	}
 };
 

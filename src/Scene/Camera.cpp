@@ -25,13 +25,14 @@ void Camera::update() {
 
 
 
-glm::mat4 Camera::getViewMatrix() const {
-	return glm::lookAt(m_position, m_position + m_front, m_localUp);
+glm::mat4 Camera::getRenderSpaceViewMatrix() const {
+	glm::vec3 scaledPosition = SpaceUtils::ToRenderSpace_Position(m_position);
+	return glm::lookAt(scaledPosition, scaledPosition + m_front, m_localUp);
 }
 
 
-Component::Transform Camera::getGlobalTransform() const {
-	Component::Transform transform{};
+WorldSpaceComponent::Transform Camera::getGlobalTransform() const {
+	WorldSpaceComponent::Transform transform{};
 	transform.position = m_position;
 	transform.rotation = m_orientation;
 	

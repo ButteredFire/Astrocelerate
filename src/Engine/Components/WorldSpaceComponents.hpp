@@ -10,11 +10,10 @@
 #include <Core/ECS.hpp>
 
 
-namespace Component {
+namespace WorldSpaceComponent {
 	struct Transform {
 		glm::dvec3 position;						// World or local position.
 		glm::dquat rotation = glm::dquat();			// Orientation as a quaternion (Default: Identity (1, 0, 0, 0)).
-		//double scale = 1.0;							// Scale (Default: 1.0).
 	};
 
 
@@ -29,6 +28,7 @@ namespace Component {
 		Transform localTransform;
 
 		// Global transform: The absolute transform of a frame with respect to the global simulation space.
+		// IMPORTANT: The global transform is STRICTLY used for rendering. For physics simulations, use the local transform.
 		Transform globalTransform;
 	};
 }

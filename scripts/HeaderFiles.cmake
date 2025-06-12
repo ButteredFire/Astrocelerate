@@ -38,6 +38,7 @@ set(HEADER_FILES
 	"src/Engine/Components/ModelComponents.hpp"
 	"src/Engine/Components/PhysicsComponents.hpp"
 	"src/Engine/Components/RenderComponents.hpp"
+	"src/Engine/Components/TelemetryComponents.hpp"
 	"src/Engine/Components/WorldSpaceComponents.hpp"
 	"src/Rendering/Renderer.hpp"
 	"src/Rendering/UIRenderer.hpp"

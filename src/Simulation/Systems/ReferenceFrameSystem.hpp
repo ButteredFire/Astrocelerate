@@ -12,6 +12,7 @@
 #include <Core/ServiceLocator.hpp>
 
 #include <Engine/Components/WorldSpaceComponents.hpp>
+#include <Engine/Components/RenderComponents.hpp>
 
 #include <Utils/SpaceUtils.hpp>
 
@@ -23,18 +24,20 @@ public:
 
 
 	/* Updates all reference frames. */
-	void updateAllFrames();
-
-
-	/* Computes the absolute transform of a reference frame. */
-	Component::Transform computeGlobalTransform(EntityID entityID, Component::ReferenceFrame& frame);
-
-
-	/* Sorts the reference frame tree. This is done only once, at the start of a simulation. */
-	void sortFrameTree();
+	void updateAllFrames(const glm::dvec3& renderOrigin);
 
 private:
 	std::shared_ptr<Registry> m_registry;
+	std::vector<std::pair<EntityID, WorldSpaceComponent::ReferenceFrame*>> m_referenceFrames;
 
-	std::vector<std::pair<EntityID, Component::ReferenceFrame*>> m_referenceFrames;
+	EntityID m_renderSpaceID{};
+
+	/* Computes the absolute transform of a reference frame.
+		@param globalTransform: The entity's global transform to be computed.
+		@param frame: The entity's reference frame.
+	*/
+	void computeGlobalTransform(WorldSpaceComponent::Transform& globalTransform, WorldSpaceComponent::ReferenceFrame& frame);
+
+	/* Sorts the reference frame tree. This is done only once, at the start of a simulation. */
+	void sortFrameTree();
 };

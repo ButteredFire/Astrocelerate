@@ -619,7 +619,8 @@ void OffscreenPipeline::initDepthStencilState() {
 
 	// Specifies the depth comparison operator that is performed to determine whether to keep or discard a fragment.
 	// VK_COMPARE_OP_LESS means "lower depth = closer". In other words, the depth value of new fragments should be LESS since they are closer to the camera, and thus they will overwrite the existing fragments.
-	m_depthStencilStateCreateInfo.depthCompareOp = VK_COMPARE_OP_LESS;
+	// However, since we are using inverted Z-depth mapping (i.e., reverse-Z), we must use VK_COMPARE_OP_GREATER.
+	m_depthStencilStateCreateInfo.depthCompareOp = VK_COMPARE_OP_GREATER;
 
 
 	// Configures depth bound testing (optional). It allows you to only keep fragments that fall within the specified depth range.

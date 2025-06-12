@@ -132,6 +132,7 @@ namespace Gamma {
 namespace PhysicsConsts {
 	constexpr double G = 6.67430e-11;			// Gravitational constant (m^3 kg^-1 s^-2)
 	constexpr double C = 299792458.0;           // Speed of light (m/s)
+	constexpr double AU = 149597870700;			// 1 Astronomical Unit (AU) OR 149,597,870,700 meters (average distance from the Earth to the Sun)
 }
 
 

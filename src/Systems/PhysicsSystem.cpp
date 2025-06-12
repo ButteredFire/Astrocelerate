@@ -22,7 +22,7 @@ void PhysicsSystem::update(const double dt) {
 void PhysicsSystem::updateRigidBodies(const double dt, const double currentSystemTime) {
 	using namespace PhysicsConsts;
 
-	auto view = m_registry->getView<Component::RigidBody, Component::ReferenceFrame, Component::OrbitingBody>();
+	auto view = m_registry->getView<PhysicsComponent::RigidBody, WorldSpaceComponent::ReferenceFrame, PhysicsComponent::OrbitingBody>();
 
 	for (auto [entityID, rigidBody, refFrame, orbitingBody] : view) {
 		Physics::State state{};

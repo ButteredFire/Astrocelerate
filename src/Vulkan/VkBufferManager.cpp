@@ -56,64 +56,67 @@ void VkBufferManager::init() {
 
 
 	// Global reference frame
-	Entity renderSpace = m_registry->createEntity();
+	m_renderSpace = m_registry->createEntity("Scene");
 
-	Component::ReferenceFrame globalRefFrame{};
+	WorldSpaceComponent::ReferenceFrame globalRefFrame{};
 	globalRefFrame.parentID = std::nullopt;
 	globalRefFrame.scale = 1.0;
 	globalRefFrame.localTransform.position = glm::dvec3(0.0);
 	globalRefFrame.localTransform.rotation = glm::dquat(1.0, 0.0, 0.0, 0.0);
 
-	m_registry->addComponent(renderSpace.id, globalRefFrame);
+	m_registry->addComponent(m_renderSpace.id, globalRefFrame);
 
 
 	// Define rigid bodies
-	Entity star = m_registry->createEntity();
-	Entity planet = m_registry->createEntity();
-	Entity satellite = m_registry->createEntity();
+	Entity star = m_registry->createEntity("Sun");
+	Entity planet = m_registry->createEntity("Earth");
+	Entity satellite = m_registry->createEntity("Satellite");
 
 	double sunRadius = 6.9634e+8;
 	double earthRadius = 6.378e+6;
 
-		// Star components
-	Component::RigidBody starRB{};
+		// Sun configuration
+	PhysicsComponent::RigidBody starRB{};
 	starRB.velocity = glm::dvec3(0.0);
 	starRB.acceleration = glm::dvec3(0.0);
 	starRB.mass = (1.989e+30);
 
-	Component::ReferenceFrame starRefFrame{};
-	starRefFrame.parentID = renderSpace.id;
+	WorldSpaceComponent::ReferenceFrame starRefFrame{};
+	starRefFrame.parentID = m_renderSpace.id;
 	starRefFrame.scale = sunRadius;
 	starRefFrame.localTransform.position = glm::dvec3(0.0);
 	starRefFrame.localTransform.rotation = glm::dquat(1, 0, 0, 0);
 	
-	Component::MeshRenderable starRenderable{};
+	RenderComponent::MeshRenderable starRenderable{};
+	starRenderable.visualScale = 1.0;
 	starRenderable.uboIndex = 0;
 	starRenderable.meshOffset = meshOffsets[0];
 
 	m_registry->addComponent(star.id, starRB);
 	m_registry->addComponent(star.id, starRefFrame);
 	m_registry->addComponent(star.id, starRenderable);
+	m_registry->addComponent(star.id, TelemetryComponent::RenderTransform{});
 
 
-		// Planet components
-	Component::ReferenceFrame planetRefFrame{};
+		// Earth configuration
+	WorldSpaceComponent::ReferenceFrame planetRefFrame{};
 	planetRefFrame.parentID = star.id;
 	planetRefFrame.scale = earthRadius;
-	planetRefFrame.localTransform.position = glm::dvec3(0.0, 1.5e+11, 0.0);
+	planetRefFrame.localTransform.position = glm::dvec3(0.0, PhysicsConsts::AU, 0.0);
 	planetRefFrame.localTransform.rotation = glm::dquat(1, 0, 0, 0);
 
 	double sunOrbitalSpeed = sqrt(PhysicsConsts::G * starRB.mass / glm::length(planetRefFrame.localTransform.position));
 
-	Component::RigidBody planetRB{};
+	PhysicsComponent::RigidBody planetRB{};
 	planetRB.velocity = glm::dvec3(-sunOrbitalSpeed, 0.0, 0.0);
 	planetRB.acceleration = glm::dvec3(0.0);
 	planetRB.mass = (5.972e+24);
 
-	Component::OrbitingBody planetOB{};
+	PhysicsComponent::OrbitingBody planetOB{};
 	planetOB.centralMass = starRB.mass;
 
-	Component::MeshRenderable planetRenderable{};
+	RenderComponent::MeshRenderable planetRenderable{};
+	planetRenderable.visualScale = 100.0;
 	planetRenderable.uboIndex = 1;
 	planetRenderable.meshOffset = meshOffsets[1];
 
@@ -122,28 +125,29 @@ void VkBufferManager::init() {
 	m_registry->addComponent(planet.id, planetRefFrame);
 	m_registry->addComponent(planet.id, planetOB);
 	m_registry->addComponent(planet.id, planetRenderable);
+	m_registry->addComponent(planet.id, TelemetryComponent::RenderTransform{});
 
 
 
-		// Satellite components
-
-	Component::ReferenceFrame satelliteRefFrame{};
+		// Satellite configuration
+	WorldSpaceComponent::ReferenceFrame satelliteRefFrame{};
 	satelliteRefFrame.parentID = planet.id;
-	satelliteRefFrame.scale = 100000;
-	satelliteRefFrame.localTransform.position = glm::dvec3(0.0, (earthRadius + 2e6), 0.0);
+	satelliteRefFrame.scale = 20;
+	satelliteRefFrame.localTransform.position = glm::dvec3((earthRadius + 2e6), 0.0, 0.0);
 	satelliteRefFrame.localTransform.rotation = glm::dquat(1, 0, 0, 0);
 
 	double earthOrbitalSpeed = sqrt(PhysicsConsts::G * planetRB.mass / glm::length(satelliteRefFrame.localTransform.position));
 
-	Component::RigidBody satelliteRB{};
+	PhysicsComponent::RigidBody satelliteRB{};
 	satelliteRB.velocity = glm::dvec3(0.0, 0.0, earthOrbitalSpeed);
 	satelliteRB.acceleration = glm::dvec3(0.0);
 	satelliteRB.mass = 20;
 
-	Component::OrbitingBody satelliteOB{};
+	PhysicsComponent::OrbitingBody satelliteOB{};
 	satelliteOB.centralMass = planetRB.mass;
 
-	Component::MeshRenderable satelliteRenderable{};
+	RenderComponent::MeshRenderable satelliteRenderable{};
+	satelliteRenderable.visualScale = 15.0;
 	satelliteRenderable.uboIndex = 2;
 	satelliteRenderable.meshOffset = meshOffsets[2];
 
@@ -152,8 +156,10 @@ void VkBufferManager::init() {
 	m_registry->addComponent(satellite.id, satelliteRefFrame);
 	m_registry->addComponent(satellite.id, satelliteOB);
 	m_registry->addComponent(satellite.id, satelliteRenderable);
+	m_registry->addComponent(satellite.id, TelemetryComponent::RenderTransform{});
 
-	m_camera->movementSpeed = 50;
+
+	m_camera->movementSpeed = 5e8;
 
 	m_alignedObjectUBOSize = SystemUtils::Align(sizeof(Buffer::ObjectUBO), g_vkContext.Device.deviceProperties.limits.minUniformBufferOffsetAlignment);
 	createUniformBuffers();
@@ -277,24 +283,17 @@ void VkBufferManager::updateGlobalUBO(uint32_t currentImage) {
 
 
 	// View
-		// glm::lookAt(eyePosition, centerPosition, upAxis);
-	//glm::vec3 eyePosition = SpaceUtils::ToRenderSpace(glm::vec3(0.0f, 2.0f, 2.0f) * 8e6f);
-	//glm::vec3 centerPosition = glm::vec3(0.0f, 0.0f, 0.0f);
-	ubo.view = m_camera->getViewMatrix();
-	//ubo.view = glm::lookAt(eyePosition, centerPosition, SimulationConsts::UP_AXIS);
-
+	ubo.view = m_camera->getRenderSpaceViewMatrix();
 
 	// Perspective
-		// glm::perspective(fieldOfView, aspectRatio, nearClipPlane, farClipPlane);
-
 	const float fieldOfView = glm::radians(m_camera->zoom);
 	float aspectRatio = static_cast<float>(g_vkContext.SwapChain.extent.width) / static_cast<float>(g_vkContext.SwapChain.extent.height);
 	float nearClipPlane = 0.01f;
 	float farClipPlane = 1e8f;
 
-	ubo.projection = glm::perspective(fieldOfView, aspectRatio, nearClipPlane, farClipPlane);
+	//ubo.projection = glm::perspective(fieldOfView, aspectRatio, nearClipPlane, farClipPlane);
 
-
+	ubo.projection = glm::perspectiveRH_ZO(fieldOfView, aspectRatio, farClipPlane, nearClipPlane);
 	/*
 		GLM was originally designed for OpenGL, and because of that, the Y-coordinate of the clip coordinates is flipped.
 		If this behavior is left as is, then images will be flipped upside down.
@@ -308,25 +307,40 @@ void VkBufferManager::updateGlobalUBO(uint32_t currentImage) {
 
 
 void VkBufferManager::updateObjectUBOs(uint32_t currentImage, const glm::dvec3& renderOrigin) {
-	auto view = m_registry->getView<Component::RigidBody, Component::MeshRenderable, Component::ReferenceFrame>();
+	static std::unordered_map<EntityID, glm::mat4> modelMatrices;
 
-	for (const auto& [entity, rigidBody, meshRenderable, refFrame] : view) {
+	auto view = m_registry->getView<PhysicsComponent::RigidBody, RenderComponent::MeshRenderable, WorldSpaceComponent::ReferenceFrame, TelemetryComponent::RenderTransform>();
+
+	for (auto&& [entity, rigidBody, meshRenderable, refFrame, renderT] : view) {
 		Buffer::ObjectUBO ubo{};
 
-		// Model matrix (Scale -> Rotate -> Translate)
-			// glm::scale(transformation, scale);
-			// glm::rotate(transformation, rotationAngle, rotationAxis);
-			// glm::translate(transformation, translation);
 		const glm::mat4 identityMat = glm::mat4(1.0f);
+		glm::dvec3 scaledRenderOrigin = SpaceUtils::ToRenderSpace_Position(renderOrigin);
 
-		//glm::mat4 rotationMatrix = glm::toMat4(refFrame.globalTransform.rotation);
+		glm::dvec3 renderPosition;
 
-		glm::dvec3 relativePosition = SpaceUtils::ToRenderSpace(refFrame.globalTransform.position - renderOrigin);
+		/* Position in render space
+			If entity has a parent (meaning that its position is influenced by its parent's visual scale):
+			- Offset entity's position relative to its parent by its parent's visual scale. This becomes the entity's new local position.
+			- Add the entity's new local position to its parent's global position.
 
-		// Ensure that the mesh with the global scale gets rendered
-		double renderScale = SpaceUtils::GetRenderableScale(SpaceUtils::ToRenderSpace(refFrame.scale));
-		
-		glm::vec3 globalScale(static_cast<float>(renderScale));
+			If not: Directly use the entity's global position.
+		*/
+		if (refFrame.parentID.value() != m_renderSpace.id) {
+			const WorldSpaceComponent::ReferenceFrame& parentRefFrame = m_registry->getComponent<WorldSpaceComponent::ReferenceFrame>(refFrame.parentID.value());
+			const RenderComponent::MeshRenderable& parentMesh = m_registry->getComponent<RenderComponent::MeshRenderable>(refFrame.parentID.value());
+
+			glm::dvec3 scaledOffsetFromParent = refFrame.localTransform.position * parentMesh.visualScale;
+			glm::dvec3 scaledGlobalPosition = parentRefFrame.globalTransform.position + scaledOffsetFromParent;
+			renderPosition = SpaceUtils::ToRenderSpace_Position(scaledGlobalPosition - scaledRenderOrigin);
+		}
+		else
+			renderPosition = SpaceUtils::ToRenderSpace_Position(refFrame.globalTransform.position - scaledRenderOrigin);
+
+
+		// Scale in render space
+		double renderScale = SpaceUtils::GetRenderableScale(SpaceUtils::ToRenderSpace_Scale(refFrame.scale)) * meshRenderable.visualScale;
+
 
 		/* NOTE:
 			Model matrices are constructed according to the Scale -> Rotate -> Translate (S-R-T) order.
@@ -336,10 +350,10 @@ void VkBufferManager::updateObjectUBOs(uint32_t currentImage, const glm::dvec3& 
 			The reason why the construction looks backwards is because matrix multiplication is right-to-left for column vectors (the default in GLM). So, when we construct M as M = T * R * S * v_local, the operations are applied as:
 					M = T * (R * (S * v_local)), hence S-R-T order.
 		*/
-		 glm::mat4 modelMatrix =
-			glm::translate(identityMat, glm::vec3(relativePosition))
+		glm::mat4 modelMatrix =
+			glm::translate(identityMat, glm::vec3(renderPosition))
 			* glm::mat4(glm::toMat4(refFrame.globalTransform.rotation))
-			* glm::scale(identityMat, globalScale);
+			* glm::scale(identityMat, glm::vec3(static_cast<float>(renderScale)));
 
 		/* Alternatively, the model matrix can be updated as follows:
 			modelMatrix = glm::translate(modelMatrix, glm::vec3(transform.position));
@@ -347,8 +361,15 @@ void VkBufferManager::updateObjectUBOs(uint32_t currentImage, const glm::dvec3& 
 			modelMatrix = glm::scale(modelMatrix, glm::vec3(transform.scale));
 		*/
 
-
 		ubo.model = modelMatrix;
+		//ubo.model = meshRenderable.modelMatrix;
+
+		// Write to telemetry dashboard
+		renderT.position = renderPosition;
+		renderT.rotation = refFrame.globalTransform.rotation;
+		renderT.scale = renderScale;
+		m_registry->updateComponent(entity, renderT);
+
 
 		// Writing to memory
 		void* uboDst = getObjectUBO(currentImage, meshRenderable.uboIndex);

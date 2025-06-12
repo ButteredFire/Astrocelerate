@@ -25,6 +25,7 @@
 
 #include <Engine/Components/PhysicsComponents.hpp>
 #include <Engine/Components/WorldSpaceComponents.hpp>
+#include <Engine/Components/TelemetryComponents.hpp>
 
 #include <Utils/ColorUtils.hpp>
 #include <Utils/SpaceUtils.hpp>

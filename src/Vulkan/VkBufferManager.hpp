@@ -34,6 +34,7 @@
 #include <Engine/Components/ModelComponents.hpp>
 #include <Engine/Components/PhysicsComponents.hpp>
 #include <Engine/Components/WorldSpaceComponents.hpp>
+#include <Engine/Components/TelemetryComponents.hpp>
 
 #include <Utils/SystemUtils.hpp>
 #include <Utils/FilePathUtils.hpp>
@@ -182,6 +183,9 @@ private:
 
     std::vector<Geometry::Vertex> m_vertices = {};
     std::vector<uint32_t> m_vertIndices = {};
+
+
+    Entity m_renderSpace{};
 
 
     void bindEvents();

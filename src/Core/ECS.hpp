@@ -22,7 +22,7 @@ public:
 	/* Creates a new entity.
 		@return The newly created entity.
 	*/
-	inline Entity createEntity() {
+	inline Entity createEntity(const std::string& name) {
 		if (m_availableIDs.size() == 0) {
 			throw Log::RuntimeException(__FUNCTION__, __LINE__, "Cannot create new entity: Entity count has reached the limit of " + std::to_string(MAX_ENTITIES) + " entities!");
 		}
@@ -32,11 +32,14 @@ public:
 
 		Entity newEntity{};
 		newEntity.id = newID;
+		newEntity.name = name;
 		//newEntity.version = m_versions[newID];
 
 		m_activeEntityIDs.push_back(newEntity.id);
 		m_componentMasks.push_back(ComponentMask{});
-		m_entityToIndexMap[newEntity.id] = (m_activeEntityIDs.size() - 1);
+
+		m_entityIDToIndexMap[newEntity.id] = (m_activeEntityIDs.size() - 1);
+		m_entityIDToEntityMap[newEntity.id] = newEntity;
 
 		return newEntity;
 	};
@@ -46,7 +49,7 @@ public:
 		@param entity: The entity to be destroyed.
 	*/
 	inline void destroyEntity(Entity entity) {
-		if (m_entityToIndexMap.find(entity.id) == m_entityToIndexMap.end()) {
+		if (m_entityIDToIndexMap.find(entity.id) == m_entityIDToIndexMap.end()) {
 			Log::Print(Log::T_WARNING, __FUNCTION__, "Cannot destroy entity #" + std::to_string(entity.id) + " as it does not exist.");
 			return;
 		}
@@ -57,18 +60,22 @@ public:
 		std::swap(m_activeEntityIDs[currentIndex], m_activeEntityIDs[lastIndex]);
 		std::swap(m_componentMasks[currentIndex], m_componentMasks[lastIndex]);
 
-		m_entityToIndexMap[m_activeEntityIDs[currentIndex]] = currentIndex;
+		m_entityIDToIndexMap[m_activeEntityIDs[currentIndex]] = currentIndex;
 
 		m_activeEntityIDs.pop_back();
 		m_componentMasks.pop_back();
-		m_entityToIndexMap.erase(entity.id);
+		m_entityIDToIndexMap.erase(entity.id);
 
 		m_componentMasks[entity.id].reset();
 		m_availableIDs.push(entity.id);
 	}
 
 
-	/* Gets active entity IDs. */
+	/* Gets all entities. */
+	inline std::unordered_map<EntityID, Entity>& getAllEntities() { return m_entityIDToEntityMap; }
+
+
+	/* Gets all active entity IDs. */
 	inline std::vector<EntityID>& getAllEntityIDs() { return m_activeEntityIDs; }
 
 
@@ -90,7 +97,9 @@ private:
 	std::queue<EntityID> m_availableIDs;
 	std::vector<EntityID> m_activeEntityIDs;
 	std::vector<ComponentMask> m_componentMasks;
-	std::unordered_map<EntityID, size_t> m_entityToIndexMap;
+
+	std::unordered_map<EntityID, size_t> m_entityIDToIndexMap;
+	std::unordered_map<EntityID, Entity> m_entityIDToEntityMap;
 };
 
 
@@ -349,8 +358,13 @@ public:
 	}
 	~Registry() = default;
 
-	inline Entity createEntity() {
-		return entityManager.createEntity();
+	inline Entity createEntity(const std::string& name = "Unknown entity") {
+		return entityManager.createEntity(name);
+	}
+
+
+	inline Entity getEntity(EntityID entityID) {
+		return entityManager.getAllEntities()[entityID];
 	}
 
 
@@ -391,7 +405,7 @@ public:
     template<typename Component>
     inline Component& getComponent(EntityID entityID) {
        if (!componentManager.entityHasComponent<Component>(entityID)) {
-           throw Log::RuntimeException(__FUNCTION__, __LINE__, "Entity #" + std::to_string(entityID) + " does not have the requested component!");
+           throw Log::RuntimeException(__FUNCTION__, __LINE__, "Entity #" + std::to_string(entityID) + " does not have the component " + enquote(typeid(Component).name()) + "!");
        }
 
        return componentManager.getComponent<Component>(entityID);

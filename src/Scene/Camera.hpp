@@ -13,6 +13,8 @@
 
 #include <Engine/Components/WorldSpaceComponents.hpp>
 
+#include <Utils/SpaceUtils.hpp>
+
 #include <Systems/Time.hpp>
 
 
@@ -25,15 +27,15 @@ public:
 
 	friend class InputManager;
 
-	/* Gets the camera's view matrix. */
-	glm::mat4 getViewMatrix() const;
+	/* Gets the camera's view matrix in render space. */
+	glm::mat4 getRenderSpaceViewMatrix() const;
 
 
-	/* Gets the camera's transform in global simualtion space. */
-	Component::Transform getGlobalTransform() const;
+	/* Gets the camera's transform in global simulation space. */
+	WorldSpaceComponent::Transform getGlobalTransform() const;
 
 
-	float movementSpeed = 10.0f;			// Movement speed in render space (m/s)
+	float movementSpeed = 1e6f;				// Movement speed in simulation space (m/s)
 	float mouseSensitivity = 0.1f;			// Mouse sensitivity
 	float zoom = 60.0f;						// Zoom (degrees)
 

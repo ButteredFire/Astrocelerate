@@ -94,12 +94,11 @@ void Renderer::drawFrame(glm::dvec3& renderOrigin) {
     LOG_ASSERT(cmdBufResetResult == VK_SUCCESS, "Failed to reset command buffer!");
 
 
-        // Updates the uniform buffer
-    Event::UpdateUBOs updateUBOsEvent{};
-    updateUBOsEvent.currentFrame = m_currentFrame;
-    updateUBOsEvent.renderOrigin = renderOrigin;
-
-    m_eventDispatcher->publish<Event::UpdateUBOs>(updateUBOsEvent, true);
+        // Updates the uniform buffers
+    m_eventDispatcher->publish(Event::UpdateUBOs{
+        .currentFrame = m_currentFrame,
+        .renderOrigin = renderOrigin
+    }, true);
 
         // Updates all ImGui textures (aka descriptor sets) after the current frame has been processed (i.e., its fence has been reset)
     m_imguiRenderer->updateTextures(m_currentFrame);

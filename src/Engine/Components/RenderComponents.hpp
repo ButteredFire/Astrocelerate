@@ -12,8 +12,10 @@
 #include <CoreStructs/Geometry.hpp>
 
 
-namespace Component {
+namespace RenderComponent {
     struct MeshRenderable {
+        double visualScale;                                 // The mesh size in render space.
+
         Geometry::MeshOffset meshOffset;                    // Mesh offset into the global vertex and index buffers.
         size_t uboIndex;                                    // Index into the mesh's uniform buffer object.
     };

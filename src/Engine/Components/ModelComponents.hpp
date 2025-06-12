@@ -14,7 +14,7 @@
 #include <CoreStructs/Geometry.hpp>
 
 
-namespace Component {
+namespace ModelComponent {
 	struct Mesh {
 		uint32_t meshID;											// The mesh's ID.
 

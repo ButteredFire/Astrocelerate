@@ -69,8 +69,8 @@ private:
 	Entity m_vertexRenderable{};
 	Entity m_guiRenderable{};
 
-	Component::MeshRenderable m_vertexRenderComponent{};
-	Component::GUIRenderable m_guiRenderComponent{};
+	RenderComponent::MeshRenderable m_vertexRenderComponent{};
+	RenderComponent::GUIRenderable m_guiRenderComponent{};
 
 	/* Creates renderable entities. */
 	void initializeRenderables();

@@ -27,20 +27,23 @@ Engine::~Engine() {
 
 void Engine::initComponents() {
     /* ModelComponents.hpp */
-    m_registry->initComponentArray<Component::Mesh>();
-    m_registry->initComponentArray<Component::Material>();
+    m_registry->initComponentArray<ModelComponent::Mesh>();
+    m_registry->initComponentArray<ModelComponent::Material>();
 
     /* RenderComponents.hpp */
-    m_registry->initComponentArray<Component::MeshRenderable>();
-    m_registry->initComponentArray<Component::GUIRenderable>();
+    m_registry->initComponentArray<RenderComponent::MeshRenderable>();
+    m_registry->initComponentArray<RenderComponent::GUIRenderable>();
 
     /* PhysicsComponents.hpp */
-    m_registry->initComponentArray<Component::RigidBody>();
-    m_registry->initComponentArray<Component::OrbitingBody>();
+    m_registry->initComponentArray<PhysicsComponent::RigidBody>();
+    m_registry->initComponentArray<PhysicsComponent::OrbitingBody>();
 
     /* WorldSpaceComponents.hpp */
-    m_registry->initComponentArray<Component::Transform>();
-    m_registry->initComponentArray<Component::ReferenceFrame>();
+    m_registry->initComponentArray<WorldSpaceComponent::Transform>();
+    m_registry->initComponentArray<WorldSpaceComponent::ReferenceFrame>();
+
+    /* TelemetryComponents.hpp */
+    m_registry->initComponentArray<TelemetryComponent::RenderTransform>();
 }
 
 
@@ -65,6 +68,8 @@ void Engine::update() {
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
 
+        glm::dvec3 floatingOrigin = m_inputManager->getCamera()->getGlobalTransform().position;
+
         timeScale = Time::GetTimeScale();
 
         Time::UpdateDeltaTime();
@@ -76,9 +81,8 @@ void Engine::update() {
         while (accumulator >= SimulationConsts::TIME_STEP) {
             const double scaledDeltaTime = SimulationConsts::TIME_STEP * timeScale;
 
-            m_refFrameSystem->updateAllFrames();
             m_physicsSystem->update(scaledDeltaTime);
-            m_refFrameSystem->updateAllFrames();
+            m_refFrameSystem->updateAllFrames(floatingOrigin);
 
             accumulator -= scaledDeltaTime;
         }
@@ -90,9 +94,7 @@ void Engine::update() {
         
 
         // Update rendering
-        glm::dvec3 anchor = m_inputManager->getCamera()->getGlobalTransform().position;
-
-        m_renderer->update(anchor);
+        m_renderer->update(floatingOrigin);
     }
 
     // All of the operations in Renderer::drawFrame are asynchronous. That means that when we exit the loop in mainLoop, drawing and presentation operations may still be going on. Cleaning up resources while that is happening is a bad idea.

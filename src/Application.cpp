@@ -61,11 +61,11 @@ int main() {
 
 
         // Camera
-        glm::dvec3 cameraPosition = glm::vec3(20e6f, 1.5005e+11f, 0.0f);
+        glm::dvec3 cameraPosition = glm::vec3(8e8, (PhysicsConsts::AU + 10e8), 1e7);
         std::shared_ptr<Camera> camera = std::make_shared<Camera>(
             windowPtr,
-            SpaceUtils::ToRenderSpace(cameraPosition),
-            glm::quat()
+            cameraPosition,
+            glm::quat(1, 0.01, 0, -0.1)
         );
         ServiceLocator::RegisterService(camera);
 

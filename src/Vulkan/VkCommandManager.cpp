@@ -63,7 +63,7 @@ void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, 
 	clearValue.depthStencil = VkClearDepthStencilValue(); // Null for now (if depth stencil is implemented, you must also specify the color attachment load and store operations before specifying the clear value here)
 
 	VkClearValue depthStencilClearValue{};
-	depthStencilClearValue.depthStencil.depth = 1.0f;
+	depthStencilClearValue.depthStencil.depth = 0.0f;
 	depthStencilClearValue.depthStencil.stencil = 0;
 
 	VkClearValue clearValues[] = {
@@ -102,7 +102,7 @@ void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, 
 
 
 		// Processes renderables
-	m_eventDispatcher->publish<Event::UpdateRenderables>(Event::UpdateRenderables {
+	m_eventDispatcher->publish(Event::UpdateRenderables {
 		.commandBuffer = cmdBuffer,
 		.descriptorSet = g_vkContext.OffscreenPipeline.descriptorSets[currentFrame]
 	}, true);
@@ -169,7 +169,7 @@ void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, 
 
 	vkCmdBeginRenderPass(cmdBuffer, &presentRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-	m_eventDispatcher->publish<Event::UpdateGUI>(Event::UpdateGUI {
+	m_eventDispatcher->publish(Event::UpdateGUI {
 		.commandBuffer = cmdBuffer,
 		.currentFrame = currentFrame
 	}, true);

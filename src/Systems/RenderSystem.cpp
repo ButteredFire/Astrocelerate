@@ -39,7 +39,7 @@ void RenderSystem::bindEvents() {
 
 
 			// Mesh rendering
-			auto view = m_registry->getView<Component::MeshRenderable>();
+			auto view = m_registry->getView<RenderComponent::MeshRenderable>();
 
 			for (const auto& [entity, meshRenderable] : view) {
 				this->processMeshRenderable(event.commandBuffer, meshRenderable, event.descriptorSet);
@@ -50,7 +50,7 @@ void RenderSystem::bindEvents() {
 
 	m_eventDispatcher->subscribe<Event::UpdateGUI>(
 		[this](const Event::UpdateGUI& event) {
-			auto view = m_registry->getView<Component::GUIRenderable>();
+			auto view = m_registry->getView<RenderComponent::GUIRenderable>();
 			for (const auto& [entity, guiRenderable] : view) {
 				this->processGUIRenderable(event.commandBuffer, guiRenderable, event.currentFrame);
 			}
@@ -59,7 +59,7 @@ void RenderSystem::bindEvents() {
 }
 
 
-void RenderSystem::processMeshRenderable(const VkCommandBuffer& cmdBuffer, const Component::MeshRenderable& renderable, const VkDescriptorSet& descriptorSet) {
+void RenderSystem::processMeshRenderable(const VkCommandBuffer& cmdBuffer, const RenderComponent::MeshRenderable& renderable, const VkDescriptorSet& descriptorSet) {
 	uint32_t dynamicOffset = static_cast<uint32_t>(renderable.uboIndex * m_dynamicAlignment);
 
 	// Draw call
@@ -72,7 +72,7 @@ void RenderSystem::processMeshRenderable(const VkCommandBuffer& cmdBuffer, const
 }
 
 
-void RenderSystem::processGUIRenderable(const VkCommandBuffer& cmdBuffer, const Component::GUIRenderable& renderable, uint32_t currentFrame) {
+void RenderSystem::processGUIRenderable(const VkCommandBuffer& cmdBuffer, const RenderComponent::GUIRenderable& renderable, uint32_t currentFrame) {
 	m_imguiRenderer->renderFrames(currentFrame);
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmdBuffer);
 }

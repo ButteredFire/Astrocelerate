@@ -57,8 +57,8 @@ private:
 
     /* Maps components to subpasses via their hash codes, and vice versa. */
     inline void createComponentSubpassMappings() {
-        size_t meshRenderable = typeid(Component::MeshRenderable).hash_code();
-        size_t guiRenderable = typeid(Component::GUIRenderable).hash_code();
+        size_t meshRenderable = typeid(RenderComponent::MeshRenderable).hash_code();
+        size_t guiRenderable = typeid(RenderComponent::GUIRenderable).hash_code();
 
         m_subpassToComp[SubpassConsts::T_MAIN] = { meshRenderable };
 
