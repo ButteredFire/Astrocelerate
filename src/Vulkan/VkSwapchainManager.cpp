@@ -114,7 +114,7 @@ void VkSwapchainManager::createSwapChain() {
     // use other bits like VK_IMAGE_USAGE_TRANSFER_DST_BIT.
     swapChainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-    QueueFamilyIndices families = VkDeviceManager::getQueueFamilies(g_vkContext.Device.physicalDevice, g_vkContext.vkSurface);
+    QueueFamilyIndices families = g_vkContext.Device.queueFamilies;
     std::vector<uint32_t> familyIndices = families.getAvailableIndices();
 
     // If the graphics family supports presentation (i.e., the presentation family is not separate),

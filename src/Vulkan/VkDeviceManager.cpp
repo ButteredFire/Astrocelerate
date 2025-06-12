@@ -80,11 +80,15 @@ void VkDeviceManager::createLogicalDevice() {
     QueueFamilyIndices queueFamilies = getQueueFamilies(m_GPUPhysicalDevice, g_vkContext.vkSurface);
 
     // Verifies that all queue families exist before proceeding with device creation
-    std::vector<QueueFamilyIndices::QueueFamily*> allFamilies = queueFamilies.getAllQueueFamilies();
-    for (const auto &family : allFamilies)
+    std::vector<QueueFamilyIndices::QueueFamily*> allFamilies;
+
+    for (const auto& family : queueFamilies.getAllQueueFamilies()) {
         if (!queueFamilies.familyExists(*family)) {
-            throw Log::RuntimeException(__FUNCTION__, __LINE__, "Unable to create logical device: " + (family->deviceName) + " is non-existent!");
+            Log::Print(Log::T_WARNING, __FUNCTION__, (family->deviceName) + " does not exist!");
         }
+        else
+            allFamilies.push_back(family);
+    }
 
     // Queues must have a priority in [0.0; 1.0], which influences the scheduling of command buffer execution.
     float queuePriority = 1.0f; 

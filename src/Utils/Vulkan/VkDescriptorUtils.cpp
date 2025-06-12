@@ -13,7 +13,7 @@ void VkDescriptorUtils::CreateDescriptorPool(VkDescriptorPool& descriptorPool, s
 	// TODO: See why the hell `maxSets` is the number of frames in flight
 	// Specifies the maximum number of descriptor sets that can be allocated
 	//descPoolCreateInfo.maxSets = maxDescriptorSetCount;
-	descPoolCreateInfo.maxSets = 100;
+	descPoolCreateInfo.maxSets = 500;
 
 	VkResult result = vkCreateDescriptorPool(g_vkContext.Device.logicalDevice, &descPoolCreateInfo, nullptr, &descriptorPool);
 

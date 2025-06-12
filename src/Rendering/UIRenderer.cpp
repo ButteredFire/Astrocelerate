@@ -73,10 +73,14 @@ void UIRenderer::initImGui(UIRenderer::Appearance appearance) {
 
     // Descriptor pool
     std::vector<VkDescriptorPoolSize> imgui_PoolSizes = {
-        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE }
+        // Sampler to draw the GUI
+        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE },
+        
+        // Samplers to draw offscreen resources (for rendering onto the viewport)
+        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, static_cast<uint32_t>(g_vkContext.OffscreenResources.images.size()) }
     };
     VkDescriptorPoolCreateFlags imgui_DescPoolCreateFlags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
-    VkDescriptorUtils::CreateDescriptorPool( m_descriptorPool, imgui_PoolSizes, imgui_DescPoolCreateFlags);
+    VkDescriptorUtils::CreateDescriptorPool(m_descriptorPool, imgui_PoolSizes, imgui_DescPoolCreateFlags);
     vkInitInfo.DescriptorPool = m_descriptorPool;
 
 

@@ -179,16 +179,21 @@ uint32_t VkBufferManager::createBuffer(VkBuffer& buffer, VkDeviceSize bufferSize
 	bufCreateInfo.usage = usageFlags;
 
 		// Buffers can either be owned by a specific queue family or be shared between multiple queue families.
-	bufCreateInfo.sharingMode = VK_SHARING_MODE_CONCURRENT;
-
-		// If the sharing mode is CONCURRENT, we must specify queue families
 	QueueFamilyIndices familyIndices = g_vkContext.Device.queueFamilies;
-	uint32_t queueFamilyIndices[] = {
-		familyIndices.graphicsFamily.index.value(),
-		familyIndices.transferFamily.index.value()
+	std::vector<uint32_t> queueFamilyIndices = {
+		familyIndices.graphicsFamily.index.value()
 	};
-	bufCreateInfo.queueFamilyIndexCount = 2;
-	bufCreateInfo.pQueueFamilyIndices = queueFamilyIndices;
+
+	if (familyIndices.familyExists(familyIndices.transferFamily)) {
+		bufCreateInfo.sharingMode = VK_SHARING_MODE_CONCURRENT;
+		queueFamilyIndices.push_back(familyIndices.transferFamily.index.value());
+	}
+	else
+		bufCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+	bufCreateInfo.queueFamilyIndexCount = static_cast<uint32_t>(queueFamilyIndices.size());
+	bufCreateInfo.pQueueFamilyIndices = queueFamilyIndices.data();
+
 
 		// Configures sparse buffer memory (which is irrelevant right now, so we'll leave it at the default value of 0)
 	bufCreateInfo.flags = 0;
@@ -247,19 +252,21 @@ void VkBufferManager::createGlobalIndexBuffer(const std::vector<uint32_t>& index
 
 void VkBufferManager::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize deviceSize) {
 	// Uses the transfer queue by default, but if it does not exist, switch to the graphics queue
-	QueueFamilyIndices::QueueFamily queueFamily = g_vkContext.Device.queueFamilies.transferFamily;
-	if (queueFamily.deviceQueue == VK_NULL_HANDLE || !queueFamily.index.has_value()) {
+	QueueFamilyIndices queueFamilies = g_vkContext.Device.queueFamilies;
+	QueueFamilyIndices::QueueFamily selectedFamily = queueFamilies.transferFamily;
+
+	if (!queueFamilies.familyExists(selectedFamily)) {
 		Log::Print(Log::T_WARNING, __FUNCTION__, "Transfer queue family is not valid. Switching to graphics queue family...");
-		queueFamily = g_vkContext.Device.queueFamilies.graphicsFamily;
+		selectedFamily = queueFamilies.graphicsFamily;
 	}
 
 
 	// Begins recording a command buffer to send data to the GPU
 	SingleUseCommandBufferInfo cmdBufInfo{};
-	cmdBufInfo.commandPool = VkCommandManager::createCommandPool(g_vkContext.Device.logicalDevice, queueFamily.index.value(), VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
+	cmdBufInfo.commandPool = VkCommandManager::createCommandPool(g_vkContext.Device.logicalDevice, selectedFamily.index.value(), VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
 	cmdBufInfo.fence = VkSyncManager::createSingleUseFence();
 	cmdBufInfo.usingSingleUseFence = true;
-	cmdBufInfo.queue = queueFamily.deviceQueue;
+	cmdBufInfo.queue = selectedFamily.deviceQueue;
 
 	VkCommandBuffer commandBuffer = VkCommandManager::beginSingleUseCommandBuffer(&cmdBufInfo);
 

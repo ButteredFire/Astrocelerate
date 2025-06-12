@@ -17,14 +17,17 @@ VkCommandManager::~VkCommandManager() {};
 
 void VkCommandManager::init() {
 	QueueFamilyIndices familyIndices = g_vkContext.Device.queueFamilies;
-	m_graphicsCmdPool = createCommandPool(g_vkContext.Device.logicalDevice, familyIndices.graphicsFamily.index.value());
-	m_transferCmdPool = createCommandPool(g_vkContext.Device.logicalDevice, familyIndices.transferFamily.index.value());
 
+	m_graphicsCmdPool = createCommandPool(g_vkContext.Device.logicalDevice, familyIndices.graphicsFamily.index.value());
 	allocCommandBuffers(m_graphicsCmdPool, m_graphicsCmdBuffers);
 	g_vkContext.CommandObjects.graphicsCmdBuffers = m_graphicsCmdBuffers;
 
-	allocCommandBuffers(m_transferCmdPool, m_transferCmdBuffers);
-	g_vkContext.CommandObjects.transferCmdBuffers = m_transferCmdBuffers;
+	
+	if (familyIndices.familyExists(familyIndices.transferFamily)) {
+		m_transferCmdPool = createCommandPool(g_vkContext.Device.logicalDevice, familyIndices.transferFamily.index.value());
+		allocCommandBuffers(m_transferCmdPool, m_transferCmdBuffers);
+		g_vkContext.CommandObjects.transferCmdBuffers = m_transferCmdBuffers;
+	}
 }
 
 
