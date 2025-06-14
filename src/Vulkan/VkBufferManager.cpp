@@ -61,6 +61,8 @@ void VkBufferManager::init() {
 	WorldSpaceComponent::ReferenceFrame globalRefFrame{};
 	globalRefFrame.parentID = std::nullopt;
 	globalRefFrame.scale = 1.0;
+	globalRefFrame.visualScale = 1.0;
+	globalRefFrame.relativeScale = 1.0;
 	globalRefFrame.localTransform.position = glm::dvec3(0.0);
 	globalRefFrame.localTransform.rotation = glm::dquat(1.0, 0.0, 0.0, 0.0);
 
@@ -84,11 +86,12 @@ void VkBufferManager::init() {
 	WorldSpaceComponent::ReferenceFrame starRefFrame{};
 	starRefFrame.parentID = m_renderSpace.id;
 	starRefFrame.scale = sunRadius;
+	starRefFrame.visualScale = 1.0;
+	starRefFrame.visualScaleAffectsChildren = false;
 	starRefFrame.localTransform.position = glm::dvec3(0.0);
 	starRefFrame.localTransform.rotation = glm::dquat(1, 0, 0, 0);
 	
 	RenderComponent::MeshRenderable starRenderable{};
-	starRenderable.visualScale = 1.0;
 	starRenderable.uboIndex = 0;
 	starRenderable.meshOffset = meshOffsets[0];
 
@@ -102,6 +105,8 @@ void VkBufferManager::init() {
 	WorldSpaceComponent::ReferenceFrame planetRefFrame{};
 	planetRefFrame.parentID = star.id;
 	planetRefFrame.scale = earthRadius;
+	planetRefFrame.visualScale = 100.0;
+	planetRefFrame.relativeScale = earthRadius / sunRadius;
 	planetRefFrame.localTransform.position = glm::dvec3(0.0, PhysicsConsts::AU, 0.0);
 	planetRefFrame.localTransform.rotation = glm::dquat(1, 0, 0, 0);
 
@@ -116,7 +121,6 @@ void VkBufferManager::init() {
 	planetOB.centralMass = starRB.mass;
 
 	RenderComponent::MeshRenderable planetRenderable{};
-	planetRenderable.visualScale = 100.0;
 	planetRenderable.uboIndex = 1;
 	planetRenderable.meshOffset = meshOffsets[1];
 
@@ -133,13 +137,15 @@ void VkBufferManager::init() {
 	WorldSpaceComponent::ReferenceFrame satelliteRefFrame{};
 	satelliteRefFrame.parentID = planet.id;
 	satelliteRefFrame.scale = 20;
+	satelliteRefFrame.visualScale = 50.0;
+	satelliteRefFrame.relativeScale = satelliteRefFrame.scale / earthRadius;
 	satelliteRefFrame.localTransform.position = glm::dvec3((earthRadius + 2e6), 0.0, 0.0);
 	satelliteRefFrame.localTransform.rotation = glm::dquat(1, 0, 0, 0);
 
 	double earthOrbitalSpeed = sqrt(PhysicsConsts::G * planetRB.mass / glm::length(satelliteRefFrame.localTransform.position));
 
 	PhysicsComponent::RigidBody satelliteRB{};
-	satelliteRB.velocity = glm::dvec3(0.0, 0.0, earthOrbitalSpeed);
+	satelliteRB.velocity = glm::dvec3(0.0, earthOrbitalSpeed, 0.0);
 	satelliteRB.acceleration = glm::dvec3(0.0);
 	satelliteRB.mass = 20;
 
@@ -147,7 +153,6 @@ void VkBufferManager::init() {
 	satelliteOB.centralMass = planetRB.mass;
 
 	RenderComponent::MeshRenderable satelliteRenderable{};
-	satelliteRenderable.visualScale = 15.0;
 	satelliteRenderable.uboIndex = 2;
 	satelliteRenderable.meshOffset = meshOffsets[2];
 
@@ -157,9 +162,6 @@ void VkBufferManager::init() {
 	m_registry->addComponent(satellite.id, satelliteOB);
 	m_registry->addComponent(satellite.id, satelliteRenderable);
 	m_registry->addComponent(satellite.id, TelemetryComponent::RenderTransform{});
-
-
-	m_camera->movementSpeed = 5e8;
 
 	m_alignedObjectUBOSize = SystemUtils::Align(sizeof(Buffer::ObjectUBO), g_vkContext.Device.deviceProperties.limits.minUniformBufferOffsetAlignment);
 	createUniformBuffers();
@@ -335,9 +337,8 @@ void VkBufferManager::updateObjectUBOs(uint32_t currentImage, const glm::dvec3& 
 		*/
 		if (refFrame.parentID.value() != m_renderSpace.id) {
 			const WorldSpaceComponent::ReferenceFrame& parentRefFrame = m_registry->getComponent<WorldSpaceComponent::ReferenceFrame>(refFrame.parentID.value());
-			const RenderComponent::MeshRenderable& parentMesh = m_registry->getComponent<RenderComponent::MeshRenderable>(refFrame.parentID.value());
 
-			glm::dvec3 scaledOffsetFromParent = refFrame.localTransform.position * parentMesh.visualScale;
+			glm::dvec3 scaledOffsetFromParent = refFrame.localTransform.position * parentRefFrame.visualScale;
 			glm::dvec3 scaledGlobalPosition = parentRefFrame.globalTransform.position + scaledOffsetFromParent;
 			renderPosition = SpaceUtils::ToRenderSpace_Position(scaledGlobalPosition - scaledRenderOrigin);
 		}
@@ -346,7 +347,7 @@ void VkBufferManager::updateObjectUBOs(uint32_t currentImage, const glm::dvec3& 
 
 
 		// Scale in render space
-		double renderScale = SpaceUtils::GetRenderableScale(SpaceUtils::ToRenderSpace_Scale(refFrame.scale)) * meshRenderable.visualScale;
+		double renderScale = SpaceUtils::GetRenderableScale(SpaceUtils::ToRenderSpace_Scale(refFrame.scale)) * refFrame.visualScale;
 
 
 		/* NOTE:
@@ -369,7 +370,6 @@ void VkBufferManager::updateObjectUBOs(uint32_t currentImage, const glm::dvec3& 
 		*/
 
 		ubo.model = modelMatrix;
-		//ubo.model = meshRenderable.modelMatrix;
 
 		// Write to telemetry dashboard
 		renderT.position = renderPosition;
@@ -491,12 +491,6 @@ void VkBufferManager::createUniformBuffers() {
 			// Object UBO (per object per frame)
 		createBuffer(m_objectUBOs[i].buffer, objectBufSize, uniformBufUsageFlags, m_objectUBOs[i].allocation, uniformBufAllocInfo);
 		vmaMapMemory(g_vkContext.vmaAllocator, m_objectUBOs[i].allocation, &m_objectUBOMappedData[i]);
-		
-		/*
-		for (size_t j = 0; j < m_totalObjects; j++) {
-			size_t index = i * m_totalObjects + j;
-		}
-		*/
 
 
 		// Cleanup task
@@ -510,11 +504,6 @@ void VkBufferManager::createUniformBuffers() {
 		task.cleanupFunc = [this, i, globalUBOAlloc, objectUBOAlloc]() {
 			vmaUnmapMemory(g_vkContext.vmaAllocator, globalUBOAlloc);
 			vmaUnmapMemory(g_vkContext.vmaAllocator, objectUBOAlloc);
-			/*
-			for (size_t j = 0; j < m_totalObjects; j++) {
-				size_t index = i * m_totalObjects + j;
-			}
-			*/
 		};
 
 		m_garbageCollector->createCleanupTask(task);

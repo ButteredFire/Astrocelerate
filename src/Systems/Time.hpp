@@ -23,6 +23,6 @@ public:
 
 private:
 	inline static double m_deltaTime = 0;
-	inline static float m_timeScale = 1.0f;
+	inline static float m_timeScale = 0.0f;
 	inline static std::chrono::time_point<high_resolution_clock> m_previousTime = high_resolution_clock::now();
 };

@@ -79,7 +79,7 @@ void UIRenderer::initImGui(UIRenderer::Appearance appearance) {
         // Samplers to draw offscreen resources (for rendering onto the viewport)
         { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, static_cast<uint32_t>(g_vkContext.OffscreenResources.images.size()) }
     };
-    VkDescriptorPoolCreateFlags imgui_DescPoolCreateFlags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
+    VkDescriptorPoolCreateFlags imgui_DescPoolCreateFlags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
     VkDescriptorUtils::CreateDescriptorPool(m_descriptorPool, imgui_PoolSizes, imgui_DescPoolCreateFlags);
     vkInitInfo.DescriptorPool = m_descriptorPool;
 

@@ -430,8 +430,11 @@ void UIPanelManager::renderTelemetryPanel() {
 		ImGui::TextWrapped("Camera");
 		ImGui::PopFont();
 
-		WorldSpaceComponent::Transform cameraTransform = m_inputManager->getCamera()->getGlobalTransform();
+		static Camera* camera = m_inputManager->getCamera();
+		WorldSpaceComponent::Transform cameraTransform = camera->getGlobalTransform();
 		glm::vec3 scaledCameraPosition = SpaceUtils::ToRenderSpace_Position(cameraTransform.position);
+
+		ImGui::TextWrapped("\tSpeed: %.0e", camera->movementSpeed);
 
 		ImGui::TextWrapped("\tGlobal transform:");
 
@@ -516,7 +519,7 @@ void UIPanelManager::renderSimulationControlPanel() {
 			ImGui::Text(sliderLabel);
 			ImGui::SameLine();
 			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x * padding);
-			ImGui::SliderFloat(sliderID, &timeScale, MIN_VAL, MAX_VAL);
+			ImGui::SliderFloat(sliderID, &timeScale, MIN_VAL, MAX_VAL, "%.1fx", ImGuiSliderFlags_AlwaysClamp);
 			if (!m_simulationIsPaused) {
 				// Edge case: Prevents modifying the time scale when the simulation control panel is open while the simulation is still running
 				Time::SetTimeScale(timeScale);
@@ -539,11 +542,20 @@ void UIPanelManager::renderSimulationControlPanel() {
 		// Camera settings
 		{
 			static Camera* camera = m_inputManager->getCamera();
-			static float speedMultiplier = 1.0f;
-			ImGui::Text("Camera Speed");
+			static float speedMagnitude = 8.0f;
+
+			static bool initialCameraLoad = true;
+			if (initialCameraLoad) {
+				camera->movementSpeed = std::powf(10.0f, speedMagnitude);
+				initialCameraLoad = false;
+			}
+
+			ImGui::Text("Camera Speed Magnitude");
 			ImGui::SameLine();
 			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x * padding);
-			ImGui::SliderFloat("##CameraSpeedSliderFloat", &camera->movementSpeed, 1e1f, 1e10f, "%.1e");
+			if (ImGui::DragFloat("##CameraSpeedDragFloat", &speedMagnitude, 1.0f, 1.0f, 12.0f, "1e+%.0f", ImGuiSliderFlags_AlwaysClamp)) {
+				camera->movementSpeed = std::powf(10.0f, speedMagnitude);
+			}
 		}
 
 

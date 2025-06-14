@@ -8,7 +8,7 @@ ReferenceFrameSystem::ReferenceFrameSystem() {
 }
 
 
-void ReferenceFrameSystem::updateAllFrames(const glm::dvec3& renderOrigin) {
+void ReferenceFrameSystem::updateAllFrames() {
 	static bool treeSorted = false;
 	
 	if (!treeSorted) {
@@ -18,30 +18,33 @@ void ReferenceFrameSystem::updateAllFrames(const glm::dvec3& renderOrigin) {
 		treeSorted = true;
 	}
 
-	for (auto& [entity, frame] : m_referenceFrames) {
-		computeGlobalTransform(frame->globalTransform, *frame);
-		m_registry->updateComponent(entity, *frame);
-	}
+	computeGlobalTransforms();
 }
 
 
-void ReferenceFrameSystem::computeGlobalTransform(WorldSpaceComponent::Transform& globalTransform, WorldSpaceComponent::ReferenceFrame& frame) {
-	// If frame is the root frame, set global transform to local transform
-	if (!frame.parentID.has_value()) {
-		globalTransform.position = frame.localTransform.position;
-		globalTransform.rotation = frame.localTransform.rotation;
+void ReferenceFrameSystem::computeGlobalTransforms() {
+	for (auto& [entity, framePtr] : m_referenceFrames) {
+		WorldSpaceComponent::ReferenceFrame& frame = *framePtr;
 
-		return;
-	}
+		// Sets global transform to local transform if current frame is the root frame
+		if (!frame.parentID.has_value()) {
+			frame.globalTransform.position = frame.localTransform.position;
+			frame.globalTransform.rotation = frame.localTransform.rotation;
 
-	// Else, recursively compute the frame's global transform (assuming parent's global transform was already computed)
-	const WorldSpaceComponent::ReferenceFrame& parentFrame = m_registry->getComponent<WorldSpaceComponent::ReferenceFrame>(frame.parentID.value());
-	
+			continue;
+		}
+
+
+		const WorldSpaceComponent::ReferenceFrame& parentFrame = m_registry->getComponent<WorldSpaceComponent::ReferenceFrame>(frame.parentID.value());
+
 		// Order: Scale -> Rotate -> Translate
-	glm::dvec3 rotatedPosition = parentFrame.globalTransform.rotation * frame.localTransform.position;
+		glm::dvec3 rotatedPosition = parentFrame.globalTransform.rotation * frame.localTransform.position;
 
-	globalTransform.position = parentFrame.globalTransform.position + rotatedPosition;
-	globalTransform.rotation = glm::normalize(parentFrame.globalTransform.rotation * frame.localTransform.rotation);  // NOTE: Quaternion multiplication is not commutative;; It is good practice to use normalize() after quaternion multiplication to prevent drift
+		frame.globalTransform.position = parentFrame.globalTransform.position + rotatedPosition;
+		frame.globalTransform.rotation = glm::normalize(parentFrame.globalTransform.rotation * frame.localTransform.rotation);  // NOTE: Quaternion multiplication is not commutative;; It is good practice to use normalize() after quaternion multiplication to prevent drift
+
+		m_registry->updateComponent(entity, frame);
+	}
 }
 
 

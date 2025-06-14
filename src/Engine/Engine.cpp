@@ -65,10 +65,10 @@ void Engine::update() {
     double accumulator = 0.0;
     float timeScale = 0;
 
+    m_refFrameSystem->updateAllFrames();
+
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
-
-        glm::dvec3 floatingOrigin = m_inputManager->getCamera()->getGlobalTransform().position;
 
         timeScale = Time::GetTimeScale();
 
@@ -76,24 +76,26 @@ void Engine::update() {
         double deltaTime = Time::GetDeltaTime();
         accumulator += deltaTime * timeScale;
 
-        // Update physics
-            // TODO: Implement adaptive timestepping instead of a constant TIME_STEP
-        while (accumulator >= SimulationConsts::TIME_STEP) {
-            const double scaledDeltaTime = SimulationConsts::TIME_STEP * timeScale;
-
-            m_physicsSystem->update(scaledDeltaTime);
-            m_refFrameSystem->updateAllFrames(floatingOrigin);
-
-            accumulator -= scaledDeltaTime;
-        }
-
         // Process key input events
         m_eventDispatcher->publish(Event::UpdateInput{
             .deltaTime = deltaTime
         }, true);
         
 
+        // Update physics
+            // TODO: Implement adaptive timestepping instead of a constant TIME_STEP
+        while (accumulator >= SimulationConsts::TIME_STEP) {
+            const double scaledDeltaTime = SimulationConsts::TIME_STEP * timeScale;
+
+            m_physicsSystem->update(scaledDeltaTime);
+            m_refFrameSystem->updateAllFrames();
+
+            accumulator -= scaledDeltaTime;
+        }
+
+
         // Update rendering
+        glm::dvec3 floatingOrigin = m_inputManager->getCamera()->getGlobalTransform().position;
         m_renderer->update(floatingOrigin);
     }
 

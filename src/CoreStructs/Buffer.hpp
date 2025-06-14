@@ -24,6 +24,5 @@ namespace Buffer {
 	// Per-object uniform buffer object.
 	struct ObjectUBO {
 		glm::mat4 model;
-		//glm::mat4 normalMatrix; // TODO
 	};
 }

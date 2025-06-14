@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <glm_config.hpp>
 
 #include <Core/ECS.hpp>
@@ -13,6 +14,7 @@
 
 #include <Engine/Components/WorldSpaceComponents.hpp>
 #include <Engine/Components/RenderComponents.hpp>
+#include <Engine/Components/TelemetryComponents.hpp>
 
 #include <Utils/SpaceUtils.hpp>
 
@@ -24,7 +26,7 @@ public:
 
 
 	/* Updates all reference frames. */
-	void updateAllFrames(const glm::dvec3& renderOrigin);
+	void updateAllFrames();
 
 private:
 	std::shared_ptr<Registry> m_registry;
@@ -32,11 +34,8 @@ private:
 
 	EntityID m_renderSpaceID{};
 
-	/* Computes the absolute transform of a reference frame.
-		@param globalTransform: The entity's global transform to be computed.
-		@param frame: The entity's reference frame.
-	*/
-	void computeGlobalTransform(WorldSpaceComponent::Transform& globalTransform, WorldSpaceComponent::ReferenceFrame& frame);
+	/* Computes the absolute transforms of all reference frames. */
+	void computeGlobalTransforms();
 
 	/* Sorts the reference frame tree. This is done only once, at the start of a simulation. */
 	void sortFrameTree();
