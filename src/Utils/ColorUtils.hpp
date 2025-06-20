@@ -2,8 +2,8 @@
 */
 #pragma once
 
-#include <Core/Constants.h>
-#include <Core/LoggingManager.hpp>
+#include <Core/Data/Constants.h>
+#include <Core/Application/LoggingManager.hpp>
 
 
 namespace ColorUtils {

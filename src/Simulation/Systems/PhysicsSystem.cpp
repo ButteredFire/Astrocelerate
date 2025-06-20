@@ -22,7 +22,7 @@ void PhysicsSystem::update(const double dt) {
 void PhysicsSystem::updateRigidBodies(const double dt, const double currentSystemTime) {
 	using namespace PhysicsConsts;
 
-	auto view = m_registry->getView<PhysicsComponent::RigidBody, WorldSpaceComponent::ReferenceFrame, PhysicsComponent::OrbitingBody>();
+	auto view = m_registry->getView<PhysicsComponent::RigidBody, PhysicsComponent::ReferenceFrame, PhysicsComponent::OrbitingBody>();
 
 	for (auto [entityID, rigidBody, refFrame, orbitingBody] : view) {
 		Physics::State state{};
@@ -30,11 +30,11 @@ void PhysicsSystem::updateRigidBodies(const double dt, const double currentSyste
 		state.velocity = rigidBody.velocity;
 		
 
-		Physics::NewtonianTwoBodyODE ode{};
+		ODE::NewtonianTwoBody ode{};
 		ode.centralMass = orbitingBody.centralMass;
 
 
-		RK4Integrator<Physics::State, Physics::NewtonianTwoBodyODE>::Integrate(state, currentSystemTime, dt, ode);
+		RK4Integrator<Physics::State, ODE::NewtonianTwoBody>::Integrate(state, currentSystemTime, dt, ode);
 
 		refFrame.localTransform.position = state.position;
 		rigidBody.velocity = state.velocity;

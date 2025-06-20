@@ -3,13 +3,13 @@
 
 #pragma once
 
-#include <glfw_vulkan.hpp>
+#include <External/GLFWVulkan.hpp>
 
 #include <vector>
 
-#include <Core/Constants.h>
-#include <Core/GarbageCollector.hpp>
-#include <Core/ServiceLocator.hpp>
+#include <Core/Data/Constants.h>
+#include <Core/Application/GarbageCollector.hpp>
+#include <Core/Engine/ServiceLocator.hpp>
 
 #include <Rendering/Textures/TextureManager.hpp>
 #include <Rendering/Pipelines/PipelineBuilder.hpp>

@@ -3,10 +3,10 @@
 #pragma once
 
 // GLFW & Vulkan
-#include <glfw_vulkan.hpp>
+#include <External/GLFWVulkan.hpp>
 
 // GLM
-#include <glm_config.hpp>
+#include <External/GLM.hpp>
 
 #include <chrono>
 
@@ -21,69 +21,30 @@
 #include <Vulkan/VkCommandManager.hpp>
 #include <Vulkan/VkSyncManager.hpp>
 
-#include <Core/ECS.hpp>
-#include <Core/LoggingManager.hpp>
-#include <Core/ServiceLocator.hpp>
-#include <Core/EventDispatcher.hpp>
-#include <Core/GarbageCollector.hpp>
+#include <Core/Engine/ECS.hpp>
+#include <Core/Application/LoggingManager.hpp>
+#include <Core/Engine/ServiceLocator.hpp>
+#include <Core/Application/EventDispatcher.hpp>
+#include <Core/Application/GarbageCollector.hpp>
 
-#include <CoreStructs/Buffer.hpp>
-#include <CoreStructs/Geometry.hpp>
-#include <CoreStructs/Contexts/VulkanContext.hpp>
+#include <Core/Data/Buffer.hpp>
+#include <Core/Data/Geometry.hpp>
+#include <Core/Data/Contexts/VulkanContext.hpp>
 
 #include <Engine/Components/ModelComponents.hpp>
 #include <Engine/Components/PhysicsComponents.hpp>
-#include <Engine/Components/WorldSpaceComponents.hpp>
 #include <Engine/Components/TelemetryComponents.hpp>
 
 #include <Utils/SystemUtils.hpp>
 #include <Utils/FilePathUtils.hpp>
 #include <Utils/SpaceUtils.hpp>
 
-#include <Systems/Time.hpp>
+#include <Simulation/Systems/Time.hpp>
 
 #include <Rendering/Geometry/ModelParser.hpp>
 #include <Rendering/Geometry/GeometryLoader.hpp>
 
 #include <Scene/Camera.hpp>
-
-
-/* VERY IMPORTANT EXPLANATION BEHIND alignas(...) PER STRUCT MEMBER: "Alignment requirements"
-
-For example, if you have a struct like this:
-
-    struct ABC {
-        glm::vec2 foo;
-        glm::mat4 bar;
-        glm::mat4 foobar;
-    }
-
-... and you declare the struct in the vertex shader like this:
-
-    layout(binding = 0) uniform ABC {
-        vec2 foo;
-        mat4 bar;
-        mat4 foobar;
-    } abc;
-
-... the entire rendering pipeline fails, and nothing will be rendered on the screen. That is because we have not taken into account "alignment requirements." More information here: https://docs.vulkan.org/tutorial/latest/05_Uniform_buffers/01_Descriptor_pool_and_sets.html#_alignment_requirements
-
-[SOLUTION]
-Always be explicit about alignment:
-
-    struct ABC {
-        alignas(8) glm::vec2 foo;
-        alignas(16) glm::mat4 bar;
-        alignas(16) glm::mat4 foobar;
-    }
-
-*/
-// A structure specifying the properties of a uniform buffer object (UBO)
-struct UniformBufferObject {
-    alignas(16) glm::mat4 model;            // Object transformation matrix
-    alignas(16) glm::mat4 view;             // Camera transformation matrix
-    alignas(16) glm::mat4 projection;       // Depth and perspective transformation matrix
-};
 
 
 class VkBufferManager {

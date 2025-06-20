@@ -4,7 +4,7 @@
 #pragma once
 
 // GLFW & Vulkan
-#include <glfw_vulkan.hpp>
+#include <External/GLFWVulkan.hpp>
 #include <vk_mem_alloc.h>
 
 // STB
@@ -14,10 +14,10 @@
 #include <iostream>
 
 // Other
-#include <Core/Constants.h>
-#include <Core/LoggingManager.hpp>
-#include <CoreStructs/Contexts/VulkanContext.hpp>
-#include <Core/GarbageCollector.hpp>
+#include <Core/Data/Constants.h>
+#include <Core/Application/LoggingManager.hpp>
+#include <Core/Data/Contexts/VulkanContext.hpp>
+#include <Core/Application/GarbageCollector.hpp>
 
 #include <Vulkan/VkBufferManager.hpp>
 

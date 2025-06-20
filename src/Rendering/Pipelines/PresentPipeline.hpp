@@ -3,14 +3,14 @@
 
 #pragma once
 
-#include <glfw_vulkan.hpp>
+#include <External/GLFWVulkan.hpp>
 
-#include <Core/ServiceLocator.hpp>
-#include <Core/LoggingManager.hpp>
-#include <Core/EventDispatcher.hpp>
-#include <Core/GarbageCollector.hpp>
+#include <Core/Engine/ServiceLocator.hpp>
+#include <Core/Application/LoggingManager.hpp>
+#include <Core/Application/EventDispatcher.hpp>
+#include <Core/Application/GarbageCollector.hpp>
 
-#include <CoreStructs/Contexts/VulkanContext.hpp>
+#include <Core/Data/Contexts/VulkanContext.hpp>
 
 #include <Rendering/Pipelines/PipelineBuilder.hpp>
 

@@ -6,13 +6,13 @@
 #pragma once
 
 #include <algorithm>
-#include <glm_config.hpp>
+#include <External/GLM.hpp>
 
-#include <Core/ECS.hpp>
-#include <Core/LoggingManager.hpp>
-#include <Core/ServiceLocator.hpp>
+#include <Core/Engine/ECS.hpp>
+#include <Core/Application/LoggingManager.hpp>
+#include <Core/Engine/ServiceLocator.hpp>
 
-#include <Engine/Components/WorldSpaceComponents.hpp>
+#include <Engine/Components/PhysicsComponents.hpp>
 #include <Engine/Components/RenderComponents.hpp>
 #include <Engine/Components/TelemetryComponents.hpp>
 
@@ -30,7 +30,7 @@ public:
 
 private:
 	std::shared_ptr<Registry> m_registry;
-	std::vector<std::pair<EntityID, WorldSpaceComponent::ReferenceFrame*>> m_referenceFrames;
+	std::vector<std::pair<EntityID, PhysicsComponent::ReferenceFrame*>> m_referenceFrames;
 
 	EntityID m_renderSpaceID{};
 

@@ -7,9 +7,9 @@
 
 #pragma once
 
-#include <glfw_vulkan.hpp>
+#include <External/GLFWVulkan.hpp>
 
-#include <Core/Constants.h>
+#include <Core/Data/Constants.h>
 
 	// VMA
 #include <vk_mem_alloc.h>
@@ -25,10 +25,10 @@
 
 // Local
 #include <Vulkan/VkSwapchainManager.hpp>
-#include <Core/LoggingManager.hpp>
-#include <Core/GarbageCollector.hpp>
-#include <Core/ServiceLocator.hpp>
-#include <CoreStructs/Contexts/VulkanContext.hpp>
+#include <Core/Application/LoggingManager.hpp>
+#include <Core/Application/GarbageCollector.hpp>
+#include <Core/Engine/ServiceLocator.hpp>
+#include <Core/Data/Contexts/VulkanContext.hpp>
 
 
 

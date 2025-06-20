@@ -7,9 +7,9 @@
 #include <concepts>
 #include <vector>
 
-#include <glfw_vulkan.hpp>
+#include <External/GLFWVulkan.hpp>
 
-#include <Core/LoggingManager.hpp>
+#include <Core/Application/LoggingManager.hpp>
 
 
 namespace SystemUtils {

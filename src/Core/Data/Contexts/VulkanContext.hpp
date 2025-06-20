@@ -1,6 +1,6 @@
 #pragma once
 
-#include <glfw_vulkan.hpp>
+#include <External/GLFWVulkan.hpp>
 #include <vk_mem_alloc.h> 
 
 #include <variant>  
@@ -8,8 +8,8 @@
 #include <map>  
 #include <array>
 
-#include <Core/Constants.h>
-#include <CoreStructs/Device.hpp>
+#include <Core/Data/Constants.h>
+#include <Core/Data/Device.hpp>
 
 
 using VulkanHandles = std::variant<

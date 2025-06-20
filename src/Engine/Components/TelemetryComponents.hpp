@@ -3,12 +3,12 @@
 
 #pragma once
 
-#include <glm_config.hpp>
+#include <External/GLM.hpp>
 
 namespace TelemetryComponent {
 	struct RenderTransform {
 		glm::dvec3 position;
 		glm::dquat rotation;
-		double scale;
+		double visualScale;
 	};
 }

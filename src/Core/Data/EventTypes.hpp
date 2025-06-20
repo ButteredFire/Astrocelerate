@@ -3,11 +3,11 @@
 
 #pragma once
 
-#include <glfw_vulkan.hpp>
+#include <External/GLFWVulkan.hpp>
 
-#include <glm_config.hpp>
+#include <External/GLM.hpp>
 
-#include <CoreStructs/Geometry.hpp>
+#include <Core/Data/Geometry.hpp>
 
 
 enum EventType {

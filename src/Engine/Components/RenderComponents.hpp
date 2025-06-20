@@ -4,12 +4,12 @@
 #pragma once
 
 // GLFW & Vulkan
-#include <glfw_vulkan.hpp>
+#include <External/GLFWVulkan.hpp>
 
 // Dear ImGui
 #include <imgui/imgui.h>
 
-#include <CoreStructs/Geometry.hpp>
+#include <Core/Data/Geometry.hpp>
 
 
 namespace RenderComponent {

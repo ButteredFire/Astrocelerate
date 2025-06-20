@@ -4,15 +4,15 @@
 #pragma once
 
 // GLFW & Vulkan
-#include <glfw_vulkan.hpp>
+#include <External/GLFWVulkan.hpp>
 
 // Local
-#include <Core/ECS.hpp>
-#include <Core/ServiceLocator.hpp>
-#include <Core/EventDispatcher.hpp>
+#include <Core/Engine/ECS.hpp>
+#include <Core/Engine/ServiceLocator.hpp>
+#include <Core/Application/EventDispatcher.hpp>
 
-#include <CoreStructs/Contexts/VulkanContext.hpp>
-#include <CoreStructs/Buffer.hpp>
+#include <Core/Data/Contexts/VulkanContext.hpp>
+#include <Core/Data/Buffer.hpp>
 
 #include <Engine/Components/RenderComponents.hpp>
 

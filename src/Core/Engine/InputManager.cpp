@@ -1,5 +1,5 @@
 #include "InputManager.hpp"
-#include <Core/EventDispatcher.hpp>
+#include <Core/Application/EventDispatcher.hpp>
 
 
 InputManager::InputManager():

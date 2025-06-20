@@ -6,7 +6,7 @@
 #include <filesystem>
 #include <string>
 
-#include <glm_config.hpp>
+#include <External/GLM.hpp>
 
 // Default working directory
 inline std::string DEFAULT_WORKING_DIR = std::filesystem::current_path().string();

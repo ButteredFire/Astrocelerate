@@ -22,24 +22,24 @@
 #include <Rendering/Pipelines/PresentPipeline.hpp>
 #include <Rendering/Geometry/GeometryLoader.hpp>
 
-#include <Core/ECS.hpp>
-#include <Core/InputManager.hpp>
-#include <Core/AppWindow.hpp>
-#include <Core/Constants.h>
-#include <Core/LoggingManager.hpp>
-#include <Core/EventDispatcher.hpp>
+#include <Core/Engine/ECS.hpp>
+#include <Core/Engine/InputManager.hpp>
+#include <Core/Application/AppWindow.hpp>
+#include <Core/Data/Constants.h>
+#include <Core/Application/LoggingManager.hpp>
+#include <Core/Application/EventDispatcher.hpp>
 
-#include <CoreStructs/Contexts/VulkanContext.hpp>
+#include <Core/Data/Contexts/VulkanContext.hpp>
 
+#include <Engine/Components/CommonComponents.hpp>
 #include <Engine/Components/ModelComponents.hpp>
 #include <Engine/Components/RenderComponents.hpp>
 #include <Engine/Components/PhysicsComponents.hpp>
-#include <Engine/Components/WorldSpaceComponents.hpp>
 #include <Engine/Components/TelemetryComponents.hpp>
 
-#include <Systems/Time.hpp>
-#include <Systems/RenderSystem.hpp>
-#include <Systems/PhysicsSystem.hpp>
+#include <Simulation/Systems/Time.hpp>
+#include <Simulation/Systems/RenderSystem.hpp>
+#include <Simulation/Systems/PhysicsSystem.hpp>
 
 #include <Simulation/Systems/ReferenceFrameSystem.hpp>
 

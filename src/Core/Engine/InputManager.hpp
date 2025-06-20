@@ -7,12 +7,12 @@
 
 #include <imgui/imgui.h>
 
-#include <Core/ServiceLocator.hpp>
-#include <Core/LoggingManager.hpp>
+#include <Core/Engine/ServiceLocator.hpp>
+#include <Core/Application/LoggingManager.hpp>
 
-#include <CoreStructs/Contexts/VulkanContext.hpp>
-#include <CoreStructs/Contexts/AppContext.hpp>
-#include <CoreStructs/Input.hpp>
+#include <Core/Data/Contexts/VulkanContext.hpp>
+#include <Core/Data/Contexts/AppContext.hpp>
+#include <Core/Data/Input.hpp>
 
 #include <Scene/Camera.hpp>
 

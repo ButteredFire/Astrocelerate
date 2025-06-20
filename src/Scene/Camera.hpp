@@ -3,19 +3,19 @@
 
 #pragma once
 
-#include <glfw_vulkan.hpp>
-#include <glm_config.hpp>
+#include <External/GLFWVulkan.hpp>
+#include <External/GLM.hpp>
 
-#include <Core/Constants.h>
-#include <Core/LoggingManager.hpp>
+#include <Core/Data/Constants.h>
+#include <Core/Application/LoggingManager.hpp>
 
-#include <CoreStructs/Input.hpp>
+#include <Core/Data/Input.hpp>
 
-#include <Engine/Components/WorldSpaceComponents.hpp>
+#include <Engine/Components/CommonComponents.hpp>
 
 #include <Utils/SpaceUtils.hpp>
 
-#include <Systems/Time.hpp>
+#include <Simulation/Systems/Time.hpp>
 
 
 class InputManager;
@@ -32,7 +32,7 @@ public:
 
 
 	/* Gets the camera's transform in global simulation space. */
-	WorldSpaceComponent::Transform getGlobalTransform() const;
+	CommonComponent::Transform getGlobalTransform() const;
 
 
 	float movementSpeed = 1e6f;				// Movement speed in simulation space (m/s)

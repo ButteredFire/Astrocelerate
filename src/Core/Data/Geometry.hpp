@@ -3,12 +3,12 @@
 
 #pragma once
 
-#include <glfw_vulkan.hpp>
+#include <External/GLFWVulkan.hpp>
 
-#include <glm_config.hpp>
+#include <External/GLM.hpp>
 
 #include <vector>
-#include <Core/Constants.h>
+#include <Core/Data/Constants.h>
 
 #include <Utils/SystemUtils.hpp>
 

@@ -24,7 +24,7 @@ void ReferenceFrameSystem::updateAllFrames() {
 
 void ReferenceFrameSystem::computeGlobalTransforms() {
 	for (auto& [entity, framePtr] : m_referenceFrames) {
-		WorldSpaceComponent::ReferenceFrame& frame = *framePtr;
+		PhysicsComponent::ReferenceFrame& frame = *framePtr;
 
 		// Sets global transform to local transform if current frame is the root frame
 		if (!frame.parentID.has_value()) {
@@ -35,7 +35,7 @@ void ReferenceFrameSystem::computeGlobalTransforms() {
 		}
 
 
-		const WorldSpaceComponent::ReferenceFrame& parentFrame = m_registry->getComponent<WorldSpaceComponent::ReferenceFrame>(frame.parentID.value());
+		const PhysicsComponent::ReferenceFrame& parentFrame = m_registry->getComponent<PhysicsComponent::ReferenceFrame>(frame.parentID.value());
 
 		// Order: Scale -> Rotate -> Translate
 		glm::dvec3 rotatedPosition = parentFrame.globalTransform.rotation * frame.localTransform.position;
@@ -53,13 +53,13 @@ void ReferenceFrameSystem::sortFrameTree() {
 
 	m_referenceFrames.clear();
 
-	auto view = m_registry->getView<WorldSpaceComponent::ReferenceFrame>();
+	auto view = m_registry->getView<PhysicsComponent::ReferenceFrame>();
 
-	std::unordered_map<EntityID, WorldSpaceComponent::ReferenceFrame*> frameMap;
-	std::unordered_map<WorldSpaceComponent::ReferenceFrame*, EntityID> reverseFrameMap;
+	std::unordered_map<EntityID, PhysicsComponent::ReferenceFrame*> frameMap;
+	std::unordered_map<PhysicsComponent::ReferenceFrame*, EntityID> reverseFrameMap;
 
 	for (auto&& [entity, _] : view) {
-		WorldSpaceComponent::ReferenceFrame* frame = &m_registry->getComponent<WorldSpaceComponent::ReferenceFrame>(entity);
+		PhysicsComponent::ReferenceFrame* frame = &m_registry->getComponent<PhysicsComponent::ReferenceFrame>(entity);
 		frameMap[entity] = frame;		// Alternatively: frameMap[entity] = std::addressof(frame);
 		reverseFrameMap[frame] = entity;
 	}
@@ -89,7 +89,7 @@ void ReferenceFrameSystem::sortFrameTree() {
 
 		if (frame->parentID.has_value()) {
 			auto it = reverseFrameMap.find(
-				&m_registry->getComponent<WorldSpaceComponent::ReferenceFrame>(frame->parentID.value())
+				&m_registry->getComponent<PhysicsComponent::ReferenceFrame>(frame->parentID.value())
 			);
 
 			if (it != reverseFrameMap.end())

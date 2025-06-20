@@ -4,7 +4,7 @@
 #pragma once
 
 // GLFW & Vulkan
-#include <glfw_vulkan.hpp>
+#include <External/GLFWVulkan.hpp>
 
 // C++ STLs
 #include <filesystem>
@@ -14,19 +14,19 @@
 #include <vector>
 
 // Local
-#include <Core/ECS.hpp>
-#include <Core/Constants.h>
-#include <Core/LoggingManager.hpp>
-#include <Core/ServiceLocator.hpp>
-#include <Core/EventDispatcher.hpp>
-#include <Core/GarbageCollector.hpp>
-#include <CoreStructs/Contexts/VulkanContext.hpp>
+#include <Core/Engine/ECS.hpp>
+#include <Core/Data/Constants.h>
+#include <Core/Application/LoggingManager.hpp>
+#include <Core/Engine/ServiceLocator.hpp>
+#include <Core/Application/EventDispatcher.hpp>
+#include <Core/Application/GarbageCollector.hpp>
+#include <Core/Data/Contexts/VulkanContext.hpp>
 
 #include <Engine/Components/RenderComponents.hpp>
 
 #include <Vulkan/VkSyncManager.hpp>
 
-#include <Systems/RenderSystem.hpp>
+#include <Simulation/Systems/RenderSystem.hpp>
 
 
 // A structure that stores the configuration for single-use command buffers

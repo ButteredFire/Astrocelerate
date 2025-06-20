@@ -7,7 +7,7 @@
 #pragma once
 
 // GLFW & Vulkan
-#include <glfw_vulkan.hpp>
+#include <External/GLFWVulkan.hpp>
 
 // C++ STLs
 #include <algorithm>
@@ -17,12 +17,12 @@
 
 // Local
 #include <Vulkan/VkInstanceManager.hpp>
-#include <Core/LoggingManager.hpp>
-#include <Core/GarbageCollector.hpp>
-#include <Core/ServiceLocator.hpp>
-#include <Core/Constants.h>
-#include <CoreStructs/Contexts/VulkanContext.hpp>
-#include <Core/EventDispatcher.hpp>
+#include <Core/Application/LoggingManager.hpp>
+#include <Core/Application/GarbageCollector.hpp>
+#include <Core/Engine/ServiceLocator.hpp>
+#include <Core/Data/Constants.h>
+#include <Core/Data/Contexts/VulkanContext.hpp>
+#include <Core/Application/EventDispatcher.hpp>
 
 #include <Vulkan/VkImageManager.hpp>
 

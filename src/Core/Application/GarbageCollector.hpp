@@ -1,15 +1,15 @@
 #pragma once
 
 // GLFW & Vulkan
-#include <glfw_vulkan.hpp>
+#include <External/GLFWVulkan.hpp>
 
 #include <vector>
 #include <deque>
 #include <variant>
 #include <functional>
 
-#include <CoreStructs/Contexts/VulkanContext.hpp>
-#include <Core/LoggingManager.hpp>
+#include <Core/Data/Contexts/VulkanContext.hpp>
+#include <Core/Application/LoggingManager.hpp>
 
 
 // A structure specifying the properties of a cleanup task

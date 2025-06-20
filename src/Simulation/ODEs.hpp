@@ -1,60 +1,14 @@
-/* Physics.hpp - Common data pertaining to physics.
+/* ODEs.hpp - Defines ordinary differential equations.
 */
 
 #pragma once
 
-#include <glm_config.hpp>
+#include <Core/Data/Physics.hpp>
 
-#include <Core/Constants.h>
+namespace ODE {
+	using namespace Physics;
 
-
-namespace Physics {
-	struct State {
-		glm::dvec3 position;
-		glm::dvec3 velocity;
-
-		State operator+(const State& other) const {
-			return State{
-				.position = position + other.position,
-				.velocity = velocity + other.velocity
-			};
-		}
-
-		State operator-(const State& other) const {
-			return State{
-				.position = position - other.position,
-				.velocity = velocity - other.velocity
-			};
-		}
-
-		State operator*(double scalar) const {
-			return State{
-				.position = position * scalar,
-				.velocity = velocity * scalar
-			};
-		}
-
-		State operator/(double scalar) const {
-			return State{
-				.position = position / scalar,
-				.velocity = velocity / scalar
-			};
-		}
-	};
-	/* NOTE:
-		The operator* overload member in State only allows for `State * scalar`
-		We must have this non-member operator* overload for `scaler * State`.
-	*/
-	inline State operator*(double scalar, const State& state) {
-		return State{
-			.position = scalar * state.position,
-			.velocity = scalar * state.velocity
-		};
-	}
-
-
-
-	struct NewtonianTwoBodyODE {
+	struct NewtonianTwoBody {
 		double centralMass;		// Mass of the body being orbited.
 
 		State operator()(const State& state, double t) const {

@@ -3,15 +3,13 @@
 
 #pragma once
 
-#include <glfw_vulkan.hpp>
+#include <External/GLFWVulkan.hpp>
 
 #include <vk_mem_alloc.h>
 
-#include <glm_config.hpp>
+#include <External/GLM.hpp>
 
-#include <Engine/Components/ComponentTypes.hpp>
-
-#include <CoreStructs/Geometry.hpp>
+#include <Core/Data/Geometry.hpp>
 
 
 namespace ModelComponent {

@@ -3,12 +3,12 @@
 
 #include <vector>
 
-#include <glfw_vulkan.hpp>
+#include <External/GLFWVulkan.hpp>
 
-#include <Core/GarbageCollector.hpp>
-#include <Core/ServiceLocator.hpp>
+#include <Core/Application/GarbageCollector.hpp>
+#include <Core/Engine/ServiceLocator.hpp>
 
-#include <CoreStructs/Contexts/VulkanContext.hpp>
+#include <Core/Data/Contexts/VulkanContext.hpp>
 
 
 class VkImageManager {

@@ -26,23 +26,23 @@ Engine::~Engine() {
 
 
 void Engine::initComponents() {
-    /* ModelComponents.hpp */
+    /* Common */
+    m_registry->initComponentArray<CommonComponent::Transform>();
+
+    /* Meshes & Models */
     m_registry->initComponentArray<ModelComponent::Mesh>();
     m_registry->initComponentArray<ModelComponent::Material>();
 
-    /* RenderComponents.hpp */
+    /* Rendering */
     m_registry->initComponentArray<RenderComponent::MeshRenderable>();
     m_registry->initComponentArray<RenderComponent::GUIRenderable>();
 
-    /* PhysicsComponents.hpp */
+    /* Physics */
     m_registry->initComponentArray<PhysicsComponent::RigidBody>();
     m_registry->initComponentArray<PhysicsComponent::OrbitingBody>();
+    m_registry->initComponentArray<PhysicsComponent::ReferenceFrame>();
 
-    /* WorldSpaceComponents.hpp */
-    m_registry->initComponentArray<WorldSpaceComponent::Transform>();
-    m_registry->initComponentArray<WorldSpaceComponent::ReferenceFrame>();
-
-    /* TelemetryComponents.hpp */
+    /* Telemetry */
     m_registry->initComponentArray<TelemetryComponent::RenderTransform>();
 }
 

@@ -1,14 +1,14 @@
 /* Application.cpp: The entry point for the Astrocelerate engine.
 */
 
-#include <Core/AppWindow.hpp>
-#include <Engine/Engine.hpp>
-#include <Core/ServiceLocator.hpp>
-#include <Core/Constants.h>
+#include <Core/Application/AppWindow.hpp>
+#include <Orchestration/Engine.hpp>
+#include <Core/Engine/ServiceLocator.hpp>
+#include <Core/Data/Constants.h>
 
-#include <CoreStructs/Contexts/VulkanContext.hpp>
-#include <CoreStructs/Contexts/AppContext.hpp>
-#include <CoreStructs/Contexts/CallbackContext.hpp>
+#include <Core/Data/Contexts/VulkanContext.hpp>
+#include <Core/Data/Contexts/AppContext.hpp>
+#include <Core/Data/Contexts/CallbackContext.hpp>
 
 #include <iostream>
 #include <stdexcept>

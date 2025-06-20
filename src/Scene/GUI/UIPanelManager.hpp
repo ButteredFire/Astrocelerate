@@ -11,20 +11,19 @@
 
 #include <iconfontcppheaders/IconsFontAwesome6.h>
 
-#include <Core/ECS.hpp>
-#include <Core/Constants.h>
-#include <Core/InputManager.hpp>
-#include <Core/ServiceLocator.hpp>
-#include <Core/LoggingManager.hpp>
-#include <Core/EventDispatcher.hpp>
-#include <Core/GarbageCollector.hpp>
+#include <Core/Engine/ECS.hpp>
+#include <Core/Data/Constants.h>
+#include <Core/Engine/InputManager.hpp>
+#include <Core/Engine/ServiceLocator.hpp>
+#include <Core/Application/LoggingManager.hpp>
+#include <Core/Application/EventDispatcher.hpp>
+#include <Core/Application/GarbageCollector.hpp>
 
-#include <CoreStructs/GUI.hpp>
-#include <CoreStructs/Contexts/VulkanContext.hpp>
-#include <CoreStructs/Contexts/AppContext.hpp>
+#include <Core/Data/GUI.hpp>
+#include <Core/Data/Contexts/VulkanContext.hpp>
+#include <Core/Data/Contexts/AppContext.hpp>
 
 #include <Engine/Components/PhysicsComponents.hpp>
-#include <Engine/Components/WorldSpaceComponents.hpp>
 #include <Engine/Components/TelemetryComponents.hpp>
 
 #include <Utils/ColorUtils.hpp>

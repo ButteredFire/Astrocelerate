@@ -9,8 +9,8 @@
 #include <type_traits>  
 #include <stdexcept>  
 
-#include <Core/Constants.h>  
-#include <Core/LoggingManager.hpp>  
+#include <Core/Data/Constants.h>  
+#include <Core/Application/LoggingManager.hpp>  
 
 #include <Engine/Components/RenderComponents.hpp>
 

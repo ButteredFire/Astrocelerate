@@ -9,8 +9,8 @@
 #include <typeindex>
 #include <vector>
 
-#include <Core/LoggingManager.hpp>
-#include <Core/EventTypes.hpp>
+#include <Core/Application/LoggingManager.hpp>
+#include <Core/Data/EventTypes.hpp>
 
 
 class EventDispatcher {

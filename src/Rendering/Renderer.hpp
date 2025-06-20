@@ -7,10 +7,10 @@
 #pragma once
 
 // GLFW & Vulkan
-#include <glfw_vulkan.hpp>
+#include <External/GLFWVulkan.hpp>
 
 // GLM
-#include <glm_config.hpp>
+#include <External/GLM.hpp>
 
 // C++ STLs
 #include <iostream>
@@ -35,10 +35,10 @@
 
 #include <Vulkan/VkBufferManager.hpp>
 
-#include <Core/ECS.hpp>
-#include <Core/Constants.h>
-#include <Core/LoggingManager.hpp>
-#include <Core/ServiceLocator.hpp>
+#include <Core/Engine/ECS.hpp>
+#include <Core/Data/Constants.h>
+#include <Core/Application/LoggingManager.hpp>
+#include <Core/Engine/ServiceLocator.hpp>
 
 
 class Renderer {

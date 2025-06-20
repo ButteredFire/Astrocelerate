@@ -1,5 +1,5 @@
 #include "Camera.hpp"
-#include <Core/InputManager.hpp> // Breaks cyclic dependency
+#include <Core/Engine/InputManager.hpp> // Breaks cyclic dependency
 
 
 Camera::Camera(GLFWwindow* window, glm::vec3 position, glm::quat orientation):
@@ -31,8 +31,8 @@ glm::mat4 Camera::getRenderSpaceViewMatrix() const {
 }
 
 
-WorldSpaceComponent::Transform Camera::getGlobalTransform() const {
-	WorldSpaceComponent::Transform transform{};
+CommonComponent::Transform Camera::getGlobalTransform() const {
+	CommonComponent::Transform transform{};
 	transform.position = m_position;
 	transform.rotation = m_orientation;
 	

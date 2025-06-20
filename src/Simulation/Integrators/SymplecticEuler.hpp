@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include <glm_config.hpp>
+#include <External/GLM.hpp>
 
 
 template<typename State, typename Derivative>

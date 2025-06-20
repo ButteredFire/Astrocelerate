@@ -10,7 +10,7 @@
 #include <bitset>
 #include <queue>
 
-#include <Core/LoggingManager.hpp>
+#include <Core/Application/LoggingManager.hpp>
 
 
 // Component

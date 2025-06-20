@@ -3,17 +3,18 @@
 
 #pragma once
 
-#include <Core/ECS.hpp>
-#include <Core/LoggingManager.hpp>
-#include <Core/ServiceLocator.hpp>
-#include <Core/EventDispatcher.hpp>
+#include <Core/Engine/ECS.hpp>
+#include <Core/Application/LoggingManager.hpp>
+#include <Core/Engine/ServiceLocator.hpp>
+#include <Core/Application/EventDispatcher.hpp>
 
-#include <CoreStructs/Physics.hpp>
+#include <Core/Data/Physics.hpp>
 
-#include <Systems/Time.hpp>
+#include <Simulation/Systems/Time.hpp>
 
 #include <Engine/Components/PhysicsComponents.hpp>
-#include <Engine/Components/WorldSpaceComponents.hpp>
+
+#include <Simulation/ODEs.hpp>
 
 #include <Simulation/Integrators/SymplecticEuler.hpp>
 #include <Simulation/Integrators/RK4.hpp>

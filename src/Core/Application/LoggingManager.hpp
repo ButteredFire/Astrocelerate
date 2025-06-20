@@ -6,7 +6,7 @@
 #include <deque>
 #include <termcolor/termcolor.hpp>
 
-#include <Core/Constants.h>
+#include <Core/Data/Constants.h>
 
 #define enquote(S) std::string(std::string("\"") + std::string(S) + std::string("\""))
 #define enquoteCOUT(S) '"' << (S) << '"'

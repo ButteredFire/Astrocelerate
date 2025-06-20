@@ -4,7 +4,7 @@
 #pragma once
 
 // GLFW & Vulkan
-#include <glfw_vulkan.hpp>
+#include <External/GLFWVulkan.hpp>
 
 // C++ STLs
 #include <iostream>
@@ -17,14 +17,14 @@
 #include <iconfontcppheaders/IconsFontAwesome6.h>
 
 // Local
-#include <Core/ECS.hpp>
-#include <Core/Constants.h>
-#include <Core/LoggingManager.hpp>
-#include <Core/ServiceLocator.hpp>
-#include <Core/GarbageCollector.hpp>
+#include <Core/Engine/ECS.hpp>
+#include <Core/Data/Constants.h>
+#include <Core/Application/LoggingManager.hpp>
+#include <Core/Engine/ServiceLocator.hpp>
+#include <Core/Application/GarbageCollector.hpp>
 
-#include <CoreStructs/Contexts/VulkanContext.hpp>
-#include <CoreStructs/Contexts/AppContext.hpp>
+#include <Core/Data/Contexts/VulkanContext.hpp>
+#include <Core/Data/Contexts/AppContext.hpp>
 
 #include <Scene/GUI/UIPanelManager.hpp>
 

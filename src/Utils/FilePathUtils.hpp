@@ -7,7 +7,7 @@
 #include <concepts>
 #include <filesystem>
 
-#include <Core/LoggingManager.hpp>
+#include <Core/Application/LoggingManager.hpp>
 
 
 namespace FilePathUtils {

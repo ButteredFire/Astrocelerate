@@ -3,12 +3,12 @@
 
 #pragma once
 
-#include <glfw_vulkan.hpp>
+#include <External/GLFWVulkan.hpp>
 
 #include <iostream>
 #include <string>
 
-#include <CoreStructs/Contexts/CallbackContext.hpp>
+#include <Core/Data/Contexts/CallbackContext.hpp>
 
 class Window {
 public:

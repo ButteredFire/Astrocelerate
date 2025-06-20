@@ -316,7 +316,7 @@ void UIPanelManager::renderTelemetryPanel() {
 	if (ImGui::Begin(GUI::GetPanelName(flag), nullptr, m_windowFlags)) {
 		performBackgroundChecks(flag);
 
-		auto view = m_registry->getView<PhysicsComponent::RigidBody, WorldSpaceComponent::ReferenceFrame, TelemetryComponent::RenderTransform>();
+		auto view = m_registry->getView<PhysicsComponent::RigidBody, PhysicsComponent::ReferenceFrame, TelemetryComponent::RenderTransform>();
 		size_t entityCount = 0;
 
 		for (const auto& [entity, rigidBody, refFrame, renderT] : view) {
@@ -372,8 +372,17 @@ void UIPanelManager::renderTelemetryPanel() {
 				}
 				ImGui::PopFont();
 
-				ImGui::TextWrapped("\t\tScale (simulation): %.10f m (radius)", refFrame.scale);
-				ImGui::TextWrapped("\t\tScale (render): %.10f units (radius)", renderT.scale);
+				ImGui::TextWrapped("\t\tScaling (simulation):");
+				ImGui::TextWrapped("\t\t\tPhysical radius: %.10f m", refFrame.scale);
+				ImGui::TextWrapped("\t\t\tIntended ratio to parent: %.10f (relative scale)", refFrame.relativeScale);
+
+				ImGui::TextWrapped("\t\tScaling (render):");
+				ImGui::TextWrapped("\t\t\tVisual scale: %.10f units", renderT.visualScale);
+				
+				if (m_registry->hasComponent<TelemetryComponent::RenderTransform>(refFrame.parentID.value())) {
+					const TelemetryComponent::RenderTransform& parentRenderT = m_registry->getComponent<TelemetryComponent::RenderTransform>(refFrame.parentID.value());
+					ImGui::TextWrapped("\t\t\tActual ratio to parent: %.10f units", (renderT.visualScale / parentRenderT.visualScale));
+				}
 
 				// Local Transform
 				ImGui::PushFont(g_fontContext.Roboto.bold);
@@ -431,7 +440,7 @@ void UIPanelManager::renderTelemetryPanel() {
 		ImGui::PopFont();
 
 		static Camera* camera = m_inputManager->getCamera();
-		WorldSpaceComponent::Transform cameraTransform = camera->getGlobalTransform();
+		CommonComponent::Transform cameraTransform = camera->getGlobalTransform();
 		glm::vec3 scaledCameraPosition = SpaceUtils::ToRenderSpace_Position(cameraTransform.position);
 
 		ImGui::TextWrapped("\tSpeed: %.0e", camera->movementSpeed);

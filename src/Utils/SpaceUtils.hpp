@@ -4,9 +4,9 @@
 #pragma once  
 
 #include <algorithm>
-#include <glm_config.hpp>  
+#include <External/GLM.hpp>  
 
-#include <Core/Constants.h>
+#include <Core/Data/Constants.h>
 
 #include <Utils/SystemUtils.hpp>
 

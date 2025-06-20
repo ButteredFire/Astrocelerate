@@ -5,7 +5,7 @@
 
 #include <functional>
 
-#include <glm_config.hpp>
+#include <External/GLM.hpp>
 
 
 // Fourth-order Runge-Kutta Integrator

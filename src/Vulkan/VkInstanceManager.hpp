@@ -8,7 +8,7 @@
 #pragma once
 
 // GLFW & Vulkan
-#include <glfw_vulkan.hpp>
+#include <External/GLFWVulkan.hpp>
 
 // C++ STLs
 #include <iostream>
@@ -18,11 +18,11 @@
 
 // Local
 #include <Vulkan/VkDeviceManager.hpp>
-#include <Core/LoggingManager.hpp>
-#include <Core/GarbageCollector.hpp>
-#include <Core/ServiceLocator.hpp>
-#include <CoreStructs/Contexts/VulkanContext.hpp>
-#include <Core/Constants.h>
+#include <Core/Application/LoggingManager.hpp>
+#include <Core/Application/GarbageCollector.hpp>
+#include <Core/Engine/ServiceLocator.hpp>
+#include <Core/Data/Contexts/VulkanContext.hpp>
+#include <Core/Data/Constants.h>
 
 
 inline VkResult createDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {

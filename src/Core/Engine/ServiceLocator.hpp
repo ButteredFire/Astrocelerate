@@ -4,7 +4,7 @@
 #include <typeindex>
 #include <unordered_map>
 
-#include <Core/LoggingManager.hpp>
+#include <Core/Application/LoggingManager.hpp>
 
 
 class ServiceLocator {

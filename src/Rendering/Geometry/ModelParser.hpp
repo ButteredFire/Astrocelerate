@@ -7,9 +7,9 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
-#include <Core/LoggingManager.hpp>
+#include <Core/Application/LoggingManager.hpp>
 
-#include <CoreStructs/Geometry.hpp>
+#include <Core/Data/Geometry.hpp>
 
 #include <Engine/Components/ModelComponents.hpp>
 

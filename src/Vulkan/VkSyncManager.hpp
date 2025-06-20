@@ -4,17 +4,17 @@
 #pragma once
 
 // GLFW & Vulkan
-#include <glfw_vulkan.hpp>
+#include <External/GLFWVulkan.hpp>
 
 // C++ STLs
 #include <iostream>
 
 // Local
-#include <CoreStructs/Contexts/VulkanContext.hpp>
-#include <Core/LoggingManager.hpp>
-#include <Core/GarbageCollector.hpp>
-#include <Core/ServiceLocator.hpp>
-#include <Core/Constants.h>
+#include <Core/Data/Contexts/VulkanContext.hpp>
+#include <Core/Application/LoggingManager.hpp>
+#include <Core/Application/GarbageCollector.hpp>
+#include <Core/Engine/ServiceLocator.hpp>
+#include <Core/Data/Constants.h>
 
 
 class VkSyncManager {

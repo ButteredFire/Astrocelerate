@@ -6,11 +6,11 @@
 #include <iostream>
 #include <vector>
 
-#include <Core/LoggingManager.hpp>
-#include <Core/ServiceLocator.hpp>
-#include <Core/EventDispatcher.hpp>
+#include <Core/Application/LoggingManager.hpp>
+#include <Core/Engine/ServiceLocator.hpp>
+#include <Core/Application/EventDispatcher.hpp>
 
-#include <CoreStructs/Geometry.hpp>
+#include <Core/Data/Geometry.hpp>
 
 #include <Rendering/Geometry/ModelParser.hpp>
 
