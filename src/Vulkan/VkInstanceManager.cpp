@@ -62,7 +62,7 @@ void VkInstanceManager::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCr
 
 
 void VkInstanceManager::createDebugMessenger() {
-    if (!inDebugMode) return;
+    if (!IN_DEBUG_MODE) return;
 
     VkDebugUtilsMessengerCreateInfoEXT createInfo;
     populateDebugMessengerCreateInfo(createInfo);
@@ -77,7 +77,7 @@ void VkInstanceManager::createDebugMessenger() {
     task.objectNames = { VARIABLE_NAME(m_debugMessenger) };
     task.vkObjects = { m_vulkInst, m_debugMessenger };
     task.cleanupFunc = [&]() { destroyDebugUtilsMessengerEXT(m_vulkInst, m_debugMessenger, nullptr); };
-    task.cleanupConditions = { inDebugMode };
+    task.cleanupConditions = { IN_DEBUG_MODE };
 
     m_garbageCollector->createCleanupTask(task);
 }
@@ -110,7 +110,7 @@ void VkInstanceManager::createVulkanInstance() {
         addVulkanExtensions({ glfwExtensions[i] });
 
         // Sets up additional extensions
-    if (inDebugMode)
+    if (IN_DEBUG_MODE)
         addVulkanExtensions({
             VK_EXT_DEBUG_UTILS_EXTENSION_NAME
         });
@@ -125,7 +125,7 @@ void VkInstanceManager::createVulkanInstance() {
 
     // Configures global validation layers
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
-    if (inDebugMode) {
+    if (IN_DEBUG_MODE) {
         instanceInfo.enabledLayerCount = static_cast<uint32_t>(m_enabledValidationLayers.size());
         instanceInfo.ppEnabledLayerNames = m_enabledValidationLayers.data();
 
@@ -244,7 +244,7 @@ void VkInstanceManager::addVulkanExtensions(std::vector<const char*> extensions)
 
 
 void VkInstanceManager::addVulkanValidationLayers(std::vector<const char*> layers) {
-    if (inDebugMode && verifyVulkanValidationLayers(layers) == false) {
+    if (IN_DEBUG_MODE && verifyVulkanValidationLayers(layers) == false) {
         throw Log::RuntimeException(__FUNCTION__, __LINE__, "Cannot set Vulkan validation layers: Provided layers are either invalid or unsupported!");
     }
 

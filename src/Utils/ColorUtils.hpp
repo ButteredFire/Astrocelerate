@@ -28,6 +28,16 @@ namespace ColorUtils {
 	inline ImVec4 sRGBToLinear(float r, float g, float b, float a = 1.0f) {
 		return ImVec4(sRGBChannelToLinearChannel(r), sRGBChannelToLinearChannel(g), sRGBChannelToLinearChannel(b), a);
 	}
+	/* Converts a set of sRGB values to an equivalent set of linear color space values.
+		@param value: The value to which the Red, Green, and Blue channels are set.
+		@param a (Default: 1.0): The Alpha channel.
+
+		@return A 4-component ImGui Vector containing the (r, g, b, a) set in linear color space.
+	*/
+	inline ImVec4 sRGBToLinear(float value, float a = 1.0f) {
+		float linear = sRGBChannelToLinearChannel(value);
+		return ImVec4(linear, linear, linear, a);
+	}
 
 
 	/* Converts a logging message type to an ImVec4 color.

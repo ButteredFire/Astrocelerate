@@ -11,11 +11,11 @@
 // Default working directory
 inline std::string DEFAULT_WORKING_DIR = std::filesystem::current_path().string();
 
-// Initialize inDebugMode
+// Initialize IN_DEBUG_MODE
 #ifdef NDEBUG
-	const bool inDebugMode = false;
+	const bool IN_DEBUG_MODE = false;
 #else
-	const bool inDebugMode = true;
+	const bool IN_DEBUG_MODE = true;
 #endif
 
 

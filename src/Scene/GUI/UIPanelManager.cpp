@@ -10,21 +10,6 @@ UIPanelManager::UIPanelManager() {
 	m_popupWindowFlags = ImGuiWindowFlags_NoDocking;
 
 	bindPanelFlags();
-
-	// TODO: Serialize the panel mask in the future to allow for config loading/ opening panels from the last session
-	m_panelMask.reset();
-
-	GUI::TogglePanel(m_panelMask, GUI::PanelFlag::PANEL_VIEWPORT, GUI::TOGGLE_ON);
-	GUI::TogglePanel(m_panelMask, GUI::PanelFlag::PANEL_TELEMETRY, GUI::TOGGLE_ON);
-	//GUI::TogglePanel(m_panelMask, GUI::PanelFlag::PANEL_ENTITY_INSPECTOR, GUI::TOGGLE_ON);
-	GUI::TogglePanel(m_panelMask, GUI::PanelFlag::PANEL_SIMULATION_CONTROL, GUI::TOGGLE_ON);
-	//GUI::TogglePanel(m_panelMask, GUI::PanelFlag::PANEL_RENDER_SETTINGS, GUI::TOGGLE_ON);
-	//GUI::TogglePanel(m_panelMask, GUI::PanelFlag::PANEL_ORBITAL_PLANNER, GUI::TOGGLE_ON);
-	GUI::TogglePanel(m_panelMask, GUI::PanelFlag::PANEL_DEBUG_CONSOLE, GUI::TOGGLE_ON);
-	//GUI::TogglePanel(m_panelMask, GUI::PanelFlag::PANEL_DEBUG_APP, GUI::TOGGLE_ON);
-
-	initPanelsFromMask(m_panelMask);
-	
 	bindEvents();
 
 	Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
@@ -58,6 +43,24 @@ void UIPanelManager::bindEvents() {
 
 void UIPanelManager::onImGuiInit() {
 	initViewportTextures();
+
+
+	// TODO: Serialize the panel mask in the future to allow for config loading/ opening panels from the last session
+	m_panelMask.reset();
+
+	GUI::TogglePanel(m_panelMask, GUI::PanelFlag::PANEL_VIEWPORT, GUI::TOGGLE_ON);
+	GUI::TogglePanel(m_panelMask, GUI::PanelFlag::PANEL_TELEMETRY, GUI::TOGGLE_ON);
+	//GUI::TogglePanel(m_panelMask, GUI::PanelFlag::PANEL_ENTITY_INSPECTOR, GUI::TOGGLE_ON);
+	GUI::TogglePanel(m_panelMask, GUI::PanelFlag::PANEL_SIMULATION_CONTROL, GUI::TOGGLE_ON);
+	//GUI::TogglePanel(m_panelMask, GUI::PanelFlag::PANEL_RENDER_SETTINGS, GUI::TOGGLE_ON);
+	//GUI::TogglePanel(m_panelMask, GUI::PanelFlag::PANEL_ORBITAL_PLANNER, GUI::TOGGLE_ON);
+	GUI::TogglePanel(m_panelMask, GUI::PanelFlag::PANEL_DEBUG_CONSOLE, GUI::TOGGLE_ON);
+	//GUI::TogglePanel(m_panelMask, GUI::PanelFlag::PANEL_DEBUG_APP, GUI::TOGGLE_ON);
+
+	initPanelsFromMask(m_panelMask);
+
+
+	m_windowClass.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoWindowMenuButton;
 }
 
 
@@ -89,6 +92,7 @@ void UIPanelManager::updatePanels(uint32_t currentFrame) {
 	
 	for (auto&& [flag, callback] : m_panelCallbacks) {
 		if (GUI::IsPanelOpen(m_panelMask, flag)) {
+			ImGui::SetNextWindowClass(&m_windowClass);
 			(this->*callback)();
 		}
 	}
@@ -122,6 +126,7 @@ void UIPanelManager::bindPanelFlags() {
 	m_panelCallbacks[PanelFlag::PANEL_ENTITY_INSPECTOR]		= &UIPanelManager::renderEntityInspectorPanel;
 	m_panelCallbacks[PanelFlag::PANEL_SIMULATION_CONTROL]	= &UIPanelManager::renderSimulationControlPanel;
 	m_panelCallbacks[PanelFlag::PANEL_RENDER_SETTINGS]		= &UIPanelManager::renderRenderSettingsPanel;
+	m_panelCallbacks[PanelFlag::PANEL_PREFERENCES]			= &UIPanelManager::renderPreferencesPanel;
 	m_panelCallbacks[PanelFlag::PANEL_ORBITAL_PLANNER]		= &UIPanelManager::renderOrbitalPlannerPanel;
 	m_panelCallbacks[PanelFlag::PANEL_DEBUG_CONSOLE]		= &UIPanelManager::renderDebugConsole;
 	m_panelCallbacks[PanelFlag::PANEL_DEBUG_APP]			= &UIPanelManager::renderDebugApplication;
@@ -203,11 +208,13 @@ void UIPanelManager::renderPanelsMenu() {
 	using namespace GUI;
 
 	if (ImGui::Begin("Panels Menu", nullptr, m_windowFlags)) {
-		static bool isDemoWindowOpen = false;
-		ImGui::Checkbox("ImGui Demo Window", &isDemoWindowOpen);
-		if (isDemoWindowOpen)
-			ImGui::ShowDemoWindow();
-
+		if (IN_DEBUG_MODE) {
+			static bool isDemoWindowOpen = false;
+			ImGui::Checkbox("ImGui Demo Window", &isDemoWindowOpen);
+			if (isDemoWindowOpen) {
+				ImGui::ShowDemoWindow();
+			}
+		}
 
 		for (size_t i = 0; i < FLAG_COUNT; i++) {
 			PanelFlag flag = PanelFlagsArray[i];
@@ -253,7 +260,7 @@ void UIPanelManager::renderViewportPanel() {
 	}
 
 
-	if (ImGui::Begin(GUI::GetPanelName(flag), nullptr, m_windowFlags)) {
+	if (ImGui::Begin(GUI::GetPanelName(flag), nullptr, m_windowFlags | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse)) {
 		performBackgroundChecks(flag);
 
 		ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
@@ -312,6 +319,7 @@ void UIPanelManager::renderTelemetryPanel() {
 	const GUI::PanelFlag flag = GUI::PanelFlag::PANEL_TELEMETRY;
 	//if (!GUI::IsPanelOpen(m_panelMask, flag)) return;
 
+	static const ImVec2 separatorPadding(10.0f, 10.0f);
 	
 	if (ImGui::Begin(GUI::GetPanelName(flag), nullptr, m_windowFlags)) {
 		performBackgroundChecks(flag);
@@ -325,36 +333,47 @@ void UIPanelManager::renderTelemetryPanel() {
 			ImGui::PushID(static_cast<int>(entity));
 
 
-			ImGui::TextWrapped("%s (ID: %d)", m_registry->getEntity(entity).name.c_str(), entity);
+			ImGuiUtils::BoldText("%s (ID: %d)", m_registry->getEntity(entity).name.c_str(), entity);
 
 
 			// --- Rigid-body Debug Info ---
 			if (ImGui::CollapsingHeader("Rigid-body Data")) {
 				float velocityAbs = glm::length(rigidBody.velocity);
-				ImGui::PushFont(g_fontContext.Roboto.bold);
-				ImGui::TextWrapped("\tVelocity:");
-				ImGui::PopFont();
+				ImGuiUtils::BoldText("Velocity");
 
-				ImGui::TextWrapped("\t\tVector: (x: %.2f, y: %.2f, z: %.2f)", rigidBody.velocity.x, rigidBody.velocity.y, rigidBody.velocity.z);
-				ImGui::TextWrapped("\t\tAbsolute: |v| ~= %.4f m/s", velocityAbs);
+				ImGuiUtils::ComponentField(
+					{
+						{"X", rigidBody.velocity.x},
+						{"Y", rigidBody.velocity.y},
+						{"Z", rigidBody.velocity.z}
+					},
+					"%.2f", "\tVector"
+				);
+				ImGui::TextWrapped("\tAbsolute: |v| ~= %.4f m/s", velocityAbs);
 
 				ImGui::Dummy(ImVec2(0.5f, 0.5f));
 
 				float accelerationAbs = glm::length(rigidBody.acceleration);
-				ImGui::PushFont(g_fontContext.Roboto.bold);
-				ImGui::TextWrapped("\tAcceleration:");
-				ImGui::PopFont();
+				ImGuiUtils::BoldText("Acceleration");
 
-				ImGui::TextWrapped("\t\tVector: (x: %.2f, y: %.2f, z: %.2f)", rigidBody.acceleration.x, rigidBody.acceleration.y, rigidBody.acceleration.z);
-				ImGui::TextWrapped("\t\tAbsolute: |a| ~= %.4f m/s^2", accelerationAbs);
+				//ImGui::TextWrapped("\t\tVector: (x: %.2f, y: %.2f, z: %.2f)", rigidBody.acceleration.x, rigidBody.acceleration.y, rigidBody.acceleration.z);
+				ImGuiUtils::ComponentField(
+					{
+						{"X", rigidBody.acceleration.x},
+						{"Y", rigidBody.acceleration.y},
+						{"Z", rigidBody.acceleration.z}
+					},
+					"%.2f", "\tVector"
+				);
+				ImGui::TextWrapped("\tAbsolute: |a| ~= %.4f m/s^2", accelerationAbs);
 
 
 				// Display mass: scientific notation for large values, fixed for small
 				if (std::abs(rigidBody.mass) >= 1e6f) {
-					ImGui::TextWrapped("\tMass: %.2e kg", rigidBody.mass);
+					ImGuiUtils::BoldText("Mass: %.2e kg", rigidBody.mass);
 				}
 				else {
-					ImGui::TextWrapped("\tMass: %.2f kg", rigidBody.mass);
+					ImGuiUtils::BoldText("Mass: %.2f kg", rigidBody.mass);
 				}
 
 			}
@@ -363,97 +382,134 @@ void UIPanelManager::renderTelemetryPanel() {
 			// --- Reference Frame Debug Info ---
 			if (ImGui::CollapsingHeader("Reference Frame Data")) {
 				// Parent ID
-				ImGui::PushFont(g_fontContext.Roboto.bold);
 				if (refFrame.parentID.has_value()) {
-					ImGui::TextWrapped("\tParent: %s (ID: %d)", m_registry->getEntity(refFrame.parentID.value()).name.c_str(), refFrame.parentID.value());
+					ImGuiUtils::BoldText("Parent: %s (ID: %d)", m_registry->getEntity(refFrame.parentID.value()).name.c_str(), refFrame.parentID.value());
 				}
 				else {
-					ImGui::TextWrapped("\tParent: None");
+					ImGuiUtils::BoldText("Parent: None");
 				}
-				ImGui::PopFont();
 
-				ImGui::TextWrapped("\t\tScaling (simulation):");
-				ImGui::TextWrapped("\t\t\tPhysical radius: %.10f m", refFrame.scale);
-				ImGui::TextWrapped("\t\t\tIntended ratio to parent: %.10f (relative scale)", refFrame.relativeScale);
+				ImGuiUtils::BoldText("\tScaling (simulation)");
+				ImGui::TextWrapped("\t\tPhysical radius: %.10f m", refFrame.scale);
+				ImGui::TextWrapped("\t\tIntended ratio to parent: %.10f (relative scale)", refFrame.relativeScale);
 
-				ImGui::TextWrapped("\t\tScaling (render):");
-				ImGui::TextWrapped("\t\t\tVisual scale: %.10f units", renderT.visualScale);
+				ImGuiUtils::BoldText("\tScaling (render)");
+				ImGui::TextWrapped("\t\tVisual scale: %.10f units", renderT.visualScale);
 				
 				if (m_registry->hasComponent<TelemetryComponent::RenderTransform>(refFrame.parentID.value())) {
 					const TelemetryComponent::RenderTransform& parentRenderT = m_registry->getComponent<TelemetryComponent::RenderTransform>(refFrame.parentID.value());
-					ImGui::TextWrapped("\t\t\tActual ratio to parent: %.10f units", (renderT.visualScale / parentRenderT.visualScale));
+					ImGui::TextWrapped("\t\tActual ratio to parent: %.10f units", (renderT.visualScale / parentRenderT.visualScale));
 				}
 
 				// Local Transform
-				ImGui::PushFont(g_fontContext.Roboto.bold);
-				ImGui::TextWrapped("\tLocal Transform:");
-				ImGui::PopFont();
+				ImGuiUtils::BoldText("Local Transform");
 
-				ImGui::TextWrapped("\t\tPosition: (x: %.2f, y: %.2f, z: %.2f)",
-					refFrame.localTransform.position.x,
-					refFrame.localTransform.position.y,
-					refFrame.localTransform.position.z);
-				ImGui::TextWrapped("\t\t\tMagnitude: ||vec|| ~= %.2f m", glm::length(refFrame.localTransform.position));
+				ImGuiUtils::ComponentField(
+					{
+						{"X", refFrame.localTransform.position.x},
+						{"Y", refFrame.localTransform.position.y},
+						{"Z", refFrame.localTransform.position.z}
+					},
+					"%.2f", "\tPosition"
+				);
+				ImGui::TextWrapped("\tMagnitude: ||vec|| ~= %.2f m", glm::length(refFrame.localTransform.position));
 
-				ImGui::TextWrapped("\t\tRotation: (w: %.2f, x: %.2f, y: %.2f, z: %.2f)",
-					refFrame.localTransform.rotation.w,
-					refFrame.localTransform.rotation.x,
-					refFrame.localTransform.rotation.y,
-					refFrame.localTransform.rotation.z);
+
+				ImGuiUtils::ComponentField(
+					{
+						{"W", refFrame.localTransform.rotation.w},
+						{"X", refFrame.localTransform.rotation.x},
+						{"Y", refFrame.localTransform.rotation.y},
+						{"Z", refFrame.localTransform.rotation.z}
+					},
+					"%.2f", "\tRotation"
+				);
 
 				// Global Transform
-				ImGui::PushFont(g_fontContext.Roboto.bold);
-				ImGui::TextWrapped("\tGlobal Transform:");
-				ImGui::PopFont();
+				ImGuiUtils::BoldText("Global Transform");
 
-				ImGui::TextWrapped("\t\tPosition (simulation): (x: %.2f, y: %.2f, z: %.2f)",
-					refFrame.globalTransform.position.x,
-					refFrame.globalTransform.position.y,
-					refFrame.globalTransform.position.z);
-				ImGui::TextWrapped("\t\t\tMagnitude: ||vec|| ~= %.2f m", glm::length(refFrame.globalTransform.position));
 
-				ImGui::TextWrapped("\t\tPosition (render): (x: %.2f, y: %.2f, z: %.2f)",
-					renderT.position.x, renderT.position.y, renderT.position.z);
-				ImGui::TextWrapped("\t\t\tMagnitude: ||vec|| ~= %.2f units", glm::length(renderT.position));
+				ImGuiUtils::ComponentField(
+					{
+						{"X", refFrame.globalTransform.position.x},
+						{"Y", refFrame.globalTransform.position.y},
+						{"Z", refFrame.globalTransform.position.z}
+					},
+					"%.2f", "\tPosition (simulation)"
+				);
+				ImGui::TextWrapped("\tMagnitude: ||vec|| ~= %.2f m", glm::length(refFrame.globalTransform.position));
 
-				ImGui::TextWrapped("\t\tRotation: (w: %.2f, x: %.2f, y: %.2f, z: %.2f)",
-					refFrame.globalTransform.rotation.w,
-					refFrame.globalTransform.rotation.x,
-					refFrame.globalTransform.rotation.y,
-					refFrame.globalTransform.rotation.z);
 
+				ImGuiUtils::ComponentField(
+					{
+						{"X", renderT.position.x},
+						{"Y", renderT.position.y},
+						{"Z", renderT.position.z}
+					},
+					"%.2f", "\tPosition (render)"
+				);
+				ImGui::TextWrapped("\tMagnitude: ||vec|| ~= %.2f units", glm::length(renderT.position));
+
+
+				ImGuiUtils::ComponentField(
+					{
+						{"W", refFrame.globalTransform.rotation.w},
+						{"X", refFrame.globalTransform.rotation.x},
+						{"Y", refFrame.globalTransform.rotation.y},
+						{"Z", refFrame.globalTransform.rotation.z}
+					},
+					"%.2f", "\tRotation"
+				);
 			}
 
 
 			if (entityCount < view.size() - 1) {
-				ImGui::Separator();
+				ImGui::Dummy(separatorPadding);
 			}
 			entityCount++;
 
 			ImGui::PopID();
 		}
 
-		ImGui::Separator();
+		ImGui::Dummy(separatorPadding);
 
-		ImGui::PushFont(g_fontContext.Roboto.bold);
-		ImGui::TextWrapped("Camera");
-		ImGui::PopFont();
 
 		static Camera* camera = m_inputManager->getCamera();
 		CommonComponent::Transform cameraTransform = camera->getGlobalTransform();
 		glm::vec3 scaledCameraPosition = SpaceUtils::ToRenderSpace_Position(cameraTransform.position);
 
-		ImGui::TextWrapped("\tSpeed: %.0e", camera->movementSpeed);
+		ImGuiUtils::BoldText("Camera");
 
-		ImGui::TextWrapped("\tGlobal transform:");
+		ImGuiUtils::BoldText("Global transform");
 
-		ImGui::TextWrapped("\t\tPosition (simulation): (x: %.1e, y: %.1e, z: %.1e)",
-			cameraTransform.position.x, cameraTransform.position.y, cameraTransform.position.z);
-		ImGui::TextWrapped("\t\tPosition (render): (x: %.2f, y: %.2f, z: %.2f)",
-			scaledCameraPosition.x, scaledCameraPosition.y, scaledCameraPosition.z);
+		ImGuiUtils::ComponentField(
+			{
+				{"X", cameraTransform.position.x},
+				{"Y", cameraTransform.position.y},
+				{"Z", cameraTransform.position.z}
+			},
+			"%.1e", "\tPosition (simulation)"
+		);
 
-		ImGui::TextWrapped("\t\tRotation: (w: %.2f, x: %.2f, y: %.2f, z: %.2f)",
-			cameraTransform.rotation.w, cameraTransform.rotation.x, cameraTransform.rotation.y, cameraTransform.rotation.z);
+		ImGuiUtils::ComponentField(
+			{
+				{"X", scaledCameraPosition.x},
+				{"Y", scaledCameraPosition.y},
+				{"Z", scaledCameraPosition.z}
+			},
+			"%.2f", "\tPosition (render)"
+		);
+
+		ImGuiUtils::ComponentField(
+			{
+				{"W", cameraTransform.rotation.w},
+				{"X", cameraTransform.rotation.x},
+				{"Y", cameraTransform.rotation.y},
+				{"Z", cameraTransform.rotation.z}
+			},
+			"%.2f", "\tRotation"
+		);
+
 
 		ImGui::End();
 	}
@@ -489,7 +545,7 @@ void UIPanelManager::renderSimulationControlPanel() {
 			static std::string currentIntegrator = "Fourth Order Runge-Kutta";
 			ImGui::Text("Numerical Integrator");
 			ImGui::SameLine();
-			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x * padding);
+			ImGui::SetNextItemWidth(ImGuiUtils::GetAvailableWidth());
 
 			ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
 			ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
@@ -527,7 +583,7 @@ void UIPanelManager::renderSimulationControlPanel() {
 
 			ImGui::Text(sliderLabel);
 			ImGui::SameLine();
-			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x * padding);
+			ImGui::SetNextItemWidth(ImGuiUtils::GetAvailableWidth());
 			ImGui::SliderFloat(sliderID, &timeScale, MIN_VAL, MAX_VAL, "%.1fx", ImGuiSliderFlags_AlwaysClamp);
 			if (!m_simulationIsPaused) {
 				// Edge case: Prevents modifying the time scale when the simulation control panel is open while the simulation is still running
@@ -561,7 +617,7 @@ void UIPanelManager::renderSimulationControlPanel() {
 
 			ImGui::Text("Camera Speed Magnitude");
 			ImGui::SameLine();
-			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x * padding);
+			ImGui::SetNextItemWidth(ImGuiUtils::GetAvailableWidth());
 			if (ImGui::DragFloat("##CameraSpeedDragFloat", &speedMagnitude, 1.0f, 1.0f, 12.0f, "1e+%.0f", ImGuiSliderFlags_AlwaysClamp)) {
 				camera->movementSpeed = std::powf(10.0f, speedMagnitude);
 			}
@@ -582,6 +638,130 @@ void UIPanelManager::renderRenderSettingsPanel() {
 
 		ImGui::TextWrapped("Pushing the boundaries of space exploration, one line of code at a time.");
 
+		ImGui::End();
+	}
+}
+
+
+void UIPanelManager::renderPreferencesPanel() {
+	const GUI::PanelFlag flag = GUI::PanelFlag::PANEL_PREFERENCES;
+	if (!GUI::IsPanelOpen(m_panelMask, flag)) return;
+
+	// Options
+	static enum SelectedOption {
+		APPEARANCE
+	};
+	static SelectedOption currentSelection = APPEARANCE;
+
+	// Child panes
+	static const char* LEFT_PANE_ID = "##LeftPane";
+	static const char* RIGHT_PANE_ID = "##RightPane";
+
+
+	// Sets fixed size and initial position for the parent window
+	ImGui::SetNextWindowSize(ImVec2(800.0f, 500.0f));
+	ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_FirstUseEver, ImVec2(0.5f, 0.5f));
+
+	// ----- PARENT WINDOW (Dockspace) -----
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+
+	if (ImGui::Begin(GUI::GetPanelName(flag), nullptr, m_windowFlags | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoResize)) {
+		ImGuiID parentDockspaceID = ImGui::GetID("MainDialogDockspace");
+
+		// Calculates space for the dockspace such that there is room for buttons at the bottom
+		float buttonAreaHeight = ImGui::GetFrameHeight() + ImGui::GetStyle().ItemSpacing.y * 2.0f;
+		ImVec2 dockspaceSize = ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y - buttonAreaHeight);
+
+		ImGui::DockSpace(parentDockspaceID, dockspaceSize, ImGuiDockNodeFlags_None);
+
+		static bool initialLayoutSetUp = false;
+		if (!initialLayoutSetUp) {
+			initialLayoutSetUp = true;
+
+			// NOTE: It is good practice to clear any existing nodes for this dockspace to ensure the desired initial layout is applied.
+			ImGui::DockBuilderRemoveNode(parentDockspaceID);
+			ImGui::DockBuilderAddNode(parentDockspaceID, ImGuiDockNodeFlags_DockSpace);
+
+			// IMPORTANT: Sets the size of the dockspace node before splitting for accurate percentage splits
+			ImGui::DockBuilderSetNodeSize(parentDockspaceID, dockspaceSize);
+
+
+			// Splits the dockspace (25% for left, remaining for right)
+			ImGuiID leftDockID;
+			ImGuiID rightDockID;
+			ImGui::DockBuilderSplitNode(parentDockspaceID, ImGuiDir_Left, 0.25f, &leftDockID, &rightDockID);
+
+			// Sets flags on split nodes, because setting them individually (at ImGui::Begin) doesn't work for some reason
+			ImGuiDockNode* leftNode = ImGui::DockBuilderGetNode(leftDockID);
+			ImGuiDockNode* rightNode = ImGui::DockBuilderGetNode(rightDockID);
+
+			if (leftNode) {
+				leftNode->LocalFlags |= ImGuiDockNodeFlags_NoTabBar | ImGuiDockNodeFlags_NoCloseButton;
+			}
+			if (rightNode) {
+				rightNode->LocalFlags |= ImGuiDockNodeFlags_NoTabBar | ImGuiDockNodeFlags_NoCloseButton;
+				//rightNode->LocalFlags |= ImGuiDockNodeFlags_NoResizeX;
+			}
+
+			// Anticipates future windows and docks them by name
+			ImGui::DockBuilderDockWindow(LEFT_PANE_ID, leftDockID);
+			ImGui::DockBuilderDockWindow(RIGHT_PANE_ID, rightDockID);
+
+
+			ImGui::DockBuilderFinish(parentDockspaceID);
+		}
+
+
+		// Buttons
+		static const float btnSizeX = 70.0f;
+		static const int btnCount = 2;
+		static const float paddingRight = 30.0f;
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + ImGui::GetStyle().ItemSpacing.y); // Adds a little vertical space
+		ImGui::Dummy(ImVec2(ImGui::GetContentRegionAvail().x - paddingRight - btnSizeX * btnCount, 0.0f)); // Pushes buttons to the right
+		ImGui::SameLine();
+		if (ImGui::Button("OK", ImVec2(btnSizeX, 0.0f))) {
+			// TODO: Handle data-saving here
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Cancel", ImVec2(btnSizeX, 0.0f))) {
+			// "Cancel" button logic: e.g., discard changes, close dialog
+		}
+
+		ImGui::End();
+	}
+
+	ImGui::PopStyleVar(2);
+
+
+
+	// ----- LEFT PANE (OPTIONS PANE) -----
+	if (ImGui::Begin(LEFT_PANE_ID, nullptr, ImGuiWindowFlags_NoDecoration)) {
+		// APPEARANCE
+		if (ImGui::TreeNodeEx("Appearance", ImGuiTreeNodeFlags_DefaultOpen)) {
+			if (ImGui::Selectable("Color theme", currentSelection == APPEARANCE)) {
+				currentSelection = APPEARANCE;
+			}
+			ImGui::TreeNodeDrawLineToChildNode(ImGui::GetCursorPos());
+
+
+			ImGui::TreePop();
+		}
+
+		ImGui::End();
+	}
+
+
+	// ----- RIGHT PANE (OPTION DETAILS PANE) -----
+	if (ImGui::Begin(RIGHT_PANE_ID, nullptr, ImGuiWindowFlags_NoDecoration)) {
+		switch (currentSelection) {
+		case APPEARANCE:
+			ImGuiUtils::BoldText("Appearance");
+			ImGui::Separator();
+
+			ImGui::TextWrapped("Color theme");
+		}
+		
 		ImGui::End();
 	}
 }

@@ -27,6 +27,7 @@
 #include <Core/Data/Contexts/AppContext.hpp>
 
 #include <Scene/GUI/UIPanelManager.hpp>
+#include <Scene/GUI/Appearance.hpp>
 
 #include <Rendering/Pipelines/OffscreenPipeline.hpp>
 
@@ -36,18 +37,11 @@
 
 class UIRenderer {
 public:
-	enum Appearance {
-		IMGUI_APPEARANCE_DARK_MODE,
-		IMGUI_APPEARANCE_LIGHT_MODE
-	};
-
 	UIRenderer();
 	~UIRenderer();
 
-	/* Initializes ImGui.
-		@param appearance (Default: IMGUI_APPEARANCE_DARK_MODE): The default appearance.
-	*/
-	void initImGui(UIRenderer::Appearance appearance = Appearance::IMGUI_APPEARANCE_DARK_MODE);
+	/* Initializes ImGui. */
+	void initImGui();
 
 	void initFonts();
 
@@ -65,15 +59,7 @@ public:
 	/* Updates ImGui textures (i.e., descriptor sets). */
 	void updateTextures(uint32_t currentFrame);
 
-
-	/* Updates the GUI appearance.
-		@param appearance (Default is set by UIRenderer::initializeImGui): The appearance to update the GUI to.
-	*/
-	void updateAppearance(UIRenderer::Appearance appearance);
-
 private:
-	UIRenderer::Appearance m_currentAppearance = Appearance::IMGUI_APPEARANCE_DARK_MODE;
-
 	std::shared_ptr<Registry> m_registry;
 	std::shared_ptr<GarbageCollector> m_garbageCollector;
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;

@@ -19,10 +19,11 @@ namespace GUI {
 
 		// Normal panels
 		PANEL_VIEWPORT,
-		PANEL_TELEMETRY,  
+		PANEL_TELEMETRY,
 		PANEL_ENTITY_INSPECTOR,  
 		PANEL_SIMULATION_CONTROL,  
-		PANEL_RENDER_SETTINGS,  
+		PANEL_RENDER_SETTINGS,
+		PANEL_PREFERENCES,
 		PANEL_ORBITAL_PLANNER,  
 		PANEL_DEBUG_CONSOLE,
 		PANEL_DEBUG_APP
@@ -34,6 +35,7 @@ namespace GUI {
 		PanelFlag::PANEL_ENTITY_INSPECTOR,
 		PanelFlag::PANEL_SIMULATION_CONTROL,
 		PanelFlag::PANEL_RENDER_SETTINGS,
+		PanelFlag::PANEL_PREFERENCES,
 		PanelFlag::PANEL_ORBITAL_PLANNER,
 		PanelFlag::PANEL_DEBUG_CONSOLE,
 		PanelFlag::PANEL_DEBUG_APP
@@ -47,6 +49,7 @@ namespace GUI {
 		{PanelFlag::PANEL_ENTITY_INSPECTOR,			"Entity Inspector"},
 		{PanelFlag::PANEL_SIMULATION_CONTROL,		"Simulation Control Panel"},
 		{PanelFlag::PANEL_RENDER_SETTINGS,			"Render Settings"},
+		{PanelFlag::PANEL_PREFERENCES,				"Preferences"},
 		{PanelFlag::PANEL_ORBITAL_PLANNER,			"Orbital Planner"},
 		{PanelFlag::PANEL_DEBUG_CONSOLE,			"Console"},
 		{PanelFlag::PANEL_DEBUG_APP,				"Application Debugger"}

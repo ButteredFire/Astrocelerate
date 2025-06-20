@@ -29,6 +29,7 @@
 #include <Utils/ColorUtils.hpp>
 #include <Utils/SpaceUtils.hpp>
 #include <Utils/SystemUtils.hpp>
+#include <Utils/ImGuiUtils.hpp>
 #include <Utils/Vulkan/VkDescriptorUtils.hpp>
 
 
@@ -76,6 +77,7 @@ private:
 	// Common window flags
 	ImGuiWindowFlags m_windowFlags;
 	ImGuiWindowFlags m_popupWindowFlags;
+	ImGuiWindowClass m_windowClass;
 
 	// Viewport
 		// Sampling as a texture
@@ -120,6 +122,7 @@ private:
 	void renderEntityInspectorPanel();
 	void renderSimulationControlPanel();
 	void renderRenderSettingsPanel();
+	void renderPreferencesPanel();
 	void renderOrbitalPlannerPanel();
 
 	void renderDebugConsole();

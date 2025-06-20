@@ -156,7 +156,7 @@ void VkDeviceManager::createLogicalDevice() {
     deviceInfo.ppEnabledExtensionNames = m_requiredDeviceExtensions.data();
 
     // Sets device-specific validation layers
-    if (inDebugMode) {
+    if (IN_DEBUG_MODE) {
         deviceInfo.enabledLayerCount = static_cast<uint32_t> (g_vkContext.enabledValidationLayers.size());
         deviceInfo.ppEnabledLayerNames = g_vkContext.enabledValidationLayers.data();
     }

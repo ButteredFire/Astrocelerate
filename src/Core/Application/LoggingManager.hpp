@@ -161,7 +161,7 @@ namespace Log {
 	inline void PrintAppInfo() {
 		std::cout << "Project " << APP_NAME << " (version: " << APP_VERSION << ").\n";
 		std::cout << "Project is run in ";
-		if (inDebugMode)
+		if (IN_DEBUG_MODE)
 			std::cout << "Debug mode.\n\n";
 		else
 			std::cout << "Release mode.\n\n";
