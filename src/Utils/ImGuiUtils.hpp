@@ -29,6 +29,33 @@ namespace ImGuiUtils {
 	}
 
 
+	/* Resizes an image relative to its parent's size so as to preserve its aspect ratio.
+		@param imgSize: The size of the image to be resized.
+		@param viewportSize: The size of the viewport (parent) to which the image is resized.
+
+		@return The resized image size.
+	*/
+	inline ImVec2 ResizeImagePreserveAspectRatio(const ImVec2& imgSize, ImVec2& viewportSize) {
+		ImVec2 textureSize{};
+
+		float renderAspect = static_cast<float>(imgSize.x) / imgSize.y;
+		float panelAspect = viewportSize.x / viewportSize.y;
+
+		if (panelAspect > renderAspect) {
+			// Panel is wider than the render target
+			textureSize.x = viewportSize.y * renderAspect;
+			textureSize.y = viewportSize.y;
+		}
+		else {
+			// Panel is taller than the render target
+			textureSize.x = viewportSize.x;
+			textureSize.y = viewportSize.x / renderAspect;
+		}
+
+		return textureSize;
+	};
+
+
 
 	// ----- TEXT FORMATTING -----
 
@@ -41,7 +68,7 @@ namespace ImGuiUtils {
         ImGui::PushFont(g_fontContext.Roboto.bold);
         va_list args;  // Handles variadic arguments
         va_start(args, fmt);
-        ImGui::TextV(fmt, args);   // ImGui::TextV is the variadic version of ImGui::Text
+        ImGui::TextWrappedV(fmt, args);   // ImGui::TextWrappedV is the variadic version of ImGui::TextWrapped
         va_end(args);
         ImGui::PopFont();
     }
@@ -56,7 +83,7 @@ namespace ImGuiUtils {
 		ImGui::PushFont(g_fontContext.Roboto.italic);
 		va_list args;
 		va_start(args, fmt);
-		ImGui::TextV(fmt, args);
+		ImGui::TextWrappedV(fmt, args);
 		va_end(args);
 		ImGui::PopFont();
 	}
@@ -71,7 +98,22 @@ namespace ImGuiUtils {
 		ImGui::PushFont(g_fontContext.Roboto.lightItalic);
 		va_list args;
 		va_start(args, fmt);
-		ImGui::TextV(fmt, args);
+		ImGui::TextWrappedV(fmt, args);
+		va_end(args);
+		ImGui::PopFont();
+	}
+
+
+	/* Renders light text.
+		@param fmt: The (formatted) text to be emboldened.
+		@param ...: The arguments for the formatted text.
+	*/
+	inline void LightText(const char* fmt, ...) {
+		LOG_ASSERT(g_fontContext.Roboto.light, "Cannot render light text " + enquote(fmt) + ": The bold font has not been loaded!");
+		ImGui::PushFont(g_fontContext.Roboto.light);
+		va_list args;
+		va_start(args, fmt);
+		ImGui::TextWrappedV(fmt, args);
 		va_end(args);
 		ImGui::PopFont();
 	}
@@ -86,7 +128,7 @@ namespace ImGuiUtils {
 			ImGui::BeginTooltip();
 			va_list args;  // Handles variadic arguments
 			va_start(args, fmt);
-			ImGui::TextV(fmt, args);
+			ImGui::TextWrappedV(fmt, args);
 			va_end(args);
 			ImGui::EndTooltip();
 		}
@@ -94,9 +136,9 @@ namespace ImGuiUtils {
 
 
 
-	// ----- INPUT FORMATTING -----
+	// ----- CUSTOM ELEMENTS -----
 
-	/* Displays a component field for a multi-component container (e.g., 3-component vector, quaternion).
+	/* A component field for a multi-component container (e.g., 3-component vector, quaternion).
 		@param components: A map of component labels and their values (e.g., { {"X", 0.0f}, {"Y", 5.0f} }).
 		@param componentFormat: The format string for the component values (e.g., "%.1f").
 		@param fmt: The formatted text to be displayed above the component fields. It can be left empty if only the component field itself is desired.
@@ -116,7 +158,7 @@ namespace ImGuiUtils {
 
 			va_list args;
 			va_start(args, finalText.c_str());
-			ImGui::TextV(finalText.c_str(), args);
+			ImGui::TextWrappedV(finalText.c_str(), args);
 			va_end(args);
 			ImGui::SameLine();
 		}
@@ -158,9 +200,35 @@ namespace ImGuiUtils {
 			snprintf(buffer, sizeof(buffer), componentFormat, value);
 			ImGui::InputText(("##" + std::to_string(counter)).c_str(), buffer, sizeof(buffer), ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_AutoSelectAll);
 
+			// If the text is too long, use a tooltip to show the full text
+			bool textIsTooLong = (ImGui::CalcTextSize(buffer).x > componentWidth);
+			if (textIsTooLong && ImGui::IsItemHovered()) {
+				ImGui::BeginTooltip();
+				ImGui::TextUnformatted(buffer);
+				ImGui::EndTooltip();
+			}
 
 			counter++;
 		}
 		ImGui::PopID();
+	}
+
+
+	/* A separator with top- and bottom-padding. 
+		@param padding (Default: 10.0f): The padding to use for the separator.
+	*/
+	inline void PaddedSeparator(float padding = 10.0f) {
+		ImVec2 paddingVec = { padding, padding };
+		ImGui::Dummy(paddingVec);
+		ImGui::Separator();
+		ImGui::Dummy(paddingVec);
+	}
+
+
+	/* Padding.
+		@param padding (Default: 15.0f): The padding scalar value.
+	*/
+	inline void Padding(float padding = 15.0f) {
+		ImGui::Dummy({ padding, padding });
 	}
 }

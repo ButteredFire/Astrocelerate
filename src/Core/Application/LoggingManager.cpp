@@ -2,5 +2,5 @@
 
 namespace Log {
 	std::deque<LogMessage> LogBuffer;
-	size_t maxLogLines = 500;
+	int MaxLogLines = 500;
 }

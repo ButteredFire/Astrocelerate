@@ -115,6 +115,7 @@ void UIRenderer::initImGui() {
     // Implements custom style
         // Refer to ImGui::StyleColorsDark() and ImGui::StyleColorsLight() for more information
     ImGuiTheme::ApplyTheme(defaultAppearance);
+    g_appContext.GUI.currentAppearance = defaultAppearance;
 
 
     auto iniBuffer = FilePathUtils::readFile(ConfigConsts::IMGUI_DEFAULT_CONFIG);

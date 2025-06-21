@@ -5,6 +5,7 @@
 
 #include <bitset>  
 #include <unordered_map>
+#include <unordered_set>
 
 #include <imgui/imgui.h>
 
@@ -17,25 +18,35 @@ namespace GUI {
 		// Special panels
 		NULL_PANEL = 0,
 
+		// Panels exclusively accessed from the menu bar
+		PANEL_MENU_PREFERENCES,
+		PANEL_MENU_ABOUT,
+
 		// Normal panels
 		PANEL_VIEWPORT,
 		PANEL_TELEMETRY,
 		PANEL_ENTITY_INSPECTOR,  
 		PANEL_SIMULATION_CONTROL,  
 		PANEL_RENDER_SETTINGS,
-		PANEL_PREFERENCES,
 		PANEL_ORBITAL_PLANNER,  
 		PANEL_DEBUG_CONSOLE,
 		PANEL_DEBUG_APP
 	};
 
+	inline const std::unordered_set<PanelFlag> PanelMenuFlags = {
+		PanelFlag::PANEL_MENU_PREFERENCES,
+		PanelFlag::PANEL_MENU_ABOUT
+	};
+
 	inline constexpr PanelFlag PanelFlagsArray[] = {
+		PanelFlag::PANEL_MENU_PREFERENCES,
+		PanelFlag::PANEL_MENU_ABOUT,
+
 		PanelFlag::PANEL_VIEWPORT,
 		PanelFlag::PANEL_TELEMETRY,
 		PanelFlag::PANEL_ENTITY_INSPECTOR,
 		PanelFlag::PANEL_SIMULATION_CONTROL,
 		PanelFlag::PANEL_RENDER_SETTINGS,
-		PanelFlag::PANEL_PREFERENCES,
 		PanelFlag::PANEL_ORBITAL_PLANNER,
 		PanelFlag::PANEL_DEBUG_CONSOLE,
 		PanelFlag::PANEL_DEBUG_APP
@@ -44,12 +55,14 @@ namespace GUI {
 
 	// IMPORTANT: Panel flag names must be unique, since they will be used as ImGui IDs.
 	const std::unordered_map<PanelFlag, std::string> PanelNames = {
+		{PanelFlag::PANEL_MENU_PREFERENCES,			"Preferences"},
+		{PanelFlag::PANEL_MENU_ABOUT,				"About Astrocelerate"},
+
 		{PanelFlag::PANEL_VIEWPORT,					"Viewport"},
 		{PanelFlag::PANEL_TELEMETRY,				"Telemetry Data"},
 		{PanelFlag::PANEL_ENTITY_INSPECTOR,			"Entity Inspector"},
 		{PanelFlag::PANEL_SIMULATION_CONTROL,		"Simulation Control Panel"},
 		{PanelFlag::PANEL_RENDER_SETTINGS,			"Render Settings"},
-		{PanelFlag::PANEL_PREFERENCES,				"Preferences"},
 		{PanelFlag::PANEL_ORBITAL_PLANNER,			"Orbital Planner"},
 		{PanelFlag::PANEL_DEBUG_CONSOLE,			"Console"},
 		{PanelFlag::PANEL_DEBUG_APP,				"Application Debugger"}

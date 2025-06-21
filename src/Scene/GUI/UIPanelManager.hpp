@@ -26,6 +26,8 @@
 #include <Engine/Components/PhysicsComponents.hpp>
 #include <Engine/Components/TelemetryComponents.hpp>
 
+#include <Rendering/Textures/TextureManager.hpp>
+
 #include <Utils/ColorUtils.hpp>
 #include <Utils/SpaceUtils.hpp>
 #include <Utils/SystemUtils.hpp>
@@ -69,26 +71,40 @@ private:
 	std::shared_ptr<InputManager> m_inputManager;
 	std::shared_ptr<Registry> m_registry;
 
+
+	// Panel flags & masks
 	GUI::PanelMask m_panelMask;
 
 	typedef void(UIPanelManager::*PanelCallback)();  // void(void) function pointer
 	std::unordered_map<GUI::PanelFlag, PanelCallback> m_panelCallbacks;
+
 
 	// Common window flags
 	ImGuiWindowFlags m_windowFlags;
 	ImGuiWindowFlags m_popupWindowFlags;
 	ImGuiWindowClass m_windowClass;
 
-	// Viewport
-		// Sampling as a texture
+
+	// Static textures
+	ImTextureID m_startupLogoTextureID;
+	ImVec2 m_startupLogoSize;
+
+	ImTextureID m_appLogoTextureID;
+	ImVec2 m_appLogoSize;
+
+
+	// Dynamic textures
+		// Viewport/Offscreen resources
 	std::vector<ImTextureID> m_viewportRenderTextureIDs;
 	ImVec2 m_lastViewportPanelSize = { 0.0f, 0.0f };
 	uint32_t m_currentFrame = 0;
 
-		// Input blocker to prevent interactions with other GUI elements if the viewport is focused
+
+	// Viewport input blocker blocker (prevents interactions with other GUI elements if the viewport is focused)
 	bool m_inputBlockerIsOn = false;
 
-		// Other
+
+	// Other
 	bool m_simulationIsPaused = true;
 
 
@@ -111,20 +127,30 @@ private:
 	void bindPanelFlags();
 
 
-	/* Initializes descriptor sets for the viewport texture. */
-	void initViewportTextures();
+	/* Initializes static textures (i.e., textures that don't need to be updated). */
+	void initStaticTextures();
 
+	/* Initializes dynamic textures (i.e., textures that need to be updated per-frame, on window resize, etc.). */
+	void initDynamicTextures();
+
+
+	/* Render functions */
+		// Panels menu
 	void renderPanelsMenu();
 
+		// Viewport
 	void renderViewportPanel();
 
+		// Menu-bar panels
+	void renderPreferencesPanel();
+	void renderAboutPanel();
+
+		// Normal panels
 	void renderTelemetryPanel();
 	void renderEntityInspectorPanel();
 	void renderSimulationControlPanel();
 	void renderRenderSettingsPanel();
-	void renderPreferencesPanel();
 	void renderOrbitalPlannerPanel();
-
 	void renderDebugConsole();
 	void renderDebugApplication();
 };

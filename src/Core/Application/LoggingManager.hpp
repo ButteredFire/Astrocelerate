@@ -72,7 +72,7 @@ namespace Log {
 
 	// The log buffer (used for logging to the GUI console)
 	extern std::deque<LogMessage> LogBuffer;
-	extern size_t maxLogLines;
+	extern int MaxLogLines;
 
 
 	/* Adds a message to the log buffer.
@@ -80,7 +80,7 @@ namespace Log {
 	*/
 	inline void AddToLogBuffer(LogMessage& logMsg) {
 		LogBuffer.push_back(logMsg);
-		if (LogBuffer.size() > maxLogLines)
+		if (LogBuffer.size() > MaxLogLines)
 			LogBuffer.pop_front();
 	}
 

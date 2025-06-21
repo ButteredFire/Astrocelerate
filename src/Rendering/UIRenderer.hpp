@@ -34,6 +34,8 @@
 #include <Utils/ColorUtils.hpp>
 #include <Utils/Vulkan/VkDescriptorUtils.hpp>
 
+class UIPanelManager;
+
 
 class UIRenderer {
 public:

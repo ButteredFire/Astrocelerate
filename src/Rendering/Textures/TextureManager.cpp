@@ -11,23 +11,25 @@ TextureManager::TextureManager() {
 }
 
 
-void TextureManager::createTexture(const char* texSource, VkFormat texImgFormat, int channels) {
+ModelComponent::Texture TextureManager::createTexture(const char* texSource, VkFormat texImgFormat, int channels) {
 	// If the default format is passed, use the default surface format
-	if (texImgFormat == VK_FORMAT_UNDEFINED) {
-		m_textureImageFormat = g_vkContext.SwapChain.surfaceFormat.format;
-	}
-	else {
-		m_textureImageFormat = texImgFormat;
-	}
+	VkFormat imgFormat = (texImgFormat == VK_FORMAT_UNDEFINED) ? g_vkContext.SwapChain.surfaceFormat.format : texImgFormat;
 
-	createTextureImage(texSource, channels);
-	createTextureImageView();
-	createTextureSampler();
+	TextureInfo imageProperties = createTextureImage(imgFormat, texSource, channels);
+	VkImageView imageView = createTextureImageView(imageProperties.image, imgFormat);
+	VkSampler sampler = createTextureSampler();
+
+	return ModelComponent::Texture{
+		.size = { imageProperties.width, imageProperties.height },
+		.imageLayout = imageProperties.imageLayout,
+		.imageView = imageView,
+		.sampler = sampler
+	};
 }
 
 
 
-void TextureManager::createTextureImage(const char* texSource, int channels) {
+TextureInfo TextureManager::createTextureImage(VkFormat imgFormat, const char* texSource, int channels) {
 	// Get pixel and texture data
 	int textureWidth, textureHeight, textureChannels;
 	stbi_uc* pixels = stbi_load(texSource, &textureWidth, &textureHeight, &textureChannels, channels);
@@ -67,41 +69,49 @@ void TextureManager::createTextureImage(const char* texSource, int channels) {
 
 	// Create texture image objects
 		// Image
+	VkImage image;
 	VkImageTiling imgTiling = VK_IMAGE_TILING_OPTIMAL;
 	VkImageUsageFlags imgUsageFlags = (VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
 
 		// Image allocation info
+	VmaAllocation imgAllocation;
 	VmaAllocationCreateInfo imgAllocCreateInfo{};
 	imgAllocCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
 	imgAllocCreateInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 
-	createImage(m_textureImage, m_textureImageAllocation, textureWidth, textureHeight, 1, m_textureImageFormat, imgTiling, imgUsageFlags, imgAllocCreateInfo);
-
+	VkImageManager::CreateImage(image, imgAllocation, imgAllocCreateInfo, textureWidth, textureHeight, 1, imgFormat, imgTiling, imgUsageFlags, VK_IMAGE_TYPE_2D);
 
 	// Copy the staging buffer to the texture image
 		// Transition the image layout to TRANSFER_DST (staging buffer (TRANSFER_SRC) -> image (TRANSFER_DST))
-	switchImageLayout(m_textureImage, m_textureImageFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-	copyBufferToImage(stagingBuffer, m_textureImage, static_cast<uint32_t>(textureWidth), static_cast<uint32_t>(textureHeight));
+	switchImageLayout(image, imgFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+	copyBufferToImage(stagingBuffer, image, static_cast<uint32_t>(textureWidth), static_cast<uint32_t>(textureHeight));
 
 
 	// Transition the image layout to the final SHADER_READ_ONLY layout so that it can be read by the shader for sampling
-	switchImageLayout(m_textureImage, m_textureImageFormat, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-	g_vkContext.Texture.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
+	switchImageLayout(image, imgFormat, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 	// Destroy the staging buffer at the end as it has served its purpose
 	m_garbageCollector->executeCleanupTask(stagingBufTaskID);
+
+
+	return TextureInfo{
+		.width = textureWidth,
+		.height = textureHeight,
+		.image = image,
+		.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+	};
 }
 
 
-void TextureManager::createTextureImageView() {
-	VkImageManager::CreateImageView(m_textureImageView, m_textureImage, m_textureImageFormat, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_VIEW_TYPE_2D, 1, 1);
-	g_vkContext.Texture.imageView = m_textureImageView;
+VkImageView TextureManager::createTextureImageView(VkImage image, VkFormat imgFormat) {
+	VkImageView imageView;
+	VkImageManager::CreateImageView(imageView, image, imgFormat, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_VIEW_TYPE_2D, 1, 1);
+
+	return imageView;
 }
 
 
-void TextureManager::createTextureSampler() {
+VkSampler TextureManager::createTextureSampler() {
 	VkSamplerCreateInfo samplerCreateInfo{};
 	samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 
@@ -151,22 +161,24 @@ void TextureManager::createTextureSampler() {
 	samplerCreateInfo.minLod = 0.0f;
 	samplerCreateInfo.maxLod = 0.0f;
 
+	VkSampler textureSampler;
 
-	VkResult result = vkCreateSampler(g_vkContext.Device.logicalDevice, &samplerCreateInfo, nullptr, &m_textureSampler);
+	VkResult result = vkCreateSampler(g_vkContext.Device.logicalDevice, &samplerCreateInfo, nullptr, &textureSampler);
 	if (result != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create texture sampler!");
 	}
-	
-	g_vkContext.Texture.sampler = m_textureSampler;
 
 
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
-	task.objectNames = { VARIABLE_NAME(m_textureSampler) };
-	task.vkObjects = { g_vkContext.Device.logicalDevice, m_textureSampler };
-	task.cleanupFunc = [this]() { vkDestroySampler(g_vkContext.Device.logicalDevice, m_textureSampler, nullptr); };
+	task.objectNames = { VARIABLE_NAME(textureSampler) };
+	task.vkObjects = { g_vkContext.Device.logicalDevice, textureSampler };
+	task.cleanupFunc = [this, textureSampler]() { vkDestroySampler(g_vkContext.Device.logicalDevice, textureSampler, nullptr); };
 
 	m_garbageCollector->createCleanupTask(task);
+
+
+	return textureSampler;
 }
 
 

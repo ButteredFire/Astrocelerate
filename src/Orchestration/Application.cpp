@@ -107,7 +107,10 @@ int main() {
         std::string path = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Textures", "CelestialBodies", "Earth/EarthMap.jpg");
         //std::string path = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models", "TestModels/Plane/Textures/BaseColor.png");
         //std::string path = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models", "TestModels/VikingRoom/viking_room.png");
-        textureManager->createTexture(path.c_str());
+        ModelComponent::Texture earthTexture = textureManager->createTexture(path.c_str());
+        g_vkContext.Texture.imageLayout = earthTexture.imageLayout;
+        g_vkContext.Texture.imageView = earthTexture.imageView;
+        g_vkContext.Texture.sampler = earthTexture.sampler;
 
 
             // Buffer manager

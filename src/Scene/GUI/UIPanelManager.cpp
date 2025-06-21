@@ -35,14 +35,15 @@ void UIPanelManager::bindEvents() {
 				ImGui_ImplVulkan_RemoveTexture((VkDescriptorSet) m_viewportRenderTextureIDs[i]);
 			}
 
-			initViewportTextures();
+			initDynamicTextures();
 		}
 	);
 }
 
 
 void UIPanelManager::onImGuiInit() {
-	initViewportTextures();
+	initStaticTextures();
+	initDynamicTextures();
 
 
 	// TODO: Serialize the panel mask in the future to allow for config loading/ opening panels from the last session
@@ -88,7 +89,7 @@ void UIPanelManager::initPanelsFromMask(GUI::PanelMask& mask) {
 
 void UIPanelManager::updatePanels(uint32_t currentFrame) {
 	m_currentFrame = currentFrame;
-	renderPanelsMenu();
+	//renderPanelsMenu();
 	
 	for (auto&& [flag, callback] : m_panelCallbacks) {
 		if (GUI::IsPanelOpen(m_panelMask, flag)) {
@@ -122,18 +123,51 @@ void UIPanelManager::bindPanelFlags() {
 	using namespace GUI;
 
 	m_panelCallbacks[PanelFlag::PANEL_VIEWPORT]				= &UIPanelManager::renderViewportPanel;
+
+	m_panelCallbacks[PanelFlag::PANEL_MENU_PREFERENCES]		= &UIPanelManager::renderPreferencesPanel;
+	m_panelCallbacks[PanelFlag::PANEL_MENU_ABOUT]			= &UIPanelManager::renderAboutPanel;
+
 	m_panelCallbacks[PanelFlag::PANEL_TELEMETRY]			= &UIPanelManager::renderTelemetryPanel;
 	m_panelCallbacks[PanelFlag::PANEL_ENTITY_INSPECTOR]		= &UIPanelManager::renderEntityInspectorPanel;
 	m_panelCallbacks[PanelFlag::PANEL_SIMULATION_CONTROL]	= &UIPanelManager::renderSimulationControlPanel;
 	m_panelCallbacks[PanelFlag::PANEL_RENDER_SETTINGS]		= &UIPanelManager::renderRenderSettingsPanel;
-	m_panelCallbacks[PanelFlag::PANEL_PREFERENCES]			= &UIPanelManager::renderPreferencesPanel;
 	m_panelCallbacks[PanelFlag::PANEL_ORBITAL_PLANNER]		= &UIPanelManager::renderOrbitalPlannerPanel;
 	m_panelCallbacks[PanelFlag::PANEL_DEBUG_CONSOLE]		= &UIPanelManager::renderDebugConsole;
 	m_panelCallbacks[PanelFlag::PANEL_DEBUG_APP]			= &UIPanelManager::renderDebugApplication;
 }
 
 
-void UIPanelManager::initViewportTextures() {
+void UIPanelManager::initStaticTextures() {
+	std::shared_ptr<TextureManager> textureManager = ServiceLocator::GetService<TextureManager>(__FUNCTION__);
+
+	// Startup Logo
+	{
+		std::string logoPath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/App");
+		if (g_appContext.GUI.currentAppearance == ImGuiTheme::Appearance::IMGUI_APPEARANCE_DARK_MODE)
+			logoPath = FilePathUtils::joinPaths(logoPath, "StartupLogoTransparentWhite.png");
+		else
+			logoPath = FilePathUtils::joinPaths(logoPath, "StartupLogoTransparentBlack.png");
+
+		ModelComponent::Texture texture = textureManager->createTexture(logoPath.c_str(), VK_FORMAT_R8G8B8A8_SRGB);
+
+		m_startupLogoTextureID = (ImTextureID)ImGui_ImplVulkan_AddTexture(texture.sampler, texture.imageView, texture.imageLayout);
+		m_startupLogoSize = { texture.size.x, texture.size.y };
+	}
+
+	// Application logo
+	{
+		std::string logoPath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/App", "ExperimentalAppLogoV1Transparent.png");
+
+		ModelComponent::Texture texture = textureManager->createTexture(logoPath.c_str(), VK_FORMAT_R8G8B8A8_SRGB);
+
+		m_appLogoTextureID = (ImTextureID)ImGui_ImplVulkan_AddTexture(texture.sampler, texture.imageView, texture.imageLayout);
+		m_appLogoSize = { texture.size.x, texture.size.y };
+	}
+}
+
+
+void UIPanelManager::initDynamicTextures() {
+	// Offscreen resources (for the viewport)
 	const size_t OFFSCREEN_RESOURCE_COUNT = g_vkContext.OffscreenResources.images.size();
 	m_viewportRenderTextureIDs.resize(OFFSCREEN_RESOURCE_COUNT);
 
@@ -173,31 +207,82 @@ void UIPanelManager::performBackgroundChecks(GUI::PanelFlag flag) {
 
 void UIPanelManager::renderMenuBar() {
 	if (ImGui::BeginMenuBar()) {
-		ImGui::PushFont(g_fontContext.Roboto.light);
-		ImGui::Text("%s (version %s). Copyright (c) 2024-2025 %s.", APP_NAME, APP_VERSION, AUTHOR);
-		ImGui::PopFont();
 
-		/*
 		if (ImGui::BeginMenu("File")) {
+			// Open
 			if (ImGui::MenuItem("Open", "Ctrl+O")) {
-				// Handle Open
+				// TODO: Handle Open
 			}
+
+			// Save
 			if (ImGui::MenuItem("Save", "Ctrl+S")) {
-				// Handle Save
+				// TODO: Handle Save
 			}
+
 			ImGui::Separator();
+
+			// Preferences
+			{
+				using namespace GUI;
+				PanelFlag panelFlag = PanelFlag::PANEL_MENU_PREFERENCES;
+				bool isOpen = IsPanelOpen(m_panelMask, panelFlag);
+
+				ImGui::MenuItem(GetPanelName(panelFlag), "Ctrl+Shift+P", &isOpen);
+				TogglePanel(m_panelMask, panelFlag, isOpen ? TOGGLE_ON : TOGGLE_OFF);
+			}
+
+			ImGui::Separator();
+
+			// Exit
 			if (ImGui::MenuItem("Exit")) {
-				// Handle Exit
+				// TODO: Handle Exit
 			}
 			ImGui::EndMenu();
 		}
+
+		if (ImGui::BeginMenu("View")) {
+			using namespace GUI;
+
+			// ImGui demo window
+			if (IN_DEBUG_MODE) {
+				static bool isDemoWindowOpen = false;
+				if (ImGui::MenuItem("ImGui Demo Window (Debug Mode)", "", & isDemoWindowOpen))
+					ImGui::ShowDemoWindow();
+
+				ImGui::Separator();
+			}
+
+			// All other panels
+			for (size_t i = 0; i < FLAG_COUNT; i++) {
+				PanelFlag flag = PanelFlagsArray[i];
+
+				// Only render normal panels
+				if (PanelMenuFlags.find(flag) == PanelMenuFlags.end()) {
+					bool isOpen = IsPanelOpen(m_panelMask, flag);
+					ImGui::MenuItem(GetPanelName(flag), "", &isOpen);
+					TogglePanel(m_panelMask, flag, isOpen ? TOGGLE_ON : TOGGLE_OFF);
+				}
+			}
+
+
+			ImGui::EndMenu();
+		}
+
 		if (ImGui::BeginMenu("Help")) {
-			if (ImGui::MenuItem("About")) {
-				// Handle About
+			using namespace GUI;
+			// About panel
+			{
+				PanelFlag aboutPanelFlag = PanelFlag::PANEL_MENU_ABOUT;
+				bool isAboutPanelOpen = IsPanelOpen(m_panelMask, aboutPanelFlag);
+
+				ImGui::MenuItem(GetPanelName(aboutPanelFlag), "", &isAboutPanelOpen);
+				TogglePanel(m_panelMask, aboutPanelFlag, isAboutPanelOpen ? TOGGLE_ON : TOGGLE_OFF);
 			}
+
+
 			ImGui::EndMenu();
 		}
-		*/
+
 
 		ImGui::EndMenuBar();
 	}
@@ -231,28 +316,6 @@ void UIPanelManager::renderPanelsMenu() {
 
 
 void UIPanelManager::renderViewportPanel() {
-	/* Scales the simulation render from the original render dimensions down to viewport dimensions while preserving the original aspect ratio. */
-	static std::function<ImVec2(ImVec2&)> resizeSimulationRender = [](ImVec2& viewportSize) {
-		ImVec2 textureSize{};
-
-		float renderAspect = static_cast<float>(g_vkContext.SwapChain.extent.width) / g_vkContext.SwapChain.extent.height;
-		float panelAspect = viewportSize.x / viewportSize.y;
-
-		if (panelAspect > renderAspect) {
-			// Panel is wider than the render target
-			textureSize.x = viewportSize.y * renderAspect;
-			textureSize.y = viewportSize.y;
-		}
-		else {
-			// Panel is taller than the render target
-			textureSize.x = viewportSize.x;
-			textureSize.y = viewportSize.x / renderAspect;
-		}
-
-		return textureSize;
-	};
-
-
 	const GUI::PanelFlag flag = GUI::PanelFlag::PANEL_VIEWPORT;
 	if (!GUI::IsPanelOpen(m_panelMask, flag)) {
 		Log::Print(Log::T_ERROR, __FUNCTION__, "The viewport must not be closed!");
@@ -298,8 +361,12 @@ void UIPanelManager::renderViewportPanel() {
 		g_appContext.Input.isViewportFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) || m_inputBlockerIsOn;
 
 		// Resizes the texture to its original aspect ratio before rendering
-		ImVec2 textureSize = resizeSimulationRender(viewportPanelSize);
-
+		ImVec2 originalRenderSize = {
+			static_cast<float>(g_vkContext.SwapChain.extent.width),
+			static_cast<float>(g_vkContext.SwapChain.extent.height)
+		};
+		ImVec2 textureSize = ImGuiUtils::ResizeImagePreserveAspectRatio(originalRenderSize, viewportPanelSize);
+		
 			// Padding to center the texture
 		ImVec2 offset{};
 		offset.x = (viewportPanelSize.x - textureSize.x) * 0.5f;
@@ -310,6 +377,264 @@ void UIPanelManager::renderViewportPanel() {
 
 		ImGui::Image(m_viewportRenderTextureIDs[m_currentFrame], textureSize);
 	
+		ImGui::End();
+	}
+}
+
+
+void UIPanelManager::renderPreferencesPanel() {
+	const GUI::PanelFlag flag = GUI::PanelFlag::PANEL_MENU_PREFERENCES;
+	if (!GUI::IsPanelOpen(m_panelMask, flag)) return;
+
+	// Options
+	static const enum SelectedTree {
+		TREE_APPEARANCE,
+		TREE_DEBUGGING
+	};
+	static const enum SelectedOption {
+		OPTION_APPEARANCE_COLOR_THEME,
+		OPTION_DEBUGGING_CONSOLE
+	};
+	static const std::unordered_map<std::variant<SelectedTree, SelectedOption>, const char*> SelectedOptionNames = {
+		{TREE_APPEARANCE,		"Appearance"},
+			{OPTION_APPEARANCE_COLOR_THEME,		"Color theme"},
+
+		{TREE_DEBUGGING,		"Debugging"},
+			{OPTION_DEBUGGING_CONSOLE,			"Console"}
+
+	};
+	static SelectedTree currentTree = TREE_APPEARANCE;
+	static SelectedOption currentSelection = OPTION_APPEARANCE_COLOR_THEME;
+
+	// Child panes
+	static const char* LEFT_PANE_ID = "##LeftPane";
+	static const char* RIGHT_PANE_ID = "##RightPane";
+
+
+	// Sets fixed size and initial position for the parent window
+	ImGui::SetNextWindowSize(ImVec2(800.0f, 500.0f));
+	ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_FirstUseEver, ImVec2(0.5f, 0.5f));
+
+	// ----- PARENT WINDOW (Dockspace) -----
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+	{
+		if (ImGui::Begin(GUI::GetPanelName(flag), nullptr, m_windowFlags | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoResize)) {
+			performBackgroundChecks(flag);
+
+			ImGuiID parentDockspaceID = ImGui::GetID("MainDialogDockspace");
+
+			// Calculates space for the dockspace such that there is room for buttons at the bottom
+			float buttonAreaHeight = ImGui::GetFrameHeight() + ImGui::GetStyle().ItemSpacing.y * 2.0f;
+			ImVec2 dockspaceSize = ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y - buttonAreaHeight);
+
+			ImGui::DockSpace(parentDockspaceID, dockspaceSize, ImGuiDockNodeFlags_None);
+
+			static bool initialLayoutSetUp = false;
+			if (!initialLayoutSetUp) {
+				initialLayoutSetUp = true;
+
+				// NOTE: It is good practice to clear any existing nodes for this dockspace to ensure the desired initial layout is applied.
+				ImGui::DockBuilderRemoveNode(parentDockspaceID);
+				ImGui::DockBuilderAddNode(parentDockspaceID, ImGuiDockNodeFlags_DockSpace);
+
+				// IMPORTANT: Sets the size of the dockspace node before splitting for accurate percentage splits
+				ImGui::DockBuilderSetNodeSize(parentDockspaceID, dockspaceSize);
+
+
+				// Splits the dockspace (25% for left, remaining for right)
+				ImGuiID leftDockID;
+				ImGuiID rightDockID;
+				ImGui::DockBuilderSplitNode(parentDockspaceID, ImGuiDir_Left, 0.25f, &leftDockID, &rightDockID);
+
+				// Sets flags on split nodes, because setting them individually (at ImGui::Begin) doesn't work for some reason
+				ImGuiDockNode* leftNode = ImGui::DockBuilderGetNode(leftDockID);
+				ImGuiDockNode* rightNode = ImGui::DockBuilderGetNode(rightDockID);
+
+				if (leftNode) {
+					leftNode->LocalFlags |= ImGuiDockNodeFlags_NoTabBar | ImGuiDockNodeFlags_NoCloseButton;
+				}
+				if (rightNode) {
+					rightNode->LocalFlags |= ImGuiDockNodeFlags_NoTabBar | ImGuiDockNodeFlags_NoCloseButton;
+					//rightNode->LocalFlags |= ImGuiDockNodeFlags_NoResizeX;
+				}
+
+				// Anticipates future windows and docks them by name
+				ImGui::DockBuilderDockWindow(LEFT_PANE_ID, leftDockID);
+				ImGui::DockBuilderDockWindow(RIGHT_PANE_ID, rightDockID);
+
+
+				ImGui::DockBuilderFinish(parentDockspaceID);
+			}
+
+
+			// Buttons
+			static const float btnSizeX = 70.0f;
+			static const int btnCount = 2;
+			static const float paddingRight = 30.0f;
+			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + ImGui::GetStyle().ItemSpacing.y); // Adds a little vertical space
+			ImGui::Dummy(ImVec2(ImGui::GetContentRegionAvail().x - paddingRight - btnSizeX * btnCount, 0.0f)); // Pushes buttons to the right
+			ImGui::SameLine();
+			if (ImGui::Button("OK", ImVec2(btnSizeX, 0.0f))) {
+				// TODO: Handle data-saving
+				GUI::TogglePanel(m_panelMask, flag, GUI::TOGGLE_OFF);
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Cancel", ImVec2(btnSizeX, 0.0f))) {
+				// TODO: Handle discarding changes
+				GUI::TogglePanel(m_panelMask, flag, GUI::TOGGLE_OFF);
+			}
+
+			ImGui::End();
+		}
+	}
+	ImGui::PopStyleVar(2);
+
+
+
+	// ----- LEFT PANE (OPTIONS PANE) -----
+	if (ImGui::Begin(LEFT_PANE_ID, nullptr, ImGuiWindowFlags_NoDecoration)) {
+		// APPEARANCE
+		if (ImGui::TreeNodeEx(SelectedOptionNames.at(TREE_APPEARANCE), ImGuiTreeNodeFlags_DefaultOpen)) {
+			if (ImGui::Selectable(SelectedOptionNames.at(OPTION_APPEARANCE_COLOR_THEME), currentSelection == OPTION_APPEARANCE_COLOR_THEME)) {
+				currentTree = TREE_APPEARANCE;
+				currentSelection = OPTION_APPEARANCE_COLOR_THEME;
+			}
+
+			ImGui::TreePop();
+		}
+
+
+		// DEBUGGING
+		if (ImGui::TreeNodeEx(SelectedOptionNames.at(TREE_DEBUGGING))) {
+			if (ImGui::Selectable(SelectedOptionNames.at(OPTION_DEBUGGING_CONSOLE), currentSelection == OPTION_DEBUGGING_CONSOLE)) {
+				currentTree = TREE_DEBUGGING;
+				currentSelection = OPTION_DEBUGGING_CONSOLE;
+			}
+
+			ImGui::TreePop();
+		}
+
+		ImGui::End();
+	}
+
+
+
+	// ----- RIGHT PANE (OPTION DETAILS PANE) -----
+	if (ImGui::Begin(RIGHT_PANE_ID, nullptr, ImGuiWindowFlags_NoDecoration)) {
+		ImGui::AlignTextToFramePadding();
+
+		// Header
+		ImGui::SeparatorText(SelectedOptionNames.at(currentTree));
+
+
+		// Content/Details
+		switch (currentTree) {
+		case TREE_APPEARANCE:
+			ImGuiUtils::BoldText(SelectedOptionNames.at(OPTION_APPEARANCE_COLOR_THEME));
+			{
+				if (currentSelection == OPTION_APPEARANCE_COLOR_THEME)
+					ImGui::ScrollToItem();
+
+				using namespace ImGuiTheme;
+				ImGui::TextWrapped("\tTheme:");
+
+				ImGui::SameLine();
+				ImGui::SetNextItemWidth(150.0f);
+				if (ImGui::BeginCombo("##ColorTheme", AppearanceNames.at(g_appContext.GUI.currentAppearance).c_str())) {
+					for (size_t i = 0; i < SIZE_OF(AppearancesArray); i++) {
+						bool isSelected = (g_appContext.GUI.currentAppearance == AppearancesArray[i]);
+						if (ImGui::Selectable(AppearanceNames.at(AppearancesArray[i]).c_str(), isSelected)) {
+							ApplyTheme(AppearancesArray[i]);
+							g_appContext.GUI.currentAppearance = AppearancesArray[i];
+						}
+
+						if (isSelected)
+							ImGui::SetItemDefaultFocus();
+					}
+
+					ImGui::EndCombo();
+				}
+			}
+
+			break;
+
+		case TREE_DEBUGGING:
+			ImGuiUtils::BoldText(SelectedOptionNames.at(OPTION_DEBUGGING_CONSOLE));
+			{
+				if (currentSelection == OPTION_DEBUGGING_CONSOLE)
+					ImGui::ScrollToItem();
+
+				ImGui::TextWrapped("\tMaximum log buffer size:");
+				ImGui::SameLine();
+
+				ImGui::SetNextItemWidth(150.0f);
+				ImGui::InputInt("##LogBufferSize", &Log::MaxLogLines, 0, 0);
+			}
+
+			break;
+		}
+
+		ImGui::End();
+	}
+}
+
+
+void UIPanelManager::renderAboutPanel() {
+	const GUI::PanelFlag flag = GUI::PanelFlag::PANEL_MENU_ABOUT;
+	if (!GUI::IsPanelOpen(m_panelMask, flag)) return;
+
+
+	ImGui::SetNextWindowSize(ImVec2(1000.0f, 500.0f));
+	ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+
+	if (ImGui::Begin(GUI::GetPanelName(flag), nullptr, m_windowFlags | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoScrollbar)) {
+		performBackgroundChecks(flag);
+		
+		// Startup and Logo images
+		{
+			ImVec2 splitPanelSize = { ImGuiUtils::GetAvailableWidth() / 2, ImGui::GetContentRegionAvail().y };
+
+			ImGui::Image(m_startupLogoTextureID, ImGuiUtils::ResizeImagePreserveAspectRatio(m_startupLogoSize, splitPanelSize));
+			ImGui::SameLine(0.0f, 5.0f);
+			ImGui::Image(m_appLogoTextureID, ImGuiUtils::ResizeImagePreserveAspectRatio(m_appLogoSize, splitPanelSize));
+		}
+
+		ImGuiUtils::BoldText("%s (version %s)", APP_NAME, APP_VERSION);
+		ImGui::TextWrapped("Copyright " ICON_FA_COPYRIGHT " 2024-2025 %s, D.B.A. Oriviet Aerospace. All Rights Reserved.", AUTHOR);
+
+		ImGuiUtils::Padding();
+		
+		ImGui::SeparatorText("Attribution");
+
+		ImGui::TextWrapped("Graphics API:");
+		ImGui::SameLine();
+		ImGui::TextLinkOpenURL("Vulkan 1.2", "https://www.vulkan.org/");
+
+
+		ImGui::TextWrapped("GUI Library:");
+		ImGui::SameLine();
+		ImGui::TextLinkOpenURL("Dear ImGui (docking branch)", "https://github.com/ocornut/imgui/");
+		ImGui::SameLine();
+		ImGui::TextWrapped("by Omar Cornut");
+
+
+		ImGui::TextWrapped("Simulation Assets:");
+
+		ImGui::BulletText("");
+		ImGui::SameLine();
+		ImGui::TextLinkOpenURL("Earth 3D Model", "https://science.nasa.gov/resource/earth-3d-model/");
+		ImGui::SameLine();
+		ImGui::TextWrapped("by NASA Visualization Technology Applications and Development (VTAD)");
+
+		ImGui::BulletText("");
+		ImGui::SameLine();
+		ImGui::TextLinkOpenURL("Chandra X-Ray Observatory Model", "https://nasa3d.arc.nasa.gov/detail/jpl-chandra");
+		ImGui::SameLine();
+		ImGui::TextWrapped("by Brian Kumanchik, NASA/JPL-Caltech");
+
+		ImGui::BulletText("Developer Textures by @CupholderAshton on Twitter/X");
+
 		ImGui::End();
 	}
 }
@@ -543,7 +868,7 @@ void UIPanelManager::renderSimulationControlPanel() {
 		// TODO: Implement integrator switching
 		{
 			static std::string currentIntegrator = "Fourth Order Runge-Kutta";
-			ImGui::Text("Numerical Integrator");
+			ImGui::Text("Numerical Integrator:");
 			ImGui::SameLine();
 			ImGui::SetNextItemWidth(ImGuiUtils::GetAvailableWidth());
 
@@ -570,7 +895,7 @@ void UIPanelManager::renderSimulationControlPanel() {
 
 		// Slider to change time scale
 		{
-			static const char* sliderLabel = "Time Scale";
+			static const char* sliderLabel = "Time Scale:";
 			static const char* sliderID = "##TimeScaleSliderFloat";
 			static float timeScale = (Time::GetTimeScale() <= 0.0f) ? 1.0f : Time::GetTimeScale();
 			static const float MIN_VAL = 1.0f, MAX_VAL = 1000.0f;
@@ -615,7 +940,7 @@ void UIPanelManager::renderSimulationControlPanel() {
 				initialCameraLoad = false;
 			}
 
-			ImGui::Text("Camera Speed Magnitude");
+			ImGui::Text("Camera Speed Magnitude:");
 			ImGui::SameLine();
 			ImGui::SetNextItemWidth(ImGuiUtils::GetAvailableWidth());
 			if (ImGui::DragFloat("##CameraSpeedDragFloat", &speedMagnitude, 1.0f, 1.0f, 12.0f, "1e+%.0f", ImGuiSliderFlags_AlwaysClamp)) {
@@ -638,130 +963,6 @@ void UIPanelManager::renderRenderSettingsPanel() {
 
 		ImGui::TextWrapped("Pushing the boundaries of space exploration, one line of code at a time.");
 
-		ImGui::End();
-	}
-}
-
-
-void UIPanelManager::renderPreferencesPanel() {
-	const GUI::PanelFlag flag = GUI::PanelFlag::PANEL_PREFERENCES;
-	if (!GUI::IsPanelOpen(m_panelMask, flag)) return;
-
-	// Options
-	static enum SelectedOption {
-		APPEARANCE
-	};
-	static SelectedOption currentSelection = APPEARANCE;
-
-	// Child panes
-	static const char* LEFT_PANE_ID = "##LeftPane";
-	static const char* RIGHT_PANE_ID = "##RightPane";
-
-
-	// Sets fixed size and initial position for the parent window
-	ImGui::SetNextWindowSize(ImVec2(800.0f, 500.0f));
-	ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_FirstUseEver, ImVec2(0.5f, 0.5f));
-
-	// ----- PARENT WINDOW (Dockspace) -----
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-
-	if (ImGui::Begin(GUI::GetPanelName(flag), nullptr, m_windowFlags | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoResize)) {
-		ImGuiID parentDockspaceID = ImGui::GetID("MainDialogDockspace");
-
-		// Calculates space for the dockspace such that there is room for buttons at the bottom
-		float buttonAreaHeight = ImGui::GetFrameHeight() + ImGui::GetStyle().ItemSpacing.y * 2.0f;
-		ImVec2 dockspaceSize = ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y - buttonAreaHeight);
-
-		ImGui::DockSpace(parentDockspaceID, dockspaceSize, ImGuiDockNodeFlags_None);
-
-		static bool initialLayoutSetUp = false;
-		if (!initialLayoutSetUp) {
-			initialLayoutSetUp = true;
-
-			// NOTE: It is good practice to clear any existing nodes for this dockspace to ensure the desired initial layout is applied.
-			ImGui::DockBuilderRemoveNode(parentDockspaceID);
-			ImGui::DockBuilderAddNode(parentDockspaceID, ImGuiDockNodeFlags_DockSpace);
-
-			// IMPORTANT: Sets the size of the dockspace node before splitting for accurate percentage splits
-			ImGui::DockBuilderSetNodeSize(parentDockspaceID, dockspaceSize);
-
-
-			// Splits the dockspace (25% for left, remaining for right)
-			ImGuiID leftDockID;
-			ImGuiID rightDockID;
-			ImGui::DockBuilderSplitNode(parentDockspaceID, ImGuiDir_Left, 0.25f, &leftDockID, &rightDockID);
-
-			// Sets flags on split nodes, because setting them individually (at ImGui::Begin) doesn't work for some reason
-			ImGuiDockNode* leftNode = ImGui::DockBuilderGetNode(leftDockID);
-			ImGuiDockNode* rightNode = ImGui::DockBuilderGetNode(rightDockID);
-
-			if (leftNode) {
-				leftNode->LocalFlags |= ImGuiDockNodeFlags_NoTabBar | ImGuiDockNodeFlags_NoCloseButton;
-			}
-			if (rightNode) {
-				rightNode->LocalFlags |= ImGuiDockNodeFlags_NoTabBar | ImGuiDockNodeFlags_NoCloseButton;
-				//rightNode->LocalFlags |= ImGuiDockNodeFlags_NoResizeX;
-			}
-
-			// Anticipates future windows and docks them by name
-			ImGui::DockBuilderDockWindow(LEFT_PANE_ID, leftDockID);
-			ImGui::DockBuilderDockWindow(RIGHT_PANE_ID, rightDockID);
-
-
-			ImGui::DockBuilderFinish(parentDockspaceID);
-		}
-
-
-		// Buttons
-		static const float btnSizeX = 70.0f;
-		static const int btnCount = 2;
-		static const float paddingRight = 30.0f;
-		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + ImGui::GetStyle().ItemSpacing.y); // Adds a little vertical space
-		ImGui::Dummy(ImVec2(ImGui::GetContentRegionAvail().x - paddingRight - btnSizeX * btnCount, 0.0f)); // Pushes buttons to the right
-		ImGui::SameLine();
-		if (ImGui::Button("OK", ImVec2(btnSizeX, 0.0f))) {
-			// TODO: Handle data-saving here
-		}
-		ImGui::SameLine();
-		if (ImGui::Button("Cancel", ImVec2(btnSizeX, 0.0f))) {
-			// "Cancel" button logic: e.g., discard changes, close dialog
-		}
-
-		ImGui::End();
-	}
-
-	ImGui::PopStyleVar(2);
-
-
-
-	// ----- LEFT PANE (OPTIONS PANE) -----
-	if (ImGui::Begin(LEFT_PANE_ID, nullptr, ImGuiWindowFlags_NoDecoration)) {
-		// APPEARANCE
-		if (ImGui::TreeNodeEx("Appearance", ImGuiTreeNodeFlags_DefaultOpen)) {
-			if (ImGui::Selectable("Color theme", currentSelection == APPEARANCE)) {
-				currentSelection = APPEARANCE;
-			}
-			ImGui::TreeNodeDrawLineToChildNode(ImGui::GetCursorPos());
-
-
-			ImGui::TreePop();
-		}
-
-		ImGui::End();
-	}
-
-
-	// ----- RIGHT PANE (OPTION DETAILS PANE) -----
-	if (ImGui::Begin(RIGHT_PANE_ID, nullptr, ImGuiWindowFlags_NoDecoration)) {
-		switch (currentSelection) {
-		case APPEARANCE:
-			ImGuiUtils::BoldText("Appearance");
-			ImGui::Separator();
-
-			ImGui::TextWrapped("Color theme");
-		}
-		
 		ImGui::End();
 	}
 }
@@ -811,7 +1012,7 @@ void UIPanelManager::renderDebugConsole() {
 		performBackgroundChecks(flag);
 
 
-		ImGui::Text("Sort by log type");
+		ImGui::Text("Sort by log type:");
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(150.0f); // Sets a fixed width of 150 pixels
 		if (ImGui::BeginCombo("##SortByLogTypeCombo", selectedLogType.c_str())) {

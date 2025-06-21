@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include <unordered_map>
+
 #include <imgui/imgui.h>
 
 #include <Utils/ColorUtils.hpp>
@@ -13,6 +15,13 @@ namespace ImGuiTheme {
     enum class Appearance {
         IMGUI_APPEARANCE_DARK_MODE,
         IMGUI_APPEARANCE_LIGHT_MODE
+    };
+    inline constexpr Appearance AppearancesArray[] = {
+        Appearance::IMGUI_APPEARANCE_DARK_MODE, Appearance::IMGUI_APPEARANCE_LIGHT_MODE
+    };
+    inline const std::unordered_map<Appearance, std::string> AppearanceNames = {
+        {Appearance::IMGUI_APPEARANCE_DARK_MODE,        "Dark Mode"},
+        {Appearance::IMGUI_APPEARANCE_LIGHT_MODE,       "Light Mode"}
     };
 
 

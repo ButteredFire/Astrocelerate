@@ -21,7 +21,18 @@
 
 #include <Vulkan/VkBufferManager.hpp>
 
+#include <Engine/Components/ModelComponents.hpp>
+
 #include <Utils/Vulkan/VkFormatUtils.hpp>
+
+
+// Texture information. Intended for internal use within TextureManager only!
+struct TextureInfo {
+    int width;
+    int height;
+    VkImage image;
+    VkImageLayout imageLayout;
+};
 
 
 class TextureManager {
@@ -34,8 +45,10 @@ public:
 		@param texSource: The source path of the texture.
         @param texImgFormat (Default: Surface format): The texture's image format.
 		@param channels (Default: STBI_rgb_alpha): The channels the texture to be created is expected to have.
+    
+        @return The created texture.
     */
-    void createTexture(const char* texSource, VkFormat texImgFormat = VK_FORMAT_UNDEFINED, int channels = STBI_rgb_alpha);
+    ModelComponent::Texture createTexture(const char* texSource, VkFormat texImgFormat = VK_FORMAT_UNDEFINED, int channels = STBI_rgb_alpha);
 
 
     /* Creates an image object.
@@ -74,31 +87,33 @@ public:
 private:
     std::shared_ptr<GarbageCollector> m_garbageCollector;
 
-    VkImage m_textureImage = VK_NULL_HANDLE;
-    VkFormat m_textureImageFormat = VkFormat();
-    VmaAllocation m_textureImageAllocation = VK_NULL_HANDLE;
-
-    VkImageView m_textureImageView = VK_NULL_HANDLE;
-
-    VkSampler m_textureSampler = VK_NULL_HANDLE;
-
-
-    /* Creates a texture image. 
+    
+    /* Creates a texture image.
+        @param imgFormat: The texture's image format.
         @param texSource: The source path of the texture.
 		@param channels (Default: STBI_rgb_alpha): The channels the texture to be created is expected to have.
+
+        @return The texture information.
     */
-    void createTextureImage(const char* texSource, int channels = STBI_rgb_alpha);
+    TextureInfo createTextureImage(VkFormat imgFormat, const char* texSource, int channels = STBI_rgb_alpha);
 
 
-    /* Creates a texture image view. */
-    void createTextureImageView();
+    /* Creates a texture image view.
+        @param image: The image for which the image view is to be created.
+        @param imgFormat: The image's format.
+
+        @return The texture image view.
+    */
+    VkImageView createTextureImageView(VkImage image, VkFormat imgFormat);
 
 
     /* Creates a texture sampler.
         Samplers apply filtering, transformations, etc. to the raw texture and compute the final texels for the (fragment) shader to read.
         It allows for texture customization (e.g., interpolation, texture repeats, anisotropic filtering) and solves problems like over-/under-sampling.
+
+        @return The created sampler.
     */
-    void createTextureSampler();
+    VkSampler createTextureSampler();
 
 
 	/* Copies the contents of a buffer to an image.
