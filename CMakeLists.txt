@@ -1,4 +1,4 @@
-# CMakeList.txt : CMake project for Astrocelerate, include source and define
+﻿# CMakeList.txt : CMake project for Astrocelerate, include source and define
 # project specific logic here.
 
 # Specify application
@@ -11,9 +11,12 @@ project(Astrocelerate)
 
     set(APP_VERSION "v0.1-alpha")
     add_compile_definitions(APP_VERSION="${APP_VERSION}")
-
+    
     set(AUTHOR "Duong Duy Nhat Minh")
     add_compile_definitions(AUTHOR="${AUTHOR}")
+
+    set(AUTHOR_DIACRITIC "Dương Duy Nhật Minh")
+    add_compile_definitions(AUTHOR_DIACRITIC="${AUTHOR_DIACRITIC}")
 
     # Specify source/binary file directories
     add_compile_definitions(APP_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
@@ -25,7 +28,7 @@ project(Astrocelerate)
 
 
 # Enable Hot Reload for MSVC compilers (Edit & Continue).
-    # Note: Since CMake versions 3.20+ always support POLICY CMP0141, there's no need to check if that policy exists.
+    # NOTE: Since CMake versions 3.20+ always support POLICY CMP0141, there's no need to check if that policy exists.
 cmake_policy(SET CMP0141 NEW)
 set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<IF:$<CONFIG:Debug,RelWithDebInfo>,EditAndContinue,ProgramDatabase>")
 
@@ -35,21 +38,12 @@ set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<IF:$<CONFIG:Debug,RelWithDebInfo>,Edi
 #set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "vcpkg toolchain file")
 
 
-# Set up MSVC configuration properties
-if (MSVC)
-    add_compile_options(
-        /MP  # Multithreaded compilation
-        #/WX  # Warnings as errors
-    )
-endif()
-
-
-# Enable Address Sanitizer
+# Enable Address Sanitizer if in Debug Mode
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     if (MSVC)
         add_compile_options(/fsanitize=address)
         add_link_options(/fsanitize=address)
-        # Handle /RTC and /ZI as mentioned above if needed.
+        # Handle /RTC and /ZI if needed
     elseif (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
         add_compile_options(-fsanitize=address -fno-omit-frame-pointer -g)
         add_link_options(-fsanitize=address)
@@ -77,6 +71,16 @@ include(FetchContent)
 
 # Add source files to the project's executable
 add_executable(Astrocelerate ${SOURCE_FILES})
+
+
+# Compile options for C++ source files
+    # CMake generator expression: $<condition:value>        (If condition is true, value is used; otherwise, value = empty string)
+target_compile_options(Astrocelerate PRIVATE
+    $<$<CXX_COMPILER_ID:MSVC>:/MP>
+    $<$<CXX_COMPILER_ID:MSVC>:/utf-8>
+    $<$<CXX_COMPILER_ID:GNU>:-finput-charset=UTF-8>
+    $<$<CXX_COMPILER_ID:Clang>:-finput-charset=UTF-8>
+)
 
 
 # Functions
@@ -140,38 +144,6 @@ find_package(VulkanMemoryAllocator CONFIG REQUIRED)
 find_package(assimp CONFIG REQUIRED)
 
 
-# Install libraries
-    # Define offline mode
-    hasInternetConnection(IS_ONLINE)
-
-    if (IS_ONLINE)
-        message(STATUS "Machine is connected to the internet. CMake configuration has been set to online mode. Fetching dependencies...")
-    else()
-        message(STATUS "No internet connection detected! CMake configuration has been set to offline mode. Loading dependencies from offline cache...")
-    endif()
-
-    #    # Online mode: Fetch from remote source
-    #set(GLFW_GIT_REPO "https://github.com/glfw/glfw.git")
-    #set(GLM_GIT_REPO "https://github.com/g-truc/glm.git")
-    #set(VMA_GIT_REPO "https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git")
-    set(ASSIMP_GIT_REPO "https://github.com/assimp/assimp.git")
-    #
-    #    # Offline mode: Fetch from local source
-    #set(GLFW_OFFLINE_SOURCE_DIR "${CMAKE_CURRENT_BINARY_DIR}/_deps/glfw-src")
-    #set(GLM_OFFLINE_SOURCE_DIR "${CMAKE_CURRENT_BINARY_DIR}/_deps/glm-src")
-    #set(VMA_OFFLINE_SOURCE_DIR "${CMAKE_CURRENT_BINARY_DIR}/_deps/vulkanmemoryallocator-src")
-    set(ASSIMP_OFFLINE_SOURCE_DIR "${CMAKE_CURRENT_BINARY_DIR}/_deps/assimp-src")
-    #set(ASSIMP_OFFLINE_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/_deps/assimp-build")
-
-    # Assimp
-    #fetchDependency(
-    #    assimp
-    #    ${ASSIMP_GIT_REPO}
-    #    v5.4.3
-    #    ${ASSIMP_OFFLINE_SOURCE_DIR}
-    #)
-
-
 # Organize libraries into variables
     # For information on the library names, search for them in "vcpkg/ports/[LIBRARY]/usage" either locally or from vcpkg's repository
 set(PKG_LIBS
@@ -198,19 +170,6 @@ set(FETCHCONTENT_LIBS_TARGET_INCLUDE_DIRS
     ${assimp_SOURCE_DIR}/include
     ${assimp_BINARY_DIR}/include
 )
-
-
-# Make libraries available
-#FetchContent_MakeAvailable(${FETCHCONTENT_LIBS})
-
-    # Cache libraries for fallback in case of no internet connection (disabled for now)
-    if (IS_ONLINE AND 0)
-        message(STATUS "Creating dependency cache for offline fallback...")
-        file(
-            COPY "${CMAKE_CURRENT_BINARY_DIR}/_deps"
-            DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/_offline_deps_cache"
-        )
-    endif()
 
 
 # Automate compilation of shader files into SPIR-V bytecode with glslc.exe

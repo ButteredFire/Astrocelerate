@@ -1,4 +1,4 @@
-/* UIRenderer.cpp - UI Renderer implementation.
+﻿/* UIRenderer.cpp - UI Renderer implementation.
 */
 
 #include "UIRenderer.hpp"
@@ -131,10 +131,30 @@ void UIRenderer::initFonts() {
     const float fontSize = 25.0f;
     const float iconSize = 18.0f;
 
+    // Glyph ranges
+    static const ImWchar commonRanges[] = {
+        0x0020, 0x00FF, // Basic Latin + Latin Supplement (GetGlyphRangesDefault)
+        0x0100, 0x017F, // Latin Extended-A
+        0x0180, 0x024F, // Latin Extended-B
+        0x0300, 0x036F, // Combining Diacritical Marks
+
+        // Vietnamese
+        0x0020, 0x00FF, // Basic Latin
+        0x0102, 0x0103,
+        0x0110, 0x0111,
+        0x0128, 0x0129,
+        0x0168, 0x0169,
+        0x01A0, 0x01A1,
+        0x01AF, 0x01B0,
+        0x1EA0, 0x1EF9,
+
+        0, // NULL terminator
+    };
+
 
     // Primary/Default text font: Roboto Regular
     // NOTE: It is the default font because it is the first font to be loaded.
-    g_fontContext.Roboto.regular = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.REGULAR.c_str(), fontSize, nullptr, io.Fonts->GetGlyphRangesDefault());
+    g_fontContext.Roboto.regular = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.REGULAR.c_str(), fontSize, nullptr, commonRanges);
     LOG_ASSERT(g_fontContext.Roboto.regular, "Failed to load (default) Roboto Regular font!");
 
         // IMPORTANT: Since only the icons use this merge config (meaning that they get merged into the default font),
@@ -173,11 +193,11 @@ void UIRenderer::initFonts() {
 
 
 void UIRenderer::initDockspace() {
-    ImGuiViewport* viewport = ImGui::GetMainViewport();
+    ImGuiViewport* windowViewport = ImGui::GetMainViewport();
 
-    ImGui::SetNextWindowPos(viewport->Pos);
-    ImGui::SetNextWindowSize(viewport->Size);
-    ImGui::SetNextWindowViewport(viewport->ID);
+    ImGui::SetNextWindowPos(windowViewport->Pos);
+    ImGui::SetNextWindowSize(windowViewport->Size);
+    ImGui::SetNextWindowViewport(windowViewport->ID);
 
 
     ImGuiWindowFlags dockspaceFlags =

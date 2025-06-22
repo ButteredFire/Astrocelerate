@@ -246,7 +246,8 @@ void UIPanelManager::renderMenuBar() {
 			// ImGui demo window
 			if (IN_DEBUG_MODE) {
 				static bool isDemoWindowOpen = false;
-				if (ImGui::MenuItem("ImGui Demo Window (Debug Mode)", "", & isDemoWindowOpen))
+				ImGui::MenuItem("ImGui Demo Window (Debug Mode)", "", &isDemoWindowOpen);
+				if (isDemoWindowOpen)
 					ImGui::ShowDemoWindow();
 
 				ImGui::Separator();
@@ -413,20 +414,19 @@ void UIPanelManager::renderPreferencesPanel() {
 
 	// Sets fixed size and initial position for the parent window
 	ImGui::SetNextWindowSize(ImVec2(800.0f, 500.0f));
-	ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_FirstUseEver, ImVec2(0.5f, 0.5f));
+	ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_None, ImVec2(0.5f, 0.5f));
 
 	// ----- PARENT WINDOW (Dockspace) -----
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 	{
-		if (ImGui::Begin(GUI::GetPanelName(flag), nullptr, m_windowFlags | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoResize)) {
+		if (ImGui::Begin(GUI::GetPanelName(flag), nullptr, m_windowFlags | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking)) {
 			performBackgroundChecks(flag);
 
 			ImGuiID parentDockspaceID = ImGui::GetID("MainDialogDockspace");
 
 			// Calculates space for the dockspace such that there is room for buttons at the bottom
-			float buttonAreaHeight = ImGui::GetFrameHeight() + ImGui::GetStyle().ItemSpacing.y * 2.0f;
-			ImVec2 dockspaceSize = ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y - buttonAreaHeight);
+			ImVec2 dockspaceSize = ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y - ImGuiUtils::GetBottomButtonAreaHeight());
 
 			ImGui::DockSpace(parentDockspaceID, dockspaceSize, ImGuiDockNodeFlags_None);
 
@@ -469,18 +469,16 @@ void UIPanelManager::renderPreferencesPanel() {
 
 
 			// Buttons
-			static const float btnSizeX = 70.0f;
+			static const float btnWidth = 70.0f;
 			static const int btnCount = 2;
-			static const float paddingRight = 30.0f;
-			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + ImGui::GetStyle().ItemSpacing.y); // Adds a little vertical space
-			ImGui::Dummy(ImVec2(ImGui::GetContentRegionAvail().x - paddingRight - btnSizeX * btnCount, 0.0f)); // Pushes buttons to the right
-			ImGui::SameLine();
-			if (ImGui::Button("OK", ImVec2(btnSizeX, 0.0f))) {
+			ImGuiUtils::BottomButtonPadding(btnWidth, btnCount);
+
+			if (ImGui::Button("OK", ImVec2(btnWidth, 0.0f))) {
 				// TODO: Handle data-saving
 				GUI::TogglePanel(m_panelMask, flag, GUI::TOGGLE_OFF);
 			}
 			ImGui::SameLine();
-			if (ImGui::Button("Cancel", ImVec2(btnSizeX, 0.0f))) {
+			if (ImGui::Button("Cancel", ImVec2(btnWidth, 0.0f))) {
 				// TODO: Handle discarding changes
 				GUI::TogglePanel(m_panelMask, flag, GUI::TOGGLE_OFF);
 			}
@@ -588,52 +586,74 @@ void UIPanelManager::renderAboutPanel() {
 	ImGui::SetNextWindowSize(ImVec2(1000.0f, 500.0f));
 	ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 
-	if (ImGui::Begin(GUI::GetPanelName(flag), nullptr, m_windowFlags | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoScrollbar)) {
+	if (ImGui::Begin(GUI::GetPanelName(flag), nullptr, m_windowFlags | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize)) {
 		performBackgroundChecks(flag);
-		
-		// Startup and Logo images
-		{
-			ImVec2 splitPanelSize = { ImGuiUtils::GetAvailableWidth() / 2, ImGui::GetContentRegionAvail().y };
 
-			ImGui::Image(m_startupLogoTextureID, ImGuiUtils::ResizeImagePreserveAspectRatio(m_startupLogoSize, splitPanelSize));
-			ImGui::SameLine(0.0f, 5.0f);
-			ImGui::Image(m_appLogoTextureID, ImGuiUtils::ResizeImagePreserveAspectRatio(m_appLogoSize, splitPanelSize));
+
+		// The About section
+		ImVec2 availableRegion = ImGui::GetContentRegionAvail();
+		float availableScrollHeight = ImGui::GetContentRegionAvail().y - ImGuiUtils::GetBottomButtonAreaHeight();
+
+		if (ImGui::BeginChild("AboutScrollRegion", ImVec2(0.0f, availableScrollHeight))) {
+			// Startup and Logo images
+			{
+				static const float middleGap = 10.0f;
+				ImVec2 splitPanelSize = { (ImGuiUtils::GetAvailableWidth() - middleGap) / 2.0f, availableScrollHeight };
+
+				ImGui::Image(m_startupLogoTextureID, ImGuiUtils::ResizeImagePreserveAspectRatio(m_startupLogoSize, splitPanelSize));
+
+				ImGui::SameLine(0.0f, middleGap);
+
+				ImGui::Image(m_appLogoTextureID, ImGuiUtils::ResizeImagePreserveAspectRatio(m_appLogoSize, splitPanelSize));
+			}
+
+			ImGuiUtils::BoldText("%s (version %s)", APP_NAME, APP_VERSION);
+			ImGui::TextWrapped("Copyright © 2024-2025 %s, D.B.A. Oriviet Aerospace. All Rights Reserved.", AUTHOR_DIACRITIC);
+
+			ImGuiUtils::Padding();
+		
+			ImGui::SeparatorText("Attribution");
+			{
+				ImGui::TextWrapped("Graphics API:");
+				ImGui::SameLine();
+				ImGui::TextLinkOpenURL("Vulkan 1.2", "https://www.vulkan.org/");
+
+
+				ImGui::TextWrapped("GUI Library:");
+				ImGui::SameLine();
+				ImGui::TextLinkOpenURL("Dear ImGui (docking branch)", "https://github.com/ocornut/imgui/");
+				ImGui::SameLine();
+				ImGui::TextWrapped("by Omar Cornut");
+
+
+				ImGui::TextWrapped("Simulation Assets:");
+
+				ImGui::BulletText("");
+				ImGui::SameLine();
+				ImGui::TextLinkOpenURL("Earth 3D Model", "https://science.nasa.gov/resource/earth-3d-model/");
+				ImGui::SameLine();
+				ImGui::TextWrapped("by NASA Visualization Technology Applications and Development (VTAD)");
+
+				ImGui::BulletText("");
+				ImGui::SameLine();
+				ImGui::TextLinkOpenURL("Chandra X-Ray Observatory Model", "https://nasa3d.arc.nasa.gov/detail/jpl-chandra");
+				ImGui::SameLine();
+				ImGui::TextWrapped("by Brian Kumanchik, NASA/JPL-Caltech");
+
+				ImGui::BulletText("Developer Textures by @CupholderAshton on Twitter/X");
+			}
+
+
+			ImGui::EndChild();
 		}
 
-		ImGuiUtils::BoldText("%s (version %s)", APP_NAME, APP_VERSION);
-		ImGui::TextWrapped("Copyright " ICON_FA_COPYRIGHT " 2024-2025 %s, D.B.A. Oriviet Aerospace. All Rights Reserved.", AUTHOR);
 
-		ImGuiUtils::Padding();
-		
-		ImGui::SeparatorText("Attribution");
+		static const float btnWidth = 70.0f;
+		ImGuiUtils::BottomButtonPadding(btnWidth, 1);
 
-		ImGui::TextWrapped("Graphics API:");
-		ImGui::SameLine();
-		ImGui::TextLinkOpenURL("Vulkan 1.2", "https://www.vulkan.org/");
-
-
-		ImGui::TextWrapped("GUI Library:");
-		ImGui::SameLine();
-		ImGui::TextLinkOpenURL("Dear ImGui (docking branch)", "https://github.com/ocornut/imgui/");
-		ImGui::SameLine();
-		ImGui::TextWrapped("by Omar Cornut");
-
-
-		ImGui::TextWrapped("Simulation Assets:");
-
-		ImGui::BulletText("");
-		ImGui::SameLine();
-		ImGui::TextLinkOpenURL("Earth 3D Model", "https://science.nasa.gov/resource/earth-3d-model/");
-		ImGui::SameLine();
-		ImGui::TextWrapped("by NASA Visualization Technology Applications and Development (VTAD)");
-
-		ImGui::BulletText("");
-		ImGui::SameLine();
-		ImGui::TextLinkOpenURL("Chandra X-Ray Observatory Model", "https://nasa3d.arc.nasa.gov/detail/jpl-chandra");
-		ImGui::SameLine();
-		ImGui::TextWrapped("by Brian Kumanchik, NASA/JPL-Caltech");
-
-		ImGui::BulletText("Developer Textures by @CupholderAshton on Twitter/X");
+		if (ImGui::Button("OK", ImVec2(btnWidth, 0.0f))) {
+			GUI::TogglePanel(m_panelMask, flag, GUI::TOGGLE_OFF);
+		}
 
 		ImGui::End();
 	}
@@ -674,14 +694,13 @@ void UIPanelManager::renderTelemetryPanel() {
 					},
 					"%.2f", "\tVector"
 				);
-				ImGui::TextWrapped("\tAbsolute: |v| ~= %.4f m/s", velocityAbs);
+				ImGui::Text("\tAbsolute: |v| ~= %.4f m/s", velocityAbs);
 
 				ImGui::Dummy(ImVec2(0.5f, 0.5f));
 
 				float accelerationAbs = glm::length(rigidBody.acceleration);
 				ImGuiUtils::BoldText("Acceleration");
 
-				//ImGui::TextWrapped("\t\tVector: (x: %.2f, y: %.2f, z: %.2f)", rigidBody.acceleration.x, rigidBody.acceleration.y, rigidBody.acceleration.z);
 				ImGuiUtils::ComponentField(
 					{
 						{"X", rigidBody.acceleration.x},
@@ -690,7 +709,7 @@ void UIPanelManager::renderTelemetryPanel() {
 					},
 					"%.2f", "\tVector"
 				);
-				ImGui::TextWrapped("\tAbsolute: |a| ~= %.4f m/s^2", accelerationAbs);
+				ImGui::Text("\tAbsolute: |a| ~= %.4f m/s^2", accelerationAbs);
 
 
 				// Display mass: scientific notation for large values, fixed for small
@@ -715,15 +734,15 @@ void UIPanelManager::renderTelemetryPanel() {
 				}
 
 				ImGuiUtils::BoldText("\tScaling (simulation)");
-				ImGui::TextWrapped("\t\tPhysical radius: %.10f m", refFrame.scale);
-				ImGui::TextWrapped("\t\tIntended ratio to parent: %.10f (relative scale)", refFrame.relativeScale);
+				ImGui::Text("\t\tPhysical radius: %.10f m", refFrame.scale);
+				ImGui::Text("\t\tIntended ratio to parent: %.10f (relative scale)", refFrame.relativeScale);
 
 				ImGuiUtils::BoldText("\tScaling (render)");
-				ImGui::TextWrapped("\t\tVisual scale: %.10f units", renderT.visualScale);
+				ImGui::Text("\t\tVisual scale: %.10f units", renderT.visualScale);
 				
 				if (m_registry->hasComponent<TelemetryComponent::RenderTransform>(refFrame.parentID.value())) {
 					const TelemetryComponent::RenderTransform& parentRenderT = m_registry->getComponent<TelemetryComponent::RenderTransform>(refFrame.parentID.value());
-					ImGui::TextWrapped("\t\tActual ratio to parent: %.10f units", (renderT.visualScale / parentRenderT.visualScale));
+					ImGui::Text("\t\tActual ratio to parent: %.10f units", (renderT.visualScale / parentRenderT.visualScale));
 				}
 
 				// Local Transform
@@ -737,7 +756,7 @@ void UIPanelManager::renderTelemetryPanel() {
 					},
 					"%.2f", "\tPosition"
 				);
-				ImGui::TextWrapped("\tMagnitude: ||vec|| ~= %.2f m", glm::length(refFrame.localTransform.position));
+				ImGui::Text("\tMagnitude: ||vec|| ~= %.2f m", glm::length(refFrame.localTransform.position));
 
 
 				ImGuiUtils::ComponentField(
@@ -762,7 +781,7 @@ void UIPanelManager::renderTelemetryPanel() {
 					},
 					"%.2f", "\tPosition (simulation)"
 				);
-				ImGui::TextWrapped("\tMagnitude: ||vec|| ~= %.2f m", glm::length(refFrame.globalTransform.position));
+				ImGui::Text("\tMagnitude: ||vec|| ~= %.2f m", glm::length(refFrame.globalTransform.position));
 
 
 				ImGuiUtils::ComponentField(
@@ -773,7 +792,7 @@ void UIPanelManager::renderTelemetryPanel() {
 					},
 					"%.2f", "\tPosition (render)"
 				);
-				ImGui::TextWrapped("\tMagnitude: ||vec|| ~= %.2f units", glm::length(renderT.position));
+				ImGui::Text("\tMagnitude: ||vec|| ~= %.2f units", glm::length(renderT.position));
 
 
 				ImGuiUtils::ComponentField(
@@ -1031,7 +1050,7 @@ void UIPanelManager::renderDebugConsole() {
 
 
 		// Optional flag: ImGuiWindowFlags_HorizontalScrollbar
-		if (ImGui::BeginChild("ConsoleScrollRegion", ImVec2(0, 0), true, m_windowFlags)) {
+		if (ImGui::BeginChild("ConsoleScrollRegion", ImVec2(0, 0), ImGuiChildFlags_Borders, m_windowFlags)) {
 			notAtBottom = (ImGui::GetScrollY() < ImGui::GetScrollMaxY() - 1.0f);
 
 			for (const auto& log : Log::LogBuffer) {

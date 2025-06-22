@@ -1,4 +1,4 @@
-/* ImGuiUtils.hpp - Utilities pertaining to the ImGui GUI.
+﻿/* ImGuiUtils.hpp - Utilities pertaining to the ImGui GUI.
 */
 
 #pragma once
@@ -22,11 +22,25 @@ namespace ImGuiUtils {
 		@return The available width.
 	*/
 	inline float GetAvailableWidth(bool includePadding = true) {
-		float totalWidth = ImGui::GetContentRegionAvail().x;
-		float spacing = ImGui::GetStyle().ItemSpacing.x;
+		const float totalWidth = ImGui::GetContentRegionAvail().x;
+		const float spacing = ImGui::GetStyle().ItemSpacing.x;
 
 		return (includePadding) ? (totalWidth - spacing) : (totalWidth);
 	}
+
+
+	/* Calculates the minimum area height needed for buttons at the bottom of the panel.
+		@param rowCount (Default: 1): The expected number of button rows at the bottom.
+	
+		@return The area height.
+	*/
+	inline float GetBottomButtonAreaHeight(uint32_t rowCount = 1) {
+		const float buttonHeight = ImGui::GetFrameHeight();
+		const float verticalPadding = ImGui::GetStyle().ItemSpacing.y * 2.0f;
+
+		return (buttonHeight + verticalPadding) * rowCount;
+	}
+
 
 
 	/* Resizes an image relative to its parent's size so as to preserve its aspect ratio.
@@ -38,8 +52,8 @@ namespace ImGuiUtils {
 	inline ImVec2 ResizeImagePreserveAspectRatio(const ImVec2& imgSize, ImVec2& viewportSize) {
 		ImVec2 textureSize{};
 
-		float renderAspect = static_cast<float>(imgSize.x) / imgSize.y;
-		float panelAspect = viewportSize.x / viewportSize.y;
+		const float renderAspect = static_cast<float>(imgSize.x) / imgSize.y;
+		const float panelAspect = viewportSize.x / viewportSize.y;
 
 		if (panelAspect > renderAspect) {
 			// Panel is wider than the render target
@@ -218,7 +232,8 @@ namespace ImGuiUtils {
 		@param padding (Default: 10.0f): The padding to use for the separator.
 	*/
 	inline void PaddedSeparator(float padding = 10.0f) {
-		ImVec2 paddingVec = { padding, padding };
+		const ImVec2 paddingVec = { padding, padding };
+
 		ImGui::Dummy(paddingVec);
 		ImGui::Separator();
 		ImGui::Dummy(paddingVec);
@@ -230,5 +245,17 @@ namespace ImGuiUtils {
 	*/
 	inline void Padding(float padding = 15.0f) {
 		ImGui::Dummy({ padding, padding });
+	}
+
+
+	/* Initial padding to push buttons at the end of a panel to the bottom-right corner.
+		@param btnWidth: The expected width of the button(s), which should be homogenous. If the buttons have different widths, it is safest to use the largest-width button's width for this parameter.
+		@param btnCount: The expected number of buttons.
+		@param paddingRight (Default: 30.0f): The padding to the right of the rightmost button (i.e., the space between the rightmost button and its parent panel's border).
+	*/
+	inline void BottomButtonPadding(float btnWidth, uint32_t btnCount, float paddingRight = 30.0f) {
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + ImGui::GetStyle().ItemSpacing.y); // Adds a little vertical space
+		ImGui::Dummy(ImVec2(ImGui::GetContentRegionAvail().x - paddingRight - btnWidth * btnCount, 0.0f)); // Pushes buttons to the right
+		ImGui::SameLine();
 	}
 }
