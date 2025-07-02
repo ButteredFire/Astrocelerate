@@ -18,7 +18,7 @@ namespace Geometry {
 	struct Vertex {
 		alignas(16) glm::vec3 position;     // Vertex position.
 		alignas(16) glm::vec3 color;        // Vertex color.
-		alignas(8) glm::vec2 texCoord;     // Texture coordinates (a.k.a., UV coordinates) for mapping textures
+		alignas(8) glm::vec2 texCoord0;     // Texture coordinates (a.k.a., UV coordinates) for mapping textures
 
 		alignas(16) glm::vec3 normal;		// Normals
 		alignas(16) glm::vec3 tangent;		// Tangents
@@ -28,7 +28,7 @@ namespace Geometry {
 			return (
 				(position == other.position)
 				&& (color == other.color)
-				&& (texCoord == other.texCoord)
+				&& (texCoord0 == other.texCoord0)
 				&& (normal == other.normal)
 				&& (tangent == other.tangent)
 				);
@@ -88,9 +88,9 @@ namespace Geometry {
 			// Attribute: Texture/UV coordinates
 			VkVertexInputAttributeDescription texCoordAttribDesc{};
 			texCoordAttribDesc.binding = 0;
-			texCoordAttribDesc.location = ShaderConsts::VERT_LOC_IN_INTEXTURECOORD;
+			texCoordAttribDesc.location = ShaderConsts::VERT_LOC_IN_INTEXTURECOORD_0;
 			texCoordAttribDesc.format = VK_FORMAT_R32G32_SFLOAT;
-			texCoordAttribDesc.offset = offsetof(Vertex, texCoord);
+			texCoordAttribDesc.offset = offsetof(Vertex, texCoord0);
 
 			attribDescriptions.push_back(texCoordAttribDesc);
 
@@ -119,26 +119,44 @@ namespace Geometry {
 	};
 
 
-
 	struct Material {
-		glm::vec3 diffuseColor;
-		glm::vec3 specularColor;
-		glm::vec3 ambientColor;
-		float shininess;
-		std::string diffuseTexture;
-		std::string specularTexture;
-		// TODO: Add other material properties
-	};
+		// Albedo
+		alignas(16) glm::vec3 albedoColor = glm::vec3(1.0f);			// Albedo (color)
+		int32_t albedoMapIndex = -1;									// Albedo (map): Base color texture
 
+		// Metallic & Roughness
+		float metallicFactor = 0.0f;									// Metallic factor
+		float roughnessFactor = 1.0f;									// Roughness factor
+		int32_t metallicRoughnessMapIndex = -1;							// Metallic and Roughness packed into one texture (e.g., R=metallic, G=roughness, B=AO). NOTE: Alternatively, the map can be split into metallicMap and roughnessMap indices.
+
+		// Normals
+		int32_t normalMapIndex = -1;									// Tangent-space normal map
+
+		// Ambient occlusion
+		int32_t aoMapIndex = -1;										// Ambient occlusion texture
+
+		// Emissive
+		alignas(16) glm::vec3 emissiveColor = glm::vec3(0.0f);			// Emissive color
+
+		// For glowing objects
+		int32_t emissiveMapIndex = -1;									// Emissive texture
+
+		// Opacity/Transparency (Alpha blending/masking)
+			// NOTE: If different transparency types are needed, consider adding a `MaterialAlphaMode` enum (OPAQUE, MASK, BLEND)
+		float opacity = 1.0f;											// Opacity/Transparency
+
+
+		float _pad0[3] = {};
+	};
 
 
 	// Vertex and index buffer offsets.
 	struct MeshOffset {
 		uint32_t vertexOffset;			// Vertex buffer offset.
 		uint32_t indexOffset;			// Index buffer offset.
+		uint32_t materialIndex;			// Material index into the global texture array.
 		uint32_t indexCount;			// Index count (index data from the offset index buffer).
 	};
-
 
 
 	// Raw mesh data.
@@ -146,6 +164,24 @@ namespace Geometry {
 		std::vector<Vertex> vertices;
 		std::vector<uint32_t> indices;
 		std::vector<Material> materials;
+		std::vector<MeshOffset> childMeshOffsets;
+	};
+
+
+	// Processed geometry data.
+	struct GeometryData {
+		size_t meshCount;
+		std::vector<MeshOffset> meshOffsets;
+		std::vector<Material> meshMaterials;
+	};
+
+
+	// Processed texture.
+	struct Texture {
+		glm::vec2 size;												// The texture's dimensions.
+		VkImageLayout imageLayout;									// The texture's image layout.
+		VkImageView imageView;										// The texture's image view.
+		VkSampler sampler;											// The texture's image sampler.
 	};
 }
 
@@ -156,7 +192,7 @@ namespace std {
 			size_t seed = 0;
 			SystemUtils::CombineHash(seed, vertex.position);
 			SystemUtils::CombineHash(seed, vertex.color);
-			SystemUtils::CombineHash(seed, vertex.texCoord);
+			SystemUtils::CombineHash(seed, vertex.texCoord0);
 			SystemUtils::CombineHash(seed, vertex.normal);
 			SystemUtils::CombineHash(seed, vertex.tangent);
 			return seed;

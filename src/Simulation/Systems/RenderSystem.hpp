@@ -36,15 +36,13 @@ private:
 	std::shared_ptr<VkBufferManager> m_bufferManager;
 	std::shared_ptr<UIRenderer> m_imguiRenderer;
 
-	size_t m_dynamicAlignment = 0;
-
 
 	void bindEvents();
 
 	/* Processes a mesh. */
-	void processMeshRenderable(const VkCommandBuffer& cmdBuffer, const RenderComponent::MeshRenderable& renderable, const VkDescriptorSet& descriptorSet);
+	void processMeshRenderable(const Event::UpdateRenderables &event);
 
 
 	/* Processes the GUI. */
-	void processGUIRenderable(const VkCommandBuffer& cmdBuffer, const RenderComponent::GUIRenderable& renderable, uint32_t currentFrame);
+	void processGUIRenderable(const Event::UpdateGUI &event);
 };

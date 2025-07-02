@@ -1,4 +1,4 @@
-﻿# CMakeList.txt : CMake project for Astrocelerate, include source and define
+# CMakeList.txt : CMake project for Astrocelerate, include source and define
 # project specific logic here.
 
 # Specify application

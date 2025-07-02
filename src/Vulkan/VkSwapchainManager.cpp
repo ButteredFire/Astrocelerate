@@ -21,8 +21,8 @@ VkSwapchainManager::VkSwapchainManager() {
 
 
 void VkSwapchainManager::bindEvents() {
-    m_eventDispatcher->subscribe<Event::InitFrameBuffers>(
-        [this](const Event::InitFrameBuffers& event) {
+    m_eventDispatcher->subscribe<Event::PipelinesInitialized>(
+        [this](const Event::PipelinesInitialized& event) {
             this->createFrameBuffers();
         }
     );

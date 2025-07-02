@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <External/GLFWVulkan.hpp>
 #include <vk_mem_alloc.h> 
@@ -126,7 +126,9 @@ struct VulkanContext {
 
         VkImageView depthImageView = VK_NULL_HANDLE;
 
-        std::vector<VkDescriptorSet> descriptorSets;
+        std::vector<VkDescriptorSet> perFrameDescriptorSets;
+
+        VkDescriptorSet pbrDescriptorSet;
     } OffscreenPipeline;
 };
 

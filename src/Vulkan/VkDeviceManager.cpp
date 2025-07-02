@@ -1,4 +1,4 @@
-/* VkDeviceManager.cpp - Vulkan device management implementation.
+﻿/* VkDeviceManager.cpp - Vulkan device management implementation.
 */
 
 
@@ -69,7 +69,7 @@ void VkDeviceManager::createPhysicalDevice() {
     Log::Print(Log::T_INFO, __FUNCTION__, ("Out of " + std::to_string(physDeviceCount) + " GPU(s), GPU " + enquote(bestDevice.deviceName) + " was selected with the highest grading score of " + std::to_string(physicalDeviceScore) + "."));
 
     if (physicalDevice == nullptr || !isDeviceCompatible) {
-        throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to find a GPU that supports required features!");
+        throw Log::RuntimeException(__FUNCTION__, __LINE__, "No GPU on this machine supports the required features to run Astrocelerate!");
     }
 
     g_vkContext.Device.physicalDevice = m_GPUPhysicalDevice = physicalDevice;
@@ -124,7 +124,11 @@ void VkDeviceManager::createLogicalDevice() {
     deviceVk12Features.bufferDeviceAddress = VK_TRUE;
     deviceVk12Features.descriptorIndexing = VK_TRUE;
     deviceVk12Features.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
-
+    deviceVk12Features.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+    deviceVk12Features.descriptorBindingPartiallyBound = VK_TRUE;
+    deviceVk12Features.descriptorBindingVariableDescriptorCount = VK_TRUE;
+    deviceVk12Features.descriptorBindingStorageBufferUpdateAfterBind = VK_TRUE;
+    deviceVk12Features.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
 
     // Creates the logical device
     VkDeviceCreateInfo deviceInfo{};
@@ -234,11 +238,19 @@ std::vector<PhysicalDeviceScoreProperties> VkDeviceManager::rateGPUSuitability(s
             // If the GPU has an API version >= the instance Vulkan version
             (deviceProperties.apiVersion >= VULKAN_VERSION) &&
 
-            // If the GPU supports geometry shaders
+            // If the GPU supports these core Vulkan features:
             (deviceFeatures.geometryShader) &&
-
-            // If the GPU supports anisotropy filtering
             (deviceFeatures.samplerAnisotropy) &&
+
+            // If the GPU supports these Vulkan 1.2 features:
+            (deviceVk12Features.bufferDeviceAddress) &&
+            (deviceVk12Features.descriptorIndexing) &&
+            (deviceVk12Features.descriptorBindingSampledImageUpdateAfterBind) &&
+            (deviceVk12Features.shaderSampledImageArrayNonUniformIndexing) &&
+            (deviceVk12Features.descriptorBindingPartiallyBound) &&
+            (deviceVk12Features.descriptorBindingVariableDescriptorCount) &&
+            (deviceVk12Features.descriptorBindingStorageBufferUpdateAfterBind) &&
+            (deviceVk12Features.descriptorBindingSampledImageUpdateAfterBind) &&
 
             // If the GPU supports required device extensions
             (checkDeviceExtensionSupport(device, m_requiredDeviceExtensions)) &&

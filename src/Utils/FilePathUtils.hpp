@@ -19,10 +19,58 @@ namespace FilePathUtils {
 	*/
 	template<typename... Paths>
 		requires(std::convertible_to<Paths, std::string> && ...) // Ensures all paths are convertible to std::string
-	inline std::string joinPaths(const std::string& root, const Paths&... paths) {
+	inline std::string JoinPaths(const std::string& root, const Paths&... paths) {
 		std::filesystem::path fullPath = root;
 		(fullPath /= ... /= paths);
 		return fullPath.string();
+	}
+
+
+	/* Gets the parent directory of an absolute file path.
+		@param filePath: The absolute file path.
+
+		@return The parent directory of the path.
+	*/
+	inline std::string GetParentDirectory(const std::string& filePath) {
+		if (filePath.empty()) {
+			throw Log::RuntimeException(__FUNCTION__, __LINE__, "File path is empty!");
+		}
+		std::filesystem::path path(filePath);
+		if (!std::filesystem::exists(path)) {
+			throw Log::RuntimeException(__FUNCTION__, __LINE__, "File does not exist: " + enquote(filePath));
+		}
+		return path.parent_path().string();
+	}
+
+
+	/* Gets the file name from a path.
+		@param filePath: The file path (relative or absolute).
+		@param includeExtension (Default: True): Should the file extension be included in the name?
+
+		@return The file name as a string.
+	*/
+	inline std::string GetFileName(const std::string &filePath, bool includeExtension = true) {
+		if (filePath.empty()) {
+			throw Log::RuntimeException(__FUNCTION__, __LINE__, "File path is empty!");
+		}
+		std::filesystem::path path(filePath);
+		if (includeExtension) {
+			return path.filename().string();
+		}
+		else {
+			return path.stem().string();
+		}
+	}
+
+
+	/* Gets the file extension from its path.
+		@param filePath: The file path (relative or absolute).
+
+		@return The file extension as a string.
+	*/
+	inline std::string GetFileExtension(const std::string &filePath) {
+		std::filesystem::path path = filePath;
+		return path.extension().string();
 	}
 
 
@@ -32,7 +80,7 @@ namespace FilePathUtils {
 
 		@return A byte array (vector of type char) containing the file's content.
 	*/
-	inline std::vector<char> readFile(const std::string& filePath, std::string workingDirectory = "") {
+	inline std::vector<char> ReadFile(const std::string& filePath, std::string workingDirectory = "") {
 		if (filePath.empty()) {
 			throw Log::RuntimeException(__FUNCTION__, __LINE__, "File path is empty!");
 		}

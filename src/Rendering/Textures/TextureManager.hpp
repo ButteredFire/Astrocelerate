@@ -14,15 +14,16 @@
 #include <iostream>
 
 // Other
-#include <Core/Data/Constants.h>
 #include <Core/Application/LoggingManager.hpp>
-#include <Core/Data/Contexts/VulkanContext.hpp>
+#include <Core/Application/EventDispatcher.hpp>
 #include <Core/Application/GarbageCollector.hpp>
+#include <Core/Data/Constants.h>
+#include <Core/Data/Geometry.hpp>
+#include <Core/Data/Contexts/VulkanContext.hpp>
 
 #include <Vulkan/VkBufferManager.hpp>
 
-#include <Engine/Components/ModelComponents.hpp>
-
+#include <Utils/SystemUtils.hpp>
 #include <Utils/Vulkan/VkFormatUtils.hpp>
 
 
@@ -41,14 +42,24 @@ public:
 	~TextureManager() = default;
 
 
-    /* Creates a texture. 
+    /* Creates an independent texture.
+    	@param texSource: The source path of the texture.
+        @param texImgFormat (Default: Surface format): The texture's image format.
+		@param channels (Default: STBI_rgb_alpha): The channels the texture to be created is expected to have.
+    
+        @return The created texture's properties.
+    */
+    Geometry::Texture createIndependentTexture(const std::string &texSource, VkFormat texImgFormat = VK_FORMAT_UNDEFINED, int channels = STBI_rgb_alpha);
+
+
+    /* Creates a texture that is a part of the global texture array. 
 		@param texSource: The source path of the texture.
         @param texImgFormat (Default: Surface format): The texture's image format.
 		@param channels (Default: STBI_rgb_alpha): The channels the texture to be created is expected to have.
     
-        @return The created texture.
+        @return The created texture's index into an internally managed global texture array.
     */
-    ModelComponent::Texture createTexture(const char* texSource, VkFormat texImgFormat = VK_FORMAT_UNDEFINED, int channels = STBI_rgb_alpha);
+    uint32_t createIndexedTexture(const std::string& texSource, VkFormat texImgFormat = VK_FORMAT_UNDEFINED, int channels = STBI_rgb_alpha);
 
 
     /* Creates an image object.
@@ -86,6 +97,30 @@ public:
 
 private:
     std::shared_ptr<GarbageCollector> m_garbageCollector;
+    std::shared_ptr<EventDispatcher> m_eventDispatcher;
+    
+    uint32_t m_placeholderTextureIndex = 0;
+
+    std::unordered_map<std::string, uint32_t> m_texturePathToIndexMap; // Maps path to its index in the descriptor infos vector.
+    std::vector<VkDescriptorImageInfo> m_textureDescriptorInfos;       // Contains all image views and samplers for the global array.
+
+    // Keeps track of unique samplers for reuse when new textures are loaded (keyed by sampler create info hash).
+    std::unordered_map<size_t, VkSampler> m_uniqueSamplers;
+
+    // This is set to True when all pipelines are initialized.
+    // Before this, new textures are added to a deference list, and the texture array descriptor set will be updated when it is valid.
+    // After this, the texture array descriptor set will be immeadiately updated upon the creation of new textures.
+    bool m_textureArrayDescSetIsValid = false;
+    
+
+    void bindEvents();
+
+
+    /* Updates the global texture array descriptor set.
+        @param texIndex: The index of the texture to be updated.
+        @param texImageInfo: The descriptor image info containing the image view and sampler for the texture.
+    */
+    void updateTextureArrayDescriptorSet(uint32_t texIndex, const VkDescriptorImageInfo &texImageInfo);
 
     
     /* Creates a texture image.
@@ -111,9 +146,19 @@ private:
         Samplers apply filtering, transformations, etc. to the raw texture and compute the final texels for the (fragment) shader to read.
         It allows for texture customization (e.g., interpolation, texture repeats, anisotropic filtering) and solves problems like over-/under-sampling.
 
+        NOTE: If maxAnisotropy is set to FLT_MAX (maximum float value), then the anisotropy limit value for the current logical device will be used.
+
         @return The created sampler.
     */
-    VkSampler createTextureSampler();
+    VkSampler createTextureSampler(
+        VkFilter magFilter, VkFilter minFilter,
+        VkSamplerAddressMode addressModeU, VkSamplerAddressMode addressModeV, VkSamplerAddressMode addressModeW,
+        VkBorderColor borderColor,
+        VkBool32 anisotropyEnable, float maxAnisotropy,
+        VkBool32 unnormalizedCoordinates,
+        VkBool32 compareEnable, VkCompareOp compareOp,
+        VkSamplerMipmapMode mipmapMode, float mipLodBias, float minLod, float maxLod
+    );
 
 
 	/* Copies the contents of a buffer to an image.

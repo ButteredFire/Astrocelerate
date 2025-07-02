@@ -14,8 +14,8 @@ enum EventType {
 	EVENT_ID_SWAPCHAIN_IS_RECREATED,
 	EVENT_ID_OFFSCREEN_RESOURCES_ARE_RECREATED,
 	EVENT_ID_VIEWPORT_IS_RESIZED,
+	EVENT_ID_PIPELINES_ARE_INITIALIZED,
 
-	EVENT_ID_INIT_FRAMEBUFFERS,
 	EVENT_ID_INIT_GLOBAL_BUFFERS,
 
 	EVENT_ID_UPDATE_INPUT,
@@ -25,7 +25,8 @@ enum EventType {
 	EVENT_ID_UPDATE_UBOS,
 
 	EVENT_ID_GUI_CONTEXT_IS_VALID,
-	EVENT_ID_INPUT_IS_VALID
+	EVENT_ID_INPUT_IS_VALID,
+	EVENT_ID_BUFFER_MANAGER_IS_VALID
 };
 
 
@@ -54,9 +55,9 @@ namespace Event {
 	};
 
 
-	/* Used when data required to initialize framebuffers is available (usually after graphics pipeline intiialization). */
-	struct InitFrameBuffers {
-		const EventType eventType = EventType::EVENT_ID_INIT_FRAMEBUFFERS;
+	/* Used when all pipelines have been initialized. */
+	struct PipelinesInitialized {
+		const EventType eventType = EventType::EVENT_ID_PIPELINES_ARE_INITIALIZED;
 	};
 
 
@@ -65,6 +66,7 @@ namespace Event {
 		const EventType eventType = EventType::EVENT_ID_INIT_GLOBAL_BUFFERS;
 		std::vector<Geometry::Vertex> vertexData;
 		std::vector<uint32_t> indexData;
+		Geometry::GeometryData *pGeomData;
 	};
 
 
@@ -115,5 +117,11 @@ namespace Event {
 	/* Used when the input manager is initialized. */
 	struct InputIsValid {
 		const EventType eventType = EventType::EVENT_ID_INPUT_IS_VALID;
+	};
+
+
+	/* Used when the buffer manager is initialized. */
+	struct BufferManagerIsValid {
+		const EventType eventType = EventType::EVENT_ID_BUFFER_MANAGER_IS_VALID;
 	};
 }

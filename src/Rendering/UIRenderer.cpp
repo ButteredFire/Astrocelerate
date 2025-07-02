@@ -118,7 +118,7 @@ void UIRenderer::initImGui() {
     g_appContext.GUI.currentAppearance = defaultAppearance;
 
 
-    auto iniBuffer = FilePathUtils::readFile(ConfigConsts::IMGUI_DEFAULT_CONFIG);
+    auto iniBuffer = FilePathUtils::ReadFile(ConfigConsts::IMGUI_DEFAULT_CONFIG);
     ImGui::LoadIniSettingsFromMemory(iniBuffer.data(), iniBuffer.size());
 
     m_eventDispatcher->publish(Event::GUIContextIsValid{});
@@ -169,9 +169,9 @@ void UIRenderer::initFonts() {
         ICON_MIN_FA, ICON_MAX_FA, 0
     };
 
-    //io.Fonts->AddFontFromFileTTF(FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Fonts", "FontAwesome", "FontAwesome-6-Brands-Regular-400.otf").c_str(), iconSize, &mergeConfig, faGlyphRanges);
-    //io.Fonts->AddFontFromFileTTF(FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Fonts", "FontAwesome", "FontAwesome-6-Free-Regular-400.otf").c_str(), iconSize, &mergeConfig, faGlyphRanges);
-    io.Fonts->AddFontFromFileTTF(FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Fonts", "FontAwesome", "FontAwesome-6-Free-Solid-900.otf").c_str(), iconSize, &mergeConfig, faGlyphRanges);
+    //io.Fonts->AddFontFromFileTTF(FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Fonts", "FontAwesome", "FontAwesome-6-Brands-Regular-400.otf").c_str(), iconSize, &mergeConfig, faGlyphRanges);
+    //io.Fonts->AddFontFromFileTTF(FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Fonts", "FontAwesome", "FontAwesome-6-Free-Regular-400.otf").c_str(), iconSize, &mergeConfig, faGlyphRanges);
+    io.Fonts->AddFontFromFileTTF(FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Fonts", "FontAwesome", "FontAwesome-6-Free-Solid-900.otf").c_str(), iconSize, &mergeConfig, faGlyphRanges);
     
 
     // Roboto

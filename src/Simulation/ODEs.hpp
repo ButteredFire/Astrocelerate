@@ -1,4 +1,4 @@
-/* ODEs.hpp - Defines ordinary differential equations.
+﻿/* ODEs.hpp - Defines ordinary differential equations.
 */
 
 #pragma once
@@ -43,8 +43,8 @@ namespace ODE {
 
 			// NOTE: The ODE returns the derivative of the state with respect to time (dState/dt)
 			return State{
-				.position = currentVelocity,		// (dr/dt = velocity)
-				.velocity = acceleration			// (dv/dt = acceleration)
+				.position = currentVelocity,		// dr/dt = v(t)
+				.velocity = acceleration			// dv/dt = a(t)
 			};
 		}
 	};

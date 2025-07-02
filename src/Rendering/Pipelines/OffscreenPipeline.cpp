@@ -64,13 +64,6 @@ void OffscreenPipeline::init() {
 	// Initialize offscreen resources
 		// TODO: Abstract this init procedure
 		// TODO: Handle window resizing
-	//for (size_t i = 0; i < m_OFFSCREEN_RESOURCE_COUNT; i++) {
-	//for (size_t i = 0; i < m_OFFSCREEN_RESOURCE_COUNT; i++) {
-	//	m_colorImages.push_back(VkImage());
-	//	m_colorImgViews.push_back(VkImageView());
-	//	m_colorImgSamplers.push_back(VkSampler());
-	//	m_colorImgFramebuffers.push_back(VkFramebuffer());
-	//}
 
 	m_colorImages.resize(m_OFFSCREEN_RESOURCE_COUNT);
 	m_colorImgViews.resize(m_OFFSCREEN_RESOURCE_COUNT);
@@ -127,8 +120,8 @@ void OffscreenPipeline::createGraphicsPipeline() {
 void OffscreenPipeline::createPipelineLayout() {
 	VkPipelineLayoutCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	createInfo.setLayoutCount = 1;
-	createInfo.pSetLayouts = &m_descriptorSetLayout;
+	createInfo.setLayoutCount = static_cast<uint32_t>(m_descriptorSetLayouts.size());
+	createInfo.pSetLayouts = m_descriptorSetLayouts.data();
 
 	// Push constants are a way of passing dynamic values to shaders
 	createInfo.pushConstantRangeCount = 0;
@@ -273,7 +266,7 @@ void OffscreenPipeline::setUpDescriptors() {
 	globalUBOLayoutBinding.binding = ShaderConsts::VERT_BIND_GLOBAL_UBO;
 	globalUBOLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	globalUBOLayoutBinding.descriptorCount = 1;
-	globalUBOLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT; // Specifies which shader stages will the UBO(s) be referenced and used (through `VkShaderStageFlagBits` values; see the specification for more information)
+	globalUBOLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT; // Specifies which shader stages will the UBO(s) be referenced and used (through `VkShaderStageFlagBits` values; see the specification for more information)
 	globalUBOLayoutBinding.pImmutableSamplers = nullptr;			// Specifies descriptors handling image-sampling
 
 
@@ -286,54 +279,108 @@ void OffscreenPipeline::setUpDescriptors() {
 	objectUBOLayoutBinding.pImmutableSamplers = nullptr;
 
 
-	// Texture sampler
-	VkDescriptorSetLayoutBinding samplerLayoutBinding{};
-	samplerLayoutBinding.binding = ShaderConsts::FRAG_BIND_UNIFORM_TEXURE_SAMPLER;
-	samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	samplerLayoutBinding.descriptorCount = 1;
-	samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;		// Image sampling happens in the fragment shader, although it can also be used in the vertex shader for specific reasons (e.g., dynamically deforming a grid of vertices via a heightmap)
-	samplerLayoutBinding.pImmutableSamplers = nullptr;
+	// PBR textures
+		// Material parameters UBO
+	VkDescriptorSetLayoutBinding matParamsUBOLayoutBinding{};
+	matParamsUBOLayoutBinding.binding = ShaderConsts::FRAG_BIND_MATERIAL_PARAMETERS;
+	matParamsUBOLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+	matParamsUBOLayoutBinding.descriptorCount = 1;
+	matParamsUBOLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	matParamsUBOLayoutBinding.pImmutableSamplers = nullptr;
+
+		// Texture array
+	VkDescriptorSetLayoutBinding textureArrayLayoutBinding{};
+	textureArrayLayoutBinding.binding = ShaderConsts::FRAG_BIND_TEXTURE_MAP;
+	textureArrayLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	textureArrayLayoutBinding.descriptorCount = SimulationConsts::MAX_GLOBAL_TEXTURES;
+	textureArrayLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	textureArrayLayoutBinding.pImmutableSamplers = nullptr;
+
+			// Descriptor binding flags for the texture array
+	VkDescriptorBindingFlagsEXT textureArrayBindingFlags =
+		VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT |			// Allows descriptors to initially be null (as they'll be dynamically updated)
+		VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT_EXT |		// Allows updating descriptors after binding pipeline
+		VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT_EXT;// Allows actual descriptor count to be less than MAX_GLOBAL_TEXTURES
+
+	VkDescriptorBindingFlagsEXT pbrBindingFlags[] = {
+		0,								// matParamsUBOLayoutBinding (binding 0)
+		textureArrayBindingFlags		// textureArrayLayoutBinding (binding 1)
+	};
+
+	VkDescriptorSetLayoutBindingFlagsCreateInfoEXT textureArrayBindingFlagsCreateInfo{};
+	textureArrayBindingFlagsCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT;
+	textureArrayBindingFlagsCreateInfo.bindingCount = static_cast<uint32_t>(SIZE_OF(pbrBindingFlags));
+	textureArrayBindingFlagsCreateInfo.pBindingFlags = pbrBindingFlags;
 
 
 
 	// Data organization
-	std::vector<VkDescriptorSetLayoutBinding> layoutBindings = {
+	std::vector<VkDescriptorSetLayoutBinding> perFrameLayoutBindings = {
 		globalUBOLayoutBinding,
-		objectUBOLayoutBinding,
-		samplerLayoutBinding
+		objectUBOLayoutBinding
+	};
+	std::vector<VkDescriptorSetLayoutBinding> singularLayoutBindings = {
+		matParamsUBOLayoutBinding,
+		textureArrayLayoutBinding
 	};
 
-	//for (const auto& binding : layoutBindings) { m_descriptorCount += binding.descriptorCount; }
-
-	std::vector<VkDescriptorPoolSize> poolSize = {
+	std::vector<VkDescriptorPoolSize> perFramePoolSizes = {
 		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, static_cast<uint32_t>(SimulationConsts::MAX_FRAMES_IN_FLIGHT) },
-		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, static_cast<uint32_t>(SimulationConsts::MAX_FRAMES_IN_FLIGHT) },
-		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, static_cast<uint32_t>(SimulationConsts::MAX_FRAMES_IN_FLIGHT) }
+		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, static_cast<uint32_t>(SimulationConsts::MAX_FRAMES_IN_FLIGHT) }
+	};
+	std::vector<VkDescriptorPoolSize> singularPoolSizes = {
+		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1 },
+		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, SimulationConsts::MAX_GLOBAL_TEXTURES }
 	};
 
 
 
-	// Descriptor creation
-	createDescriptorSetLayout(layoutBindings);
-	VkDescriptorUtils::CreateDescriptorPool(m_descriptorPool, poolSize, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT);
-	createDescriptorSets();
+	// Common descriptor properties creation
+	// TODO: Modify CreateDescriptorPool to account for the actual number of maximum descriptor sets (not a fixed large value like 500)
+
+		// Descriptor pools
+	VkDescriptorUtils::CreateDescriptorPool(m_perFrameDescriptorPool, perFramePoolSizes, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT, 500);
+	VkDescriptorUtils::CreateDescriptorPool(m_singularDescriptorPool, singularPoolSizes, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT, 510);
+
+		// Descriptor set layouts
+	VkDescriptorSetLayout setLayout0 = createDescriptorSetLayout(perFrameLayoutBindings, nullptr);
+	VkDescriptorSetLayout setLayout1 = createDescriptorSetLayout(singularLayoutBindings, &textureArrayBindingFlagsCreateInfo);
+		// NOTE: Indices are important in this vector! Make sure the descriptor set layouts are at the correct indices.
+	m_descriptorSetLayouts = {
+		setLayout0,		// Set 0: Per-frame
+		setLayout1		// Set 1: Singular
+	};
+
+
+	// Specific descriptor set creation
+		// Per-frame descriptor sets
+	createPerFrameDescriptorSets(m_perFrameDescriptorPool, setLayout0);
+	
+		// Singular descriptor sets
+			// Material parameters UBO + Texture array
+	VkDescriptorSet pbrDescriptorSet;
+	createSingularDescriptorSet(pbrDescriptorSet, m_singularDescriptorPool, setLayout1);
+	g_vkContext.OffscreenPipeline.pbrDescriptorSet = pbrDescriptorSet;
 }
 
 
-void OffscreenPipeline::createDescriptorSetLayout(std::vector<VkDescriptorSetLayoutBinding> layoutBindings) {
+VkDescriptorSetLayout OffscreenPipeline::createDescriptorSetLayout(std::vector<VkDescriptorSetLayoutBinding> layoutBindings, const void *pNext) {
 	VkDescriptorSetLayoutCreateInfo layoutCreateInfo{};
 	layoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 	layoutCreateInfo.bindingCount = static_cast<uint32_t>(layoutBindings.size());
 	layoutCreateInfo.pBindings = layoutBindings.data();
+	layoutCreateInfo.pNext = pNext;
 
-
-	VkResult result = vkCreateDescriptorSetLayout(g_vkContext.Device.logicalDevice, &layoutCreateInfo, nullptr, &m_descriptorSetLayout);
+	VkDescriptorSetLayout descriptorSetLayout;
+	VkResult result = vkCreateDescriptorSetLayout(g_vkContext.Device.logicalDevice, &layoutCreateInfo, nullptr, &descriptorSetLayout);
 	
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
-	task.objectNames = { VARIABLE_NAME(m_descriptorSetLayout) };
-	task.vkObjects = { g_vkContext.Device.logicalDevice, m_descriptorSetLayout };
-	task.cleanupFunc = [this]() { vkDestroyDescriptorSetLayout(g_vkContext.Device.logicalDevice, m_descriptorSetLayout, nullptr); };
+	task.objectNames = { VARIABLE_NAME(descriptorSetLayout) };
+	task.vkObjects = { g_vkContext.Device.logicalDevice, descriptorSetLayout };
+	task.cleanupFunc = [this, descriptorSetLayout]() {
+		vkDestroyDescriptorSetLayout(g_vkContext.Device.logicalDevice, descriptorSetLayout, nullptr);
+	};
 	
 	m_garbageCollector->createCleanupTask(task);
 
@@ -341,41 +388,43 @@ void OffscreenPipeline::createDescriptorSetLayout(std::vector<VkDescriptorSetLay
 	if (result != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create descriptor set layout!");
 	}
+
+	return descriptorSetLayout;
 }
 
 
-void OffscreenPipeline::createDescriptorSets() {
+void OffscreenPipeline::createPerFrameDescriptorSets(VkDescriptorPool descriptorPool, VkDescriptorSetLayout descriptorSetLayout) {
 	// Creates one descriptor set for every frame in flight (all with the same layout)
 	// NOTE/TODO: Right now, our single pool handles all bindings across all sets. That's okay for small-scale applications, but can bottleneck fast if we scale. To solve this, use separate pools per descriptor type if we are hitting fragmentation or pool exhaustion.
 
-	std::vector<VkDescriptorSetLayout> descSetLayouts(SimulationConsts::MAX_FRAMES_IN_FLIGHT, m_descriptorSetLayout);
+	std::vector<VkDescriptorSetLayout> descSetLayouts(SimulationConsts::MAX_FRAMES_IN_FLIGHT, descriptorSetLayout);
 
 	VkDescriptorSetAllocateInfo descSetAllocInfo{};
 	descSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	descSetAllocInfo.descriptorPool = m_descriptorPool;
+	descSetAllocInfo.descriptorPool = descriptorPool;
 
 	descSetAllocInfo.descriptorSetCount = static_cast<uint32_t>(descSetLayouts.size());
 	descSetAllocInfo.pSetLayouts = descSetLayouts.data();
 
 
 	// Allocates descriptor sets
-	m_descriptorSets.resize(descSetLayouts.size());
+	m_perFrameDescriptorSets.resize(descSetLayouts.size());
 
-	VkResult result = vkAllocateDescriptorSets(g_vkContext.Device.logicalDevice, &descSetAllocInfo, m_descriptorSets.data());
-	
+	VkResult result = vkAllocateDescriptorSets(g_vkContext.Device.logicalDevice, &descSetAllocInfo, m_perFrameDescriptorSets.data());
+
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
-	task.objectNames = { VARIABLE_NAME(m_descriptorSets) };
-	task.vkObjects = { g_vkContext.Device.logicalDevice, m_descriptorPool };
-	task.cleanupFunc = [this]() {
-		vkFreeDescriptorSets(g_vkContext.Device.logicalDevice, m_descriptorPool, m_descriptorSets.size(), m_descriptorSets.data());
+	task.objectNames = { VARIABLE_NAME(m_perFrameDescriptorSets) };
+	task.vkObjects = { g_vkContext.Device.logicalDevice, descriptorPool };
+	task.cleanupFunc = [this, descriptorPool]() {
+		vkFreeDescriptorSets(g_vkContext.Device.logicalDevice, descriptorPool, m_perFrameDescriptorSets.size(), m_perFrameDescriptorSets.data());
 	};
-	
+
 	m_garbageCollector->createCleanupTask(task);
 
-	
+
 	if (result != VK_SUCCESS) {
-		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create descriptor sets!");
+		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create per-frame descriptor sets!");
 	}
 
 
@@ -401,18 +450,11 @@ void OffscreenPipeline::createDescriptorSets() {
 		objectUBOInfo.range = alignedObjectUBOSize;
 
 
-		// Texture sampler
-		VkDescriptorImageInfo imageInfo{};
-		imageInfo.imageLayout = g_vkContext.Texture.imageLayout;
-		imageInfo.imageView = g_vkContext.Texture.imageView;
-		imageInfo.sampler = g_vkContext.Texture.sampler;
-
-
 		// Updates the configuration for each descriptor
 			// Global uniform buffer descriptor write
 		VkWriteDescriptorSet globalUBODescWrite{};
 		globalUBODescWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		globalUBODescWrite.dstSet = m_descriptorSets[i];
+		globalUBODescWrite.dstSet = m_perFrameDescriptorSets[i];
 		globalUBODescWrite.dstBinding = ShaderConsts::VERT_BIND_GLOBAL_UBO;
 
 		// Since descriptors can be arrays, we must specify the first descriptor's index to update in the array.
@@ -440,7 +482,7 @@ void OffscreenPipeline::createDescriptorSets() {
 		// Object uniform buffer descriptor write
 		VkWriteDescriptorSet objectUBODescWrite{};
 		objectUBODescWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		objectUBODescWrite.dstSet = m_descriptorSets[i];
+		objectUBODescWrite.dstSet = m_perFrameDescriptorSets[i];
 		objectUBODescWrite.dstBinding = ShaderConsts::VERT_BIND_OBJECT_UBO;
 		objectUBODescWrite.dstArrayElement = 0;
 		objectUBODescWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
@@ -450,37 +492,48 @@ void OffscreenPipeline::createDescriptorSets() {
 		descriptorWrites.push_back(objectUBODescWrite);
 
 
-		// Texture sampler descriptor write
-		VkWriteDescriptorSet samplerDescWrite{};
-		samplerDescWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		samplerDescWrite.dstSet = m_descriptorSets[i];
-		samplerDescWrite.dstBinding = ShaderConsts::FRAG_BIND_UNIFORM_TEXURE_SAMPLER;
-		samplerDescWrite.dstArrayElement = 0;
-		samplerDescWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		samplerDescWrite.descriptorCount = 1;
-		samplerDescWrite.pImageInfo = &imageInfo;
-
-		descriptorWrites.push_back(samplerDescWrite);
-
-
 		// Applies the updates
 		vkUpdateDescriptorSets(g_vkContext.Device.logicalDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 	}
 
 
-	g_vkContext.OffscreenPipeline.descriptorSets = m_descriptorSets;
+	g_vkContext.OffscreenPipeline.perFrameDescriptorSets = m_perFrameDescriptorSets;
+}
+
+
+void OffscreenPipeline::createSingularDescriptorSet(VkDescriptorSet &descriptorSet, VkDescriptorPool descriptorPool, VkDescriptorSetLayout descriptorSetLayout) {
+	VkDescriptorSetAllocateInfo descSetAllocInfo{};
+	descSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	descSetAllocInfo.descriptorPool = descriptorPool;
+	descSetAllocInfo.descriptorSetCount = 1;
+	descSetAllocInfo.pSetLayouts = &descriptorSetLayout;
+
+	VkResult result = vkAllocateDescriptorSets(g_vkContext.Device.logicalDevice, &descSetAllocInfo, &descriptorSet);
+
+	CleanupTask task{};
+	task.caller = __FUNCTION__;
+	task.objectNames = { VARIABLE_NAME(descriptorSet) };
+	task.vkObjects = { g_vkContext.Device.logicalDevice, descriptorPool };
+	task.cleanupFunc = [this, descriptorSet, descriptorPool]() {
+		vkFreeDescriptorSets(g_vkContext.Device.logicalDevice, descriptorPool, 1, &descriptorSet);
+	};
+	m_garbageCollector->createCleanupTask(task);
+
+	if (result != VK_SUCCESS) {
+		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create singular descriptor set!");
+	}
 }
 
 
 void OffscreenPipeline::initShaderStage() {
 	// Loads shader bytecode onto buffers
 		// Vertex shader
-	m_vertShaderBytecode = FilePathUtils::readFile(ShaderConsts::VERTEX);
+	m_vertShaderBytecode = FilePathUtils::ReadFile(ShaderConsts::VERTEX);
 	Log::Print(Log::T_SUCCESS, __FUNCTION__, ("Loaded vertex shader! SPIR-V bytecode file size is " + std::to_string(m_vertShaderBytecode.size()) + " (bytes)."));
 	m_vertShaderModule = createShaderModule(m_vertShaderBytecode);
 
 	// Fragment shader
-	m_fragShaderBytecode = FilePathUtils::readFile(ShaderConsts::FRAGMENT);
+	m_fragShaderBytecode = FilePathUtils::ReadFile(ShaderConsts::FRAGMENT);
 	Log::Print(Log::T_SUCCESS, __FUNCTION__, ("Loaded fragment shader! SPIR-V bytecode file size is " + std::to_string(m_fragShaderBytecode.size()) + " (bytes)."));
 	m_fragShaderModule = createShaderModule(m_fragShaderBytecode);
 
@@ -490,7 +543,7 @@ void OffscreenPipeline::initShaderStage() {
 	vertStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	vertStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT; // Used to identify the create info's shader as the Vertex shader
 	vertStageInfo.module = m_vertShaderModule;
-	vertStageInfo.pName = "main"; // pName specifies the function to invoke, known as the entry point. This means that it is possible to combine multiple fragment shaders into a single shader module and use different entry points to differentiate between their behaviors. In this case we’ll stick to the standard `main`, however.
+	vertStageInfo.pName = "main"; // pName specifies the function to invoke, known as the entry point. This means that it is possible to combine multiple fragment shaders into a single shader module and use different entry points to differentiate between their behaviors. In this case weâ€™ll stick to the standard `main`, however.
 
 	// Fragment shader
 	VkPipelineShaderStageCreateInfo fragStageInfo{};

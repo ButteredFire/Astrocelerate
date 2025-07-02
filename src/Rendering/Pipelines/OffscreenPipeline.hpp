@@ -1,4 +1,4 @@
-/* OffscreenPipeline.hpp - Manages a graphics pipeline for offscreen rendering.
+﻿/* OffscreenPipeline.hpp - Manages a graphics pipeline for offscreen rendering.
 */
 
 #pragma once
@@ -89,9 +89,11 @@ private:
 	VkPipelineTessellationStateCreateInfo m_tessStateCreateInfo{};
 
 	// Descriptors
-	VkDescriptorSetLayout m_descriptorSetLayout = VK_NULL_HANDLE;
-	VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
-	std::vector<VkDescriptorSet> m_descriptorSets;
+	std::vector<VkDescriptorSetLayout> m_descriptorSetLayouts;
+	VkDescriptorPool m_perFrameDescriptorPool = VK_NULL_HANDLE;
+	VkDescriptorPool m_singularDescriptorPool = VK_NULL_HANDLE;
+	std::vector<VkDescriptorSet> m_perFrameDescriptorSets;
+	std::vector<VkDescriptorSet> m_singularDescriptorSets;
 
 	// Pipeline layout
 	VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
@@ -125,12 +127,14 @@ private:
 
 	/* Creates a descriptor set layout.
 		@param layoutBindings: A vector of descriptor set layout binings.
+		@param pNext: Vulkan struct chain for the descriptor set creation info.
+
+		@return The newly created layout.
 	*/
-	void createDescriptorSetLayout(std::vector<VkDescriptorSetLayoutBinding> layoutBindings);
+	VkDescriptorSetLayout createDescriptorSetLayout(std::vector<VkDescriptorSetLayoutBinding> layoutBindings, const void *pNext);
 
-
-	void createDescriptorSets();
-
+	void createPerFrameDescriptorSets(VkDescriptorPool descriptorPool, VkDescriptorSetLayout descriptorSetLayout);
+	void createSingularDescriptorSet(VkDescriptorSet& descriptorSet, VkDescriptorPool descriptorPool, VkDescriptorSetLayout descriptorSetLayout);
 
 	/* Creates the shader stage of the graphics pipeline from compiled SPIR-V shader files. */
 	void initShaderStage();

@@ -1,4 +1,4 @@
-/* ModelComponents.hpp - Defines components pertaining to models: Meshes, textures, etc..
+﻿/* ModelComponents.hpp - Defines components pertaining to models: Meshes, textures, etc..
 */
 
 #pragma once
@@ -24,13 +24,5 @@ namespace ModelComponent {
 	struct Material {
 		size_t textureIndex;										// Index into a texture atlas or descriptor array.
 		glm::vec4 baseColor = glm::vec4();							// The material's base color.
-	};
-
-
-	struct Texture {
-		glm::vec2 size;												// The texture's dimensions.
-		VkImageLayout imageLayout;									// The texture's image layout.
-		VkImageView imageView;										// The texture's image view.
-		VkSampler sampler;											// The texture's image sampler.
 	};
 }

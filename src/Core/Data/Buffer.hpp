@@ -16,13 +16,22 @@ namespace Buffer {
 
 	// Global uniform buffer object.
 	struct GlobalUBO {
-		glm::mat4 view;
-		glm::mat4 projection;
+		alignas(16) glm::mat4 view;
+		alignas(16) glm::mat4 projection;
+		alignas(16) glm::vec3 cameraPosition;
+		float _pad0 = 0.0f;
+
+		alignas(16) glm::vec3 lightDirection;
+		float _pad1 = 0.0f;
+
+		alignas(16) glm::vec3 lightColor;
+		float _pad2 = 0.0f;
 	};
 
 
 	// Per-object uniform buffer object.
 	struct ObjectUBO {
 		glm::mat4 model;
+		glm::mat4 normalMatrix;
 	};
 }

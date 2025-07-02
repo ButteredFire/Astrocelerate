@@ -61,11 +61,13 @@ int main() {
 
 
         // Camera
-        glm::dvec3 cameraPosition = glm::vec3(8e8, (PhysicsConsts::AU + 10e8), 1e7);
+        //glm::dvec3 cameraPosition = glm::vec3(8e8, (PhysicsConsts::AU + 10e8), 1e7);
+        glm::dvec3 cameraPosition = glm::vec3(0.0, 0.0, 0.0);
+
         std::shared_ptr<Camera> camera = std::make_shared<Camera>(
             windowPtr,
             cameraPosition,
-            glm::quat(1, 0.01, 0, -0.1)
+            glm::quat(1, 0.0, 0.0, 0.0)
         );
         ServiceLocator::RegisterService(camera);
 
@@ -98,29 +100,11 @@ int main() {
         commandManager->init();
 
 
-        //textureManager->createTexture((std::string(APP_SOURCE_DIR) + std::string("/assets/app/ExperimentalAppLogo.png")).c_str());
-        //textureManager->createTexture((std::string(APP_SOURCE_DIR) + std::string("/assets/Models/Spacecraft/SpaceX_Starship/textures/")).c_str());
-        //std::string path = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/app/ExperimentalAppLogo.png");
-        //std::string path = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models", "Spacecraft/SpaceX_Starship/textures");
-        //std::string path = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models/TestModels", "Cube/Textures/BaseColor.png");
-        //std::string path = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models", "TestModels/SolarSailSpaceship/Textures/13892_diffuse.jpg");
-        std::string path = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Textures", "CelestialBodies", "Earth/EarthMap.jpg");
-        //std::string path = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models", "TestModels/Plane/Textures/BaseColor.png");
-        //std::string path = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models", "TestModels/VikingRoom/viking_room.png");
-        ModelComponent::Texture earthTexture = textureManager->createTexture(path.c_str());
-        g_vkContext.Texture.imageLayout = earthTexture.imageLayout;
-        g_vkContext.Texture.imageView = earthTexture.imageView;
-        g_vkContext.Texture.sampler = earthTexture.sampler;
-
-
             // Buffer manager
         std::shared_ptr<VkBufferManager> m_bufferManager = std::make_shared<VkBufferManager>();
         ServiceLocator::RegisterService(m_bufferManager);
         m_bufferManager->init();
 
-
-        // TODO: Load geometry here!
-        
 
             // Pipelines
         std::shared_ptr<OffscreenPipeline> offscreenPipeline = std::make_shared<OffscreenPipeline>();

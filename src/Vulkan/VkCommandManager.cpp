@@ -1,4 +1,4 @@
-/* VkCommandManager.cpp - Command manager implementation.
+﻿/* VkCommandManager.cpp - Command manager implementation.
 */
 
 #include "VkCommandManager.hpp"
@@ -107,7 +107,7 @@ void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, 
 		// Processes renderables
 	m_eventDispatcher->publish(Event::UpdateRenderables {
 		.commandBuffer = cmdBuffer,
-		.descriptorSet = g_vkContext.OffscreenPipeline.descriptorSets[currentFrame]
+		.descriptorSet = g_vkContext.OffscreenPipeline.perFrameDescriptorSets[currentFrame]
 	}, true);
 
 

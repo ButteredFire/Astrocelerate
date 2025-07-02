@@ -3,23 +3,101 @@
 #include "TextureManager.hpp"
 
 
-TextureManager::TextureManager() {
+// Defines hashing for VkSamplerCreateInfo. This is necessary for the ability to maintain unique samplers and reuse them when new textures are added.
+namespace std {
+	template<> struct hash<VkSamplerCreateInfo> {
+		size_t operator()(const VkSamplerCreateInfo& createInfo) const {
+			size_t seed = 0;
 
+			SystemUtils::CombineHash(seed, createInfo.magFilter);
+			SystemUtils::CombineHash(seed, createInfo.minFilter);
+			SystemUtils::CombineHash(seed, createInfo.addressModeU);
+			SystemUtils::CombineHash(seed, createInfo.addressModeV);
+			SystemUtils::CombineHash(seed, createInfo.addressModeW);
+			SystemUtils::CombineHash(seed, createInfo.borderColor);
+			SystemUtils::CombineHash(seed, createInfo.anisotropyEnable);
+			SystemUtils::CombineHash(seed, createInfo.maxAnisotropy);
+			SystemUtils::CombineHash(seed, createInfo.unnormalizedCoordinates);
+			SystemUtils::CombineHash(seed, createInfo.compareEnable);
+			SystemUtils::CombineHash(seed, createInfo.compareOp);
+			SystemUtils::CombineHash(seed, createInfo.mipmapMode);
+			SystemUtils::CombineHash(seed, createInfo.mipLodBias);
+			SystemUtils::CombineHash(seed, createInfo.minLod);
+			SystemUtils::CombineHash(seed, createInfo.maxLod);
+
+			return seed;
+		}
+	};
+
+	template<> struct equal_to<VkSamplerCreateInfo> {
+		bool operator()(const VkSamplerCreateInfo& a, const VkSamplerCreateInfo& b) const {
+			return a.magFilter == b.magFilter &&
+				a.minFilter == b.minFilter &&
+				a.addressModeU == b.addressModeU &&
+				a.addressModeV == b.addressModeV &&
+				a.addressModeW == b.addressModeW &&
+				a.borderColor == b.borderColor &&
+				a.anisotropyEnable == b.anisotropyEnable &&
+				a.maxAnisotropy == b.maxAnisotropy &&
+				a.unnormalizedCoordinates == b.unnormalizedCoordinates &&
+				a.compareEnable == b.compareEnable &&
+				a.compareOp == b.compareOp &&
+				a.mipmapMode == b.mipmapMode &&
+				a.mipLodBias == b.mipLodBias &&
+				a.minLod == b.minLod &&
+				a.maxLod == b.maxLod;
+		}
+	};
+}
+
+
+TextureManager::TextureManager() {
 	m_garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
+	m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
+
+	bindEvents();
 
 	Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
 
 
-ModelComponent::Texture TextureManager::createTexture(const char* texSource, VkFormat texImgFormat, int channels) {
+void TextureManager::bindEvents() {
+	m_eventDispatcher->subscribe<Event::BufferManagerIsValid>(
+		[this](const Event::BufferManagerIsValid &event) {
+			// Create a placeholder texture (index 0).
+			const std::string texturePath = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Textures", "Fallback/PlaceholderTexture.png");
+			//m_placeholderTextureIndex = createIndexedTexture(texturePath, VK_FORMAT_R8G8B8A8_SRGB);
+		}
+	);
+
+
+	m_eventDispatcher->subscribe<Event::PipelinesInitialized>(
+		[this](const Event::PipelinesInitialized &event) {
+			m_textureArrayDescSetIsValid = true;
+
+			for (size_t i = 0; i < m_textureDescriptorInfos.size(); i++)
+				updateTextureArrayDescriptorSet(i, m_textureDescriptorInfos[i]);
+		}
+	);
+}
+
+
+Geometry::Texture TextureManager::createIndependentTexture(const std::string &texSource, VkFormat texImgFormat, int channels) {
 	// If the default format is passed, use the default surface format
 	VkFormat imgFormat = (texImgFormat == VK_FORMAT_UNDEFINED) ? g_vkContext.SwapChain.surfaceFormat.format : texImgFormat;
 
-	TextureInfo imageProperties = createTextureImage(imgFormat, texSource, channels);
+	TextureInfo imageProperties = createTextureImage(imgFormat, texSource.c_str(), channels);
 	VkImageView imageView = createTextureImageView(imageProperties.image, imgFormat);
-	VkSampler sampler = createTextureSampler();
+	VkSampler sampler = createTextureSampler(
+		VK_FILTER_LINEAR, VK_FILTER_LINEAR,
+		VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT,
+		VK_BORDER_COLOR_INT_OPAQUE_BLACK,
+		VK_TRUE, FLT_MAX,
+		VK_FALSE, VK_FALSE, VK_COMPARE_OP_ALWAYS,
+		VK_SAMPLER_MIPMAP_MODE_LINEAR, 0.0f, 0.0f, 0.0f
+	);
 
-	return ModelComponent::Texture{
+	return Geometry::Texture{
 		.size = { imageProperties.width, imageProperties.height },
 		.imageLayout = imageProperties.imageLayout,
 		.imageView = imageView,
@@ -28,8 +106,68 @@ ModelComponent::Texture TextureManager::createTexture(const char* texSource, VkF
 }
 
 
+uint32_t TextureManager::createIndexedTexture(const std::string& texSource, VkFormat texImgFormat, int channels) {
+	auto it = m_texturePathToIndexMap.find(texSource);
+	if (it != m_texturePathToIndexMap.end())
+		return it->second;
+
+
+	// If the default format is passed, use the default surface format
+	VkFormat imgFormat = (texImgFormat == VK_FORMAT_UNDEFINED) ? g_vkContext.SwapChain.surfaceFormat.format : texImgFormat;
+
+
+	// Creates texture
+	TextureInfo imageProperties = createTextureImage(imgFormat, texSource.c_str(), channels);
+	VkImageView imageView = createTextureImageView(imageProperties.image, imgFormat);
+	VkSampler sampler = createTextureSampler(
+		VK_FILTER_LINEAR, VK_FILTER_LINEAR,
+		VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT,
+		VK_BORDER_COLOR_INT_OPAQUE_BLACK, 
+		VK_TRUE, FLT_MAX,
+		VK_FALSE, VK_FALSE, VK_COMPARE_OP_ALWAYS,
+		VK_SAMPLER_MIPMAP_MODE_LINEAR, 0.0f, 0.0f, 0.0f
+	);
+
+
+	// Creates descriptor image info and binds it to the global texture array
+	VkDescriptorImageInfo descInfo{};
+	descInfo.imageLayout = imageProperties.imageLayout;
+	descInfo.imageView = imageView;
+	descInfo.sampler = sampler;
+
+	uint32_t newIndex = static_cast<uint32_t>(m_textureDescriptorInfos.size());
+	m_textureDescriptorInfos.push_back(descInfo);
+	m_texturePathToIndexMap[texSource] = newIndex;
+
+	// Only update texture array descriptor set if it is valid. Else, defer the textures until it is (already done with m_textureDescriptorInfos).
+	if (m_textureArrayDescSetIsValid)
+		updateTextureArrayDescriptorSet(newIndex, m_textureDescriptorInfos.back());
+
+	return newIndex;
+}
+
+
+void TextureManager::updateTextureArrayDescriptorSet(uint32_t texIndex, const VkDescriptorImageInfo &texImageInfo) {
+	VkWriteDescriptorSet descriptorWrite{};
+	descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	descriptorWrite.dstSet = g_vkContext.OffscreenPipeline.pbrDescriptorSet;
+	descriptorWrite.dstBinding = ShaderConsts::FRAG_BIND_TEXTURE_MAP;
+	descriptorWrite.dstArrayElement = texIndex; // The specific index in the array where this texture belongs
+	descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	descriptorWrite.descriptorCount = 1;
+	descriptorWrite.pImageInfo = &texImageInfo;
+
+	vkUpdateDescriptorSets(g_vkContext.Device.logicalDevice, 1, &descriptorWrite, 0, nullptr);
+}
+
 
 TextureInfo TextureManager::createTextureImage(VkFormat imgFormat, const char* texSource, int channels) {
+	// See documentation in `stb_image.h`
+	static std::unordered_set<std::string> supportedTextureFormats = {
+		".jpeg", ".jpg", ".png", ".tga", ".bmp", ".psd", ".gif", ".hdr", ".pic", ".pnm"
+	};
+
+
 	// Get pixel and texture data
 	int textureWidth, textureHeight, textureChannels;
 	stbi_uc* pixels = stbi_load(texSource, &textureWidth, &textureHeight, &textureChannels, channels);
@@ -38,7 +176,12 @@ TextureInfo TextureManager::createTextureImage(VkFormat imgFormat, const char* t
 	VkDeviceSize imageSize = static_cast<uint64_t>(textureWidth * textureHeight * channels);
 
 	if (!pixels) {
-		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create texture image for texture source path " + enquote(texSource) + "!");
+		if (supportedTextureFormats.find(FilePathUtils::GetFileExtension(texSource)) == supportedTextureFormats.end())
+			throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create texture image for texture source path " + enquote(texSource) + "!"
+				+ "\nThe extension of the file (" + FilePathUtils::GetFileName(texSource) + ") is currently not supported.");
+
+		else
+			throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create texture image for texture source path " + enquote(texSource) + "!");
 	}
 
 
@@ -111,13 +254,21 @@ VkImageView TextureManager::createTextureImageView(VkImage image, VkFormat imgFo
 }
 
 
-VkSampler TextureManager::createTextureSampler() {
+VkSampler TextureManager::createTextureSampler(
+	VkFilter magFilter, VkFilter minFilter,
+	VkSamplerAddressMode addressModeU, VkSamplerAddressMode addressModeV, VkSamplerAddressMode addressModeW,
+	VkBorderColor borderColor,
+	VkBool32 anisotropyEnable, float maxAnisotropy,
+	VkBool32 unnormalizedCoordinates,
+	VkBool32 compareEnable, VkCompareOp compareOp,
+	VkSamplerMipmapMode mipmapMode, float mipLodBias, float minLod, float maxLod
+) {
 	VkSamplerCreateInfo samplerCreateInfo{};
 	samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 
 	// Specifies how to interpolate textures if they are magnified/minified (thus solving the oversampling and undersampling problems respectively)
-	samplerCreateInfo.magFilter = VK_FILTER_LINEAR;
-	samplerCreateInfo.minFilter = VK_FILTER_LINEAR;
+	samplerCreateInfo.magFilter = magFilter;
+	samplerCreateInfo.minFilter = minFilter;
 
 
 	// Specifies the addressing mode to handle textures when the surface to which they are applied has coordinates that exceed the bounds of the texture (i.e., to handle texture behavior when applied to surfaces with bigger dimensions than its own).
@@ -129,54 +280,64 @@ VkSampler TextureManager::createTextureSampler() {
 		- ...MIRROR_CLAMP_TO_EDGE: Similar to ...CLAMP_TO_EDGE, but instead uses the edge opposite to the closest edge.
 		- ...CLAMP_TO_BORDER: Return a solid color when sampling beyond the dimensions of the texture.
 	*/
-	samplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	samplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	samplerCreateInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	samplerCreateInfo.addressModeU = addressModeU;
+	samplerCreateInfo.addressModeV = addressModeV;
+	samplerCreateInfo.addressModeW = addressModeW;
 
 
 	// Specifies which color is returned when sampling beyond the image with CLAMP_TO_BORDER addressing mode
-	samplerCreateInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+	samplerCreateInfo.borderColor = borderColor;
 
 
 	// Specifies whether anisotropy filtering is enabled. 
 	// Enabling it makes textures less blurry/distorted especially when viewed at sharp angles, when stretched across a surface, etc..
 	// However, it may impact performance (although that depends on the filtering level, e.g., 2x, 4x, 8x, 16x)
-	samplerCreateInfo.anisotropyEnable = VK_TRUE;
-	samplerCreateInfo.maxAnisotropy = g_vkContext.Device.deviceProperties.limits.maxSamplerAnisotropy;
+	samplerCreateInfo.anisotropyEnable = anisotropyEnable;
+
+	samplerCreateInfo.maxAnisotropy = (maxAnisotropy == FLT_MAX)? g_vkContext.Device.deviceProperties.limits.maxSamplerAnisotropy : maxAnisotropy;
 
 	
 	// Use normalized texture coordinates <=> coordinates are clamped in the [0, 1) range instead of [0, textureWidth) and [0, textureHeight)
-	samplerCreateInfo.unnormalizedCoordinates = VK_FALSE;
+	samplerCreateInfo.unnormalizedCoordinates = unnormalizedCoordinates;
 
 
 	// Specifies whether comparison functions are enabled.
 	// Comparison functions are used to compare a sampled value (e.g., depth/stencil value) against a reference value. They are particularly useful in shadow mapping, percentage-closer filtering on shadow maps, depth testing, etc..
-	samplerCreateInfo.compareEnable = VK_FALSE;
-	samplerCreateInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+	samplerCreateInfo.compareEnable = compareEnable;
+	samplerCreateInfo.compareOp = compareOp;
 
 
 	// Specifies mipmapping attributes
-	samplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-	samplerCreateInfo.mipLodBias = 0.0f;
-	samplerCreateInfo.minLod = 0.0f;
-	samplerCreateInfo.maxLod = 0.0f;
+	samplerCreateInfo.mipmapMode = mipmapMode;
+	samplerCreateInfo.mipLodBias = mipLodBias;
+	samplerCreateInfo.minLod = minLod;
+	samplerCreateInfo.maxLod = maxLod;
 
-	VkSampler textureSampler;
 
-	VkResult result = vkCreateSampler(g_vkContext.Device.logicalDevice, &samplerCreateInfo, nullptr, &textureSampler);
-	if (result != VK_SUCCESS) {
-		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create texture sampler!");
+	// If the sampler already exists, use the existing sampler.
+	size_t samplerInfoHash = std::hash<VkSamplerCreateInfo>{}(samplerCreateInfo);
+	
+	auto it = m_uniqueSamplers.find(samplerInfoHash);
+	if (it != m_uniqueSamplers.end()) {
+		return it->second;
 	}
 
-
+	// If not, create it, and add it to the list of unique samplers.
+	VkSampler textureSampler;
+	VkResult result = vkCreateSampler(g_vkContext.Device.logicalDevice, &samplerCreateInfo, nullptr, &textureSampler);
+	
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(textureSampler) };
 	task.vkObjects = { g_vkContext.Device.logicalDevice, textureSampler };
 	task.cleanupFunc = [this, textureSampler]() { vkDestroySampler(g_vkContext.Device.logicalDevice, textureSampler, nullptr); };
-
 	m_garbageCollector->createCleanupTask(task);
 
+	m_uniqueSamplers[samplerInfoHash] = textureSampler;
+	
+	if (result != VK_SUCCESS) {
+		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create texture sampler!");
+	}
 
 	return textureSampler;
 }

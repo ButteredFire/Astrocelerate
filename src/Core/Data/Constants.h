@@ -50,23 +50,27 @@ namespace ShaderConsts {
 
 	constexpr int VERT_LOC_IN_INPOSITION = 0;
 	constexpr int VERT_LOC_IN_INCOLOR = 1;
-	constexpr int VERT_LOC_IN_INTEXTURECOORD = 2;
+	constexpr int VERT_LOC_IN_INTEXTURECOORD_0 = 2;
 	constexpr int VERT_LOC_IN_INNORMAL = 3;
 	constexpr int VERT_LOC_IN_INTANGENT = 4;
 
 	constexpr int VERT_LOC_OUT_FRAGCOLOR = 0;
-	constexpr int VERT_LOC_OUT_FRAGTEXTURECOORD = 1;
+	constexpr int VERT_LOC_OUT_FRAGTEXTURECOORD_0 = 1;
 	constexpr int VERT_LOC_OUT_FRAGNORMAL = 2;
 	constexpr int VERT_LOC_OUT_FRAGTANGENT = 3;
+	constexpr int VERT_LOC_OUT_FRAGPOSITION = 4;
 
 
 		// Fragment shader
-	constexpr int FRAG_BIND_UNIFORM_TEXURE_SAMPLER = 2;
+	constexpr int FRAG_BIND_MATERIAL_PARAMETERS = 0;
+	constexpr int FRAG_BIND_TEXTURE_MAP = 1;
 
 	constexpr int FRAG_LOC_IN_FRAGCOLOR = VERT_LOC_OUT_FRAGCOLOR;
-	constexpr int FRAG_LOC_IN_FRAGTEXTURECOORD = VERT_LOC_OUT_FRAGTEXTURECOORD;
+	constexpr int FRAG_LOC_IN_FRAGTEXTURECOORD_0 = VERT_LOC_OUT_FRAGTEXTURECOORD_0;
 	constexpr int FRAG_LOC_IN_FRAGNORMAL = VERT_LOC_OUT_FRAGNORMAL;
 	constexpr int FRAG_LOC_IN_FRAGTANGENT = VERT_LOC_OUT_FRAGTANGENT;
+	constexpr int FRAG_LOC_IN_FRAGPOSITION = VERT_LOC_OUT_FRAGPOSITION;
+
 
 	constexpr int FRAG_LOC_OUT_OUTCOLOR = 0;
 
@@ -140,6 +144,7 @@ namespace PhysicsConsts {
 namespace SimulationConsts {
 	constexpr int MAX_SIMULATION_STEPS = 10000;
 	constexpr int MAX_FRAMES_IN_FLIGHT = 2;							// How many frames should be processed concurrently
+	constexpr int MAX_GLOBAL_TEXTURES = 512;						// The maximum number of textures in the global texture array
 	constexpr double TIME_STEP = 1.0 / 60.0;						// 60 Hz
 	constexpr double SIMULATION_SCALE = 1e6;						// 1 world unit = 1,000,000 meters (1000 km)
 

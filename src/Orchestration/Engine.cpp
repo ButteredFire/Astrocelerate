@@ -1,4 +1,4 @@
-/* Engine.cpp - Engine implementation.
+﻿/* Engine.cpp - Engine implementation.
 */
 
 #include "Engine.hpp"
@@ -34,6 +34,7 @@ void Engine::initComponents() {
     m_registry->initComponentArray<ModelComponent::Material>();
 
     /* Rendering */
+    m_registry->initComponentArray<RenderComponent::SceneData>();
     m_registry->initComponentArray<RenderComponent::MeshRenderable>();
     m_registry->initComponentArray<RenderComponent::GUIRenderable>();
 

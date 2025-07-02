@@ -1,4 +1,4 @@
-/* PhysicsComponents.hpp - Components pertaining to physics.
+﻿/* PhysicsComponents.hpp - Components pertaining to physics.
 */
 
 #pragma once
@@ -24,6 +24,7 @@ namespace PhysicsComponent {
 	};
 
 
+	/* Inertial frame of reference. */
 	struct ReferenceFrame {
 		std::optional<EntityID> parentID;				// The parent reference frame's entity ID.
 		Physics::FrameType frameType;					// TODO: Implement reference frame types
@@ -41,5 +42,14 @@ namespace PhysicsComponent {
 		double relativeScale = 1.0;					// The entity's physical scale relative to its parent.
 		double visualScale = 1.0;					// The entity's mesh size in render space (can be used to exaggerate size).
 		bool visualScaleAffectsChildren = true;
+	};
+
+
+	/* Mesh physical properties. */
+	struct ShapeParameters {
+		double equatRadius;						// Mean equatorial radius (m)
+		double eccentricity;					// Eccentricity
+		double gravParam;						// Gravitational parameter (m^3 / s^2)
+		double rotVelocity;						// Rotational velocity (rad/s)
 	};
 }

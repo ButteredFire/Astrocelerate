@@ -9,17 +9,23 @@
 // Dear ImGui
 #include <imgui/imgui.h>
 
+#include <Core/Data/Math.hpp>
 #include <Core/Data/Geometry.hpp>
 
 
 namespace RenderComponent {
+    // Common/Global scene data. For any given scene, there should only be 1 SceneData component.
+    struct SceneData {
+        Geometry::GeometryData *pGeomData;
+    };
+
+
     struct MeshRenderable {
-        Geometry::MeshOffset meshOffset;                    // Mesh offset into the global vertex and index buffers.
-        size_t uboIndex;                                    // Index into the mesh's uniform buffer object.
+        Math::Interval<uint32_t> meshRange;     // The mesh-offset range of THIS mesh (i.e., the index range of its child meshes in the mesh offsets array).
     };
 
 
     struct GUIRenderable {
-        ImDrawData* guiDrawData = nullptr;                  // The ImGui draw data.
+        ImDrawData* guiDrawData = nullptr;      // The ImGui draw data.
     };
 }

@@ -1,4 +1,4 @@
-﻿#include "UIPanelManager.hpp"
+#include "UIPanelManager.hpp"
 
 UIPanelManager::UIPanelManager() {
 
@@ -142,13 +142,13 @@ void UIPanelManager::initStaticTextures() {
 
 	// Startup Logo
 	{
-		std::string logoPath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/App");
+		std::string logoPath = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/App");
 		if (g_appContext.GUI.currentAppearance == ImGuiTheme::Appearance::IMGUI_APPEARANCE_DARK_MODE)
-			logoPath = FilePathUtils::joinPaths(logoPath, "StartupLogoTransparentWhite.png");
+			logoPath = FilePathUtils::JoinPaths(logoPath, "StartupLogoTransparentWhite.png");
 		else
-			logoPath = FilePathUtils::joinPaths(logoPath, "StartupLogoTransparentBlack.png");
+			logoPath = FilePathUtils::JoinPaths(logoPath, "StartupLogoTransparentBlack.png");
 
-		ModelComponent::Texture texture = textureManager->createTexture(logoPath.c_str(), VK_FORMAT_R8G8B8A8_SRGB);
+		Geometry::Texture texture = textureManager->createIndependentTexture(logoPath, VK_FORMAT_R8G8B8A8_SRGB);
 
 		m_startupLogoTextureID = (ImTextureID)ImGui_ImplVulkan_AddTexture(texture.sampler, texture.imageView, texture.imageLayout);
 		m_startupLogoSize = { texture.size.x, texture.size.y };
@@ -156,9 +156,9 @@ void UIPanelManager::initStaticTextures() {
 
 	// Application logo
 	{
-		std::string logoPath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/App", "ExperimentalAppLogoV1Transparent.png");
+		std::string logoPath = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/App", "ExperimentalAppLogoV1Transparent.png");
 
-		ModelComponent::Texture texture = textureManager->createTexture(logoPath.c_str(), VK_FORMAT_R8G8B8A8_SRGB);
+		Geometry::Texture texture = textureManager->createIndependentTexture(logoPath, VK_FORMAT_R8G8B8A8_SRGB);
 
 		m_appLogoTextureID = (ImTextureID)ImGui_ImplVulkan_AddTexture(texture.sampler, texture.imageView, texture.imageLayout);
 		m_appLogoSize = { texture.size.x, texture.size.y };
@@ -639,8 +639,6 @@ void UIPanelManager::renderAboutPanel() {
 				ImGui::TextLinkOpenURL("Chandra X-Ray Observatory Model", "https://nasa3d.arc.nasa.gov/detail/jpl-chandra");
 				ImGui::SameLine();
 				ImGui::TextWrapped("by Brian Kumanchik, NASA/JPL-Caltech");
-
-				ImGui::BulletText("Developer Textures by @CupholderAshton on Twitter/X");
 			}
 
 

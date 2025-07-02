@@ -1,7 +1,7 @@
 #include "VkDescriptorUtils.hpp"
 
 
-void VkDescriptorUtils::CreateDescriptorPool(VkDescriptorPool& descriptorPool, std::vector<VkDescriptorPoolSize> poolSizes, VkDescriptorPoolCreateFlags createFlags) {
+void VkDescriptorUtils::CreateDescriptorPool(VkDescriptorPool& descriptorPool, std::vector<VkDescriptorPoolSize> poolSizes, VkDescriptorPoolCreateFlags createFlags, uint32_t maxSets) {
 	std::shared_ptr<GarbageCollector> garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
 
 	VkDescriptorPoolCreateInfo descPoolCreateInfo{};
@@ -10,10 +10,10 @@ void VkDescriptorUtils::CreateDescriptorPool(VkDescriptorPool& descriptorPool, s
 	descPoolCreateInfo.pPoolSizes = poolSizes.data();
 	descPoolCreateInfo.flags = createFlags;
 
-	// TODO: See why the hell `maxSets` is the number of frames in flight
+	// TODO: Adjust `maxSets` depending on scenario instead of an arbitrary value like 500.
 	// Specifies the maximum number of descriptor sets that can be allocated
 	//descPoolCreateInfo.maxSets = maxDescriptorSetCount;
-	descPoolCreateInfo.maxSets = 500;
+	descPoolCreateInfo.maxSets = maxSets;
 
 	VkResult result = vkCreateDescriptorPool(g_vkContext.Device.logicalDevice, &descPoolCreateInfo, nullptr, &descriptorPool);
 

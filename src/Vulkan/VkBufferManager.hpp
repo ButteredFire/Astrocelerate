@@ -21,15 +21,15 @@
 #include <Vulkan/VkCommandManager.hpp>
 #include <Vulkan/VkSyncManager.hpp>
 
-#include <Core/Engine/ECS.hpp>
 #include <Core/Application/LoggingManager.hpp>
-#include <Core/Engine/ServiceLocator.hpp>
 #include <Core/Application/EventDispatcher.hpp>
 #include <Core/Application/GarbageCollector.hpp>
-
+#include <Core/Data/Math.hpp>
 #include <Core/Data/Buffer.hpp>
 #include <Core/Data/Geometry.hpp>
 #include <Core/Data/Contexts/VulkanContext.hpp>
+#include <Core/Engine/ECS.hpp>
+#include <Core/Engine/ServiceLocator.hpp>
 
 #include <Engine/Components/ModelComponents.hpp>
 #include <Engine/Components/PhysicsComponents.hpp>
@@ -55,6 +55,10 @@ public:
     void init();
 
 
+    /* Loads the simulation assets. */
+    void loadSimulationAssets();
+
+
     /* Creates a buffer.
         @param &buffer: The buffer to be created.
         @param bufferSize: The size of the buffer (in bytes).
@@ -75,13 +79,17 @@ public:
     void createGlobalIndexBuffer(const std::vector<uint32_t>& indexData);
 
 
+    /* Creates the PBR material parameters uniform buffer. */
+    void createMatParamsUniformBuffer();
+
+
     /* Copies the contents from a source buffer to a destination buffer.
         @param srcBuffer: The source buffer that stores the contents to be transferred.
         @param dstBuffer: The destination buffer to receive the contents from the source buffer.
         @param deviceSize: The size of either the source or destination buffer (in bytes).
     */
     void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize deviceSize);
-    
+
 
     /* Updates the global uniform buffer.
         @param currentImage: The index of the current frame.
@@ -110,6 +118,9 @@ public:
     inline const std::vector<uint32_t> getVertexIndexData() const { return m_vertIndices; }
 
 
+    /* Gets the PBR material parameters uniform buffer. */
+    inline const VkBuffer &getMatParamsUniformBuffer() const { return m_matParamsBuffer; }
+
     /* Gets the global uniform buffers */
     inline const std::vector<Buffer::BufferAndAlloc>& getGlobalUBOs() const { return m_globalUBOs; }
 
@@ -124,7 +135,8 @@ private:
 
     std::shared_ptr<Camera> m_camera;
 
-    size_t m_totalObjects;
+    size_t m_totalObjects = 0;
+    Geometry::GeometryData *m_geomData = nullptr;
     
     VkBuffer m_vertexBuffer = VK_NULL_HANDLE;
     VmaAllocation m_vertexBufferAllocation = VK_NULL_HANDLE;
@@ -132,6 +144,10 @@ private:
     VkBuffer m_indexBuffer = VK_NULL_HANDLE;
     VmaAllocation m_indexBufferAllocation = VK_NULL_HANDLE;
 
+    VkBuffer m_matParamsBuffer = VK_NULL_HANDLE;
+    VmaAllocation m_matParamsBufferAllocation = VK_NULL_HANDLE;
+    void *m_matParamsBufferMappedData = nullptr;
+    size_t m_matStrideSize = 0;
 
     std::vector<Buffer::BufferAndAlloc> m_globalUBOs;
     std::vector<void*> m_globalUBOMappedData;
@@ -150,27 +166,6 @@ private:
 
 
     void bindEvents();
-
-
-
-    /* Computes the byte offset into the buffer where the object UBO lies.
-        @param currentImage: The index of the current frame.
-        @param uboIndex: The mesh's index into its UBO.
-    */
-    inline void* getObjectUBO(uint32_t currentImage, size_t uboIndex) {
-        static size_t alignedUBOSize = SystemUtils::Align(sizeof(Buffer::ObjectUBO), g_vkContext.Device.deviceProperties.limits.minUniformBufferOffsetAlignment);
-
-        /*
-            First, we retrieve the pointer to the master object UBO of the current frame. We must cast it to a Byte pointer so that subsequent pointer increments will mean incrementing by bytes.
-            Then, we calculate the offset of the target child object UBO from the base (start) of the master object UBO.
-            Finally, we move the base pointer to the offset (start of the target UBO).
-        */
-
-        Byte* base = static_cast<Byte*>(m_objectUBOMappedData[currentImage]);
-        Byte offset = static_cast<Byte>(alignedUBOSize * uboIndex);
-
-        return static_cast<void*>(base + offset);
-    }
 
 
     /* Writes data to a buffer that is allocated in GPU (device-local) memory.

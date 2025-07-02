@@ -14,53 +14,17 @@ PresentPipeline::PresentPipeline() {
 
 
 void PresentPipeline::init() {
-	// Set up fixed-function states
-		// Dynamic states
-	//m_dynamicStates = {
-	//	VK_DYNAMIC_STATE_VIEWPORT,
-	//	VK_DYNAMIC_STATE_SCISSOR
-	//};
-	//initDynamicStates();
-
-	//initInputAssemblyState();		// Input assembly state
 
 	initViewportState();			// Viewport state
 
 	initRasterizationState();		// Rasterization state
 
-	//initMultisamplingState();		// Multisampling state
-
-	//initDepthStencilState();		// Depth stencil state
-
 	initColorBlendingState();		// Blending state
 
-	//initDepthBufferingResources();	// Depth buffering image and view
-
-	//initTessellationState();		// Tessellation state
-
-
-	// Load shaders
-	//initShaderStage();
-
-
-	// Create descriptors
-	//setUpDescriptors();
-
-
-	// Create the pipeline layout
-	//createPipelineLayout();
-
-
-	// Create the render pass
 	createRenderPass();
 
-
-	// Create the graphics pipeline
-	//createGraphicsPipeline();
-
-
 	// Post-initialization: Data is ready to be used for framebuffer creation
-	m_eventDispatcher->publish(Event::InitFrameBuffers{});
+	m_eventDispatcher->publish(Event::PipelinesInitialized{});
 }
 
 

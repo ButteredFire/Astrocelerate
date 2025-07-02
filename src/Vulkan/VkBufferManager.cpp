@@ -25,6 +25,13 @@ void VkBufferManager::bindEvents() {
 	);
 
 
+	m_eventDispatcher->subscribe<Event::PipelinesInitialized>(
+		[this](const Event::PipelinesInitialized &event) {
+			this->createMatParamsUniformBuffer();
+		}
+	);
+
+
 	m_eventDispatcher->subscribe<Event::UpdateUBOs>(
 		[this](const Event::UpdateUBOs& event) {
 			this->updateGlobalUBO(event.currentFrame);
@@ -35,24 +42,35 @@ void VkBufferManager::bindEvents() {
 
 
 void VkBufferManager::init() {
+	m_eventDispatcher->publish(Event::BufferManagerIsValid{});
+
+	loadSimulationAssets();
+	
+	createUniformBuffers();
+}
+
+
+void VkBufferManager::loadSimulationAssets() {
 	// Load geometry
 	GeometryLoader geometryLoader;
 
-	std::string sphere = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models/TestModels", "Sphere/Sphere.obj");
-	std::string cube = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models/TestModels", "Cube/Cube.obj");
+	//std::string sphereFBX = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Models/TestModels", "Sphere/Sphere.fbx");
+	//std::string sphereOBJ = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Models/TestModels", "Sphere/Sphere.obj");
+	//std::string sphereGLB = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Models/TestModels", "Sphere/Sphere.glb");
+	//std::string satelliteCubeSat = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Models/TestModels", "CubeSat/CubeSat.glb");
 
-	std::string starPath = sphere;
-	std::string planetPath = sphere;
+	std::string cube = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Models/TestModels", "Cube/Cube.fbx");
+	std::string earth = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Models/CelestialBodies", "Earth/Earth.obj");
+	//std::string satelliteChandra = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Models/Satellites", "Chandra/Chandra.obj");
+
+	std::string planetPath = earth;
 	std::string satellitePath = cube;
-	//std::string planetPath = FilePathUtils::joinPaths(APP_SOURCE_DIR, "assets/Models/CelestialBodies", "Earth/Earth.glb");
-	//std::string satellitePath = planetPath;
 
-	geometryLoader.loadGeometryFromFile(starPath);
-	geometryLoader.loadGeometryFromFile(planetPath);
-	geometryLoader.loadGeometryFromFile(satellitePath);
-	std::vector<Geometry::MeshOffset> meshOffsets = geometryLoader.bakeGeometry();
+	Math::Interval<uint32_t> planetRange = geometryLoader.loadGeometryFromFile(planetPath);
+	Math::Interval<uint32_t> satelliteRange = geometryLoader.loadGeometryFromFile(satellitePath);
+	m_geomData = geometryLoader.bakeGeometry();
 
-	m_totalObjects = meshOffsets.size();
+	m_totalObjects = m_geomData->meshCount;
 
 
 	// Global reference frame
@@ -66,18 +84,23 @@ void VkBufferManager::init() {
 	globalRefFrame.localTransform.position = glm::dvec3(0.0);
 	globalRefFrame.localTransform.rotation = glm::dquat(1.0, 0.0, 0.0, 0.0);
 
+	RenderComponent::SceneData globalSceneData{};
+	globalSceneData.pGeomData = m_geomData;
+
 	m_registry->addComponent(m_renderSpace.id, globalRefFrame);
+	m_registry->addComponent(m_renderSpace.id, globalSceneData);
 
 
 	// Define rigid bodies
-	Entity star = m_registry->createEntity("Sun");
+	//Entity star = m_registry->createEntity("Sun");
 	Entity planet = m_registry->createEntity("Earth");
 	Entity satellite = m_registry->createEntity("Satellite");
 
 	double sunRadius = 6.9634e+8;
 	double earthRadius = 6.378e+6;
 
-		// Sun configuration
+	// Sun configuration
+	/*
 	PhysicsComponent::RigidBody starRB{};
 	starRB.velocity = glm::dvec3(0.0);
 	starRB.acceleration = glm::dvec3(0.0);
@@ -90,7 +113,7 @@ void VkBufferManager::init() {
 	starRefFrame.visualScaleAffectsChildren = false;
 	starRefFrame.localTransform.position = glm::dvec3(0.0);
 	starRefFrame.localTransform.rotation = glm::dquat(1, 0, 0, 0);
-	
+
 	RenderComponent::MeshRenderable starRenderable{};
 	starRenderable.uboIndex = 0;
 	starRenderable.meshOffset = meshOffsets[0];
@@ -99,45 +122,46 @@ void VkBufferManager::init() {
 	m_registry->addComponent(star.id, starRefFrame);
 	m_registry->addComponent(star.id, starRenderable);
 	m_registry->addComponent(star.id, TelemetryComponent::RenderTransform{});
+	*/
 
 
-		// Earth configuration
+	// Earth configuration
 	PhysicsComponent::ReferenceFrame planetRefFrame{};
-	planetRefFrame.parentID = star.id;
+	planetRefFrame.parentID = m_renderSpace.id;
 	planetRefFrame.scale = earthRadius;
-	planetRefFrame.visualScale = 100.0;
-	planetRefFrame.relativeScale = earthRadius / sunRadius;
-	planetRefFrame.localTransform.position = glm::dvec3(0.0, PhysicsConsts::AU, 0.0);
+	planetRefFrame.visualScale = 1.0;
+	planetRefFrame.relativeScale = 1.0;
+	//planetRefFrame.visualScaleAffectsChildren = false;
+	planetRefFrame.localTransform.position = glm::dvec3(0.0, 0.0, 0.0);
 	planetRefFrame.localTransform.rotation = glm::dquat(1, 0, 0, 0);
 
-	double sunOrbitalSpeed = sqrt(PhysicsConsts::G * starRB.mass / glm::length(planetRefFrame.localTransform.position));
-
 	PhysicsComponent::RigidBody planetRB{};
-	planetRB.velocity = glm::dvec3(-sunOrbitalSpeed, 0.0, 0.0);
+	planetRB.velocity = glm::dvec3(0.0, 0.0, 0.0);
 	planetRB.acceleration = glm::dvec3(0.0);
 	planetRB.mass = (5.972e+24);
 
+	//double sunOrbitalSpeed = sqrt(PhysicsConsts::G * starRB.mass / glm::length(planetRefFrame.localTransform.position));
+	/*
+
 	PhysicsComponent::OrbitingBody planetOB{};
 	planetOB.centralMass = starRB.mass;
+	*/
 
 	RenderComponent::MeshRenderable planetRenderable{};
-	planetRenderable.uboIndex = 1;
-	planetRenderable.meshOffset = meshOffsets[1];
+	planetRenderable.meshRange = planetRange;
 
-
-	m_registry->addComponent(planet.id, planetRB);
 	m_registry->addComponent(planet.id, planetRefFrame);
-	m_registry->addComponent(planet.id, planetOB);
+	m_registry->addComponent(planet.id, planetRB);
 	m_registry->addComponent(planet.id, planetRenderable);
 	m_registry->addComponent(planet.id, TelemetryComponent::RenderTransform{});
 
 
 
-		// Satellite configuration
+	// Satellite configuration
 	PhysicsComponent::ReferenceFrame satelliteRefFrame{};
 	satelliteRefFrame.parentID = planet.id;
-	satelliteRefFrame.scale = 20;
-	satelliteRefFrame.visualScale = 20.0;
+	satelliteRefFrame.scale = 30;
+	satelliteRefFrame.visualScale = 1.0;
 	satelliteRefFrame.relativeScale = satelliteRefFrame.scale / earthRadius;
 	satelliteRefFrame.localTransform.position = glm::dvec3((earthRadius + 2e6), 0.0, 0.0);
 	satelliteRefFrame.localTransform.rotation = glm::dquat(1, 0, 0, 0);
@@ -153,8 +177,7 @@ void VkBufferManager::init() {
 	satelliteOB.centralMass = planetRB.mass;
 
 	RenderComponent::MeshRenderable satelliteRenderable{};
-	satelliteRenderable.uboIndex = 2;
-	satelliteRenderable.meshOffset = meshOffsets[2];
+	satelliteRenderable.meshRange = satelliteRange;
 
 
 	m_registry->addComponent(satellite.id, satelliteRB);
@@ -162,9 +185,6 @@ void VkBufferManager::init() {
 	m_registry->addComponent(satellite.id, satelliteOB);
 	m_registry->addComponent(satellite.id, satelliteRenderable);
 	m_registry->addComponent(satellite.id, TelemetryComponent::RenderTransform{});
-
-	m_alignedObjectUBOSize = SystemUtils::Align(sizeof(Buffer::ObjectUBO), g_vkContext.Device.deviceProperties.limits.minUniformBufferOffsetAlignment);
-	createUniformBuffers();
 }
 
 
@@ -230,7 +250,7 @@ void VkBufferManager::createGlobalVertexBuffer(const std::vector<Geometry::Verte
 	vertBufAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE; // PREFERS fast device-local memory
 	vertBufAllocInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT; // FORCES device-local memory
 
-	createBuffer( m_vertexBuffer, bufferSize, vertBufUsage, m_vertexBufferAllocation, vertBufAllocInfo);
+	createBuffer(m_vertexBuffer, bufferSize, vertBufUsage, m_vertexBufferAllocation, vertBufAllocInfo);
 
 	writeDataToGPUBuffer(vertexData.data(), m_vertexBuffer, bufferSize);
 }
@@ -246,9 +266,67 @@ void VkBufferManager::createGlobalIndexBuffer(const std::vector<uint32_t>& index
 	indexBufAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE; // PREFERS fast device-local memory
 	indexBufAllocInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT; // FORCES device-local memory
 
-	createBuffer( m_indexBuffer, bufferSize, indexBufUsage, m_indexBufferAllocation, indexBufAllocInfo);
+	createBuffer(m_indexBuffer, bufferSize, indexBufUsage, m_indexBufferAllocation, indexBufAllocInfo);
 
 	writeDataToGPUBuffer(indexData.data(), m_indexBuffer, bufferSize);
+}
+
+
+void VkBufferManager::createMatParamsUniformBuffer() {
+	LOG_ASSERT(m_geomData, "Cannot create material parameters uniform buffer: Geometry data is invalid!");
+
+	VkDeviceSize minUBOAlignment = g_vkContext.Device.deviceProperties.limits.minUniformBufferOffsetAlignment;
+
+	// Material size & alignment
+	m_matStrideSize = SystemUtils::Align(sizeof(Geometry::Material), minUBOAlignment);
+
+	// Buffer configuration
+	VkDeviceSize bufferSize = static_cast<VkDeviceSize>(m_matStrideSize) * m_geomData->meshMaterials.size();
+
+	VkBufferUsageFlags bufferUsage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+
+	VmaAllocationCreateInfo matParamsUBAllocInfo{};
+	matParamsUBAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_HOST;
+	matParamsUBAllocInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+	matParamsUBAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+
+	createBuffer(m_matParamsBuffer, bufferSize, bufferUsage, m_matParamsBufferAllocation, matParamsUBAllocInfo);
+
+	vmaMapMemory(g_vkContext.vmaAllocator, m_matParamsBufferAllocation, &m_matParamsBufferMappedData);
+
+	CleanupTask task{};
+	task.caller = __FUNCTION__;
+	task.objectNames = { VARIABLE_NAME(m_matParamsBufferAllocation) };
+	task.vkObjects = { g_vkContext.vmaAllocator, m_matParamsBufferAllocation };
+	task.cleanupFunc = [this]() {
+		vmaUnmapMemory(g_vkContext.vmaAllocator, m_matParamsBufferAllocation);
+	};
+	m_garbageCollector->createCleanupTask(task);
+
+
+	// Populate buffer with all materials
+	for (size_t i = 0; i < m_geomData->meshMaterials.size(); i++) {
+		void *dataOffset = SystemUtils::GetAlignedBufferOffset(m_matStrideSize, m_matParamsBufferMappedData, i);
+		memcpy(dataOffset, &m_geomData->meshMaterials[i], sizeof(Geometry::Material));
+	}
+
+
+	// Initial buffer update
+	VkDescriptorBufferInfo pbrMaterialUBOInfo{};
+	pbrMaterialUBOInfo.buffer = m_matParamsBuffer;
+	pbrMaterialUBOInfo.offset = 0;
+	pbrMaterialUBOInfo.range = bufferSize;
+
+	VkWriteDescriptorSet pbrMaterialUBOdescWrite{};
+	pbrMaterialUBOdescWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	pbrMaterialUBOdescWrite.dstSet = g_vkContext.OffscreenPipeline.pbrDescriptorSet;
+	pbrMaterialUBOdescWrite.dstBinding = ShaderConsts::FRAG_BIND_MATERIAL_PARAMETERS;
+	pbrMaterialUBOdescWrite.dstArrayElement = 0;
+	pbrMaterialUBOdescWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+	pbrMaterialUBOdescWrite.descriptorCount = 1;
+	pbrMaterialUBOdescWrite.pBufferInfo = &pbrMaterialUBOInfo;
+
+	vkUpdateDescriptorSets(g_vkContext.Device.logicalDevice, 1, &pbrMaterialUBOdescWrite, 0, nullptr);
 }
 
 
@@ -293,6 +371,10 @@ void VkBufferManager::updateGlobalUBO(uint32_t currentImage) {
 
 	// View
 	ubo.view = m_camera->getRenderSpaceViewMatrix();
+	ubo.cameraPosition = SpaceUtils::ToRenderSpace_Position(m_camera->getGlobalTransform().position); // TODO: Does the position need to be in simulation or render space?
+	ubo.lightDirection = glm::vec3(1.0f, 0.0f, 0.0f);
+	ubo.lightColor = glm::vec3(1.0f, 0.95f, 0.90f);
+
 
 	// Perspective
 	const float fieldOfView = glm::radians(m_camera->zoom);
@@ -344,7 +426,7 @@ void VkBufferManager::updateObjectUBOs(uint32_t currentImage, const glm::dvec3& 
 		*/
 		if (refFrame.parentID.value() != m_renderSpace.id) {
 			const PhysicsComponent::ReferenceFrame& parentRefFrame = m_registry->getComponent<PhysicsComponent::ReferenceFrame>(refFrame.parentID.value());
-
+		
 			glm::dvec3 scaledOffsetFromParent = refFrame.localTransform.position * parentRefFrame.visualScale;
 			glm::dvec3 scaledGlobalPosition = parentRefFrame.globalTransform.position + scaledOffsetFromParent;
 			renderPosition = SpaceUtils::ToRenderSpace_Position(scaledGlobalPosition - scaledRenderOrigin);
@@ -352,10 +434,8 @@ void VkBufferManager::updateObjectUBOs(uint32_t currentImage, const glm::dvec3& 
 		else
 			renderPosition = SpaceUtils::ToRenderSpace_Position(refFrame.globalTransform.position - scaledRenderOrigin);
 
-
 		// Scale in render space
 		double renderScale = SpaceUtils::GetRenderableScale(SpaceUtils::ToRenderSpace_Scale(refFrame.scale)) * refFrame.visualScale;
-
 
 		/* NOTE:
 			Model matrices are constructed according to the Scale -> Rotate -> Translate (S-R-T) order.
@@ -372,6 +452,7 @@ void VkBufferManager::updateObjectUBOs(uint32_t currentImage, const glm::dvec3& 
 
 
 		ubo.model = modelMatrix;
+		ubo.normalMatrix = glm::transpose(glm::inverse(modelMatrix));
 
 		// Write to telemetry dashboard
 		renderT.position = renderPosition;
@@ -380,9 +461,11 @@ void VkBufferManager::updateObjectUBOs(uint32_t currentImage, const glm::dvec3& 
 		m_registry->updateComponent(entity, renderT);
 
 
-		// Write to memory
-		void* uboDst = getObjectUBO(currentImage, meshRenderable.uboIndex);
-		memcpy(uboDst, &ubo, sizeof(ubo));
+		// Write mesh (and submesh) data to memory
+		for (uint32_t meshIndex = meshRenderable.meshRange.left; meshIndex <= meshRenderable.meshRange.right; meshIndex++) {
+			void *uboDst = SystemUtils::GetAlignedBufferOffset(m_alignedObjectUBOSize, m_objectUBOMappedData[currentImage], meshIndex);
+			memcpy(uboDst, &ubo, sizeof(ubo));
+		}
 	}
 }
 
@@ -462,25 +545,27 @@ void VkBufferManager::createUniformBuffers() {
 			objectBufSize is the total size of all object UBOs (each corresponding to its object). We could say that objectBufSize is the size of the master object UBO, which stores child object UBOs.
 			For every frame, we want to have exactly 1 master object UBO. Therefore, for MAX_FRAMES_IN_FLIGHT frames, we want MAX_FRAMES_IN_FLIGHT master object UBOs.
 		*/
+	m_alignedObjectUBOSize = SystemUtils::Align(sizeof(Buffer::ObjectUBO), g_vkContext.Device.deviceProperties.limits.minUniformBufferOffsetAlignment);
+
 	VkDeviceSize objectBufSize = static_cast<VkDeviceSize>(m_alignedObjectUBOSize) * m_totalObjects;
 
 	m_objectUBOs.resize(SimulationConsts::MAX_FRAMES_IN_FLIGHT);
 	m_objectUBOMappedData.resize(SimulationConsts::MAX_FRAMES_IN_FLIGHT);
 
 
+	// Create the UBOs and map them to CPU memory
 	VkBufferUsageFlags uniformBufUsageFlags = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+	
+	VmaAllocationCreateInfo uniformBufAllocInfo{};
+	uniformBufAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_HOST;
+	uniformBufAllocInfo.requiredFlags = (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+	uniformBufAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+	/* NOTE: Should you transition to staging buffer uploads (maybe for instancing/compute), you'll need this flag:
+		uniformBufAllocInfo.flags |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+	*/
 
 	for (size_t i = 0; i < SimulationConsts::MAX_FRAMES_IN_FLIGHT; i++) {
-		// Creates the UBOs and map them to CPU memory
-		VmaAllocationCreateInfo uniformBufAllocInfo{};
-		uniformBufAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_HOST;
-		uniformBufAllocInfo.requiredFlags = (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-		uniformBufAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
-		/* NOTE: Should you transition to staging buffer uploads (maybe for instancing/compute), you'll need this flag:
-			uniformBufAllocInfo.flags |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-		*/
-		
-			// Global UBO (per frame)
+		// Global UBO
 		createBuffer(m_globalUBOs[i].buffer, globalBufSize, uniformBufUsageFlags, m_globalUBOs[i].allocation, uniformBufAllocInfo);
 
 			/*
@@ -490,7 +575,7 @@ void VkBufferManager::createUniformBuffers() {
 		vmaMapMemory(g_vkContext.vmaAllocator, m_globalUBOs[i].allocation, &m_globalUBOMappedData[i]);
 
 
-			// Object UBO (per object per frame)
+		// Object UBO
 		createBuffer(m_objectUBOs[i].buffer, objectBufSize, uniformBufUsageFlags, m_objectUBOs[i].allocation, uniformBufAllocInfo);
 		vmaMapMemory(g_vkContext.vmaAllocator, m_objectUBOs[i].allocation, &m_objectUBOMappedData[i]);
 

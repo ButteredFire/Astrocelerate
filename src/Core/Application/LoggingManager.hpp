@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <iostream>
 #include <string>
@@ -159,6 +159,8 @@ namespace Log {
 
 	/* Logs application information to the console. */
 	inline void PrintAppInfo() {
+		std::cout << termcolor::reset;
+
 		std::cout << "Project " << APP_NAME << " (version: " << APP_VERSION << ").\n";
 		std::cout << "Project is run in ";
 		if (IN_DEBUG_MODE)

@@ -22,6 +22,7 @@ set(HEADER_FILES
 	"src/Core/Data/Geometry.hpp"
 	"src/Core/Data/GUI.hpp"
 	"src/Core/Data/Input.hpp"
+	"src/Core/Data/Math.hpp"
 	"src/Core/Data/Physics.hpp"
 	"src/Core/Data/Contexts/AppContext.hpp"
 	"src/Core/Data/Contexts/CallbackContext.hpp"
