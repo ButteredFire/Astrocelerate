@@ -3,6 +3,7 @@ set(HEADER_FILES
 	"external/iconfontcppheaders/IconsFontAwesome6.h"
 	"external/imgui/imconfig.h"
 	"external/imgui/imgui.h"
+	"external/imgui/imgui_freetype.h"
 	"external/imgui/imgui_impl_glfw.h"
 	"external/imgui/imgui_impl_vulkan.h"
 	"external/imgui/imgui_internal.h"

@@ -51,7 +51,7 @@ void UIPanelManager::onImGuiInit() {
 
 	GUI::TogglePanel(m_panelMask, GUI::PanelFlag::PANEL_VIEWPORT, GUI::TOGGLE_ON);
 	GUI::TogglePanel(m_panelMask, GUI::PanelFlag::PANEL_TELEMETRY, GUI::TOGGLE_ON);
-	//GUI::TogglePanel(m_panelMask, GUI::PanelFlag::PANEL_ENTITY_INSPECTOR, GUI::TOGGLE_ON);
+	GUI::TogglePanel(m_panelMask, GUI::PanelFlag::PANEL_ENTITY_INSPECTOR, GUI::TOGGLE_ON);
 	GUI::TogglePanel(m_panelMask, GUI::PanelFlag::PANEL_SIMULATION_CONTROL, GUI::TOGGLE_ON);
 	//GUI::TogglePanel(m_panelMask, GUI::PanelFlag::PANEL_RENDER_SETTINGS, GUI::TOGGLE_ON);
 	//GUI::TogglePanel(m_panelMask, GUI::PanelFlag::PANEL_ORBITAL_PLANNER, GUI::TOGGLE_ON);
@@ -206,7 +206,7 @@ void UIPanelManager::performBackgroundChecks(GUI::PanelFlag flag) {
 
 
 void UIPanelManager::renderMenuBar() {
-	if (ImGui::BeginMenuBar()) {
+	if (ImGui::BeginMainMenuBar()) {
 
 		if (ImGui::BeginMenu("File")) {
 			// Open
@@ -285,7 +285,7 @@ void UIPanelManager::renderMenuBar() {
 		}
 
 
-		ImGui::EndMenuBar();
+		ImGui::EndMainMenuBar();
 	}
 }
 
@@ -329,13 +329,14 @@ void UIPanelManager::renderViewportPanel() {
 
 		ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
 
-		// Pause/Play button
-		static bool initialLoad = true;
-		static float lastTimeScale = 1.0f;
 
-		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
-		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2f, 0.2f, 0.2f, 0.4f));
+		// Simulation control group
+		ImGui::BeginGroup();
 		{
+			// Pause/Play button
+			static bool initialLoad = true;
+			static float lastTimeScale = 1.0f;
+
 			if (m_simulationIsPaused) {
 				if (initialLoad) {
 					Time::SetTimeScale(0.0f);
@@ -355,7 +356,19 @@ void UIPanelManager::renderViewportPanel() {
 				}
 			}
 		}
-		ImGui::PopStyleColor(2);
+		ImGui::EndGroup();
+
+		ImGuiUtils::VerticalSeparator();
+
+		// Camera
+		ImGui::BeginGroup();
+		{
+			ImGui::Button("Camera");
+		}
+		ImGui::EndGroup();
+
+
+		ImGui::Separator();
 
 
 		g_appContext.Input.isViewportHoveredOver = ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows) || m_inputBlockerIsOn;
@@ -675,9 +688,7 @@ void UIPanelManager::renderTelemetryPanel() {
 			// Since entity IDs are always unique, we can use them as ImGui IDs.
 			ImGui::PushID(static_cast<int>(entity));
 
-
-			ImGuiUtils::BoldText("%s (ID: %d)", m_registry->getEntity(entity).name.c_str(), entity);
-
+			ImGui::SeparatorText(m_registry->getEntity(entity).name.c_str());
 
 			// --- Rigid-body Debug Info ---
 			if (ImGui::CollapsingHeader("Rigid-body Data")) {
@@ -692,7 +703,7 @@ void UIPanelManager::renderTelemetryPanel() {
 					},
 					"%.2f", "\tVector"
 				);
-				ImGui::Text("\tAbsolute: |v| ~= %.4f m/s", velocityAbs);
+				ImGui::Text("\tAbsolute: |v| ≈ %.4f m/s", velocityAbs);
 
 				ImGui::Dummy(ImVec2(0.5f, 0.5f));
 
@@ -707,7 +718,7 @@ void UIPanelManager::renderTelemetryPanel() {
 					},
 					"%.2f", "\tVector"
 				);
-				ImGui::Text("\tAbsolute: |a| ~= %.4f m/s^2", accelerationAbs);
+				ImGui::Text("\tAbsolute: |a| ≈ %.4f m/s²", accelerationAbs);
 
 
 				// Display mass: scientific notation for large values, fixed for small
@@ -754,7 +765,7 @@ void UIPanelManager::renderTelemetryPanel() {
 					},
 					"%.2f", "\tPosition"
 				);
-				ImGui::Text("\tMagnitude: ||vec|| ~= %.2f m", glm::length(refFrame.localTransform.position));
+				ImGui::Text("\tMagnitude: ||vec|| ≈ %.2f m", glm::length(refFrame.localTransform.position));
 
 
 				ImGuiUtils::ComponentField(
@@ -779,7 +790,7 @@ void UIPanelManager::renderTelemetryPanel() {
 					},
 					"%.2f", "\tPosition (simulation)"
 				);
-				ImGui::Text("\tMagnitude: ||vec|| ~= %.2f m", glm::length(refFrame.globalTransform.position));
+				ImGui::Text("\tMagnitude: ||vec|| ≈ %.2f m", glm::length(refFrame.globalTransform.position));
 
 
 				ImGuiUtils::ComponentField(
@@ -790,7 +801,7 @@ void UIPanelManager::renderTelemetryPanel() {
 					},
 					"%.2f", "\tPosition (render)"
 				);
-				ImGui::Text("\tMagnitude: ||vec|| ~= %.2f units", glm::length(renderT.position));
+				ImGui::Text("\tMagnitude: ||vec|| ≈ %.2f units", glm::length(renderT.position));
 
 
 				ImGuiUtils::ComponentField(
@@ -820,7 +831,7 @@ void UIPanelManager::renderTelemetryPanel() {
 		CommonComponent::Transform cameraTransform = camera->getGlobalTransform();
 		glm::vec3 scaledCameraPosition = SpaceUtils::ToRenderSpace_Position(cameraTransform.position);
 
-		ImGuiUtils::BoldText("Camera");
+		ImGui::SeparatorText("Camera");
 
 		ImGuiUtils::BoldText("Global transform");
 
@@ -865,7 +876,26 @@ void UIPanelManager::renderEntityInspectorPanel() {
 	if (ImGui::Begin(GUI::GetPanelName(flag), nullptr, m_windowFlags)) {
 		performBackgroundChecks(flag);
 
-		ImGui::TextWrapped("Pushing the boundaries of space exploration, one line of code at a time.");
+		auto view = m_registry->getView<PhysicsComponent::ShapeParameters>();
+		if (view.size() == 0)
+			ImGui::SeparatorText("Shape Parameters: None");
+
+		else {
+			ImGui::SeparatorText("Shape Parameters");
+
+			for (auto &&[entity, shapeParams] : view) {
+				ImGui::PushID(static_cast<int>(entity));
+
+				if (ImGui::CollapsingHeader(m_registry->getEntity(entity).name.c_str())) {
+					ImGui::TextWrapped("Eccentricity: e ≈ %.5f", shapeParams.eccentricity);
+					ImGui::TextWrapped("Mean equatorial radius: r ≈ %.5f m", shapeParams.equatRadius);
+					ImGui::TextWrapped("Gravitational parameter: μ ≈ %.5g m³/s⁻²", shapeParams.gravParam);
+					ImGui::TextWrapped("Rotational velocity: ω ≈ %.5g rad/s", shapeParams.rotVelocity);
+				}
+
+				ImGui::PopID();
+			}
+		}
 	
 		ImGui::End();
 	}

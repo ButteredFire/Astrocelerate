@@ -150,12 +150,17 @@ uint32_t TextureManager::createIndexedTexture(const std::string& texSource, VkFo
 void TextureManager::updateTextureArrayDescriptorSet(uint32_t texIndex, const VkDescriptorImageInfo &texImageInfo) {
 	VkWriteDescriptorSet descriptorWrite{};
 	descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	descriptorWrite.dstSet = g_vkContext.OffscreenPipeline.pbrDescriptorSet;
+	descriptorWrite.dstSet = g_vkContext.OffscreenPipeline.textureArrDescriptorSet;
 	descriptorWrite.dstBinding = ShaderConsts::FRAG_BIND_TEXTURE_MAP;
 	descriptorWrite.dstArrayElement = texIndex; // The specific index in the array where this texture belongs
 	descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	descriptorWrite.descriptorCount = 1;
 	descriptorWrite.pImageInfo = &texImageInfo;
+
+	std::cout << "DEBUG: Updating descriptorSet: " << descriptorWrite.dstSet
+		<< ", dstBinding: " << descriptorWrite.dstBinding
+		<< ", dstArrayElement: " << descriptorWrite.dstArrayElement << std::endl;
+
 
 	vkUpdateDescriptorSets(g_vkContext.Device.logicalDevice, 1, &descriptorWrite, 0, nullptr);
 }

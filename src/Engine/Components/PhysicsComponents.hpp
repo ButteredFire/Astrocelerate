@@ -1,4 +1,4 @@
-﻿/* PhysicsComponents.hpp - Components pertaining to physics.
+/* PhysicsComponents.hpp - Components pertaining to physics.
 */
 
 #pragma once
@@ -49,7 +49,7 @@ namespace PhysicsComponent {
 	struct ShapeParameters {
 		double equatRadius;						// Mean equatorial radius (m)
 		double eccentricity;					// Eccentricity
-		double gravParam;						// Gravitational parameter (m^3 / s^2)
+		double gravParam;						// Gravitational parameter (m^3 / s^(-2))
 		double rotVelocity;						// Rotational velocity (rad/s)
 	};
 }

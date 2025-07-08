@@ -1,4 +1,4 @@
-﻿/* UIRenderer.cpp - UI Renderer implementation.
+/* UIRenderer.cpp - UI Renderer implementation.
 */
 
 #include "UIRenderer.hpp"
@@ -67,7 +67,7 @@ void UIRenderer::initImGui() {
         { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, static_cast<uint32_t>(g_vkContext.OffscreenResources.images.size()) }
     };
     VkDescriptorPoolCreateFlags imgui_DescPoolCreateFlags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-    VkDescriptorUtils::CreateDescriptorPool(m_descriptorPool, imgui_PoolSizes, imgui_DescPoolCreateFlags);
+    VkDescriptorUtils::CreateDescriptorPool(m_descriptorPool, imgui_PoolSizes.size(), imgui_PoolSizes.data(), imgui_DescPoolCreateFlags);
     vkInitInfo.DescriptorPool = m_descriptorPool;
 
 
@@ -97,7 +97,6 @@ void UIRenderer::initImGui() {
     task.objectNames = { "ImGui destruction calls" };
     task.cleanupFunc = []() {
         ImGui::SaveIniSettingsToDisk(ConfigConsts::IMGUI_DEFAULT_CONFIG.c_str());
-        ImGui_ImplVulkan_DestroyFontsTexture();
         ImGui_ImplVulkan_Shutdown();
     };
 
@@ -109,8 +108,6 @@ void UIRenderer::initImGui() {
 
     // Loads default fonts
     initFonts();
-
-    ImGui_ImplVulkan_CreateFontsTexture();
 
     // Implements custom style
         // Refer to ImGui::StyleColorsDark() and ImGui::StyleColorsLight() for more information
@@ -128,64 +125,52 @@ void UIRenderer::initImGui() {
 void UIRenderer::initFonts() {
     ImGuiIO& io = ImGui::GetIO();
 
-    const float fontSize = 25.0f;
-    const float iconSize = 18.0f;
+    constexpr float fontSize = 25.0f;
+    constexpr float iconSize = 18.0f;
+
 
     // Glyph ranges
-    static const ImWchar commonRanges[] = {
-        0x0020, 0x00FF, // Basic Latin + Latin Supplement (GetGlyphRangesDefault)
-        0x0100, 0x017F, // Latin Extended-A
-        0x0180, 0x024F, // Latin Extended-B
-        0x0300, 0x036F, // Combining Diacritical Marks
-
-        // Vietnamese
-        0x0020, 0x00FF, // Basic Latin
-        0x0102, 0x0103,
-        0x0110, 0x0111,
-        0x0128, 0x0129,
-        0x0168, 0x0169,
-        0x01A0, 0x01A1,
-        0x01AF, 0x01B0,
-        0x1EA0, 0x1EF9,
+    static const ImWchar glyphRanges[] = {
+        // Math Symbols
+        0x0370, 0x03FF,     // Modern Greek Alphabet
+        0x2070, 0x209F,     // Superscript & Subscript
+        0x2200, 0x22FF,     // Approximation Symbols + Mathematical Operators
 
         0, // NULL terminator
     };
 
 
-    // Primary/Default text font: Roboto Regular
+    // Primary/Default text font
     // NOTE: It is the default font because it is the first font to be loaded.
-    g_fontContext.Roboto.regular = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.REGULAR.c_str(), fontSize, nullptr, commonRanges);
-    LOG_ASSERT(g_fontContext.Roboto.regular, "Failed to load (default) Roboto Regular font!");
+    g_fontContext.primaryFont = 
+        g_fontContext.NotoSans.regular = io.Fonts->AddFontFromFileTTF(FontConsts::NotoSans.REGULAR.c_str(), fontSize, nullptr, glyphRanges);
 
+    if (!g_fontContext.primaryFont) {
+        Log::Print(Log::T_ERROR, __FUNCTION__, "Cannot load primary application font! A fallback font will be used instead.");
+        g_fontContext.primaryFont = io.Fonts->AddFontDefault();
+    }
+
+
+    // FontAwesome icons
         // IMPORTANT: Since only the icons use this merge config (meaning that they get merged into the default font),
         // the icons will only be available when the default font is used.
     ImFontConfig mergeConfig;
     mergeConfig.MergeMode = true;   // NOTE: This merges the new font/icons into the default font
     mergeConfig.PixelSnapH = true;  // NOTE: This helps with crisp rendering of icons
 
-
-    // FontAwesome icons
     const ImWchar faGlyphRanges[] = {
         ICON_MIN_FA, ICON_MAX_FA, 0
     };
 
-    //io.Fonts->AddFontFromFileTTF(FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Fonts", "FontAwesome", "FontAwesome-6-Brands-Regular-400.otf").c_str(), iconSize, &mergeConfig, faGlyphRanges);
-    //io.Fonts->AddFontFromFileTTF(FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Fonts", "FontAwesome", "FontAwesome-6-Free-Regular-400.otf").c_str(), iconSize, &mergeConfig, faGlyphRanges);
     io.Fonts->AddFontFromFileTTF(FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Fonts", "FontAwesome", "FontAwesome-6-Free-Solid-900.otf").c_str(), iconSize, &mergeConfig, faGlyphRanges);
     
 
-    // Roboto
-    g_fontContext.Roboto.black = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.BLACK.c_str(), fontSize, nullptr, io.Fonts->GetGlyphRangesDefault());
-    g_fontContext.Roboto.blackItalic = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.BLACK_ITALIC.c_str(), fontSize, nullptr, io.Fonts->GetGlyphRangesDefault());
-    g_fontContext.Roboto.bold = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.BOLD.c_str(), fontSize, nullptr, io.Fonts->GetGlyphRangesDefault());
-    g_fontContext.Roboto.boldItalic = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.BOLD_ITALIC.c_str(), fontSize, nullptr, io.Fonts->GetGlyphRangesDefault());
-    g_fontContext.Roboto.italic = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.ITALIC.c_str(), fontSize, nullptr, io.Fonts->GetGlyphRangesDefault());
-    g_fontContext.Roboto.light = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.LIGHT.c_str(), fontSize, nullptr, io.Fonts->GetGlyphRangesDefault());
-    g_fontContext.Roboto.lightItalic = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.LIGHT_ITALIC.c_str(), fontSize, nullptr, io.Fonts->GetGlyphRangesDefault());
-    g_fontContext.Roboto.medium = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.MEDIUM.c_str(), fontSize, nullptr, io.Fonts->GetGlyphRangesDefault());
-    g_fontContext.Roboto.mediumItalic = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.MEDIUM_ITALIC.c_str(), fontSize, nullptr, io.Fonts->GetGlyphRangesDefault());
-    g_fontContext.Roboto.thin = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.THIN.c_str(), fontSize, nullptr, io.Fonts->GetGlyphRangesDefault());
-    g_fontContext.Roboto.thinItalic = io.Fonts->AddFontFromFileTTF(FontConsts::Roboto.THIN_ITALIC.c_str(), fontSize, nullptr, io.Fonts->GetGlyphRangesDefault());
+    // Other variations
+    g_fontContext.NotoSans.bold         = io.Fonts->AddFontFromFileTTF(FontConsts::NotoSans.BOLD.c_str(), fontSize, nullptr, glyphRanges);
+    g_fontContext.NotoSans.boldItalic   = io.Fonts->AddFontFromFileTTF(FontConsts::NotoSans.BOLD_ITALIC.c_str(), fontSize, nullptr, glyphRanges);
+    g_fontContext.NotoSans.italic       = io.Fonts->AddFontFromFileTTF(FontConsts::NotoSans.ITALIC.c_str(), fontSize, nullptr, glyphRanges);
+    g_fontContext.NotoSans.light        = io.Fonts->AddFontFromFileTTF(FontConsts::NotoSans.LIGHT.c_str(), fontSize, nullptr, glyphRanges);
+    g_fontContext.NotoSans.lightItalic  = io.Fonts->AddFontFromFileTTF(FontConsts::NotoSans.LIGHT_ITALIC.c_str(), fontSize, nullptr, glyphRanges);
 
 
     io.Fonts->Build();
@@ -213,7 +198,7 @@ void UIRenderer::initDockspace() {
     if (ImGui::Begin("MainDockspace", nullptr, dockspaceFlags)) {
         ImGui::PopStyleVar(2);
 
-        ImGui::PushFont(g_fontContext.Roboto.regular);
+        ImGui::PushFont(g_fontContext.primaryFont);
         m_uiPanelManager->renderMenuBar();
         ImGui::PopFont();
 
@@ -245,7 +230,7 @@ void UIRenderer::renderFrames(uint32_t currentFrame) {
     {
         initDockspace();
 
-        ImGui::PushFont(g_fontContext.Roboto.regular);
+        ImGui::PushFont(g_fontContext.primaryFont);
         m_uiPanelManager->updatePanels(currentFrame);
         ImGui::PopFont();
 

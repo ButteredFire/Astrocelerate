@@ -2,10 +2,13 @@
 #include <Core/Engine/InputManager.hpp> // Breaks cyclic dependency
 
 
-Camera::Camera(GLFWwindow* window, glm::vec3 position, glm::quat orientation):
+Camera::Camera(Entity self, GLFWwindow* window, glm::vec3 position, glm::quat orientation):
+	m_camEntity(self),
 	m_window(window),
 	m_position(position),
 	m_orientation(orientation) {
+
+	m_registry = ServiceLocator::GetService<Registry>(__FUNCTION__);
 
 	update();
 
@@ -21,6 +24,24 @@ void Camera::update() {
 	m_front = m_orientation * glm::vec3(0.0, -1.0, 0.0);
 	m_localUp = m_orientation * m_worldUp;
 	m_right = glm::normalize(glm::cross(m_front, m_localUp));
+
+	m_freeFlyPosition = m_position;
+
+
+	// Update camera's position if currently attached to an entity
+	static bool inFreeFly = false;
+
+	if (m_attachedEntityID != m_camEntity.id) {
+		PhysicsComponent::ReferenceFrame &entityRefFrame = m_registry->getComponent<PhysicsComponent::ReferenceFrame>(m_attachedEntityID);
+		m_position = entityRefFrame.globalTransform.position + SpaceUtils::ToSimulationSpace(glm::dvec3(0.0, 2.0, 0.0));
+		inFreeFly = false;
+	}
+	else {
+		if (!inFreeFly) {
+			m_freeFlyPosition = m_position;
+			inFreeFly = true;
+		}
+	}
 }
 
 
@@ -37,6 +58,11 @@ CommonComponent::Transform Camera::getGlobalTransform() const {
 	transform.rotation = m_orientation;
 	
 	return transform;
+}
+
+
+void Camera::attachToEntity(EntityID entityID) {
+	m_attachedEntityID = entityID;
 }
 
 

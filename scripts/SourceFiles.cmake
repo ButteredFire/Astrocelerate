@@ -2,6 +2,7 @@ set(SOURCE_FILES
 	"external/imgui/imgui.cpp"
 	"external/imgui/imgui_demo.cpp"
 	"external/imgui/imgui_draw.cpp"
+	"external/imgui/imgui_freetype.cpp"
 	"external/imgui/imgui_impl_glfw.cpp"
 	"external/imgui/imgui_impl_vulkan.cpp"
 	"external/imgui/imgui_tables.cpp"

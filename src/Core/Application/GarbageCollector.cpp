@@ -70,6 +70,10 @@ void GarbageCollector::processCleanupStack() {
 	std::string plural = (stackSize != 1)? "s" : "";
 	Log::Print(Log::T_VERBOSE, __FUNCTION__, "Executing " + std::to_string(stackSize) + " task" + plural + " in the cleanup stack...");
 
+	if (g_vkContext.Device.logicalDevice)
+		// Makes sure the CPU is idle before executing tasks
+		vkDeviceWaitIdle(g_vkContext.Device.logicalDevice);
+
 	while (!m_cleanupStack.empty()) {
 		uint32_t id = (m_cleanupStack.size() - 1);
 		CleanupTask task = m_cleanupStack[id];
@@ -117,7 +121,7 @@ bool GarbageCollector::executeTask(CleanupTask& task, uint32_t taskID) {
 
 	// Executes the task and invalidates it to prevent future executions
 	task.cleanupFunc();
-
+	
 	Log::Print(Log::T_VERBOSE, __FUNCTION__, "Executed cleanup task for object(s) " + objectNamesStr + ".");
 
 	task.validTask = false;

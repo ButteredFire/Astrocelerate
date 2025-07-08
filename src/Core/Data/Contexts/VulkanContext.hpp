@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include <External/GLFWVulkan.hpp>
 #include <vk_mem_alloc.h> 
@@ -129,6 +129,7 @@ struct VulkanContext {
         std::vector<VkDescriptorSet> perFrameDescriptorSets;
 
         VkDescriptorSet pbrDescriptorSet;
+        VkDescriptorSet textureArrDescriptorSet;
     } OffscreenPipeline;
 };
 

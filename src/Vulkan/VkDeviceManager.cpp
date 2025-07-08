@@ -1,4 +1,4 @@
-﻿/* VkDeviceManager.cpp - Vulkan device management implementation.
+/* VkDeviceManager.cpp - Vulkan device management implementation.
 */
 
 

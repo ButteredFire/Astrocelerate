@@ -34,6 +34,7 @@ void InputManager::init() {
 void InputManager::bindEvents() {
 	m_eventDispatcher->subscribe<Event::UpdateInput>(
 		[this](const Event::UpdateInput& event) {
+			this->m_camera->update();
 			this->processKeyboardInput(event.deltaTime);
 		}
 	);

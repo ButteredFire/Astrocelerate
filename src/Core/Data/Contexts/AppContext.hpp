@@ -22,20 +22,16 @@ extern AppContext g_appContext;
 
 
 struct FontContext {
-    struct Roboto {
-        ImFont* black;
-        ImFont* blackItalic;
-        ImFont* bold;
-        ImFont* boldItalic;
-        ImFont* italic;
-        ImFont* light;
-        ImFont* lightItalic;
-        ImFont* medium;
-        ImFont* mediumItalic;
-        ImFont* regular;
-        ImFont* thin;
-        ImFont* thinItalic;
-    } Roboto;
+    ImFont *primaryFont;
+
+    struct NotoSans {
+        ImFont *bold;
+        ImFont *boldItalic;
+        ImFont *italic;
+        ImFont *light;
+        ImFont *lightItalic;
+        ImFont *regular;
+    } NotoSans;
 };
 
 extern FontContext g_fontContext;

@@ -8,10 +8,12 @@
 
 #include <Core/Data/Constants.h>
 #include <Core/Application/LoggingManager.hpp>
+#include <Core/Engine/ECS.hpp>
 
 #include <Core/Data/Input.hpp>
 
 #include <Engine/Components/CommonComponents.hpp>
+#include <Engine/Components/PhysicsComponents.hpp>
 
 #include <Utils/SpaceUtils.hpp>
 
@@ -22,7 +24,7 @@ class InputManager;
 
 class Camera {
 public:
-	Camera(GLFWwindow* window, glm::vec3 position, glm::quat orientation);
+	Camera(Entity self, GLFWwindow* window, glm::vec3 position, glm::quat orientation);
 	~Camera() = default;
 
 	friend class InputManager;
@@ -35,16 +37,31 @@ public:
 	CommonComponent::Transform getGlobalTransform() const;
 
 
+	/* Fixes the camera to an entity (mesh) in the scene (or its own entity ID to enable free-fly mode).
+		@param entityID: The entity's ID.
+	*/
+	void attachToEntity(EntityID entityID);
+
+
+	/* Gets the camera entity. */
+	Entity getEntity() const { return m_camEntity; }
+
+
 	float movementSpeed = 1e6f;				// Movement speed in simulation space (m/s)
 	float mouseSensitivity = 0.1f;			// Mouse sensitivity
 	float zoom = 60.0f;						// Zoom (degrees)
 
 private:
 	GLFWwindow* m_window;
+	std::shared_ptr<Registry> m_registry;
+
+	Entity m_camEntity{};
+	EntityID m_attachedEntityID{};
 
 	const glm::vec3 m_worldUp = SimulationConsts::UP_AXIS;
 
 	glm::vec3 m_position;
+	glm::vec3 m_freeFlyPosition;		// The camera's saved position in free-fly mode (to switch back to later)
 	glm::quat m_orientation;
 
 	float m_pitch = 0.0f;  // Used for clamping mouse pitch

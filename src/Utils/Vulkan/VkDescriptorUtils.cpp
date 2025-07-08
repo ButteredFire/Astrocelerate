@@ -1,13 +1,13 @@
 #include "VkDescriptorUtils.hpp"
 
 
-void VkDescriptorUtils::CreateDescriptorPool(VkDescriptorPool& descriptorPool, std::vector<VkDescriptorPoolSize> poolSizes, VkDescriptorPoolCreateFlags createFlags, uint32_t maxSets) {
+void VkDescriptorUtils::CreateDescriptorPool(VkDescriptorPool& descriptorPool, uint32_t poolSizeCount, VkDescriptorPoolSize *poolSizes, VkDescriptorPoolCreateFlags createFlags, uint32_t maxSets) {
 	std::shared_ptr<GarbageCollector> garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
 
 	VkDescriptorPoolCreateInfo descPoolCreateInfo{};
 	descPoolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-	descPoolCreateInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
-	descPoolCreateInfo.pPoolSizes = poolSizes.data();
+	descPoolCreateInfo.poolSizeCount = poolSizeCount;
+	descPoolCreateInfo.pPoolSizes = poolSizes;
 	descPoolCreateInfo.flags = createFlags;
 
 	// TODO: Adjust `maxSets` depending on scenario instead of an arbitrary value like 500.

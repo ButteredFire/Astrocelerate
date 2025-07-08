@@ -6,3 +6,4 @@
 #include <glm/gtx/string_cast.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>
+#include <glm/gtc/epsilon.hpp>

@@ -1,4 +1,4 @@
-﻿/* Engine.cpp - Engine implementation.
+/* Engine.cpp - Engine implementation.
 */
 
 #include "Engine.hpp"
@@ -42,6 +42,7 @@ void Engine::initComponents() {
     m_registry->initComponentArray<PhysicsComponent::RigidBody>();
     m_registry->initComponentArray<PhysicsComponent::OrbitingBody>();
     m_registry->initComponentArray<PhysicsComponent::ReferenceFrame>();
+    m_registry->initComponentArray<PhysicsComponent::ShapeParameters>();
 
     /* Telemetry */
     m_registry->initComponentArray<TelemetryComponent::RenderTransform>();

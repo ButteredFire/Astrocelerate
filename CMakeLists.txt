@@ -142,6 +142,7 @@ find_package(glfw3 CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(VulkanMemoryAllocator CONFIG REQUIRED)
 find_package(assimp CONFIG REQUIRED)
+find_package(Freetype CONFIG REQUIRED)
 
 
 # Organize libraries into variables
@@ -152,6 +153,7 @@ set(PKG_LIBS
     glm::glm
     GPUOpen::VulkanMemoryAllocator
     assimp::assimp
+    Freetype::Freetype
 )
 
 set(FETCHCONTENT_LIBS

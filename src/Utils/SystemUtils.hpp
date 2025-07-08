@@ -19,6 +19,18 @@ namespace SystemUtils {
 #define SIZE_OF(arr) (sizeof((arr)) / sizeof((arr[0])))
 
 
+    // Concept: Is a number
+    template<typename T>
+    concept Number = std::regular<T> && requires(T a, T b) {
+        { a + b }  -> std::same_as<T>;
+        { a - b }  -> std::same_as<T>;
+        { a * b }  -> std::same_as<T>;
+        { a / b }  -> std::same_as<T>;
+        { a == b } -> std::same_as<bool>;
+        { a < b }  -> std::same_as<bool>;
+    };
+
+
     // Concept: Supports division by a double
     template<typename T>
     concept DivisibleByDouble = requires(T a, double b) {

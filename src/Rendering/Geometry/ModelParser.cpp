@@ -19,11 +19,11 @@ Geometry::MeshData AssimpParser::parse(const std::string &modelPath) {
 			+ ...CalcTangentSpace: Computes tangents/bi-tangents. This is essential for normal maps.
 		*/
 	unsigned int postProcessingFlags = (
-		  aiProcess_Triangulate
+		aiProcess_Triangulate
 		| aiProcess_GenSmoothNormals
 		| aiProcess_CalcTangentSpace
-		| aiProcess_JoinIdenticalVertices
 		| aiProcess_OptimizeMeshes
+		| aiProcess_FlipUVs
 	);
 
 	const aiScene* scene = importer.ReadFile(modelPath, postProcessingFlags);
@@ -175,6 +175,7 @@ void AssimpParser::processMeshMaterials(const aiScene *scene, const aiMaterial *
 	
 	std::string textureAbsPath;
 
+	const std::string fallbackPlaceholder = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Textures", "Fallback/PlaceholderTexture.png");
 	const std::string fallbackWhite = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Textures", "Fallback/1x1_White.png");
 	const std::string fallbackBlack = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Textures", "Fallback/1x1_Black.png");
 	const std::string fallbackFlatNormal = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Textures", "Fallback/1x1_Flat_Normal.png");
@@ -201,7 +202,7 @@ void AssimpParser::processMeshMaterials(const aiScene *scene, const aiMaterial *
 	}
 	else {
 		//Log::Print(Log::T_WARNING, __FUNCTION__, fileName + " does not have albedo mapping! A fallback texture will be used instead.");
-		//meshMat.albedoMapIndex = m_textureManager->createIndexedTexture(fallbackWhite, VK_FORMAT_R8G8B8A8_SRGB);
+		meshMat.albedoMapIndex = m_textureManager->createIndexedTexture(fallbackPlaceholder, VK_FORMAT_R8G8B8A8_SRGB);
 	}
 
 
@@ -227,7 +228,16 @@ void AssimpParser::processMeshMaterials(const aiScene *scene, const aiMaterial *
 	}
 	else {
 		//Log::Print(Log::T_WARNING, __FUNCTION__, fileName + " does not have metallic-roughness mapping! A fallback texture will be used instead.");
-		//meshMat.metallicRoughnessMapIndex = m_textureManager->createIndexedTexture(fallbackBlack, VK_FORMAT_R8G8B8A8_UNORM);
+		meshMat.metallicRoughnessMapIndex = m_textureManager->createIndexedTexture(fallbackBlack, VK_FORMAT_R8G8B8A8_UNORM);
+	}
+
+
+	// Height/Topography map index
+	if (aiMat->GetTexture(aiTextureType_DISPLACEMENT, 0, &texturePath) == AI_SUCCESS) {
+		textureAbsPath = FilePathUtils::JoinPaths(parentDir, texturePath.C_Str());
+		meshMat.heightMapIndex = m_textureManager->createIndexedTexture(textureAbsPath, VK_FORMAT_R8G8B8A8_UNORM);
+	}
+	else {
 	}
 
 
@@ -240,7 +250,7 @@ void AssimpParser::processMeshMaterials(const aiScene *scene, const aiMaterial *
 	}
 	else {
 		//Log::Print(Log::T_WARNING, __FUNCTION__, fileName + " does not have normal mapping! A fallback texture will be used instead.");
-		//meshMat.normalMapIndex = m_textureManager->createIndexedTexture(fallbackFlatNormal, VK_FORMAT_R8G8B8A8_UNORM);
+		meshMat.normalMapIndex = m_textureManager->createIndexedTexture(fallbackFlatNormal, VK_FORMAT_R8G8B8A8_UNORM);
 	}
 
 
@@ -252,9 +262,8 @@ void AssimpParser::processMeshMaterials(const aiScene *scene, const aiMaterial *
 	}
 	else {
 		//Log::Print(Log::T_WARNING, __FUNCTION__, fileName + " does not have AO mapping! A fallback texture will be used instead.");
-		//meshMat.aoMapIndex = m_textureManager->createIndexedTexture(fallbackWhite, VK_FORMAT_R8G8B8A8_SRGB);
+		meshMat.aoMapIndex = m_textureManager->createIndexedTexture(fallbackWhite, VK_FORMAT_R8G8B8A8_SRGB);
 	}
-
 
 	// Emissive
 		// Scalar value
@@ -268,8 +277,8 @@ void AssimpParser::processMeshMaterials(const aiScene *scene, const aiMaterial *
 		meshMat.emissiveMapIndex = m_textureManager->createIndexedTexture(textureAbsPath, VK_FORMAT_R8G8B8A8_SRGB);
 	}
 	else {
-		Log::Print(Log::T_WARNING, __FUNCTION__, fileName + " does not have emissive color mapping! A fallback texture will be used instead.");
-		//meshMat.emissiveMapIndex = m_textureManager->createIndexedTexture(fallbackBlack, VK_FORMAT_R8G8B8A8_SRGB);
+		//Log::Print(Log::T_WARNING, __FUNCTION__, fileName + " does not have emissive color mapping! A fallback texture will be used instead.");
+		meshMat.emissiveMapIndex = m_textureManager->createIndexedTexture(fallbackBlack, VK_FORMAT_R8G8B8A8_SRGB);
 	}
 
 

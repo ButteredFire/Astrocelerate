@@ -104,9 +104,9 @@ namespace ImGuiTheme {
         colors.FrameBgActive = ColorUtils::sRGBToLinear(0.25f, 0.25f, 0.25f, 1.0f);
 
         // Buttons
-        colors.Button = ColorUtils::sRGBToLinear(0.20f, 0.22f, 0.27f, 1.0f);
-        colors.ButtonHovered = ColorUtils::sRGBToLinear(0.30f, 0.33f, 0.38f, 1.0f);
-        colors.ButtonActive = ColorUtils::sRGBToLinear(0.35f, 0.40f, 0.45f, 1.0f);
+        colors.Button = ColorUtils::sRGBToLinear(0.0f, 0.0f);
+        colors.ButtonHovered = ColorUtils::sRGBToLinear(0.3f, 0.5f);
+        colors.ButtonActive = ColorUtils::sRGBToLinear(0.3f, 0.5f);
 
         // Scrollbars
         colors.ScrollbarBg = ColorUtils::sRGBToLinear(0.10f, 0.10f, 0.10f, 1.0f);
@@ -168,9 +168,9 @@ namespace ImGuiTheme {
         colors.FrameBgActive = ColorUtils::sRGBToLinear(0.75f, 0.75f, 0.75f, 1.0f);
 
         // Buttons
-        colors.Button = ColorUtils::sRGBToLinear(0.70f, 0.72f, 0.77f, 1.0f);
-        colors.ButtonHovered = ColorUtils::sRGBToLinear(0.60f, 0.63f, 0.68f, 1.0f);
-        colors.ButtonActive = ColorUtils::sRGBToLinear(0.55f, 0.60f, 0.65f, 1.0f);
+        colors.Button = ColorUtils::sRGBToLinear(0.0f, 0.0f);
+        colors.ButtonHovered = ColorUtils::sRGBToLinear(0.7f, 0.5f);
+        colors.ButtonActive = ColorUtils::sRGBToLinear(0.7f, 0.5f);
 
         // Scrollbars
         colors.ScrollbarBg = ColorUtils::sRGBToLinear(0.90f, 0.90f, 0.90f, 1.0f);

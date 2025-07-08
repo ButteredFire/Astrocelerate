@@ -54,14 +54,12 @@ void VkBufferManager::loadSimulationAssets() {
 	// Load geometry
 	GeometryLoader geometryLoader;
 
-	//std::string sphereFBX = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Models/TestModels", "Sphere/Sphere.fbx");
-	//std::string sphereOBJ = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Models/TestModels", "Sphere/Sphere.obj");
-	//std::string sphereGLB = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Models/TestModels", "Sphere/Sphere.glb");
-	//std::string satelliteCubeSat = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Models/TestModels", "CubeSat/CubeSat.glb");
+	std::string genericCubeSat = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Models/TestModels", "GenericCubeSat/GenericCubeSat.gltf");
+	std::string chandraObservatory = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Models/Satellites", "Chandra/Chandra.gltf");
 
-	std::string cube = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Models/TestModels", "Cube/Cube.fbx");
-	std::string earth = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Models/CelestialBodies", "Earth/Earth.obj");
-	//std::string satelliteChandra = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Models/Satellites", "Chandra/Chandra.obj");
+	std::string earth = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Models/CelestialBodies", "Earth/Earth.gltf");
+
+	std::string cube = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Models/TestModels", "Cube/Cube.gltf");
 
 	std::string planetPath = earth;
 	std::string satellitePath = cube;
@@ -96,6 +94,8 @@ void VkBufferManager::loadSimulationAssets() {
 	Entity planet = m_registry->createEntity("Earth");
 	Entity satellite = m_registry->createEntity("Satellite");
 
+	//m_camera->attachToEntity(satellite.id);
+
 	double sunRadius = 6.9634e+8;
 	double earthRadius = 6.378e+6;
 
@@ -125,11 +125,11 @@ void VkBufferManager::loadSimulationAssets() {
 	*/
 
 
-	// Earth configuration
+	// Earth configuration (Fact sheet: https://nssdc.gsfc.nasa.gov/planetary/factsheet/earthfact.html)
 	PhysicsComponent::ReferenceFrame planetRefFrame{};
 	planetRefFrame.parentID = m_renderSpace.id;
 	planetRefFrame.scale = earthRadius;
-	planetRefFrame.visualScale = 1.0;
+	planetRefFrame.visualScale = 10.0;
 	planetRefFrame.relativeScale = 1.0;
 	//planetRefFrame.visualScaleAffectsChildren = false;
 	planetRefFrame.localTransform.position = glm::dvec3(0.0, 0.0, 0.0);
@@ -139,6 +139,12 @@ void VkBufferManager::loadSimulationAssets() {
 	planetRB.velocity = glm::dvec3(0.0, 0.0, 0.0);
 	planetRB.acceleration = glm::dvec3(0.0);
 	planetRB.mass = (5.972e+24);
+
+	PhysicsComponent::ShapeParameters planetShapeParams{};
+	planetShapeParams.equatRadius = earthRadius;
+	planetShapeParams.eccentricity = 0.0167;
+	planetShapeParams.gravParam = PhysicsConsts::G * planetRB.mass;
+	planetShapeParams.rotVelocity = 7.2921159e-5;
 
 	//double sunOrbitalSpeed = sqrt(PhysicsConsts::G * starRB.mass / glm::length(planetRefFrame.localTransform.position));
 	/*
@@ -152,6 +158,7 @@ void VkBufferManager::loadSimulationAssets() {
 
 	m_registry->addComponent(planet.id, planetRefFrame);
 	m_registry->addComponent(planet.id, planetRB);
+	m_registry->addComponent(planet.id, planetShapeParams);
 	m_registry->addComponent(planet.id, planetRenderable);
 	m_registry->addComponent(planet.id, TelemetryComponent::RenderTransform{});
 
@@ -169,7 +176,7 @@ void VkBufferManager::loadSimulationAssets() {
 	double earthOrbitalSpeed = sqrt(PhysicsConsts::G * planetRB.mass / glm::length(satelliteRefFrame.localTransform.position));
 
 	PhysicsComponent::RigidBody satelliteRB{};
-	satelliteRB.velocity = glm::dvec3(0.0, earthOrbitalSpeed, 0.0);
+	satelliteRB.velocity = glm::dvec3(0.0, earthOrbitalSpeed, 50.0);
 	satelliteRB.acceleration = glm::dvec3(0.0);
 	satelliteRB.mass = 20;
 
@@ -462,7 +469,7 @@ void VkBufferManager::updateObjectUBOs(uint32_t currentImage, const glm::dvec3& 
 
 
 		// Write mesh (and submesh) data to memory
-		for (uint32_t meshIndex = meshRenderable.meshRange.left; meshIndex <= meshRenderable.meshRange.right; meshIndex++) {
+		for (uint32_t meshIndex : meshRenderable.meshRange()) {
 			void *uboDst = SystemUtils::GetAlignedBufferOffset(m_alignedObjectUBOSize, m_objectUBOMappedData[currentImage], meshIndex);
 			memcpy(uboDst, &ubo, sizeof(ubo));
 		}

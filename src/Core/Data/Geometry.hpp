@@ -24,14 +24,30 @@ namespace Geometry {
 		alignas(16) glm::vec3 tangent;		// Tangents
 
 
-		bool operator==(const Vertex& other) const {
+		bool operator==(const Vertex &other) const {
+			// A small value (e.g., epsilon) allows any 2 vertices with extremely, extremely small differences to be considered the same
+			constexpr float epsilon = std::numeric_limits<float>::epsilon();
+
 			return (
-				(position == other.position)
-				&& (color == other.color)
-				&& (texCoord0 == other.texCoord0)
-				&& (normal == other.normal)
-				&& (tangent == other.tangent)
-				);
+				glm::epsilonEqual(position, other.position, epsilon).x &&
+				glm::epsilonEqual(position, other.position, epsilon).y &&
+				glm::epsilonEqual(position, other.position, epsilon).z &&
+
+				glm::epsilonEqual(color, other.color, epsilon).x &&
+				glm::epsilonEqual(color, other.color, epsilon).y &&
+				glm::epsilonEqual(color, other.color, epsilon).z &&
+
+				glm::epsilonEqual(texCoord0, other.texCoord0, epsilon).x &&
+				glm::epsilonEqual(texCoord0, other.texCoord0, epsilon).y &&
+
+				glm::epsilonEqual(normal, other.normal, epsilon).x &&
+				glm::epsilonEqual(normal, other.normal, epsilon).y &&
+				glm::epsilonEqual(normal, other.normal, epsilon).z &&
+
+				glm::epsilonEqual(tangent, other.tangent, epsilon).x &&
+				glm::epsilonEqual(tangent, other.tangent, epsilon).y &&
+				glm::epsilonEqual(tangent, other.tangent, epsilon).z
+			);
 		}
 
 
@@ -129,6 +145,9 @@ namespace Geometry {
 		float roughnessFactor = 1.0f;									// Roughness factor
 		int32_t metallicRoughnessMapIndex = -1;							// Metallic and Roughness packed into one texture (e.g., R=metallic, G=roughness, B=AO). NOTE: Alternatively, the map can be split into metallicMap and roughnessMap indices.
 
+		// Displacement
+		int32_t heightMapIndex = -1;									// Height/Displacement map for topography textures
+
 		// Normals
 		int32_t normalMapIndex = -1;									// Tangent-space normal map
 
@@ -137,9 +156,7 @@ namespace Geometry {
 
 		// Emissive
 		alignas(16) glm::vec3 emissiveColor = glm::vec3(0.0f);			// Emissive color
-
-		// For glowing objects
-		int32_t emissiveMapIndex = -1;									// Emissive texture
+		int32_t emissiveMapIndex = -1;									// Emissive texture (for glowing objects)
 
 		// Opacity/Transparency (Alpha blending/masking)
 			// NOTE: If different transparency types are needed, consider adding a `MaterialAlphaMode` enum (OPAQUE, MASK, BLEND)

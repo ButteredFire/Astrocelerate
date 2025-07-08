@@ -63,20 +63,54 @@ void RenderSystem::processMeshRenderable(const Event::UpdateRenderables &event) 
 
 	LOG_ASSERT(geomData, "Cannot process mesh renderable: Scene geometry data is invalid!");
 
+	static bool printedOnce = false;
+	if (!printedOnce) {
+		printedOnce = true;
+		printf("Mesh count: %d\n", (int)geomData->meshCount);
+		printf("Mesh offsets:\n");
+		for (int i = 0; i < geomData->meshOffsets.size(); i++) {
+			Geometry::MeshOffset &offset = geomData->meshOffsets[i];
+			printf("\t[%d]:\n", i);
+			printf("\t\tIndex count: %d\n", offset.indexCount);
+			printf("\t\tIndex offset: %d\n", offset.indexOffset);
+			printf("\t\tVertex offset: %d\n", offset.vertexOffset);
+			printf("\t\tMaterial index: %d\n", offset.materialIndex);
+		}
+		printf("\nMesh materials:\n");
+		for (int i = 0; i < geomData->meshMaterials.size(); i++) {
+			Geometry::Material &mat = geomData->meshMaterials[i];
+			printf("\t[%d]\n", i);
+			printf("\t\tAlbedo color:\n\t\t\t[0, 1]: (%.3f, %.3f, %.3f)\n\t\t\t[0, 255]: (%.3f, %.3f, %.3f)\n", mat.albedoColor.x, mat.albedoColor.y, mat.albedoColor.z, (mat.albedoColor.x * 255), (mat.albedoColor.y * 255), (mat.albedoColor.z * 255));
+			printf("\t\tAlbedo map index: %d\n", mat.albedoMapIndex);
+			printf("\t\tAO map index: %d\n", mat.aoMapIndex);
+			printf("\t\tEmissive color: (%.3f, %.3f, %.3f)\n", mat.emissiveColor.x, mat.emissiveColor.y, mat.emissiveColor.z);
+			printf("\t\tEmissive map index: %d\n", mat.emissiveMapIndex);
+			printf("\t\tHeight map index: %d\n", mat.heightMapIndex);
+			printf("\t\tMetallic factor: %.3f\n", mat.metallicFactor);
+			printf("\t\tNormal map index: %.3f\n", mat.roughnessFactor);
+			printf("\t\tMetallic-Roughness map index: %d\n", mat.metallicRoughnessMapIndex);
+			printf("\t\tNormal map index: %d\n", mat.normalMapIndex);
+			printf("\t\tOpacity: %.3f\n", mat.opacity);
+
+		}
+	}
 
 	// Update each mesh's UBOs
 	auto uboView = m_registry->getView<RenderComponent::MeshRenderable>();
 	for (const auto &[entity, meshRenderable] : uboView) {
-		for (uint32_t meshIndex = meshRenderable.meshRange.left; meshIndex <= meshRenderable.meshRange.right; meshIndex++) {
+		for (uint32_t meshIndex : meshRenderable.meshRange()) {
 			// Object UBO
 			uint32_t objectUBOOffset = static_cast<uint32_t>(meshIndex * objectUBOAlignment);
 			vkCmdBindDescriptorSets(event.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, g_vkContext.OffscreenPipeline.layout, 0, 1, &event.descriptorSet, 1, &objectUBOOffset);
 			
 			
-			// Material parameters UBO
+			// Material parameters UBO + Texture array
 			Geometry::MeshOffset &meshOffset = geomData->meshOffsets[meshIndex];
-			uint32_t materialUBOOffset = static_cast<uint32_t>(meshOffset.materialIndex * pbrMaterialAlignment);
-			vkCmdBindDescriptorSets(event.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, g_vkContext.OffscreenPipeline.layout, 1, 1, &g_vkContext.OffscreenPipeline.pbrDescriptorSet, 1, &materialUBOOffset);
+			uint32_t meshMaterialOffset = static_cast<uint32_t>(meshOffset.materialIndex * pbrMaterialAlignment);
+
+			vkCmdBindDescriptorSets(event.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, g_vkContext.OffscreenPipeline.layout, 1, 1, &g_vkContext.OffscreenPipeline.pbrDescriptorSet, 1, &meshMaterialOffset);
+
+			vkCmdBindDescriptorSets(event.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, g_vkContext.OffscreenPipeline.layout, 2, 1, &g_vkContext.OffscreenPipeline.textureArrDescriptorSet, 1, &meshMaterialOffset);
 
 
 			vkCmdDrawIndexed(event.commandBuffer, meshOffset.indexCount, 1, meshOffset.indexOffset, meshOffset.vertexOffset, 0);

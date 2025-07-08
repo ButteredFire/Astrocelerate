@@ -63,7 +63,7 @@ namespace ShaderConsts {
 
 		// Fragment shader
 	constexpr int FRAG_BIND_MATERIAL_PARAMETERS = 0;
-	constexpr int FRAG_BIND_TEXTURE_MAP = 1;
+	constexpr int FRAG_BIND_TEXTURE_MAP = 0;
 
 	constexpr int FRAG_LOC_IN_FRAGCOLOR = VERT_LOC_OUT_FRAGCOLOR;
 	constexpr int FRAG_LOC_IN_FRAGTEXTURECOORD_0 = VERT_LOC_OUT_FRAGTEXTURECOORD_0;
@@ -104,21 +104,18 @@ namespace ConfigConsts {
 
 
 // Fonts
+#define TO_CSTR(stdString)	(stdString).c_str()
+#define TO_STDSTR(cStr)		std::string((cStr))
+
 namespace FontConsts {
 	struct {
-		const std::string BLACK				= std::string(APP_SOURCE_DIR) + std::string("/assets/Fonts/Roboto/Roboto-Black.ttf");
-		const std::string BLACK_ITALIC		= std::string(APP_SOURCE_DIR) + std::string("/assets/Fonts/Roboto/Roboto-BlackItalic.ttf");
-		const std::string BOLD				= std::string(APP_SOURCE_DIR) + std::string("/assets/Fonts/Roboto/Roboto-Bold.ttf");
-		const std::string BOLD_ITALIC		= std::string(APP_SOURCE_DIR) + std::string("/assets/Fonts/Roboto/Roboto-BoldItalic.ttf");
-		const std::string ITALIC			= std::string(APP_SOURCE_DIR) + std::string("/assets/Fonts/Roboto/Roboto-Italic.ttf");
-		const std::string LIGHT				= std::string(APP_SOURCE_DIR) + std::string("/assets/Fonts/Roboto/Roboto-Light.ttf");
-		const std::string LIGHT_ITALIC		= std::string(APP_SOURCE_DIR) + std::string("/assets/Fonts/Roboto/Roboto-LightItalic.ttf");
-		const std::string MEDIUM			= std::string(APP_SOURCE_DIR) + std::string("/assets/Fonts/Roboto/Roboto-Medium.ttf");
-		const std::string MEDIUM_ITALIC		= std::string(APP_SOURCE_DIR) + std::string("/assets/Fonts/Roboto/Roboto-MediumItalic.ttf");
-		const std::string REGULAR			= std::string(APP_SOURCE_DIR) + std::string("/assets/Fonts/Roboto/Roboto-Regular.ttf");
-		const std::string THIN				= std::string(APP_SOURCE_DIR) + std::string("/assets/Fonts/Roboto/Roboto-Thin.ttf");
-		const std::string THIN_ITALIC		= std::string(APP_SOURCE_DIR) + std::string("/assets/Fonts/Roboto/Roboto-ThinItalic.ttf");
-	} Roboto;
+		const std::string BOLD				= std::string(APP_SOURCE_DIR) + "/assets/Fonts/NotoSans/NotoSans-Bold.ttf";
+		const std::string BOLD_ITALIC		= std::string(APP_SOURCE_DIR) + "/assets/Fonts/NotoSans/NotoSans-BoldItalic.ttf";
+		const std::string ITALIC			= std::string(APP_SOURCE_DIR) + "/assets/Fonts/NotoSans/NotoSans-Italic.ttf";
+		const std::string LIGHT				= std::string(APP_SOURCE_DIR) + "/assets/Fonts/NotoSans/NotoSans-Light.ttf";
+		const std::string LIGHT_ITALIC		= std::string(APP_SOURCE_DIR) + "/assets/Fonts/NotoSans/NotoSans-LightItalic.ttf";
+		const std::string REGULAR			= std::string(APP_SOURCE_DIR) + "/assets/Fonts/NotoSans/NotoSansMath-Regular.ttf";
+	} NotoSans;
 }
 
 
@@ -144,7 +141,7 @@ namespace PhysicsConsts {
 namespace SimulationConsts {
 	constexpr int MAX_SIMULATION_STEPS = 10000;
 	constexpr int MAX_FRAMES_IN_FLIGHT = 2;							// How many frames should be processed concurrently
-	constexpr int MAX_GLOBAL_TEXTURES = 512;						// The maximum number of textures in the global texture array
+	constexpr int MAX_GLOBAL_TEXTURES = 128;						// The maximum number of textures in the global texture array
 	constexpr double TIME_STEP = 1.0 / 60.0;						// 60 Hz
 	constexpr double SIMULATION_SCALE = 1e6;						// 1 world unit = 1,000,000 meters (1000 km)
 

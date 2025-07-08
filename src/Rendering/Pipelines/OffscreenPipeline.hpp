@@ -1,4 +1,4 @@
-﻿/* OffscreenPipeline.hpp - Manages a graphics pipeline for offscreen rendering.
+/* OffscreenPipeline.hpp - Manages a graphics pipeline for offscreen rendering.
 */
 
 #pragma once
@@ -90,8 +90,6 @@ private:
 
 	// Descriptors
 	std::vector<VkDescriptorSetLayout> m_descriptorSetLayouts;
-	VkDescriptorPool m_perFrameDescriptorPool = VK_NULL_HANDLE;
-	VkDescriptorPool m_singularDescriptorPool = VK_NULL_HANDLE;
 	std::vector<VkDescriptorSet> m_perFrameDescriptorSets;
 	std::vector<VkDescriptorSet> m_singularDescriptorSets;
 
@@ -126,12 +124,13 @@ private:
 
 
 	/* Creates a descriptor set layout.
-		@param layoutBindings: A vector of descriptor set layout binings.
+		@param bindingCount: The number of bindings.
+		@param layoutBindings: A pointer to the binding (or an array of bindings).
 		@param pNext: Vulkan struct chain for the descriptor set creation info.
 
 		@return The newly created layout.
 	*/
-	VkDescriptorSetLayout createDescriptorSetLayout(std::vector<VkDescriptorSetLayoutBinding> layoutBindings, const void *pNext);
+	VkDescriptorSetLayout createDescriptorSetLayout(uint32_t bindingCount, VkDescriptorSetLayoutBinding *layoutBindings, VkDescriptorSetLayoutCreateFlags layoutFlags, const void *pNext);
 
 	void createPerFrameDescriptorSets(VkDescriptorPool descriptorPool, VkDescriptorSetLayout descriptorSetLayout);
 	void createSingularDescriptorSet(VkDescriptorSet& descriptorSet, VkDescriptorPool descriptorPool, VkDescriptorSetLayout descriptorSetLayout);

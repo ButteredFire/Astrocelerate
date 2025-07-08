@@ -1,4 +1,4 @@
-﻿/* ImGuiUtils.hpp - Utilities pertaining to the ImGui GUI.
+/* ImGuiUtils.hpp - Utilities pertaining to the ImGui GUI.
 */
 
 #pragma once
@@ -78,8 +78,8 @@ namespace ImGuiUtils {
 		@param ...: The arguments for the formatted text.
 	*/
     inline void BoldText(const char* fmt, ...) {
-		LOG_ASSERT(g_fontContext.Roboto.bold, "Cannot embolden text " + enquote(fmt) + ": The bold font has not been loaded!");
-        ImGui::PushFont(g_fontContext.Roboto.bold);
+		LOG_ASSERT(g_fontContext.NotoSans.bold, "Cannot embolden text " + enquote(fmt) + ": The bold font has not been loaded!");
+        ImGui::PushFont(g_fontContext.NotoSans.bold);
         va_list args;  // Handles variadic arguments
         va_start(args, fmt);
         ImGui::TextWrappedV(fmt, args);   // ImGui::TextWrappedV is the variadic version of ImGui::TextWrapped
@@ -93,8 +93,8 @@ namespace ImGuiUtils {
 		@param ...: The arguments for the formatted text.
 	*/
 	inline void ItalicText(const char* fmt, ...) {
-		LOG_ASSERT(g_fontContext.Roboto.italic, "Cannot italicize text " + enquote(fmt) + ": The italic font has not been loaded!");
-		ImGui::PushFont(g_fontContext.Roboto.italic);
+		LOG_ASSERT(g_fontContext.NotoSans.italic, "Cannot italicize text " + enquote(fmt) + ": The italic font has not been loaded!");
+		ImGui::PushFont(g_fontContext.NotoSans.italic);
 		va_list args;
 		va_start(args, fmt);
 		ImGui::TextWrappedV(fmt, args);
@@ -108,8 +108,8 @@ namespace ImGuiUtils {
 		@param ...: The arguments for the formatted text.
 	*/
 	inline void UnderlinedText(const char* fmt, ...) {
-		LOG_ASSERT(g_fontContext.Roboto.lightItalic, "Cannot underline text " + enquote(fmt) + ": The light-italic font has not been loaded!");
-		ImGui::PushFont(g_fontContext.Roboto.lightItalic);
+		LOG_ASSERT(g_fontContext.NotoSans.lightItalic, "Cannot underline text " + enquote(fmt) + ": The light-italic font has not been loaded!");
+		ImGui::PushFont(g_fontContext.NotoSans.lightItalic);
 		va_list args;
 		va_start(args, fmt);
 		ImGui::TextWrappedV(fmt, args);
@@ -123,8 +123,8 @@ namespace ImGuiUtils {
 		@param ...: The arguments for the formatted text.
 	*/
 	inline void LightText(const char* fmt, ...) {
-		LOG_ASSERT(g_fontContext.Roboto.light, "Cannot render light text " + enquote(fmt) + ": The bold font has not been loaded!");
-		ImGui::PushFont(g_fontContext.Roboto.light);
+		LOG_ASSERT(g_fontContext.NotoSans.light, "Cannot render light text " + enquote(fmt) + ": The bold font has not been loaded!");
+		ImGui::PushFont(g_fontContext.NotoSans.light);
 		va_list args;
 		va_start(args, fmt);
 		ImGui::TextWrappedV(fmt, args);
@@ -237,6 +237,16 @@ namespace ImGuiUtils {
 		ImGui::Dummy(paddingVec);
 		ImGui::Separator();
 		ImGui::Dummy(paddingVec);
+	}
+
+
+	/* A separator... but vertical.
+		@param thickness (Default: 1.0): The separator's width.
+	*/
+	inline void VerticalSeparator(float thickness = 1.0f) {
+		ImGui::SameLine();
+		ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical, thickness);
+		ImGui::SameLine();
 	}
 
 
