@@ -140,14 +140,9 @@ void UIPanelManager::bindPanelFlags() {
 void UIPanelManager::initStaticTextures() {
 	std::shared_ptr<TextureManager> textureManager = ServiceLocator::GetService<TextureManager>(__FUNCTION__);
 
-	// Startup Logo
+	// Company Logo
 	{
-		std::string logoPath = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/App");
-		if (g_appContext.GUI.currentAppearance == ImGuiTheme::Appearance::IMGUI_APPEARANCE_DARK_MODE)
-			logoPath = FilePathUtils::JoinPaths(logoPath, "StartupLogoTransparentWhite.png");
-		else
-			logoPath = FilePathUtils::JoinPaths(logoPath, "StartupLogoTransparentBlack.png");
-
+		std::string logoPath = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/App", "OrivietAerospaceLogo.png");
 		Geometry::Texture texture = textureManager->createIndependentTexture(logoPath, VK_FORMAT_R8G8B8A8_SRGB);
 
 		m_startupLogoTextureID = (ImTextureID)ImGui_ImplVulkan_AddTexture(texture.sampler, texture.imageView, texture.imageLayout);
@@ -156,8 +151,7 @@ void UIPanelManager::initStaticTextures() {
 
 	// Application logo
 	{
-		std::string logoPath = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/App", "ExperimentalAppLogoV1Transparent.png");
-
+		std::string logoPath = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/App", "AstrocelerateLogo.png");
 		Geometry::Texture texture = textureManager->createIndependentTexture(logoPath, VK_FORMAT_R8G8B8A8_SRGB);
 
 		m_appLogoTextureID = (ImTextureID)ImGui_ImplVulkan_AddTexture(texture.sampler, texture.imageView, texture.imageLayout);
