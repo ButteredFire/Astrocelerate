@@ -15,8 +15,7 @@ enum EventType {
 	EVENT_ID_OFFSCREEN_RESOURCES_ARE_RECREATED,
 	EVENT_ID_VIEWPORT_IS_RESIZED,
 	EVENT_ID_PIPELINES_ARE_INITIALIZED,
-
-	EVENT_ID_INIT_GLOBAL_BUFFERS,
+	EVENT_ID_GEOMETRY_INITIALIZED,
 
 	EVENT_ID_UPDATE_INPUT,
 	EVENT_ID_UPDATE_RENDERABLES,
@@ -62,8 +61,8 @@ namespace Event {
 
 
 	/* Used when data required to initialize global vertex and index buffers is available. */
-	struct InitGlobalBuffers {
-		const EventType eventType = EventType::EVENT_ID_INIT_GLOBAL_BUFFERS;
+	struct GeometryInitialized {
+		const EventType eventType = EventType::EVENT_ID_GEOMETRY_INITIALIZED;
 		std::vector<Geometry::Vertex> vertexData;
 		std::vector<uint32_t> indexData;
 		Geometry::GeometryData *pGeomData;

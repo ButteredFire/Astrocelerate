@@ -17,10 +17,14 @@ VkBufferManager::~VkBufferManager() {}
 
 
 void VkBufferManager::bindEvents() {
-	m_eventDispatcher->subscribe<Event::InitGlobalBuffers>(
-		[this](const Event::InitGlobalBuffers& event) {
+	m_eventDispatcher->subscribe<Event::GeometryInitialized>(
+		[this](const Event::GeometryInitialized& event) {
 			this->createGlobalVertexBuffer(event.vertexData);
 			this->createGlobalIndexBuffer(event.indexData);
+
+			this->m_geomData = event.pGeomData;
+			this->m_totalObjects = event.pGeomData->meshCount;
+			this->createUniformBuffers();
 		}
 	);
 
@@ -43,155 +47,6 @@ void VkBufferManager::bindEvents() {
 
 void VkBufferManager::init() {
 	m_eventDispatcher->publish(Event::BufferManagerIsValid{});
-
-	loadSimulationAssets();
-	
-	createUniformBuffers();
-}
-
-
-void VkBufferManager::loadSimulationAssets() {
-	// Load geometry
-	GeometryLoader geometryLoader;
-
-	std::string genericCubeSat = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Models/TestModels", "GenericCubeSat/GenericCubeSat.gltf");
-	std::string chandraObservatory = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Models/Satellites", "Chandra/Chandra.gltf");
-
-	std::string earth = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Models/CelestialBodies", "Earth/Earth.gltf");
-
-	std::string cube = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Models/TestModels", "Cube/Cube.gltf");
-
-	std::string planetPath = earth;
-	std::string satellitePath = cube;
-
-	Math::Interval<uint32_t> planetRange = geometryLoader.loadGeometryFromFile(planetPath);
-	Math::Interval<uint32_t> satelliteRange = geometryLoader.loadGeometryFromFile(satellitePath);
-	m_geomData = geometryLoader.bakeGeometry();
-
-	m_totalObjects = m_geomData->meshCount;
-
-
-	// Global reference frame
-	m_renderSpace = m_registry->createEntity("Scene");
-
-	PhysicsComponent::ReferenceFrame globalRefFrame{};
-	globalRefFrame.parentID = std::nullopt;
-	globalRefFrame.scale = 1.0;
-	globalRefFrame.visualScale = 1.0;
-	globalRefFrame.relativeScale = 1.0;
-	globalRefFrame.localTransform.position = glm::dvec3(0.0);
-	globalRefFrame.localTransform.rotation = glm::dquat(1.0, 0.0, 0.0, 0.0);
-
-	RenderComponent::SceneData globalSceneData{};
-	globalSceneData.pGeomData = m_geomData;
-
-	m_registry->addComponent(m_renderSpace.id, globalRefFrame);
-	m_registry->addComponent(m_renderSpace.id, globalSceneData);
-
-
-	// Define rigid bodies
-	//Entity star = m_registry->createEntity("Sun");
-	Entity planet = m_registry->createEntity("Earth");
-	Entity satellite = m_registry->createEntity("Satellite");
-
-	//m_camera->attachToEntity(satellite.id);
-
-	double sunRadius = 6.9634e+8;
-	double earthRadius = 6.378e+6;
-
-	// Sun configuration
-	/*
-	PhysicsComponent::RigidBody starRB{};
-	starRB.velocity = glm::dvec3(0.0);
-	starRB.acceleration = glm::dvec3(0.0);
-	starRB.mass = (1.989e+30);
-
-	PhysicsComponent::ReferenceFrame starRefFrame{};
-	starRefFrame.parentID = m_renderSpace.id;
-	starRefFrame.scale = sunRadius;
-	starRefFrame.visualScale = 1.0;
-	starRefFrame.visualScaleAffectsChildren = false;
-	starRefFrame.localTransform.position = glm::dvec3(0.0);
-	starRefFrame.localTransform.rotation = glm::dquat(1, 0, 0, 0);
-
-	RenderComponent::MeshRenderable starRenderable{};
-	starRenderable.uboIndex = 0;
-	starRenderable.meshOffset = meshOffsets[0];
-
-	m_registry->addComponent(star.id, starRB);
-	m_registry->addComponent(star.id, starRefFrame);
-	m_registry->addComponent(star.id, starRenderable);
-	m_registry->addComponent(star.id, TelemetryComponent::RenderTransform{});
-	*/
-
-
-	// Earth configuration (Fact sheet: https://nssdc.gsfc.nasa.gov/planetary/factsheet/earthfact.html)
-	PhysicsComponent::ReferenceFrame planetRefFrame{};
-	planetRefFrame.parentID = m_renderSpace.id;
-	planetRefFrame.scale = earthRadius;
-	planetRefFrame.visualScale = 10.0;
-	planetRefFrame.relativeScale = 1.0;
-	//planetRefFrame.visualScaleAffectsChildren = false;
-	planetRefFrame.localTransform.position = glm::dvec3(0.0, 0.0, 0.0);
-	planetRefFrame.localTransform.rotation = glm::dquat(1, 0, 0, 0);
-
-	PhysicsComponent::RigidBody planetRB{};
-	planetRB.velocity = glm::dvec3(0.0, 0.0, 0.0);
-	planetRB.acceleration = glm::dvec3(0.0);
-	planetRB.mass = (5.972e+24);
-
-	PhysicsComponent::ShapeParameters planetShapeParams{};
-	planetShapeParams.equatRadius = earthRadius;
-	planetShapeParams.eccentricity = 0.0167;
-	planetShapeParams.gravParam = PhysicsConsts::G * planetRB.mass;
-	planetShapeParams.rotVelocity = 7.2921159e-5;
-
-	//double sunOrbitalSpeed = sqrt(PhysicsConsts::G * starRB.mass / glm::length(planetRefFrame.localTransform.position));
-	/*
-
-	PhysicsComponent::OrbitingBody planetOB{};
-	planetOB.centralMass = starRB.mass;
-	*/
-
-	RenderComponent::MeshRenderable planetRenderable{};
-	planetRenderable.meshRange = planetRange;
-
-	m_registry->addComponent(planet.id, planetRefFrame);
-	m_registry->addComponent(planet.id, planetRB);
-	m_registry->addComponent(planet.id, planetShapeParams);
-	m_registry->addComponent(planet.id, planetRenderable);
-	m_registry->addComponent(planet.id, TelemetryComponent::RenderTransform{});
-
-
-
-	// Satellite configuration
-	PhysicsComponent::ReferenceFrame satelliteRefFrame{};
-	satelliteRefFrame.parentID = planet.id;
-	satelliteRefFrame.scale = 30;
-	satelliteRefFrame.visualScale = 1.0;
-	satelliteRefFrame.relativeScale = satelliteRefFrame.scale / earthRadius;
-	satelliteRefFrame.localTransform.position = glm::dvec3((earthRadius + 2e6), 0.0, 0.0);
-	satelliteRefFrame.localTransform.rotation = glm::dquat(1, 0, 0, 0);
-
-	double earthOrbitalSpeed = sqrt(PhysicsConsts::G * planetRB.mass / glm::length(satelliteRefFrame.localTransform.position));
-
-	PhysicsComponent::RigidBody satelliteRB{};
-	satelliteRB.velocity = glm::dvec3(0.0, earthOrbitalSpeed, 50.0);
-	satelliteRB.acceleration = glm::dvec3(0.0);
-	satelliteRB.mass = 20;
-
-	PhysicsComponent::OrbitingBody satelliteOB{};
-	satelliteOB.centralMass = planetRB.mass;
-
-	RenderComponent::MeshRenderable satelliteRenderable{};
-	satelliteRenderable.meshRange = satelliteRange;
-
-
-	m_registry->addComponent(satellite.id, satelliteRB);
-	m_registry->addComponent(satellite.id, satelliteRefFrame);
-	m_registry->addComponent(satellite.id, satelliteOB);
-	m_registry->addComponent(satellite.id, satelliteRenderable);
-	m_registry->addComponent(satellite.id, TelemetryComponent::RenderTransform{});
 }
 
 

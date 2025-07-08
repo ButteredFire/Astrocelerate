@@ -79,7 +79,6 @@ void OffscreenPipeline::init() {
 void OffscreenPipeline::bindEvents() {
 	m_eventDispatcher->subscribe<Event::SwapchainIsRecreated>(
 		[this](const Event::SwapchainIsRecreated& event) {
-			Log::Print(Log::T_WARNING, __FUNCTION__, "Recreating offscreen resources (swapchain)... (image index " + std::to_string(event.imageIndex) + ")");
 			this->recreateOffscreenResources(g_vkContext.SwapChain.extent.width, g_vkContext.SwapChain.extent.height, event.imageIndex);
 		}
 	);
@@ -87,7 +86,6 @@ void OffscreenPipeline::bindEvents() {
 
 	m_eventDispatcher->subscribe<Event::ViewportIsResized>(
 		[this](const Event::ViewportIsResized& event) {
-			Log::Print(Log::T_WARNING, __FUNCTION__, "Recreating offscreen resources (viewport)... (frame " + std::to_string(event.currentFrame) + ")");
 			this->recreateOffscreenResources(event.newWidth, event.newHeight, event.currentFrame);
 		}
 	);
@@ -281,31 +279,36 @@ void OffscreenPipeline::setUpDescriptors() {
 
 	// PBR textures
 		// Material parameters UBO
-	VkDescriptorSetLayoutBinding pbrBufferLayoutBinding{};
-	pbrBufferLayoutBinding.binding = ShaderConsts::FRAG_BIND_MATERIAL_PARAMETERS;
-	pbrBufferLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-	pbrBufferLayoutBinding.descriptorCount = 1;
-	pbrBufferLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-	pbrBufferLayoutBinding.pImmutableSamplers = nullptr;
+	VkDescriptorSetLayoutBinding matParamsUBOLayoutBinding{};
+	matParamsUBOLayoutBinding.binding = ShaderConsts::FRAG_BIND_MATERIAL_PARAMETERS;
+	matParamsUBOLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+	matParamsUBOLayoutBinding.descriptorCount = 1;
+	matParamsUBOLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	matParamsUBOLayoutBinding.pImmutableSamplers = nullptr;
 
 		// Texture array
-	VkDescriptorSetLayoutBinding textureArrLayoutBinding{};
-	textureArrLayoutBinding.binding = ShaderConsts::FRAG_BIND_TEXTURE_MAP;
-	textureArrLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	textureArrLayoutBinding.descriptorCount = SimulationConsts::MAX_GLOBAL_TEXTURES;
-	textureArrLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-	textureArrLayoutBinding.pImmutableSamplers = nullptr;
+	VkDescriptorSetLayoutBinding textureArrayLayoutBinding{};
+	textureArrayLayoutBinding.binding = ShaderConsts::FRAG_BIND_TEXTURE_MAP;
+	textureArrayLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	textureArrayLayoutBinding.descriptorCount = SimulationConsts::MAX_GLOBAL_TEXTURES;
+	textureArrayLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	textureArrayLayoutBinding.pImmutableSamplers = nullptr;
 
 			// Descriptor binding flags for the texture array
 	VkDescriptorBindingFlagsEXT textureArrayBindingFlags =
-		VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |			// Allows descriptors to initially be null (as they'll be dynamically updated)
-		VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;// |		// Allows updating descriptors after binding pipeline
-		//VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;// Allows actual descriptor count to be less than MAX_GLOBAL_TEXTURES
+		VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT |			// Allows descriptors to initially be null (as they'll be dynamically updated)
+		VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT_EXT |		// Allows updating descriptors after binding pipeline
+		VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT_EXT;// Allows actual descriptor count to be less than MAX_GLOBAL_TEXTURES
 
-	VkDescriptorSetLayoutBindingFlagsCreateInfo textureArrayBindingFlagsCreateInfo{};
-	textureArrayBindingFlagsCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
-	textureArrayBindingFlagsCreateInfo.bindingCount = 1;
-	textureArrayBindingFlagsCreateInfo.pBindingFlags = &textureArrayBindingFlags;
+	VkDescriptorBindingFlagsEXT pbrBindingFlags[] = {
+		0,								// matParamsUBOLayoutBinding (binding 0)
+		textureArrayBindingFlags		// textureArrayLayoutBinding (binding 1)
+	};
+
+	VkDescriptorSetLayoutBindingFlagsCreateInfoEXT textureArrayBindingFlagsCreateInfo{};
+	textureArrayBindingFlagsCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT;
+	textureArrayBindingFlagsCreateInfo.bindingCount = static_cast<uint32_t>(SIZE_OF(pbrBindingFlags));
+	textureArrayBindingFlagsCreateInfo.pBindingFlags = pbrBindingFlags;
 
 
 
@@ -316,6 +319,11 @@ void OffscreenPipeline::setUpDescriptors() {
 		objectUBOLayoutBinding
 	};
 
+	VkDescriptorSetLayoutBinding singularLayoutBindings[] = {
+		matParamsUBOLayoutBinding,
+		textureArrayLayoutBinding
+	};
+
 		// Descriptor pool allocation
 	VkDescriptorPool perFrameDescriptorPool;
 	VkDescriptorPoolSize perFramePoolSizes[] = {
@@ -323,16 +331,10 @@ void OffscreenPipeline::setUpDescriptors() {
 		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, static_cast<uint32_t>(SimulationConsts::MAX_FRAMES_IN_FLIGHT) }
 	};
 
-	VkDescriptorPool pbrDescriptorPool;
-	VkDescriptorPoolSize pbrBufferPoolSize{
-		.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
-		.descriptorCount = 1
-	};
-
-	VkDescriptorPool textureArrDescriptorPool;
-	VkDescriptorPoolSize textureArrPoolSize{
-		.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-		.descriptorCount = SimulationConsts::MAX_GLOBAL_TEXTURES
+	VkDescriptorPool singularDescriptorPool;
+	VkDescriptorPoolSize singularPoolSizes[] = {
+		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1 },
+		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, SimulationConsts::MAX_GLOBAL_TEXTURES }
 	};
 
 
@@ -342,19 +344,16 @@ void OffscreenPipeline::setUpDescriptors() {
 
 		// Descriptor pools
 	VkDescriptorUtils::CreateDescriptorPool(perFrameDescriptorPool, SIZE_OF(perFramePoolSizes), perFramePoolSizes, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT, 500);
-	VkDescriptorUtils::CreateDescriptorPool(pbrDescriptorPool, 1, &pbrBufferPoolSize, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT, 10);
-	VkDescriptorUtils::CreateDescriptorPool(textureArrDescriptorPool, 1, &textureArrPoolSize, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT | VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT, SimulationConsts::MAX_GLOBAL_TEXTURES);
+	VkDescriptorUtils::CreateDescriptorPool(singularDescriptorPool, SIZE_OF(singularPoolSizes), singularPoolSizes, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT, 150);
 	
 		// Descriptor set layouts
 	VkDescriptorSetLayout setLayout0 = createDescriptorSetLayout(SIZE_OF(perFrameLayoutBindings), perFrameLayoutBindings, 0, nullptr);
-	VkDescriptorSetLayout setLayout1 = createDescriptorSetLayout(1, &pbrBufferLayoutBinding, 0, nullptr);
-	VkDescriptorSetLayout setLayout2 = createDescriptorSetLayout(1, &textureArrLayoutBinding, VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT, &textureArrayBindingFlagsCreateInfo);
-	std::cout << "DEBUG: setLayout2 handle: " << setLayout2 << std::endl;
+	VkDescriptorSetLayout setLayout1 = createDescriptorSetLayout(SIZE_OF(singularLayoutBindings), singularLayoutBindings, 0, &textureArrayBindingFlagsCreateInfo);
+
 		// NOTE: Indices are important in this vector! Make sure the descriptor set layouts are at the correct indices.
 	m_descriptorSetLayouts = {
 		setLayout0,		// Set 0: Per-frame
-		setLayout1,		// Set 1: Material parameters UBO
-		setLayout2		// Set 2: Textures array
+		setLayout1		// Set 1: Material parameters UBO & Textures array
 	};
 
 
@@ -363,15 +362,10 @@ void OffscreenPipeline::setUpDescriptors() {
 	createPerFrameDescriptorSets(perFrameDescriptorPool, setLayout0);
 	
 		// Singular descriptor sets
-			// Material parameters UBO
+			// Material parameters UBO + Textures array
 	VkDescriptorSet pbrDescriptorSet;
-	createSingularDescriptorSet(pbrDescriptorSet, pbrDescriptorPool, setLayout1);
+	createSingularDescriptorSet(pbrDescriptorSet, singularDescriptorPool, setLayout1);
 	g_vkContext.OffscreenPipeline.pbrDescriptorSet = pbrDescriptorSet;
-
-			// Textures array
-	VkDescriptorSet textureArrDescriptorSet;
-	createSingularDescriptorSet(textureArrDescriptorSet, textureArrDescriptorPool, setLayout2);
-	g_vkContext.OffscreenPipeline.textureArrDescriptorSet = textureArrDescriptorSet;
 }
 
 
@@ -508,7 +502,6 @@ void OffscreenPipeline::createPerFrameDescriptorSets(VkDescriptorPool descriptor
 
 
 void OffscreenPipeline::createSingularDescriptorSet(VkDescriptorSet &descriptorSet, VkDescriptorPool descriptorPool, VkDescriptorSetLayout descriptorSetLayout) {
-	std::cout << "DEBUG: createSingularDescriptorSet called with descriptorSetLayout: " << descriptorSetLayout << std::endl;
 	VkDescriptorSetAllocateInfo descSetAllocInfo{};
 	descSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 	descSetAllocInfo.descriptorPool = descriptorPool;
@@ -516,7 +509,6 @@ void OffscreenPipeline::createSingularDescriptorSet(VkDescriptorSet &descriptorS
 	descSetAllocInfo.pSetLayouts = &descriptorSetLayout;
 
 	VkResult result = vkAllocateDescriptorSets(g_vkContext.Device.logicalDevice, &descSetAllocInfo, &descriptorSet);
-	std::cout << "DEBUG: Allocated descriptorSet: " << descriptorSet << " using layout: " << descSetAllocInfo.pSetLayouts[0] << std::endl;
 
 	CleanupTask task{};
 	task.caller = __FUNCTION__;

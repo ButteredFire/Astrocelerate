@@ -24,7 +24,6 @@
 #include <Core/Application/LoggingManager.hpp>
 #include <Core/Application/EventDispatcher.hpp>
 #include <Core/Application/GarbageCollector.hpp>
-#include <Core/Data/Math.hpp>
 #include <Core/Data/Buffer.hpp>
 #include <Core/Data/Geometry.hpp>
 #include <Core/Data/Contexts/VulkanContext.hpp>
@@ -39,11 +38,6 @@
 #include <Utils/FilePathUtils.hpp>
 #include <Utils/SpaceUtils.hpp>
 
-#include <Simulation/Systems/Time.hpp>
-
-#include <Rendering/Geometry/ModelParser.hpp>
-#include <Rendering/Geometry/GeometryLoader.hpp>
-
 #include <Scene/Camera.hpp>
 
 
@@ -53,10 +47,6 @@ public:
     ~VkBufferManager();
 
     void init();
-
-
-    /* Loads the simulation assets. */
-    void loadSimulationAssets();
 
 
     /* Creates a buffer.

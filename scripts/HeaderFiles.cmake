@@ -49,6 +49,7 @@ set(HEADER_FILES
 	"src/Rendering/Pipelines/PresentPipeline.hpp"
 	"src/Rendering/Textures/TextureManager.hpp"
 	"src/Scene/Camera.hpp"
+	"src/Scene/SceneManager.hpp"
 	"src/Scene/GUI/Appearance.hpp"
 	"src/Scene/GUI/UIPanelManager.hpp"
 	"src/Simulation/ODEs.hpp"

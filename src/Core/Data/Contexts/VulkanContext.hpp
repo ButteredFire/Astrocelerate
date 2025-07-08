@@ -89,13 +89,6 @@ struct VulkanContext {
         uint32_t resizedFrameIndex;
     } OffscreenResources;
 
-    // Textures  
-    struct Texture {
-        VkImageLayout imageLayout;
-        VkImageView imageView;
-        VkSampler sampler;
-    } Texture;
-
     // Command objects  
     struct CommandObjects {
         std::vector<VkCommandBuffer> graphicsCmdBuffers;
@@ -129,7 +122,6 @@ struct VulkanContext {
         std::vector<VkDescriptorSet> perFrameDescriptorSets;
 
         VkDescriptorSet pbrDescriptorSet;
-        VkDescriptorSet textureArrDescriptorSet;
     } OffscreenPipeline;
 };
 

@@ -110,8 +110,6 @@ void RenderSystem::processMeshRenderable(const Event::UpdateRenderables &event) 
 
 			vkCmdBindDescriptorSets(event.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, g_vkContext.OffscreenPipeline.layout, 1, 1, &g_vkContext.OffscreenPipeline.pbrDescriptorSet, 1, &meshMaterialOffset);
 
-			vkCmdBindDescriptorSets(event.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, g_vkContext.OffscreenPipeline.layout, 2, 1, &g_vkContext.OffscreenPipeline.textureArrDescriptorSet, 1, &meshMaterialOffset);
-
 
 			vkCmdDrawIndexed(event.commandBuffer, meshOffset.indexCount, 1, meshOffset.indexOffset, meshOffset.vertexOffset, 0);
 		}

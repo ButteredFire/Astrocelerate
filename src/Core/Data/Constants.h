@@ -63,7 +63,7 @@ namespace ShaderConsts {
 
 		// Fragment shader
 	constexpr int FRAG_BIND_MATERIAL_PARAMETERS = 0;
-	constexpr int FRAG_BIND_TEXTURE_MAP = 0;
+	constexpr int FRAG_BIND_TEXTURE_MAP = 1;
 
 	constexpr int FRAG_LOC_IN_FRAGCOLOR = VERT_LOC_OUT_FRAGCOLOR;
 	constexpr int FRAG_LOC_IN_FRAGTEXTURECOORD_0 = VERT_LOC_OUT_FRAGTEXTURECOORD_0;
@@ -104,8 +104,8 @@ namespace ConfigConsts {
 
 
 // Fonts
-#define TO_CSTR(stdString)	(stdString).c_str()
-#define TO_STDSTR(cStr)		std::string((cStr))
+#define C_STR(stdString)	(stdString).c_str()
+#define STD_STR(cStr)		std::string((cStr))
 
 namespace FontConsts {
 	struct {
@@ -114,7 +114,8 @@ namespace FontConsts {
 		const std::string ITALIC			= std::string(APP_SOURCE_DIR) + "/assets/Fonts/NotoSans/NotoSans-Italic.ttf";
 		const std::string LIGHT				= std::string(APP_SOURCE_DIR) + "/assets/Fonts/NotoSans/NotoSans-Light.ttf";
 		const std::string LIGHT_ITALIC		= std::string(APP_SOURCE_DIR) + "/assets/Fonts/NotoSans/NotoSans-LightItalic.ttf";
-		const std::string REGULAR			= std::string(APP_SOURCE_DIR) + "/assets/Fonts/NotoSans/NotoSansMath-Regular.ttf";
+		const std::string REGULAR			= std::string(APP_SOURCE_DIR) + "/assets/Fonts/NotoSans/NotoSans-Regular.ttf";
+		const std::string REGULAR_MATH		= std::string(APP_SOURCE_DIR) + "/assets/Fonts/NotoSans/NotoSansMath-Regular.ttf";
 	} NotoSans;
 }
 

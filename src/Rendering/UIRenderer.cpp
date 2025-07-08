@@ -131,10 +131,23 @@ void UIRenderer::initFonts() {
 
     // Glyph ranges
     static const ImWchar glyphRanges[] = {
+        0x0020, 0x00FF,     // Basic Latin + Latin Supplement (GetGlyphRangesDefault)
+        0x0100, 0x017F,     // Latin Extended-A
+        0x0180, 0x024F,     // Latin Extended-B
+        0x0300, 0x036F,     // Combining Diacritical Marks
+
+        // Vietnamese
+        0x0102, 0x0103,
+        0x0110, 0x0111,
+        0x0128, 0x0129,
+        0x0168, 0x0169,
+        0x01A0, 0x01A1,
+        0x01AF, 0x01B0,
+        0x1EA0, 0x1EF9,
+
         // Math Symbols
         0x0370, 0x03FF,     // Modern Greek Alphabet
         0x2070, 0x209F,     // Superscript & Subscript
-        0x2200, 0x22FF,     // Approximation Symbols + Mathematical Operators
 
         0, // NULL terminator
     };
@@ -143,12 +156,24 @@ void UIRenderer::initFonts() {
     // Primary/Default text font
     // NOTE: It is the default font because it is the first font to be loaded.
     g_fontContext.primaryFont = 
-        g_fontContext.NotoSans.regular = io.Fonts->AddFontFromFileTTF(FontConsts::NotoSans.REGULAR.c_str(), fontSize, nullptr, glyphRanges);
+        g_fontContext.NotoSans.regular = io.Fonts->AddFontFromFileTTF(C_STR(FontConsts::NotoSans.REGULAR), fontSize, nullptr, glyphRanges);
 
     if (!g_fontContext.primaryFont) {
         Log::Print(Log::T_ERROR, __FUNCTION__, "Cannot load primary application font! A fallback font will be used instead.");
         g_fontContext.primaryFont = io.Fonts->AddFontDefault();
     }
+
+        // Merge math symbols with default font
+    ImFontConfig mathMergeConfig;
+    mathMergeConfig.MergeMode = true;
+    mathMergeConfig.PixelSnapH = true;
+
+    static const ImWchar mathGlyphRanges[] = {
+        0x2200, 0x22FF,     // Approximation Symbols + Mathematical Operators
+        0
+    };
+
+    io.Fonts->AddFontFromFileTTF(C_STR(FontConsts::NotoSans.REGULAR_MATH), fontSize, &mathMergeConfig, mathGlyphRanges);
 
 
     // FontAwesome icons
