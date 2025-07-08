@@ -1,8 +1,9 @@
-<!-- PROJECT LOGO -->
-<br />
-<div align="center">
-    <a href="https://github.com/ButteredFire/Astrocelerate/">
-        <img src="assets/app/ExperimentalAppLogoV1Transparent.png" alt="Logo" width="70%" height="70%">
+<div align="center" class="grid cards" style="display: flex; align-items: center; justify-content: center; text-decoration: none;" markdown>
+    <a href="https://www.linkedin.com/in/minhduong-thechosenone/">
+        <img src="assets/App/OrivietAerospaceLogo.png" alt="Logo" width="40%">
+    </a>
+    <a href="https://github.com/ButteredFire/Astrocelerate/">
+        <img src="assets/App/AstrocelerateLogo.png" alt="Logo" width="40%">
     </a>
 </div>
 
