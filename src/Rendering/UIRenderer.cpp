@@ -125,8 +125,8 @@ void UIRenderer::initImGui() {
 void UIRenderer::initFonts() {
     ImGuiIO& io = ImGui::GetIO();
 
-    constexpr float fontSize = 25.0f;
-    constexpr float iconSize = 18.0f;
+    constexpr float fontSize = 23.0f;
+    constexpr float iconSize = fontSize - 7.5f;
 
 
     // Glyph ranges
@@ -191,11 +191,12 @@ void UIRenderer::initFonts() {
     
 
     // Other variations
-    g_fontContext.NotoSans.bold         = io.Fonts->AddFontFromFileTTF(FontConsts::NotoSans.BOLD.c_str(), fontSize, nullptr, glyphRanges);
-    g_fontContext.NotoSans.boldItalic   = io.Fonts->AddFontFromFileTTF(FontConsts::NotoSans.BOLD_ITALIC.c_str(), fontSize, nullptr, glyphRanges);
-    g_fontContext.NotoSans.italic       = io.Fonts->AddFontFromFileTTF(FontConsts::NotoSans.ITALIC.c_str(), fontSize, nullptr, glyphRanges);
-    g_fontContext.NotoSans.light        = io.Fonts->AddFontFromFileTTF(FontConsts::NotoSans.LIGHT.c_str(), fontSize, nullptr, glyphRanges);
-    g_fontContext.NotoSans.lightItalic  = io.Fonts->AddFontFromFileTTF(FontConsts::NotoSans.LIGHT_ITALIC.c_str(), fontSize, nullptr, glyphRanges);
+    g_fontContext.NotoSans.bold         = io.Fonts->AddFontFromFileTTF(C_STR(FontConsts::NotoSans.BOLD), fontSize, nullptr, glyphRanges);
+    g_fontContext.NotoSans.boldItalic   = io.Fonts->AddFontFromFileTTF(C_STR(FontConsts::NotoSans.BOLD_ITALIC), fontSize, nullptr, glyphRanges);
+    g_fontContext.NotoSans.italic       = io.Fonts->AddFontFromFileTTF(C_STR(FontConsts::NotoSans.ITALIC), fontSize, nullptr, glyphRanges);
+    g_fontContext.NotoSans.light        = io.Fonts->AddFontFromFileTTF(C_STR(FontConsts::NotoSans.LIGHT), fontSize, nullptr, glyphRanges);
+    g_fontContext.NotoSans.lightItalic  = io.Fonts->AddFontFromFileTTF(C_STR(FontConsts::NotoSans.LIGHT_ITALIC), fontSize, nullptr, glyphRanges);
+    g_fontContext.NotoSans.regularMono  = io.Fonts->AddFontFromFileTTF(C_STR(FontConsts::NotoSans.REGULAR_MONO), fontSize, nullptr, glyphRanges);
 
 
     io.Fonts->Build();

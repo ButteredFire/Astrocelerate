@@ -120,9 +120,15 @@ struct VulkanContext {
         VkImageView depthImageView = VK_NULL_HANDLE;
 
         std::vector<VkDescriptorSet> perFrameDescriptorSets;
-
-        VkDescriptorSet pbrDescriptorSet;
     } OffscreenPipeline;
+
+    // Textures
+    struct Textures {
+        VkDescriptorSet pbrDescriptorSet;
+
+        VkDescriptorSet texArrayDescriptorSet;
+        uint32_t actualTextureCount;
+    } Textures;
 };
 
 extern VulkanContext g_vkContext;

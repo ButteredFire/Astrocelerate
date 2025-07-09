@@ -133,7 +133,7 @@ private:
 	VkDescriptorSetLayout createDescriptorSetLayout(uint32_t bindingCount, VkDescriptorSetLayoutBinding *layoutBindings, VkDescriptorSetLayoutCreateFlags layoutFlags, const void *pNext);
 
 	void createPerFrameDescriptorSets(VkDescriptorPool descriptorPool, VkDescriptorSetLayout descriptorSetLayout);
-	void createSingularDescriptorSet(VkDescriptorSet& descriptorSet, VkDescriptorPool descriptorPool, VkDescriptorSetLayout descriptorSetLayout);
+	void createSingularDescriptorSet(VkDescriptorSet& descriptorSet, VkDescriptorPool descriptorPool, VkDescriptorSetLayout descriptorSetLayout, const void *pNext);
 
 	/* Creates the shader stage of the graphics pipeline from compiled SPIR-V shader files. */
 	void initShaderStage();

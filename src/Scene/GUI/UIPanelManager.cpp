@@ -151,7 +151,7 @@ void UIPanelManager::initStaticTextures() {
 
 	// Application logo
 	{
-		std::string logoPath = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/App", "AstrocelerateLogo.png");
+		std::string logoPath = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/App", "AstrocelerateLogo-Branded.png");
 		Geometry::Texture texture = textureManager->createIndependentTexture(logoPath, VK_FORMAT_R8G8B8A8_SRGB);
 
 		m_appLogoTextureID = (ImTextureID)ImGui_ImplVulkan_AddTexture(texture.sampler, texture.imageView, texture.imageLayout);
@@ -1075,18 +1075,24 @@ void UIPanelManager::renderDebugConsole() {
 		if (ImGui::BeginChild("ConsoleScrollRegion", ImVec2(0, 0), ImGuiChildFlags_Borders, m_windowFlags)) {
 			notAtBottom = (ImGui::GetScrollY() < ImGui::GetScrollMaxY() - 1.0f);
 
-			for (const auto& log : Log::LogBuffer) {
-				if (selectedLogType != logTypes[0] && selectedLogType != log.displayType)
-					continue;
+			ImGui::PushFont(g_fontContext.NotoSans.regularMono);
+			{
+				for (const auto &log : Log::LogBuffer) {
+					if (selectedLogType != logTypes[0] && selectedLogType != log.displayType)
+						continue;
 
-				ImGui::PushStyleColor(ImGuiCol_Text, ColorUtils::LogMsgTypeToImVec4(log.type));
-				ImGui::TextWrapped("[%s] [%s]: %s", log.displayType.c_str(), log.caller.c_str(), log.message.c_str());
-				ImGui::PopStyleColor();
+					ImGui::PushStyleColor(ImGuiCol_Text, ColorUtils::LogMsgTypeToImVec4(log.type));
+					{
+						ImGui::TextWrapped("[%s] [%s]: %s", log.displayType.c_str(), log.caller.c_str(), log.message.c_str());
+					}
+					ImGui::PopStyleColor();
 
-				// Auto-scroll to the bottom only if the scroll position is already at the bottom
-				if (!notAtBottom)
-					ImGui::SetScrollHereY(1.0f);
+					// Auto-scroll to the bottom only if the scroll position is already at the bottom
+					if (!notAtBottom)
+						ImGui::SetScrollHereY(1.0f);
+				}
 			}
+			ImGui::PopFont();
 
 
 			// Auto-scroll to bottom once on switching to this panel
@@ -1113,7 +1119,7 @@ void UIPanelManager::renderDebugConsole() {
 
 void UIPanelManager::renderDebugApplication() {
 	const GUI::PanelFlag flag = GUI::PanelFlag::PANEL_DEBUG_APP;
-	if (!GUI::IsPanelOpen(m_panelMask, flag)) return;
+	//if (!GUI::IsPanelOpen(m_panelMask, flag)) return;
 
 	static ImGuiIO& io = ImGui::GetIO();
 	

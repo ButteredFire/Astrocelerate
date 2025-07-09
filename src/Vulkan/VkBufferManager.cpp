@@ -181,7 +181,7 @@ void VkBufferManager::createMatParamsUniformBuffer() {
 
 	VkWriteDescriptorSet pbrMaterialUBOdescWrite{};
 	pbrMaterialUBOdescWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	pbrMaterialUBOdescWrite.dstSet = g_vkContext.OffscreenPipeline.pbrDescriptorSet;
+	pbrMaterialUBOdescWrite.dstSet = g_vkContext.Textures.pbrDescriptorSet;
 	pbrMaterialUBOdescWrite.dstBinding = ShaderConsts::FRAG_BIND_MATERIAL_PARAMETERS;
 	pbrMaterialUBOdescWrite.dstArrayElement = 0;
 	pbrMaterialUBOdescWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;

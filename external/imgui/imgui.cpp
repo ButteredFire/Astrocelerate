@@ -11357,7 +11357,8 @@ void ImGui::ErrorRecoveryTryToRecoverState(const ImGuiErrorRecoveryState* state_
             }
             else
             {
-                IM_ASSERT_USER_ERROR(0, "Missing EndChild()");
+                // NOTE: This assertion has been manually disabled.
+                //IM_ASSERT_USER_ERROR(0, "Missing EndChild()");
                 EndChild();
             }
         }

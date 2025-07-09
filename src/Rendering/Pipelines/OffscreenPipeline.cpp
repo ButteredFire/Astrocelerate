@@ -279,36 +279,31 @@ void OffscreenPipeline::setUpDescriptors() {
 
 	// PBR textures
 		// Material parameters UBO
-	VkDescriptorSetLayoutBinding matParamsUBOLayoutBinding{};
-	matParamsUBOLayoutBinding.binding = ShaderConsts::FRAG_BIND_MATERIAL_PARAMETERS;
-	matParamsUBOLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-	matParamsUBOLayoutBinding.descriptorCount = 1;
-	matParamsUBOLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-	matParamsUBOLayoutBinding.pImmutableSamplers = nullptr;
+	VkDescriptorSetLayoutBinding pbrLayoutBinding{};
+	pbrLayoutBinding.binding = ShaderConsts::FRAG_BIND_MATERIAL_PARAMETERS;
+	pbrLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+	pbrLayoutBinding.descriptorCount = 1;
+	pbrLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	pbrLayoutBinding.pImmutableSamplers = nullptr;
 
 		// Texture array
-	VkDescriptorSetLayoutBinding textureArrayLayoutBinding{};
-	textureArrayLayoutBinding.binding = ShaderConsts::FRAG_BIND_TEXTURE_MAP;
-	textureArrayLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	textureArrayLayoutBinding.descriptorCount = SimulationConsts::MAX_GLOBAL_TEXTURES;
-	textureArrayLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-	textureArrayLayoutBinding.pImmutableSamplers = nullptr;
+	VkDescriptorSetLayoutBinding texArrayLayoutBinding{};
+	texArrayLayoutBinding.binding = ShaderConsts::FRAG_BIND_TEXTURE_MAP;
+	texArrayLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	texArrayLayoutBinding.descriptorCount = SimulationConsts::MAX_GLOBAL_TEXTURES;
+	texArrayLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	texArrayLayoutBinding.pImmutableSamplers = nullptr;
 
 			// Descriptor binding flags for the texture array
-	VkDescriptorBindingFlagsEXT textureArrayBindingFlags =
-		VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT |			// Allows descriptors to initially be null (as they'll be dynamically updated)
-		VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT_EXT |		// Allows updating descriptors after binding pipeline
-		VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT_EXT;// Allows actual descriptor count to be less than MAX_GLOBAL_TEXTURES
+	VkDescriptorBindingFlags texArrayBindingFlags =
+		VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |			// Allows descriptors to initially be null (as they'll be dynamically updated)
+		VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT |		// Allows updating descriptors after binding pipeline
+		VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;// Allows actual descriptor count to be less than MAX_GLOBAL_TEXTURES
 
-	VkDescriptorBindingFlagsEXT pbrBindingFlags[] = {
-		0,								// matParamsUBOLayoutBinding (binding 0)
-		textureArrayBindingFlags		// textureArrayLayoutBinding (binding 1)
-	};
-
-	VkDescriptorSetLayoutBindingFlagsCreateInfoEXT textureArrayBindingFlagsCreateInfo{};
-	textureArrayBindingFlagsCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT;
-	textureArrayBindingFlagsCreateInfo.bindingCount = static_cast<uint32_t>(SIZE_OF(pbrBindingFlags));
-	textureArrayBindingFlagsCreateInfo.pBindingFlags = pbrBindingFlags;
+	VkDescriptorSetLayoutBindingFlagsCreateInfo texArrayBindingFlagsCreateInfo{};
+	texArrayBindingFlagsCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
+	texArrayBindingFlagsCreateInfo.bindingCount = 1;
+	texArrayBindingFlagsCreateInfo.pBindingFlags = &texArrayBindingFlags;
 
 
 
@@ -319,11 +314,6 @@ void OffscreenPipeline::setUpDescriptors() {
 		objectUBOLayoutBinding
 	};
 
-	VkDescriptorSetLayoutBinding singularLayoutBindings[] = {
-		matParamsUBOLayoutBinding,
-		textureArrayLayoutBinding
-	};
-
 		// Descriptor pool allocation
 	VkDescriptorPool perFrameDescriptorPool;
 	VkDescriptorPoolSize perFramePoolSizes[] = {
@@ -331,10 +321,17 @@ void OffscreenPipeline::setUpDescriptors() {
 		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, static_cast<uint32_t>(SimulationConsts::MAX_FRAMES_IN_FLIGHT) }
 	};
 
-	VkDescriptorPool singularDescriptorPool;
-	VkDescriptorPoolSize singularPoolSizes[] = {
-		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1 },
-		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, SimulationConsts::MAX_GLOBAL_TEXTURES }
+
+	VkDescriptorPool pbrDescriptorPool;
+	VkDescriptorPoolSize pbrPoolSize{
+		.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+		.descriptorCount = 1
+	};
+
+	VkDescriptorPool texArrayDescriptorPool;
+	VkDescriptorPoolSize texArrayPoolSize{
+		.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+		.descriptorCount = SimulationConsts::MAX_GLOBAL_TEXTURES
 	};
 
 
@@ -344,16 +341,19 @@ void OffscreenPipeline::setUpDescriptors() {
 
 		// Descriptor pools
 	VkDescriptorUtils::CreateDescriptorPool(perFrameDescriptorPool, SIZE_OF(perFramePoolSizes), perFramePoolSizes, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT, 500);
-	VkDescriptorUtils::CreateDescriptorPool(singularDescriptorPool, SIZE_OF(singularPoolSizes), singularPoolSizes, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT, 150);
+	VkDescriptorUtils::CreateDescriptorPool(pbrDescriptorPool, 1, &pbrPoolSize, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT, 10);
+	VkDescriptorUtils::CreateDescriptorPool(texArrayDescriptorPool, 1, &texArrayPoolSize, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT | VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT, SimulationConsts::MAX_GLOBAL_TEXTURES);
 	
 		// Descriptor set layouts
 	VkDescriptorSetLayout setLayout0 = createDescriptorSetLayout(SIZE_OF(perFrameLayoutBindings), perFrameLayoutBindings, 0, nullptr);
-	VkDescriptorSetLayout setLayout1 = createDescriptorSetLayout(SIZE_OF(singularLayoutBindings), singularLayoutBindings, 0, &textureArrayBindingFlagsCreateInfo);
+	VkDescriptorSetLayout setLayout1 = createDescriptorSetLayout(1, &pbrLayoutBinding, 0, nullptr);
+	VkDescriptorSetLayout setLayout2 = createDescriptorSetLayout(1, &texArrayLayoutBinding, VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT, &texArrayBindingFlagsCreateInfo);
 
 		// NOTE: Indices are important in this vector! Make sure the descriptor set layouts are at the correct indices.
 	m_descriptorSetLayouts = {
 		setLayout0,		// Set 0: Per-frame
-		setLayout1		// Set 1: Material parameters UBO & Textures array
+		setLayout1,		// Set 1: Material parameters UBO
+		setLayout2		// Set 2: Textures array
 	};
 
 
@@ -362,10 +362,22 @@ void OffscreenPipeline::setUpDescriptors() {
 	createPerFrameDescriptorSets(perFrameDescriptorPool, setLayout0);
 	
 		// Singular descriptor sets
-			// Material parameters UBO + Textures array
+			// Material parameters UBO
 	VkDescriptorSet pbrDescriptorSet;
-	createSingularDescriptorSet(pbrDescriptorSet, singularDescriptorPool, setLayout1);
-	g_vkContext.OffscreenPipeline.pbrDescriptorSet = pbrDescriptorSet;
+	createSingularDescriptorSet(pbrDescriptorSet, pbrDescriptorPool, setLayout1, nullptr);
+	g_vkContext.Textures.pbrDescriptorSet = pbrDescriptorSet;
+
+			// Textures array
+	const uint32_t initialDescriptorCount = 20;
+	VkDescriptorSetVariableDescriptorCountAllocateInfo variableDescSetAllocInfo{};
+	variableDescSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO;
+	variableDescSetAllocInfo.descriptorSetCount = 1;
+	variableDescSetAllocInfo.pDescriptorCounts = &initialDescriptorCount;
+
+	VkDescriptorSet texArrayDescriptorSet;
+	createSingularDescriptorSet(texArrayDescriptorSet, texArrayDescriptorPool, setLayout2, &variableDescSetAllocInfo);
+	g_vkContext.Textures.texArrayDescriptorSet = texArrayDescriptorSet;
+	g_vkContext.Textures.actualTextureCount = initialDescriptorCount;
 }
 
 
@@ -501,12 +513,13 @@ void OffscreenPipeline::createPerFrameDescriptorSets(VkDescriptorPool descriptor
 }
 
 
-void OffscreenPipeline::createSingularDescriptorSet(VkDescriptorSet &descriptorSet, VkDescriptorPool descriptorPool, VkDescriptorSetLayout descriptorSetLayout) {
+void OffscreenPipeline::createSingularDescriptorSet(VkDescriptorSet &descriptorSet, VkDescriptorPool descriptorPool, VkDescriptorSetLayout descriptorSetLayout, const void *pNext) {
 	VkDescriptorSetAllocateInfo descSetAllocInfo{};
 	descSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 	descSetAllocInfo.descriptorPool = descriptorPool;
 	descSetAllocInfo.descriptorSetCount = 1;
 	descSetAllocInfo.pSetLayouts = &descriptorSetLayout;
+	descSetAllocInfo.pNext = pNext;
 
 	VkResult result = vkAllocateDescriptorSets(g_vkContext.Device.logicalDevice, &descSetAllocInfo, &descriptorSet);
 

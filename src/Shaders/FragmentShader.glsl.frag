@@ -33,7 +33,7 @@ layout(set = 1, binding = 0) uniform pbrMaterialParameters {
 	float opacity;
 } material;
 
-layout(set = 1, binding = 1) uniform sampler2D textureMap[128];
+layout(set = 2, binding = 0) uniform sampler2D textureMap[128];
 
 layout(location = 0) in vec3 fragColor;
 layout(location = 1) in vec2 fragTextureCoord_0;
@@ -194,7 +194,7 @@ vec3 computePBRFragment() {
     // --- Ambient Lighting (Simple Approximation) ---
     // TODO: Implement a fully functioning ambient lighting model
     // NOTE: In a full PBR setup, this would be IBL (irradiance map + prefiltered env map)
-    vec3 ambientColor = vec3(0.0001); // TODO: This should be editable via globalUBO.ambientStrength
+    vec3 ambientColor = vec3(0.0000001); // TODO: This should be editable via globalUBO.ambientStrength
     vec3 ambient = ambientColor * albedo * ao;
 
 

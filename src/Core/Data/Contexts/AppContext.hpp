@@ -31,6 +31,7 @@ struct FontContext {
         ImFont *light;
         ImFont *lightItalic;
         ImFont *regular;
+        ImFont *regularMono;
     } NotoSans;
 };
 

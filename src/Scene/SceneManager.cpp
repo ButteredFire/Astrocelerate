@@ -57,13 +57,14 @@ void SceneManager::loadDefaultScene() {
 	// Load geometry and mesh physical and render data
 	std::string genericCubeSat = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Models/TestModels", "GenericCubeSat/GenericCubeSat.gltf");
 	std::string chandraObservatory = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Models/Satellites", "Chandra/Chandra.gltf");
+	std::string VNREDSat = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Models/Satellites", "VNREDSat/VNREDSat.gltf");
 
 	std::string earth = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Models/CelestialBodies", "Earth/Earth.gltf");
 
 	std::string cube = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Models/TestModels", "Cube/Cube.gltf");
 
 	std::string planetPath = earth;
-	std::string satellitePath = cube;
+	std::string satellitePath = chandraObservatory;
 
 
 	// Earth configuration (Fact sheet: https://nssdc.gsfc.nasa.gov/planetary/factsheet/earthfact.html)
@@ -72,7 +73,7 @@ void SceneManager::loadDefaultScene() {
 		PhysicsComponent::ReferenceFrame planetRefFrame{};
 		planetRefFrame.parentID = m_renderSpace.id;
 		planetRefFrame.scale = earthRadius;
-		planetRefFrame.visualScale = 10.0;
+		planetRefFrame.visualScale = 100.0;
 		planetRefFrame.relativeScale = 1.0;
 		//planetRefFrame.visualScaleAffectsChildren = false;
 		planetRefFrame.localTransform.position = glm::dvec3(0.0, 0.0, 0.0);
@@ -109,7 +110,7 @@ void SceneManager::loadDefaultScene() {
 	{
 		PhysicsComponent::ReferenceFrame satelliteRefFrame{};
 		satelliteRefFrame.parentID = planet.id;
-		satelliteRefFrame.scale = 30;
+		satelliteRefFrame.scale = 100;
 		satelliteRefFrame.visualScale = 1.0;
 		satelliteRefFrame.relativeScale = satelliteRefFrame.scale / earthRadius;
 		satelliteRefFrame.localTransform.position = glm::dvec3((earthRadius + 2e6), 0.0, 0.0);

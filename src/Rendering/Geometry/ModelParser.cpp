@@ -43,7 +43,7 @@ Geometry::MeshData AssimpParser::parse(const std::string &modelPath) {
 		meshData.materials.push_back(material);
 	}
 
-	processNode(scene->mRootNode, scene, meshData);
+	processNode(scene->mRootNode, scene, meshData, glm::mat4(1.0f));
 
 	Log::Print(Log::T_SUCCESS, __FUNCTION__, "Successfully parsed model " + enquote(FilePathUtils::GetFileName(modelPath)) + "!");
 
@@ -51,7 +51,33 @@ Geometry::MeshData AssimpParser::parse(const std::string &modelPath) {
 }
 
 
-void AssimpParser::processNode(aiNode *node, const aiScene *scene, Geometry::MeshData &meshData) {
+void AssimpParser::processNode(aiNode *node, const aiScene *scene, Geometry::MeshData &meshData, glm::mat4 currentTransformMat) {
+	static const std::function<glm::mat4(aiMatrix4x4 &)> glmMatrix = [](aiMatrix4x4 &aiMat) {
+		glm::mat4 glmMat(1.0f);
+
+		glmMat[0][0] = aiMat.a1;
+		glmMat[0][1] = aiMat.a2;
+		glmMat[0][2] = aiMat.a3;
+		glmMat[0][3] = aiMat.a4;
+
+		glmMat[1][0] = aiMat.b1;
+		glmMat[1][1] = aiMat.b2;
+		glmMat[1][2] = aiMat.b3;
+		glmMat[1][3] = aiMat.b4;
+
+		glmMat[2][0] = aiMat.c1;
+		glmMat[2][1] = aiMat.c2;
+		glmMat[2][2] = aiMat.c3;
+		glmMat[2][3] = aiMat.c4;
+
+		glmMat[3][0] = aiMat.d1;
+		glmMat[3][1] = aiMat.d2;
+		glmMat[3][2] = aiMat.d3;
+		glmMat[3][3] = aiMat.d4;
+
+		return glmMat;
+	};
+
 	// Only process meshes if they exist
 	if (node->mNumMeshes > 0) {
 		size_t meshCount = static_cast<size_t>(node->mNumMeshes);
@@ -65,21 +91,23 @@ void AssimpParser::processNode(aiNode *node, const aiScene *scene, Geometry::Mes
 			size_t nodeIndices = static_cast<size_t>(node->mMeshes[i]);
 
 			aiMesh* mesh = scene->mMeshes[nodeIndices];
-			processMeshGeometry(scene, mesh, meshData);
+			processMeshGeometry(scene, mesh, meshData, currentTransformMat);
 		}
 	}
 
 
 	// Recursively processes child nodes
-	size_t childNodeCount = static_cast<size_t>(node->mNumChildren);
+	glm::mat4 childTransformMat = glmMatrix(node->mTransformation);
+	glm::mat4 newTransformMat = currentTransformMat * childTransformMat;
 
+	size_t childNodeCount = static_cast<size_t>(node->mNumChildren);
 	for (size_t i = 0; i < childNodeCount; i++) {
-		processNode(node->mChildren[i], scene, meshData);
+		processNode(node->mChildren[i], scene, meshData, newTransformMat);
 	}
 }
 
 
-void AssimpParser::processMeshGeometry(const aiScene *scene, aiMesh *mesh, Geometry::MeshData &meshData) {
+void AssimpParser::processMeshGeometry(const aiScene *scene, aiMesh *mesh, Geometry::MeshData &meshData, glm::mat4 currentTransformMat) {
 	// Current sizes and index count to calculate THIS child mesh's offset from the parent meshData
 		// Offsets from the beginning of meshData.vertices and meshData.indices
 	size_t currentVertexOffset = meshData.vertices.size();
@@ -100,30 +128,40 @@ void AssimpParser::processMeshGeometry(const aiScene *scene, aiMesh *mesh, Geome
 			Geometry::Vertex vertex{};
 
 			// Position
-			vertex.position = glm::vec3(
+			glm::vec4 initialPosition(
 				mesh->mVertices[index].x,
 				mesh->mVertices[index].y,
-				mesh->mVertices[index].z
+				mesh->mVertices[index].z,
+				1.0f
 			);
+			vertex.position = glm::vec3(currentTransformMat * initialPosition);  // Transformed position
 
 
+			// Normals and tangents should be transformed by the inverse transpose of the model matrix
+			
 			// Normals (essential for lighting, as they define the direction the vertex is "facing")
 			if (mesh->HasNormals()) {
-				vertex.normal = glm::vec3(
+				glm::vec3 initialNormals(
 					mesh->mNormals[index].x,
 					mesh->mNormals[index].y,
 					mesh->mNormals[index].z
 				);
+
+				glm::mat3 normalMatrix = glm::mat3(glm::transpose(glm::inverse(currentTransformMat)));
+				vertex.normal = glm::normalize(normalMatrix * initialNormals);  // Transformed normal
 			}
 
 
 			// Tangents and bi-tangents
 			if (mesh->HasTangentsAndBitangents()) {
-				vertex.tangent = glm::vec3(
+				glm::vec3 initialTangents(
 					mesh->mTangents[index].x,
 					mesh->mTangents[index].y,
 					mesh->mTangents[index].z
 				);
+
+				glm::mat3 normalMatrix = glm::mat3(glm::transpose(glm::inverse(currentTransformMat)));
+				vertex.tangent = glm::normalize(normalMatrix * initialTangents);  // Transformed tangent
 			}
 
 
@@ -202,7 +240,7 @@ void AssimpParser::processMeshMaterials(const aiScene *scene, const aiMaterial *
 	}
 	else {
 		//Log::Print(Log::T_WARNING, __FUNCTION__, fileName + " does not have albedo mapping! A fallback texture will be used instead.");
-		meshMat.albedoMapIndex = m_textureManager->createIndexedTexture(fallbackPlaceholder, VK_FORMAT_R8G8B8A8_SRGB);
+		//meshMat.albedoMapIndex = m_textureManager->createIndexedTexture(fallbackPlaceholder, VK_FORMAT_R8G8B8A8_SRGB);
 	}
 
 

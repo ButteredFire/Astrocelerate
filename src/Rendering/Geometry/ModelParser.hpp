@@ -53,16 +53,18 @@ private:
 		@param node: The node to be processed.
 		@param scene: The scene owning the node to be processed.
 		@param meshData: The mesh data.
+		@param currentTransformMat: The current (accumulated) global transformation matrix of the mesh.
 	*/
-	void processNode(aiNode *node, const aiScene *scene, Geometry::MeshData &meshData);
+	void processNode(aiNode *node, const aiScene *scene, Geometry::MeshData &meshData, glm::mat4 currentTransformMat);
 
 
 	/* Processes the geometry of the mesh.
 		@param scene: The scene owning the mesh.
 		@param mesh: The mesh to be processed.
 		@param meshData: The mesh data.
+		@param currentTransformMat: The current (accumulated) global transformation matrix of the mesh.
 	*/
-	void processMeshGeometry(const aiScene *scene, aiMesh *mesh, Geometry::MeshData &meshData);
+	void processMeshGeometry(const aiScene *scene, aiMesh *mesh, Geometry::MeshData &meshData, glm::mat4 currentTransformMat);
 
 
 	/* Processes mesh materials.

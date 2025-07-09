@@ -63,7 +63,7 @@ namespace ShaderConsts {
 
 		// Fragment shader
 	constexpr int FRAG_BIND_MATERIAL_PARAMETERS = 0;
-	constexpr int FRAG_BIND_TEXTURE_MAP = 1;
+	constexpr int FRAG_BIND_TEXTURE_MAP = 0;
 
 	constexpr int FRAG_LOC_IN_FRAGCOLOR = VERT_LOC_OUT_FRAGCOLOR;
 	constexpr int FRAG_LOC_IN_FRAGTEXTURECOORD_0 = VERT_LOC_OUT_FRAGTEXTURECOORD_0;
@@ -116,6 +116,7 @@ namespace FontConsts {
 		const std::string LIGHT_ITALIC		= std::string(APP_SOURCE_DIR) + "/assets/Fonts/NotoSans/NotoSans-LightItalic.ttf";
 		const std::string REGULAR			= std::string(APP_SOURCE_DIR) + "/assets/Fonts/NotoSans/NotoSans-Regular.ttf";
 		const std::string REGULAR_MATH		= std::string(APP_SOURCE_DIR) + "/assets/Fonts/NotoSans/NotoSansMath-Regular.ttf";
+		const std::string REGULAR_MONO		= std::string(APP_SOURCE_DIR) + "/assets/Fonts/NotoSans/NotoSansMono-Regular.ttf";
 	} NotoSans;
 }
 
