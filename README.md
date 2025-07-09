@@ -7,6 +7,25 @@
     </a>
 </div>
 
+
+
+# Table of Contents
+* [About Astrocelerate](#about-astrocelerate)
+    * [Goal](#goal)
+    * [Vision](#vision)
+        * [Short-term vision (MVP)](#short-term-vision-mvp)
+    * [Design philosophy](#design-philosophy)
+* [Features](#features)
+    * [Currently implemented](#currently-implemented)
+    * [Near-future plans](#near-future-plans)
+* [Installation](#installation)
+    * [Prerequisites](#prerequisites)
+    * [Bootstrapping](#bootstrapping)
+* [History](#history)
+    * [Screenshots](#screenshots)
+
+---
+
 # About Astrocelerate
 Astrocelerate is a spaceflight simulation engine tailored to space missions, developed in C++ with the Vulkan graphics API. 
 
