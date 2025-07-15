@@ -49,14 +49,14 @@ void Renderer::drawFrame(glm::dvec3& renderOrigin) {
     m_globalRegistry->updateComponent(m_guiRenderable.id, m_guiRenderComponent);
 
     /* How a frame is drawn:
-    * 1. Wait for the previous frame to finish rendering (i.e., waiting for its fence)
-    * 2. After waiting, acquire a new image from the swap-chain for rendering
-    * 3. If drawFrame does not end prematurely because the swap-chain is either outdated or suboptimal, then it means we are ready to start rendering the image. Only in that case do we reset the fence to ensure that only fences of images that are guaranteed to be processed are reset.
-    * 4. Reset/Clear the current frame's command buffer
-    * 5. Record the commands from the image
-    * 6. Submit the filled-in command buffer to a queue for processing
-    * 7. Send the processed data back to the swap-chain to render the image
-    * 8. Update the current frame index so that the next drawFrame call will process the next image in the swap-chain
+        1. Wait for the previous frame to finish rendering (i.e., waiting for its fence)
+        2. After waiting, acquire a new image from the swap-chain for rendering
+        3. If drawFrame does not end prematurely because the swap-chain is either outdated or suboptimal, then it means we are ready to start rendering the image. Only in that case do we reset the fence to ensure that only fences of images that are guaranteed to be processed are reset.
+        4. Reset/Clear the current frame's command buffer
+        5. Record the commands from the image
+        6. Submit the filled-in command buffer to a queue for processing
+        7. Send the processed data back to the swap-chain to render the image
+        8. Update the current frame index so that the next drawFrame call will process the next image in the swap-chain
     */
 
     // VK_TRUE: Indicates that the vkWaitForFences should wait for all fences.
@@ -81,11 +81,11 @@ void Renderer::drawFrame(glm::dvec3& renderOrigin) {
     }
 
 
-    // Only reset the fence when we're submitting work
 
-    // After waiting, reset fence to unsignaled
+        // After waiting, reset in-flight fence to unsignaled
     VkResult resetFenceResult = vkResetFences(g_vkContext.Device.logicalDevice, 1, &g_vkContext.SyncObjects.inFlightFences[m_currentFrame]);
     LOG_ASSERT(resetFenceResult == VK_SUCCESS, "Failed to reset fence!");
+
 
 
     // Records the command buffer
@@ -107,7 +107,8 @@ void Renderer::drawFrame(glm::dvec3& renderOrigin) {
     m_commandManager->recordRenderingCommandBuffer(g_vkContext.CommandObjects.graphicsCmdBuffers[m_currentFrame], imageIndex, m_currentFrame);
 
 
-        // Submits the buffer to the queue
+
+    // Submits the buffer to the queue
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
@@ -115,9 +116,7 @@ void Renderer::drawFrame(glm::dvec3& renderOrigin) {
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &g_vkContext.CommandObjects.graphicsCmdBuffers[m_currentFrame];
 
-            /* NOTE:
-            * Each stage in waitStages[] corresponds to a semaphore in waitSemaphores[].
-            */
+            // NOTE: Each stage in waitStages[] corresponds to a semaphore in waitSemaphores[].
     VkSemaphore waitSemaphores[] = {
         g_vkContext.SyncObjects.imageReadySemaphores[m_currentFrame] // Wait for the image to be available (see waitStages[0])
     };
@@ -126,7 +125,7 @@ void Renderer::drawFrame(glm::dvec3& renderOrigin) {
     };
 
             // Specifies which semaphores to wait for before execution begins
-    submitInfo.waitSemaphoreCount = (sizeof(waitSemaphores) / sizeof(VkSemaphore));
+    submitInfo.waitSemaphoreCount = SIZE_OF(waitSemaphores);
     submitInfo.pWaitSemaphores = waitSemaphores;
 
             // Specifies which stage of the (graphics) pipeline to wait for
@@ -134,9 +133,9 @@ void Renderer::drawFrame(glm::dvec3& renderOrigin) {
 
             // Specifies which semaphores to signal once the command buffer's execution is finished
     VkSemaphore signalSemaphores[] = {
-        g_vkContext.SyncObjects.renderFinishedSemaphores[m_currentFrame]
+        g_vkContext.SyncObjects.renderFinishedSemaphores[imageIndex]
     };
-    submitInfo.signalSemaphoreCount = (sizeof(signalSemaphores) / sizeof(VkSemaphore));
+    submitInfo.signalSemaphoreCount = SIZE_OF(signalSemaphores);
     submitInfo.pSignalSemaphores = signalSemaphores;
 
     VkQueue graphicsQueue = g_vkContext.Device.queueFamilies.graphicsFamily.deviceQueue;
@@ -144,25 +143,27 @@ void Renderer::drawFrame(glm::dvec3& renderOrigin) {
     LOG_ASSERT(submitResult == VK_SUCCESS, "Failed to submit draw command buffer!");
 
 
+
     // To finally draw the frame, we submit the result back to the swap-chain to have it eventually show up on screen
         // Configures presentation
     VkPresentInfoKHR presentationInfo{};
     presentationInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 
-        // Since we want to wait for the command buffer to finish execution, we take the semaphores which will be signalled and wait for them (i.e., we use signalSemaphores).
-    presentationInfo.waitSemaphoreCount = (sizeof(signalSemaphores) / sizeof(VkSemaphore));
+        // Since we want to wait for the command buffer to finish execution, we take the semaphores which will be signaled and wait for them (i.e., we use signalSemaphores).
+    presentationInfo.waitSemaphoreCount = SIZE_OF(signalSemaphores);
     presentationInfo.pWaitSemaphores = signalSemaphores;
 
         // Specifies the swap-chains to present images to, and the image index for each swap-chain (this will almost always be a single one)
     VkSwapchainKHR swapChains[] = {
         g_vkContext.SwapChain.swapChain
     };
-    presentationInfo.swapchainCount = (sizeof(swapChains) / sizeof(VkSwapchainKHR));
+    presentationInfo.swapchainCount = SIZE_OF(swapChains);
     presentationInfo.pSwapchains = swapChains;
     presentationInfo.pImageIndices = &imageIndex;
 
         // Specifies an array of VkResult values to check if presentation was successful for every single swap-chain. We leave pResults as nullptr for now, since we currently have just 1 swap-chain (whose result is the return value of the vkQueuePresentKHR function)
     presentationInfo.pResults = nullptr;
+
 
     VkResult presentResult = vkQueuePresentKHR(graphicsQueue, &presentationInfo);
     if (presentResult != VK_SUCCESS) {
@@ -176,7 +177,7 @@ void Renderer::drawFrame(glm::dvec3& renderOrigin) {
         }
     }
 
+
     // Updates current frame index
     m_currentFrame = (m_currentFrame + 1) % SimulationConsts::MAX_FRAMES_IN_FLIGHT;
-
 }

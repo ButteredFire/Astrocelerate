@@ -36,7 +36,7 @@ public:
 		@param fence: The fence in question.
 		@param timeout: The fence wait time.
 	*/
-	static void waitForSingleUseFence(VkFence& fence, uint64_t timeout = UINT64_MAX);
+	static void WaitForSingleUseFence(VkFence& fence, uint64_t timeout = UINT64_MAX);
 
 private:
 	std::shared_ptr<GarbageCollector> m_garbageCollector;
@@ -46,5 +46,5 @@ private:
 	std::vector<VkFence> m_inFlightFences;
 
 	/* Creates synchronization objects. */
-	void createSyncObjects();
+	void createPerFrameSyncPrimitives();
 };

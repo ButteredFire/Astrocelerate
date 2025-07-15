@@ -1,4 +1,4 @@
-﻿/* VkCommandManager.cpp - Command manager implementation.
+/* VkCommandManager.cpp - Command manager implementation.
 */
 
 #include "VkCommandManager.hpp"
@@ -249,7 +249,7 @@ void VkCommandManager::endSingleUseCommandBuffer(SingleUseCommandBufferInfo* com
 	
 	if (commandBufInfo->fence != VK_NULL_HANDLE) {
 		if (commandBufInfo->usingSingleUseFence) {
-			VkSyncManager::waitForSingleUseFence(commandBufInfo->fence);
+			VkSyncManager::WaitForSingleUseFence(commandBufInfo->fence);
 		}
 		else {
 			vkWaitForFences(g_vkContext.Device.logicalDevice, 1, &commandBufInfo->fence, VK_TRUE, UINT64_MAX);

@@ -61,9 +61,10 @@ void VkSwapchainManager::recreateSwapchain(uint32_t imageIndex) {
     }
     m_cleanupTaskIDs.clear();
 
-
+        // Re-initialization
     init();
     createFrameBuffers();
+
     g_vkContext.SwapChain.imageLayouts[imageIndex] = VK_IMAGE_LAYOUT_UNDEFINED;
 
     m_eventDispatcher->publish(Event::SwapchainIsRecreated{
@@ -261,7 +262,8 @@ VkPresentModeKHR VkSwapchainManager::getBestPresentMode(std::vector<VkPresentMod
             return mode;
     }
     // FIFO_KHR (fallback): V-Sync => No screen tearing and predictable frame pacing, but introduces input lag
-    return VK_PRESENT_MODE_FIFO_KHR;
+        // There is also FIFO_RELAXED_KHR.
+    return VK_PRESENT_MODE_FIFO_RELAXED_KHR;
 }
 
 

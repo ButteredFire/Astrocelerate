@@ -177,7 +177,7 @@ void VkBufferManager::createMatParamsUniformBuffer() {
 	VkDescriptorBufferInfo pbrMaterialUBOInfo{};
 	pbrMaterialUBOInfo.buffer = m_matParamsBuffer;
 	pbrMaterialUBOInfo.offset = 0;
-	pbrMaterialUBOInfo.range = bufferSize;
+	pbrMaterialUBOInfo.range = m_matStrideSize;		// NOTE: The range should only be the size of a single material, not the size of the entire buffer.
 
 	VkWriteDescriptorSet pbrMaterialUBOdescWrite{};
 	pbrMaterialUBOdescWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;

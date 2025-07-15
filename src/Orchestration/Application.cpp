@@ -63,7 +63,7 @@ int main() {
         // Camera
         //glm::dvec3 cameraPosition = glm::vec3(8e8, (PhysicsConsts::AU + 10e8), 1e7);
         Entity cameraEntity = globalRegistry->createEntity("Camera");
-        glm::dvec3 cameraPosition = glm::vec3(0.0, 0.0, 0.0);
+        glm::dvec3 cameraPosition = glm::vec3(0.0, 1.3e8, 0.0);
 
         std::shared_ptr<Camera> camera = std::make_shared<Camera>(
             cameraEntity,

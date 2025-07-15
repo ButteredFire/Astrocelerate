@@ -142,7 +142,7 @@ namespace PhysicsConsts {
 // Simulation settings
 namespace SimulationConsts {
 	constexpr int MAX_SIMULATION_STEPS = 10000;
-	constexpr int MAX_FRAMES_IN_FLIGHT = 2;							// How many frames should be processed concurrently
+	constexpr int MAX_FRAMES_IN_FLIGHT = 3;							// How many frames should be processed concurrently
 	constexpr int MAX_GLOBAL_TEXTURES = 128;						// The maximum number of textures in the global texture array
 	constexpr double TIME_STEP = 1.0 / 60.0;						// 60 Hz
 	constexpr double SIMULATION_SCALE = 1e6;						// 1 world unit = 1,000,000 meters (1000 km)

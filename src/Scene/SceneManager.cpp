@@ -64,7 +64,7 @@ void SceneManager::loadDefaultScene() {
 	std::string cube = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Models/TestModels", "Cube/Cube.gltf");
 
 	std::string planetPath = earth;
-	std::string satellitePath = chandraObservatory;
+	std::string satellitePath = VNREDSat;
 
 
 	// Earth configuration (Fact sheet: https://nssdc.gsfc.nasa.gov/planetary/factsheet/earthfact.html)
@@ -73,7 +73,7 @@ void SceneManager::loadDefaultScene() {
 		PhysicsComponent::ReferenceFrame planetRefFrame{};
 		planetRefFrame.parentID = m_renderSpace.id;
 		planetRefFrame.scale = earthRadius;
-		planetRefFrame.visualScale = 100.0;
+		planetRefFrame.visualScale = 10.0;
 		planetRefFrame.relativeScale = 1.0;
 		//planetRefFrame.visualScaleAffectsChildren = false;
 		planetRefFrame.localTransform.position = glm::dvec3(0.0, 0.0, 0.0);
