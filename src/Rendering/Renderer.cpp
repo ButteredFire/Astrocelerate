@@ -12,10 +12,8 @@ Renderer::Renderer():
 
     // TODO: I've just realized that having multiple entity managers (which is very likely) will be problematic for the service locator.
     m_globalRegistry = ServiceLocator::GetService<Registry>(__FUNCTION__);
-    m_garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
 
     m_swapchainManager = ServiceLocator::GetService<VkSwapchainManager>(__FUNCTION__);
-    m_bufferManager = ServiceLocator::GetService<VkBufferManager>(__FUNCTION__);
     m_commandManager = ServiceLocator::GetService<VkCommandManager>(__FUNCTION__);
 
     m_imguiRenderer = ServiceLocator::GetService<UIRenderer>(__FUNCTION__);

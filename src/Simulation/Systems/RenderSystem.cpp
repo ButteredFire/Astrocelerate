@@ -21,20 +21,20 @@ RenderSystem::RenderSystem() {
 void RenderSystem::bindEvents() {
 	m_eventDispatcher->subscribe<Event::UpdateRenderables>(
 		[this](const Event::UpdateRenderables& event) {
-			this->processMeshRenderable(event);
+			this->renderScene(event);
 		}
 	);
 
 
 	m_eventDispatcher->subscribe<Event::UpdateGUI>(
 		[this](const Event::UpdateGUI& event) {
-			this->processGUIRenderable(event);
+			this->renderGUI(event);
 		}
 	);
 }
 
 
-void RenderSystem::processMeshRenderable(const Event::UpdateRenderables &event) {
+void RenderSystem::renderScene(const Event::UpdateRenderables &event) {
 	// Compute dynamic alignments
 	const size_t minUBOAlignment = static_cast<size_t>(g_vkContext.Device.deviceProperties.limits.minUniformBufferOffsetAlignment);
 	const size_t objectUBOAlignment = SystemUtils::Align(sizeof(Buffer::ObjectUBO), minUBOAlignment);
@@ -130,7 +130,7 @@ void RenderSystem::processMeshRenderable(const Event::UpdateRenderables &event) 
 }
 
 
-void RenderSystem::processGUIRenderable(const Event::UpdateGUI &event) {
+void RenderSystem::renderGUI(const Event::UpdateGUI &event) {
 	auto view = m_registry->getView<RenderComponent::GUIRenderable>();
 	for (const auto &[entity, guiRenderable] : view) {
 		m_imguiRenderer->renderFrames(event.currentFrame);

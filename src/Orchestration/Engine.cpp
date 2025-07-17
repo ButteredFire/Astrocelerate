@@ -10,9 +10,7 @@ Engine::Engine(GLFWwindow *w):
     m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
     m_registry = ServiceLocator::GetService<Registry>(__FUNCTION__);
 
-    if (!isPointerValid(window)) {
-        throw Log::RuntimeException(__FUNCTION__, __LINE__, "Engine crashed: Invalid window context!");
-    }
+    LOG_ASSERT(window != nullptr, "Engine crashed: Invalid window context!");
 
     Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
@@ -22,6 +20,15 @@ Engine::~Engine() {
     // Frees up all associated memory.
     glfwDestroyWindow(window);
     glfwTerminate();
+}
+
+
+void Engine::bindEvents() {
+    m_eventDispatcher->subscribe<Event::UpdateAppStage>(
+        [this](const Event::UpdateAppStage &event) {
+            setApplicationStage(event.newStage);
+        }
+    );
 }
 
 
@@ -49,7 +56,13 @@ void Engine::initComponents() {
 }
 
 
-/* Starts the engine. */ 
+void Engine::setApplicationStage(Application::Stage newAppStage) {
+    Log::Print(Log::T_INFO, __FUNCTION__, "Transitioning application stage from Stage " + TO_STR((int)m_currentAppStage) + " to Stage " + TO_STR((int)newAppStage) + ".");
+
+    m_currentAppStage = newAppStage;
+}
+
+
 void Engine::run() {
     m_physicsSystem = ServiceLocator::GetService<PhysicsSystem>(__FUNCTION__);
     m_refFrameSystem = ServiceLocator::GetService<ReferenceFrameSystem>(__FUNCTION__);
@@ -62,46 +75,90 @@ void Engine::run() {
 }
 
 
-/* [MEMBER] Updates and processes all events */
 void Engine::update() {
-    double accumulator = 0.0;
-    float timeScale = 0;
-
-    m_refFrameSystem->updateAllFrames();
+    using namespace Application;
 
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
 
-        timeScale = Time::GetTimeScale();
 
-        Time::UpdateDeltaTime();
-        double deltaTime = Time::GetDeltaTime();
-        accumulator += deltaTime * timeScale;
+        switch (m_currentAppStage) {
+        case Stage::START_SCREEN:
+            updateStartScreen();
+            break;
 
-        // Process key input events
-        m_eventDispatcher->publish(Event::UpdateInput{
-            .deltaTime = deltaTime
-        }, true);
-        
+        case Stage::LOADING_SCREEN:
+            updateLoadingScreen();
+            break;
 
-        // Update physics
-            // TODO: Implement adaptive timestepping instead of a constant TIME_STEP
-        while (accumulator >= SimulationConsts::TIME_STEP) {
-            const double scaledDeltaTime = SimulationConsts::TIME_STEP * timeScale;
 
-            m_physicsSystem->update(scaledDeltaTime);
-            m_refFrameSystem->updateAllFrames();
+        case Stage::SETUP_ORBITAL:
+            updateOrbitalSetup();
+            break;
 
-            accumulator -= scaledDeltaTime;
+
+        case Stage::WORKSPACE_ORBITAL:
+            updateOrbitalWorkspace();
+            break;
         }
-
-
-        // Update rendering
-        glm::dvec3 floatingOrigin = m_inputManager->getCamera()->getGlobalTransform().position;
-        m_renderer->update(floatingOrigin);
     }
 
-    // All of the operations in Renderer::drawFrame are asynchronous. That means that when we exit the loop in mainLoop, drawing and presentation operations may still be going on. Cleaning up resources while that is happening is a bad idea.
+
+    // All of the operations in Renderer::drawFrame are asynchronous. That means that when we exit the main loop, drawing and presentation operations may still be going on. Cleaning up resources while that is happening is a bad idea.
     // To fix that problem, we should wait for the logical device to finish operations before exiting mainLoop and destroying the window:
     vkDeviceWaitIdle(g_vkContext.Device.logicalDevice);
+}
+
+
+void Engine::updateStartScreen() {
+
+}
+
+void Engine::updateLoadingScreen() {
+
+}
+
+void Engine::updateOrbitalSetup() {
+
+}
+
+
+void Engine::updateOrbitalWorkspace() {
+    static double accumulator = 0.0;
+    static float timeScale = 0;
+
+    static bool initialUpdate = false;
+    if (!initialUpdate) {
+        initialUpdate = true;
+        m_refFrameSystem->updateAllFrames();
+    }
+
+
+    timeScale = Time::GetTimeScale();
+
+    Time::UpdateDeltaTime();
+    double deltaTime = Time::GetDeltaTime();
+    accumulator += deltaTime * timeScale;
+
+    // Process key input events
+    m_eventDispatcher->publish(Event::UpdateInput{
+        .deltaTime = deltaTime
+        }, true);
+
+
+    // Update physics
+        // TODO: Implement adaptive timestepping instead of a constant TIME_STEP
+    while (accumulator >= SimulationConsts::TIME_STEP) {
+        const double scaledDeltaTime = SimulationConsts::TIME_STEP * timeScale;
+
+        m_physicsSystem->update(scaledDeltaTime);
+        m_refFrameSystem->updateAllFrames();
+
+        accumulator -= scaledDeltaTime;
+    }
+
+
+    // Update rendering
+    glm::dvec3 floatingOrigin = m_inputManager->getCamera()->getGlobalTransform().position;
+    m_renderer->update(floatingOrigin);
 }

@@ -4,69 +4,38 @@
 #pragma once
 
 #include <bitset>  
+#include <vector>
+#include <atomic>
+#include <functional>
 #include <unordered_map>
-#include <unordered_set>
 
 #include <imgui/imgui.h>
 
+#include <Core/Application/LoggingManager.hpp>
+#include <Core/Data/Constants.h>
 
-namespace GUI {  
-	constexpr uint32_t MAX_PANEL_COUNT = 32;  
-	using PanelMask = std::bitset<MAX_PANEL_COUNT>;  
-
-	enum class PanelFlag {
-		// Special panels
-		NULL_PANEL = 0,
-
-		// Panels exclusively accessed from the menu bar
-		PANEL_MENU_PREFERENCES,
-		PANEL_MENU_ABOUT,
-
-		// Normal panels
-		PANEL_VIEWPORT,
-		PANEL_TELEMETRY,
-		PANEL_ENTITY_INSPECTOR,  
-		PANEL_SIMULATION_CONTROL,  
-		PANEL_RENDER_SETTINGS,
-		PANEL_ORBITAL_PLANNER,  
-		PANEL_DEBUG_CONSOLE,
-		PANEL_DEBUG_APP
-	};
-
-	inline const std::unordered_set<PanelFlag> PanelMenuFlags = {
-		PanelFlag::PANEL_MENU_PREFERENCES,
-		PanelFlag::PANEL_MENU_ABOUT
-	};
-
-	inline constexpr PanelFlag PanelFlagsArray[] = {
-		PanelFlag::PANEL_MENU_PREFERENCES,
-		PanelFlag::PANEL_MENU_ABOUT,
-
-		PanelFlag::PANEL_VIEWPORT,
-		PanelFlag::PANEL_TELEMETRY,
-		PanelFlag::PANEL_ENTITY_INSPECTOR,
-		PanelFlag::PANEL_SIMULATION_CONTROL,
-		PanelFlag::PANEL_RENDER_SETTINGS,
-		PanelFlag::PANEL_ORBITAL_PLANNER,
-		PanelFlag::PANEL_DEBUG_CONSOLE,
-		PanelFlag::PANEL_DEBUG_APP
-	};
+class IWorkspace;
 
 
-	// IMPORTANT: Panel flag names must be unique, since they will be used as ImGui IDs.
-	const std::unordered_map<PanelFlag, std::string> PanelNames = {
-		{PanelFlag::PANEL_MENU_PREFERENCES,			"Preferences"},
-		{PanelFlag::PANEL_MENU_ABOUT,				"About Astrocelerate"},
+namespace GUI {
+	// Panel callback function types. This allows for mapping between panel IDs and their respective render functions.
+	typedef std::function<void(IWorkspace*)> PanelCallback;
 
-		{PanelFlag::PANEL_VIEWPORT,					"Viewport"},
-		{PanelFlag::PANEL_TELEMETRY,				"Telemetry Data"},
-		{PanelFlag::PANEL_ENTITY_INSPECTOR,			"Entity Inspector"},
-		{PanelFlag::PANEL_SIMULATION_CONTROL,		"Simulation Control Panel"},
-		{PanelFlag::PANEL_RENDER_SETTINGS,			"Render Settings"},
-		{PanelFlag::PANEL_ORBITAL_PLANNER,			"Orbital Planner"},
-		{PanelFlag::PANEL_DEBUG_CONSOLE,			"Console"},
-		{PanelFlag::PANEL_DEBUG_APP,				"Application Debugger"}
-	};
+
+	using PanelID = int32_t;
+	constexpr PanelID PANEL_NULL = -1;		// The NULL panel is a hypothetical panel, and should NOT exist in any panel mask.
+#define NULL_PANEL_CHECK(id, ...) if ((id) == PANEL_NULL) return __VA_ARGS__
+
+
+	constexpr uint32_t MAX_PANEL_COUNT = 256;
+	using PanelMask = std::bitset<MAX_PANEL_COUNT>;
+
+
+	// Atomic counters are useful for thread-safe ID generation
+		// NOTE: The s_ prefix is commonly used to indicate that a variable is static and private or internal.
+	static std::atomic<PanelID>	s_nextPanelID = PANEL_NULL + 1;
+	static std::unordered_map<std::string, PanelID> s_panelNameToID;
+	static std::vector<std::string> s_panelIDToName;	// Indexed by panel ID
 
 
 	enum Toggle {  
@@ -76,47 +45,81 @@ namespace GUI {
 
 
 
+	/* Creates an ID for a new panel.
+		By "Register", it is meant that the new panel will be registered into the global panel registry, NOT a panel mask, which is instance-based!
+
+		@param panelName: The panel name.
+		
+		@return The newly registered panel's ID.
+	*/
+	inline PanelID RegisterPanel(const std::string &panelName) {
+		if (s_nextPanelID >= MAX_PANEL_COUNT) {
+			Log::Print(Log::T_WARNING, __FUNCTION__, "Cannot register panel " + enquote(panelName) + ": Panel count exceeded the maximum of " + TO_STR(MAX_PANEL_COUNT) + "! The default NULL panel (ID: " + TO_STR(PANEL_NULL) + ") will be returned instead.");
+			return PANEL_NULL;
+		}
+
+		if (s_panelNameToID.count(panelName)) {
+			return s_panelNameToID[panelName];
+		}
+
+		PanelID newID = s_nextPanelID++;
+		s_panelNameToID[panelName] = newID;
+
+		if (s_panelIDToName.size() <= newID) {
+			// Resize vector if necessary
+			s_panelIDToName.resize(newID + 1);
+		}
+
+		s_panelIDToName[newID] = panelName;
+
+		return newID;
+	}
+
+
+	/* Gets the panel name.
+		@param panelID: The ID of the panel to get the name of.
+
+		@return The name of the panel.
+	*/
+	inline const char *GetPanelName(PanelID panelID) {
+		if (panelID > PANEL_NULL && panelID < s_panelIDToName.size()) {
+			return s_panelIDToName[panelID].c_str();
+		}
+
+		Log::Print(Log::T_WARNING, __FUNCTION__, "Cannot get name for panel ID " + TO_STR(panelID) + ": Panel does not exist! A placeholder name will be returned instead. Please ensure the panel is registered.");
+		return "Unknown Panel";
+	}
+
+
 	/* Is a panel currently open?   
 		@param mask: The panel bit-field.  
-		@param panel: The panel to be checked.  
+		@param panelID: The ID of the panel to be checked.  
 
 		@return True if the panel is open, otherwise False.  
 	*/  
-	inline bool IsPanelOpen(PanelMask& mask, PanelFlag panel) {  
-		return mask.test(static_cast<size_t>(panel));  
+	inline bool IsPanelOpen(PanelMask& mask, PanelID panelID) {
+		NULL_PANEL_CHECK(panelID, false);
+		return mask.test(static_cast<size_t>(panelID));  
 	}  
 
 
 	/* Toggles a panel on or off.  
 		@param mask: The panel bit-field.  
-		@param panel: The panel to be toggled.  
+		@param panelID: The ID of the panel to be toggled.  
 		@param toggleMode: The toggle mode (on/off).  
 	*/  
-	inline void TogglePanel(PanelMask& mask, PanelFlag panel, Toggle toggleMode) {  
-		switch (toggleMode) {  
-		case TOGGLE_ON:  
-			mask.set(static_cast<size_t>(panel));  
-			break;  
+	inline void TogglePanel(PanelMask& mask, PanelID panelID, Toggle toggleMode) {  
+		NULL_PANEL_CHECK(panelID);
 
-		case TOGGLE_OFF:  
-			mask.reset(static_cast<size_t>(panel));  
-			break;  
+		switch (toggleMode) {
+		case TOGGLE_ON:
+			mask.set(static_cast<size_t>(panelID));
+			break;
+
+		case TOGGLE_OFF:
+			mask.reset(static_cast<size_t>(panelID));
+			break;
 		}  
-	}
-
-
-	/* Gets the panel name.
-		@param panel: The panel to get the name of.
-
-		@return The name of the panel.
-	*/
-	inline const char* GetPanelName(PanelFlag panel) {
-		auto it = PanelNames.find(panel);
-		if (it != PanelNames.end()) {
-			return it->second.c_str();
-		}
-
-		return "Unknown Panel";
 	}
 
 
@@ -126,8 +129,8 @@ namespace GUI {
 
 		@return A compact string representation of the panel mask.
 	*/
-	inline std::string SerializePanelMask(const PanelMask& mask) {
-		return mask.to_string(); // Compact string like "110010"
+	inline const char* SerializePanelMask(const PanelMask &mask) {
+		return C_STR(mask.to_string()); // Compact string like "110010"
 	}
 
 
@@ -136,7 +139,7 @@ namespace GUI {
 
 		@return A PanelMask object.
 	*/
-	inline PanelMask DeserializePanelMask(const std::string& str) {
+	inline PanelMask DeserializePanelMask(const std::string &str) {
 		return PanelMask(str);
 	}
 }

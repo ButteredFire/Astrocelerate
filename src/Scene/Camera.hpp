@@ -24,7 +24,7 @@ class InputManager;
 
 class Camera {
 public:
-	Camera(Entity self, GLFWwindow* window, glm::vec3 position, glm::quat orientation);
+	Camera(Entity self, GLFWwindow* window, glm::dvec3 position, glm::quat orientation);
 	~Camera() = default;
 
 	friend class InputManager;
@@ -42,6 +42,8 @@ public:
 	*/
 	void attachToEntity(EntityID entityID);
 
+	/* Detaches the camera from any entity and revert back to free-fly mode. */
+	void detachFromEntity();
 
 	/* Gets the camera entity. */
 	Entity getEntity() const { return m_camEntity; }
@@ -55,13 +57,8 @@ private:
 	GLFWwindow* m_window;
 	std::shared_ptr<Registry> m_registry;
 
-	Entity m_camEntity{};
-	EntityID m_attachedEntityID{};
-
 	const glm::vec3 m_worldUp = SimulationConsts::UP_AXIS;
-
-	glm::vec3 m_position;
-	glm::vec3 m_freeFlyPosition;		// The camera's saved position in free-fly mode (to switch back to later)
+	glm::dvec3 m_position;
 	glm::quat m_orientation;
 
 	float m_pitch = 0.0f;  // Used for clamping mouse pitch
@@ -69,6 +66,18 @@ private:
 	glm::vec3 m_front{};
 	glm::vec3 m_localUp{};
 	glm::vec3 m_right{};
+
+
+	// Free-fly and attached controls
+	Entity m_camEntity{};
+	EntityID m_attachedEntityID{};
+
+	glm::vec3 m_freeFlyPosition;								// The camera's saved position in free-fly mode (to switch back to later)
+
+	float m_orbitRadius = 5.0f;									// Distance from the entity's center
+	float m_orbitYaw = 0.0f;									// Current horizontal angle around the entity (radians)
+	float m_orbitPitch = glm::radians(20.0f);					// Current vertical angle around the entity (radians)
+	glm::vec3 m_attachmentOffset = glm::vec3(0.0, 2.0, 0.0);	// Offset from entity's origin
 
 
 	void update();

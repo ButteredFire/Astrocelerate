@@ -106,6 +106,7 @@ namespace ConfigConsts {
 // Fonts
 #define C_STR(stdString)	(stdString).c_str()
 #define STD_STR(cStr)		std::string((cStr))
+#define TO_STR(any)			std::to_string((any))
 
 namespace FontConsts {
 	struct {

@@ -22,14 +22,14 @@
 #include <Rendering/Pipelines/PresentPipeline.hpp>
 #include <Rendering/Geometry/GeometryLoader.hpp>
 
+#include <Core/Data/Constants.h>
+#include <Core/Data/Application.hpp>
+#include <Core/Data/Contexts/VulkanContext.hpp>
 #include <Core/Engine/ECS.hpp>
 #include <Core/Engine/InputManager.hpp>
 #include <Core/Application/AppWindow.hpp>
-#include <Core/Data/Constants.h>
 #include <Core/Application/LoggingManager.hpp>
 #include <Core/Application/EventDispatcher.hpp>
-
-#include <Core/Data/Contexts/VulkanContext.hpp>
 
 #include <Engine/Components/CommonComponents.hpp>
 #include <Engine/Components/ModelComponents.hpp>
@@ -45,8 +45,8 @@
 
 #include <Scene/SceneManager.hpp>
 #include <Scene/GUI/UIPanelManager.hpp>
+#include <Scene/GUI/Workspaces/OrbitalWorkspace.hpp>
 
-#include <Utils/SubpassBinder.hpp>
 #include <Utils/SpaceUtils.hpp>
 
 
@@ -57,10 +57,14 @@ public:
 
 	void initComponents();
 
+	void setApplicationStage(Application::Stage newAppStage);
+
+	/* Starts the engine. */
 	void run();
 
 private:
 	GLFWwindow *window;
+	Application::Stage m_currentAppStage = Application::Stage::WORKSPACE_ORBITAL;
 
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 	std::shared_ptr<Registry> m_registry;
@@ -71,8 +75,15 @@ private:
 	std::shared_ptr<PhysicsSystem> m_physicsSystem;
 	std::shared_ptr<ReferenceFrameSystem> m_refFrameSystem;
 
-template<typename T>
-	static inline bool isPointerValid(T *ptr) { return ptr != nullptr; };
-	
+	void bindEvents();
+
+	/* Updates and processes all events */
 	void update();
+
+
+	void updateStartScreen();				// Update method for the start/welcome screen
+	void updateLoadingScreen();				// Update method for the loading screen
+
+	void updateOrbitalSetup();				// Update method for the orbital mechanics setup screen
+	void updateOrbitalWorkspace();			// Update method for the orbital mechanics workspaces
 };

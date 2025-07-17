@@ -56,10 +56,8 @@ private:
 
 	std::shared_ptr<Registry> m_globalRegistry;
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
-	std::shared_ptr<GarbageCollector> m_garbageCollector;
 
 	std::shared_ptr<VkSwapchainManager> m_swapchainManager;
-	std::shared_ptr<VkBufferManager> m_bufferManager;
 	std::shared_ptr<VkCommandManager> m_commandManager;
 
 	std::shared_ptr<UIRenderer> m_imguiRenderer;

@@ -113,14 +113,14 @@ void SceneManager::loadDefaultScene() {
 		satelliteRefFrame.scale = 100;
 		satelliteRefFrame.visualScale = 1.0;
 		satelliteRefFrame.relativeScale = satelliteRefFrame.scale / earthRadius;
-		satelliteRefFrame.localTransform.position = glm::dvec3((earthRadius + 2e6), 0.0, 0.0);
+		satelliteRefFrame.localTransform.position = glm::dvec3(0.0, (earthRadius + 2e6), 0.0);
 		satelliteRefFrame.localTransform.rotation = glm::dquat(1, 0, 0, 0);
 
 
 		double earthOrbitalSpeed = sqrt(PhysicsConsts::G * earthMass / glm::length(satelliteRefFrame.localTransform.position));
 
 		PhysicsComponent::RigidBody satelliteRB{};
-		satelliteRB.velocity = glm::dvec3(0.0, earthOrbitalSpeed, 50.0);
+		satelliteRB.velocity = glm::dvec3(-earthOrbitalSpeed, 0.0, 1080.0);
 		satelliteRB.acceleration = glm::dvec3(0.0);
 		satelliteRB.mass = 20;
 

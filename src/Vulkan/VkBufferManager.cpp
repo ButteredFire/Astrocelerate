@@ -25,6 +25,9 @@ void VkBufferManager::bindEvents() {
 			this->m_geomData = event.pGeomData;
 			this->m_totalObjects = event.pGeomData->meshCount;
 			this->createUniformBuffers();
+
+			m_camera->attachToEntity(3);
+			m_camera->detachFromEntity();
 		}
 	);
 

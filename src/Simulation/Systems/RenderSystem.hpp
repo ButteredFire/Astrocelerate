@@ -40,9 +40,9 @@ private:
 	void bindEvents();
 
 	/* Processes a mesh. */
-	void processMeshRenderable(const Event::UpdateRenderables &event);
+	void renderScene(const Event::UpdateRenderables &event);
 
 
 	/* Processes the GUI. */
-	void processGUIRenderable(const Event::UpdateGUI &event);
+	void renderGUI(const Event::UpdateGUI &event);
 };

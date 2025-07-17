@@ -252,12 +252,13 @@ void UIRenderer::refreshImGui() {
 void UIRenderer::renderFrames(uint32_t currentFrame) {
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplGlfw_NewFrame();
+
     ImGui::NewFrame();
     {
         initDockspace();
 
         ImGui::PushFont(g_fontContext.primaryFont);
-        m_uiPanelManager->updatePanels(currentFrame);
+        m_uiPanelManager->renderWorkspace(currentFrame);
         ImGui::PopFont();
 
         // Multi-viewport support
@@ -273,5 +274,5 @@ void UIRenderer::renderFrames(uint32_t currentFrame) {
 
 
 void UIRenderer::updateTextures(uint32_t currentFrame) {
-    m_uiPanelManager->updateViewportTexture(currentFrame);
+    m_uiPanelManager->preRenderUpdate(currentFrame);
 }

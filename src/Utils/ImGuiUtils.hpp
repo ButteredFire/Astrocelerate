@@ -12,6 +12,27 @@
 #include <Utils/SystemUtils.hpp>
 
 
+// Arithmetic operators for ImVec2
+inline ImVec2 operator+(const ImVec2 &lhs, const ImVec2 &rhs) {
+	return ImVec2(lhs.x + rhs.x, lhs.y + rhs.y);
+}
+
+inline ImVec2 operator-(const ImVec2 &lhs, const ImVec2 &rhs) {
+	return ImVec2(lhs.x - rhs.x, lhs.y - rhs.y);
+}
+
+inline ImVec2 operator*(const ImVec2 &lhs, float scalar) {
+	return ImVec2(lhs.x * scalar, lhs.y * scalar);
+}
+
+inline ImVec2 operator*(float scalar, const ImVec2 &rhs) {
+	return ImVec2(rhs.x * scalar, rhs.y * scalar);
+}
+
+inline ImVec2 operator/(const ImVec2 &lhs, float scalar) {
+	return ImVec2(lhs.x / scalar, lhs.y / scalar);
+}
+
 
 namespace ImGuiUtils {
 	// ----- COMPUTATION -----
@@ -26,6 +47,16 @@ namespace ImGuiUtils {
 		const float spacing = ImGui::GetStyle().ItemSpacing.x;
 
 		return (includePadding) ? (totalWidth - spacing) : (totalWidth);
+	}
+
+
+	/* Moves the cursor to the middle of a line to center a widget.
+		@param widgetSize: The size of the widget.
+	*/
+	inline void MoveCursorToMiddle(ImVec2 widgetSize) {
+		ImVec2 paddingSize = { (ImGui::GetContentRegionAvail().x - widgetSize.x) / 2.0f, 1.0f };
+		ImGui::Dummy(paddingSize);
+		ImGui::SameLine();
 	}
 
 

@@ -8,6 +8,7 @@
 #include <External/GLM.hpp>
 
 #include <Core/Data/Geometry.hpp>
+#include <Core/Data/Application.hpp>
 
 
 enum EventType {
@@ -17,6 +18,7 @@ enum EventType {
 	EVENT_ID_PIPELINES_ARE_INITIALIZED,
 	EVENT_ID_GEOMETRY_INITIALIZED,
 
+	EVENT_ID_UPDATE_APP_STAGE,
 	EVENT_ID_UPDATE_INPUT,
 	EVENT_ID_UPDATE_RENDERABLES,
 	EVENT_ID_UPDATE_GUI,
@@ -66,6 +68,13 @@ namespace Event {
 		std::vector<Geometry::Vertex> vertexData;
 		std::vector<uint32_t> indexData;
 		Geometry::GeometryData *pGeomData;
+	};
+
+
+	/* Used when the application stage is updated. */
+	struct UpdateAppStage {
+		const EventType eventType = EventType::EVENT_ID_UPDATE_APP_STAGE;
+		Application::Stage newStage;
 	};
 
 

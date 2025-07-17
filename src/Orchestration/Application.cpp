@@ -50,14 +50,15 @@ int main() {
         ServiceLocator::RegisterService(textureManager);
 
 
-        // GUI panel manager
-        std::shared_ptr<UIPanelManager> uiPanelManager = std::make_shared<UIPanelManager>();
-        ServiceLocator::RegisterService(uiPanelManager);
+        // GUI management
+            // Workspace
+            // TODO: Create plugin manager and workspace systems to allow for dynamic workspace discovery and swapping at runtime
+        std::unique_ptr<IWorkspace> currentWorkspace;
+        currentWorkspace = std::make_unique<OrbitalWorkspace>();    // The default orbital workspace will be used for now
 
-    
-        // Subpass binder
-        std::shared_ptr<SubpassBinder> subpassBinder = std::make_shared<SubpassBinder>();
-        ServiceLocator::RegisterService(subpassBinder);
+            // Manager
+        std::shared_ptr<UIPanelManager> uiPanelManager = std::make_shared<UIPanelManager>(currentWorkspace.get());
+        ServiceLocator::RegisterService(uiPanelManager);
 
 
         // Camera
@@ -74,8 +75,14 @@ int main() {
         ServiceLocator::RegisterService(camera);
 
 
-        // Pipeline initialization
+        // Input manager
+        std::shared_ptr<InputManager> inputManager = std::make_shared<InputManager>();
+        ServiceLocator::RegisterService(inputManager);
+        inputManager->init();
+        g_callbackContext.inputManager = inputManager.get();
 
+
+        // Pipeline initialization
         Engine engine(windowPtr);
         engine.initComponents();
 
@@ -134,11 +141,6 @@ int main() {
         std::shared_ptr<UIRenderer> uiRenderer = std::make_shared<UIRenderer>();
         ServiceLocator::RegisterService(uiRenderer);
 
-                // Input (only usable after ImGui initialization)
-        std::shared_ptr<InputManager> inputManager = std::make_shared<InputManager>();
-        ServiceLocator::RegisterService(inputManager);
-        inputManager->init();
-        g_callbackContext.inputManager = inputManager.get();
 
         std::shared_ptr<Renderer> renderer = std::make_shared<Renderer>();
         ServiceLocator::RegisterService(renderer);
