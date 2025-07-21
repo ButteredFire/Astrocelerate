@@ -165,6 +165,15 @@ void UIPanelManager::renderMenuBar() {
 			ImGui::EndMenu();
 		}
 
+		// Plugins
+		if (ImGui::BeginMenu("Plugins")) {
+			if (ImGui::MenuItem("Weather Prediction")) {
+				// ...
+			}
+
+			ImGui::EndMenu();
+		}
+
 
 		ImGui::EndMainMenuBar();
 	}

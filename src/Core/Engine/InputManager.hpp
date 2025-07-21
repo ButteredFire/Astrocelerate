@@ -71,8 +71,6 @@ private:
 
 	std::unordered_map<int, Input::CameraMovement> m_keyToCamMovementBindings;
 
-	ImGuiIO& m_guiIO;
-
 	bool m_cursorLocked = false;
 
 	void bindEvents();

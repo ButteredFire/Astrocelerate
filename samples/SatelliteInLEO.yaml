@@ -1,0 +1,60 @@
+Entities:
+  - Name: Earth
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: null
+          scale: 6378000.0
+          visualScale: 10.0
+          localTransform:
+            position: [0.0, 0.0, 0.0]
+            rotation: [1.0, 0.0, 0.0, 0.0]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [0.0, 0.0, 0.0]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 5.972e+24
+
+      - Type: PhysicsComponent::ShapeParameters
+        Data:
+          equatRadius: 6378000.0
+          eccentricity: 0.0167
+          gravParam: 3.986004418e+14 # PhysicsConsts::G * earthMass
+          rotVelocity: 7.2921159e-5
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/CelestialBodies/Earth/Earth.gltf"
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {} # This is just an empty component, used to tag which entities appear on the telemetry dashboard
+
+
+  - Name: Satellite
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth # Syntax: ref.[EntityName]. In this case, the parser will try to look for Earth's entity ID.
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [0.0, 8378000.0, 0.0] # earthRadius + 2e6 -> Satellite is orbiting 2378 km above the Earth
+            rotation: [1.0, 1.0, 0.0, 0.0]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [-6897.61118658, 0.0, 0.0] # ~6897.6 is the satellite's LEO orbital speed (refer to localTransform.position)
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 20.0
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth # Reference to the Earth entity's mass
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf"
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}

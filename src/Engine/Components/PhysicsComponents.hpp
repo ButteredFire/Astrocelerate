@@ -21,27 +21,21 @@ namespace PhysicsComponent {
 	/* Orbiting body (around another celestial body) */
 	struct OrbitingBody {
 		double centralMass;					// The mass of the body that this body is orbiting around.
+		std::string _centralMass_str;		// INTERNAL. OrbitingBody::centralMass in YAML files MUST be a reference to another entity.
 	};
 
 
 	/* Inertial frame of reference. */
 	struct ReferenceFrame {
 		std::optional<EntityID> parentID;				// The parent reference frame's entity ID.
+		std::string _parentID_str;						// INTERNAL. ReferenceFrame::parentID in YAML files can either be a reference to another entity or null.
+
 		Physics::FrameType frameType;					// TODO: Implement reference frame types
 
-		CommonComponent::Transform localTransform;		// Transform relative to parent (meters, inertial frame)
-		double radius;									// Radius (meters)
-		double radiusToParentRatio = 1.0;				// The radius-to-parent-radius ratio
-
-
-
-		// ----- DEPRECATED -----
-		CommonComponent::Transform globalTransform;
-
-		double scale = 1.0;							// The entity's physical scale (radius).
-		double relativeScale = 1.0;					// The entity's physical scale relative to its parent.
-		double visualScale = 1.0;					// The entity's mesh size in render space (can be used to exaggerate size).
-		bool visualScaleAffectsChildren = true;
+		CommonComponent::Transform localTransform;		// Transform relative to parent (meters, inertial frame).
+		CommonComponent::Transform globalTransform;		// Absolute transform in simulation space (meters).
+		double scale = 1.0;								// The entity's physical scale (radius).
+		double visualScale = 1.0;						// The entity's mesh size in render space (can be used to exaggerate size).
 	};
 
 

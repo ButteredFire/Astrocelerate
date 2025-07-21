@@ -2,8 +2,7 @@
 #include <Core/Application/EventDispatcher.hpp>
 
 
-InputManager::InputManager():
-	m_guiIO(ImGui::GetIO()) {
+InputManager::InputManager() {
 	using namespace Input;
 
 	m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);

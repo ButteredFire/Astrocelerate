@@ -354,6 +354,7 @@ private:
 class Registry {
 public:
 	Registry() {
+		Entity nullEntity = createEntity("null");
 		Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 	}
 	~Registry() = default;
@@ -365,6 +366,11 @@ public:
 
 	inline Entity getEntity(EntityID entityID) {
 		return entityManager.getAllEntities()[entityID];
+	}
+
+
+	inline bool hasEntity(EntityID entityID) {
+		return entityManager.getAllEntities().count(entityID);
 	}
 
 

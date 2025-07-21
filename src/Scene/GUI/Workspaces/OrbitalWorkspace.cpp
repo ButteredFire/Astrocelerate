@@ -315,15 +315,9 @@ void OrbitalWorkspace::renderTelemetryPanel() {
 
 				ImGuiUtils::BoldText("\tScaling (simulation)");
 				ImGui::Text("\t\tPhysical radius: %.10f m", refFrame.scale);
-				ImGui::Text("\t\tIntended ratio to parent: %.10f (relative scale)", refFrame.relativeScale);
 
 				ImGuiUtils::BoldText("\tScaling (render)");
 				ImGui::Text("\t\tVisual scale: %.10f units", renderT.visualScale);
-
-				if (m_registry->hasComponent<TelemetryComponent::RenderTransform>(refFrame.parentID.value())) {
-					const TelemetryComponent::RenderTransform &parentRenderT = m_registry->getComponent<TelemetryComponent::RenderTransform>(refFrame.parentID.value());
-					ImGui::Text("\t\tActual ratio to parent: %.10f units", (renderT.visualScale / parentRenderT.visualScale));
-				}
 
 				// Local Transform
 				ImGuiUtils::BoldText("Local Transform");

@@ -53,7 +53,7 @@ void VkBufferManager::init() {
 }
 
 
-uint32_t VkBufferManager::createBuffer(VkBuffer& buffer, VkDeviceSize bufferSize, VkBufferUsageFlags usageFlags, VmaAllocation& bufferAllocation, VmaAllocationCreateInfo bufferAllocationCreateInfo) {
+uint32_t VkBufferManager::CreateBuffer(VkBuffer& buffer, VkDeviceSize bufferSize, VkBufferUsageFlags usageFlags, VmaAllocation& bufferAllocation, VmaAllocationCreateInfo bufferAllocationCreateInfo) {
 
 	std::shared_ptr<GarbageCollector> m_garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
 
@@ -115,7 +115,7 @@ void VkBufferManager::createGlobalVertexBuffer(const std::vector<Geometry::Verte
 	vertBufAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE; // PREFERS fast device-local memory
 	vertBufAllocInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT; // FORCES device-local memory
 
-	createBuffer(m_vertexBuffer, bufferSize, vertBufUsage, m_vertexBufferAllocation, vertBufAllocInfo);
+	CreateBuffer(m_vertexBuffer, bufferSize, vertBufUsage, m_vertexBufferAllocation, vertBufAllocInfo);
 
 	writeDataToGPUBuffer(vertexData.data(), m_vertexBuffer, bufferSize);
 }
@@ -131,7 +131,7 @@ void VkBufferManager::createGlobalIndexBuffer(const std::vector<uint32_t>& index
 	indexBufAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE; // PREFERS fast device-local memory
 	indexBufAllocInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT; // FORCES device-local memory
 
-	createBuffer(m_indexBuffer, bufferSize, indexBufUsage, m_indexBufferAllocation, indexBufAllocInfo);
+	CreateBuffer(m_indexBuffer, bufferSize, indexBufUsage, m_indexBufferAllocation, indexBufAllocInfo);
 
 	writeDataToGPUBuffer(indexData.data(), m_indexBuffer, bufferSize);
 }
@@ -155,7 +155,7 @@ void VkBufferManager::createMatParamsUniformBuffer() {
 	matParamsUBAllocInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 	matParamsUBAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
 
-	createBuffer(m_matParamsBuffer, bufferSize, bufferUsage, m_matParamsBufferAllocation, matParamsUBAllocInfo);
+	CreateBuffer(m_matParamsBuffer, bufferSize, bufferUsage, m_matParamsBufferAllocation, matParamsUBAllocInfo);
 
 	vmaMapMemory(g_vkContext.vmaAllocator, m_matParamsBufferAllocation, &m_matParamsBufferMappedData);
 
@@ -376,7 +376,7 @@ void VkBufferManager::writeDataToGPUBuffer(const void* data, VkBuffer& buffer, V
 	*/
 	stagingBufAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
 
-	uint32_t stagingBufTaskID = createBuffer(stagingBuffer, bufferSize, stagingBufUsage, stagingBufAllocation, stagingBufAllocInfo);
+	uint32_t stagingBufTaskID = CreateBuffer(stagingBuffer, bufferSize, stagingBufUsage, stagingBufAllocation, stagingBufAllocInfo);
 
 	// Copies data to the staging buffer
 	void* mappedData;
@@ -431,7 +431,7 @@ void VkBufferManager::createUniformBuffers() {
 
 	for (size_t i = 0; i < SimulationConsts::MAX_FRAMES_IN_FLIGHT; i++) {
 		// Global UBO
-		createBuffer(m_globalUBOs[i].buffer, globalBufSize, uniformBufUsageFlags, m_globalUBOs[i].allocation, uniformBufAllocInfo);
+		CreateBuffer(m_globalUBOs[i].buffer, globalBufSize, uniformBufUsageFlags, m_globalUBOs[i].allocation, uniformBufAllocInfo);
 
 			/*
 			The buffer allocation stays mapped to the pointer for the application's whole lifetime.
@@ -441,7 +441,7 @@ void VkBufferManager::createUniformBuffers() {
 
 
 		// Object UBO
-		createBuffer(m_objectUBOs[i].buffer, objectBufSize, uniformBufUsageFlags, m_objectUBOs[i].allocation, uniformBufAllocInfo);
+		CreateBuffer(m_objectUBOs[i].buffer, objectBufSize, uniformBufUsageFlags, m_objectUBOs[i].allocation, uniformBufAllocInfo);
 		vmaMapMemory(g_vkContext.vmaAllocator, m_objectUBOs[i].allocation, &m_objectUBOMappedData[i]);
 
 

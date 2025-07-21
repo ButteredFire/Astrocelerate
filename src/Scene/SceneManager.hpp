@@ -14,6 +14,7 @@
 #include <Engine/Components/PhysicsComponents.hpp>
 #include <Engine/Components/RenderComponents.hpp>
 
+#include <Utils/YAMLUtils.hpp>
 #include <Utils/FilePathUtils.hpp>
 
 
@@ -27,8 +28,15 @@ public:
 	/* Deserializes and loads scene data. */
 	void loadScene();
 
-	/* Initializes the default scene, with default mesh parameters in physics and rendering. */
-	void loadDefaultScene();
+	/* Loads the scene from a YAML simulation configuration file.
+		@param filePath: The path to the YAML file.
+	*/
+	void loadSceneFromFile(const std::string &filePath);
+
+	/* Saves the current scene to a YAML simulation configuration file.
+		@param filePath: The path to the YAML file.
+	*/
+	void saveSceneToFile(const std::string &filePath);
 
 	/* Gets the number of meshes in the current scene. */
 	inline uint32_t GetMeshCount() const { return m_meshCount; }

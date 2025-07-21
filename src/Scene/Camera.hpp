@@ -72,7 +72,10 @@ private:
 	Entity m_camEntity{};
 	EntityID m_attachedEntityID{};
 
+	bool m_inFreeFlyMode;
 	glm::vec3 m_freeFlyPosition;								// The camera's saved position in free-fly mode (to switch back to later)
+	glm::quat m_freeFlyOrientation;
+	float m_freeFlyPitch = 0.0f;
 
 	float m_orbitRadius = 5.0f;									// Distance from the entity's center
 	float m_orbitYaw = 0.0f;									// Current horizontal angle around the entity (radians)

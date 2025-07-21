@@ -27,7 +27,6 @@ void SceneManager::init() {
 	globalRefFrame.parentID = std::nullopt;
 	globalRefFrame.scale = 1.0;
 	globalRefFrame.visualScale = 1.0;
-	globalRefFrame.relativeScale = 1.0;
 	globalRefFrame.localTransform.position = glm::dvec3(0.0);
 	globalRefFrame.localTransform.rotation = glm::dquat(1.0, 0.0, 0.0, 0.0);
 
@@ -36,115 +35,182 @@ void SceneManager::init() {
 
 
 void SceneManager::loadScene() {
-	// TODO: Deserialize scene data and load scene. Right now, we can only load the default, hardcoded scene.
-	
-	loadDefaultScene();
+	loadSceneFromFile(
+		FilePathUtils::JoinPaths(APP_SOURCE_DIR, "samples", "SatelliteInLEO.yaml")
+	);
 }
 
 
-void SceneManager::loadDefaultScene() {
-	// Rigid bodies
-	Entity planet = m_registry->createEntity("Earth");
-	Entity satellite = m_registry->createEntity("Satellite");
+void SceneManager::loadSceneFromFile(const std::string &filePath) {
+	const std::string fileName = FilePathUtils::GetFileName(filePath);
 
 
-	// Common mesh physical data
-	constexpr double sunRadius = 6.9634e+8;
-	constexpr double earthRadius = 6.378e+6;
-	constexpr double earthMass = 5.972e+24;
+#define logMissingComponent(componentName) Log::Print(Log::T_WARNING, __FUNCTION__, "In simulation file " + fileName + ": Essential component " + enquote((componentName)) + " is missing!")
+#define info(entityName, componentType) "Entity " + enquote((entityName)) + ", component " + enquote((componentType)) + ": "
 
 
-	// Load geometry and mesh physical and render data
-	std::string genericCubeSat = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Models/TestModels", "GenericCubeSat/GenericCubeSat.gltf");
-	std::string chandraObservatory = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Models/Satellites", "Chandra/Chandra.gltf");
-	std::string VNREDSat = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Models/Satellites", "VNREDSat/VNREDSat.gltf");
+    std::map<std::string, EntityID> entityNameToID; // Map entity names to their runtime IDs
+    std::map<std::string, double> entityNameToMass; // Map entity names to their masses
 
-	std::string earth = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Models/CelestialBodies", "Earth/Earth.gltf");
+	Log::Print(Log::T_INFO, __FUNCTION__, "Selected simulation file: " + enquote(fileName) + ". Loading scene...");
 
-	std::string cube = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Models/TestModels", "Cube/Cube.gltf");
+	try {
+        YAML::Node scene = YAML::LoadFile(filePath);
 
-	std::string planetPath = earth;
-	std::string satellitePath = VNREDSat;
+        // ----- Query each entity -----
+        for (const auto &entityNode : scene["Entities"]) {
+            std::string entityName = entityNode["Name"].as<std::string>();
+            Entity newEntity = m_registry->createEntity(entityName);
 
+			LOG_ASSERT(entityNameToID.count(entityName) == 0, "Found duplicate " + enquote(entityName) + " entities! Please ensure entity names are unique.");
 
-	// Earth configuration (Fact sheet: https://nssdc.gsfc.nasa.gov/planetary/factsheet/earthfact.html)
-	Math::Interval<uint32_t> planetRange = m_geometryLoader.loadGeometryFromFile(planetPath);
-	{
-		PhysicsComponent::ReferenceFrame planetRefFrame{};
-		planetRefFrame.parentID = m_renderSpace.id;
-		planetRefFrame.scale = earthRadius;
-		planetRefFrame.visualScale = 10.0;
-		planetRefFrame.relativeScale = 1.0;
-		//planetRefFrame.visualScaleAffectsChildren = false;
-		planetRefFrame.localTransform.position = glm::dvec3(0.0, 0.0, 0.0);
-		planetRefFrame.localTransform.rotation = glm::dquat(1, 0, 0, 0);
+            entityNameToID[entityName] = newEntity.id;
 
 
-		PhysicsComponent::RigidBody planetRB{};
-		planetRB.velocity = glm::dvec3(0.0, 0.0, 0.0);
-		planetRB.acceleration = glm::dvec3(0.0);
-		planetRB.mass = earthMass;
+            // ----- Load Geometry Data -----
+            for (const auto &componentNode : entityNode["Components"]) {
+                std::string componentType = componentNode["Type"].as<std::string>();
+
+                if (componentType == YAMLEntry::Physics_ReferenceFrame) {
+                    PhysicsComponent::ReferenceFrame refFrame{};
+
+                    if (!YAMLUtils::GetComponentData(componentNode, refFrame)) {
+                        logMissingComponent(componentType);
+                        continue;
+                    }
+
+                    bool validID = false;
+					if (componentNode["Data"]["parentID"]) {
+						std::string parentName = componentNode["Data"]["parentID"].as<std::string>();
+
+						if (parentName.starts_with(YAMLEntry::Ref)) {
+							// The reference frame references an entity name as their parent
+							LOG_ASSERT(parentName.size() > YAMLEntry::Ref.size(), info(entityName, componentType) + "Reference value for parentID cannot be empty!");
+
+							parentName = YAMLUtils::GetReferenceSubstring(parentName);
+							if (entityNameToID.count(parentName) && m_registry->hasEntity(entityNameToID[parentName])); {
+								validID = true;
+								refFrame.parentID = entityNameToID[parentName];
+							}
+						}
+						else {
+							// The reference frame is null
+							validID = true;
+							refFrame.parentID = m_renderSpace.id;
+						}
+					}
+
+                    if (!validID) {
+                        Log::Print(Log::T_WARNING, __FUNCTION__, info(entityName, componentType) + "Cannot find parent. Defaulting to render space as the parent!");
+                        refFrame.parentID = m_renderSpace.id;
+                    }
 
 
-		PhysicsComponent::ShapeParameters planetShapeParams{};
-		planetShapeParams.equatRadius = earthRadius;
-		planetShapeParams.eccentricity = 0.0167;
-		planetShapeParams.gravParam = PhysicsConsts::G * planetRB.mass;
-		planetShapeParams.rotVelocity = 7.2921159e-5;
+                    m_registry->addComponent(newEntity.id, refFrame);
+                }
 
 
-		RenderComponent::MeshRenderable planetRenderable{};
-		planetRenderable.meshRange = planetRange;
+                else if (componentType == YAMLEntry::Physics_RigidBody) {
+                    PhysicsComponent::RigidBody rigidBody{};
+
+                    if (!YAMLUtils::GetComponentData(componentNode, rigidBody))
+                        logMissingComponent(componentType);
+
+                    m_registry->addComponent(newEntity.id, rigidBody);
+                    entityNameToMass[entityName] = rigidBody.mass;  // Store mass for later lookups
+                }
 
 
-		m_registry->addComponent(planet.id, planetRefFrame);
-		m_registry->addComponent(planet.id, planetRB);
-		m_registry->addComponent(planet.id, planetShapeParams);
-		m_registry->addComponent(planet.id, planetRenderable);
-		m_registry->addComponent(planet.id, TelemetryComponent::RenderTransform{});
+                else if (componentType == YAMLEntry::Physics_ShapeParameters) {
+                    PhysicsComponent::ShapeParameters shapeParams{};
+
+                    YAMLUtils::GetComponentData(componentNode, shapeParams);
+                    m_registry->addComponent(newEntity.id, shapeParams);
+                }
+
+
+                else if (componentType == YAMLEntry::Physics_OrbitingBody) {
+                    PhysicsComponent::OrbitingBody orbitingBody;
+
+                    if (!YAMLUtils::GetComponentData(componentNode, orbitingBody))
+                        logMissingComponent(componentType);
+
+                    bool refIsValid = false;
+                    if (componentNode["Data"]["centralMass"]) {
+                        std::string centralMassRef = componentNode["Data"]["centralMass"].as<std::string>();
+
+						if (centralMassRef.starts_with(YAMLEntry::Ref)) {
+							LOG_ASSERT(centralMassRef.size() > YAMLEntry::Ref.size(), info(entityName, componentType) + "Reference value for centralMass cannot be empty!");
+
+							centralMassRef = YAMLUtils::GetReferenceSubstring(centralMassRef);
+							if (entityNameToMass.count(centralMassRef)) {
+								refIsValid = true;
+								orbitingBody.centralMass = entityNameToMass[centralMassRef];
+							}
+						}
+                    }
+
+                    if (!refIsValid) {
+                        Log::Print(Log::T_ERROR, __FUNCTION__, info(entityName, componentType) + "Central mass reference value is not provided!");
+                    }
+
+                    m_registry->addComponent(newEntity.id, orbitingBody);
+                }
+
+
+                else if (componentType == YAMLEntry::Render_MeshRenderable) {
+                    RenderComponent::MeshRenderable meshRenderable{};
+
+                    if (!YAMLUtils::GetComponentData(componentNode, meshRenderable))
+                        logMissingComponent(componentType);
+
+                    if (componentNode["Data"]["meshPath"]) {
+                        std::string meshPath = componentNode["Data"]["meshPath"].as<std::string>();
+
+                        std::string fullPath = FilePathUtils::JoinPaths(APP_SOURCE_DIR, meshPath);
+                        Math::Interval<uint32_t> meshRange = m_geometryLoader.loadGeometryFromFile(fullPath);
+
+                        meshRenderable.meshRange = meshRange;
+                        m_registry->addComponent(newEntity.id, meshRenderable);
+                    }
+                    else {
+                        Log::Print(Log::T_ERROR, __FUNCTION__, info(entityName, componentType) + "Model path is not provided!");
+                    }
+                }
+
+
+                else if (componentType == YAMLEntry::Telemetry_RenderTransform) {
+                    // This component has no data, just add it as a tag
+                    m_registry->addComponent(newEntity.id, TelemetryComponent::RenderTransform{});
+                }
+            }
+        }
+
+
+        // ----- Finalize geometry baking -----
+		m_geomData = m_geometryLoader.bakeGeometry();
+		m_meshCount = m_geomData->meshCount;
+
+		RenderComponent::SceneData globalSceneData{};
+		globalSceneData.pGeomData = m_geomData;
+		m_registry->addComponent(m_renderSpace.id, globalSceneData);
+	}
+
+	catch (const YAML::BadFile &e) {
+		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to read data from simulation file " + enquote(fileName) + ": " + e.what());
+	}
+	catch (const YAML::ParserException &e) {
+		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to parse data from simulation file " + enquote(fileName) + ": " + e.what());
+	}
+	catch (const std::exception &e) {
+		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to load scene from simulation file " + enquote(fileName) + ": " + e.what());
 	}
 
 
-	// Satellite configuration
-	Math::Interval<uint32_t> satelliteRange = m_geometryLoader.loadGeometryFromFile(satellitePath);
-	{
-		PhysicsComponent::ReferenceFrame satelliteRefFrame{};
-		satelliteRefFrame.parentID = planet.id;
-		satelliteRefFrame.scale = 100;
-		satelliteRefFrame.visualScale = 1.0;
-		satelliteRefFrame.relativeScale = satelliteRefFrame.scale / earthRadius;
-		satelliteRefFrame.localTransform.position = glm::dvec3(0.0, (earthRadius + 2e6), 0.0);
-		satelliteRefFrame.localTransform.rotation = glm::dquat(1, 0, 0, 0);
+	Log::Print(Log::T_SUCCESS, __FUNCTION__, "Successfully loaded scene from simulation file " + enquote(fileName) + ".");
+}
 
 
-		double earthOrbitalSpeed = sqrt(PhysicsConsts::G * earthMass / glm::length(satelliteRefFrame.localTransform.position));
+void SceneManager::saveSceneToFile(const std::string &filePath) {
 
-		PhysicsComponent::RigidBody satelliteRB{};
-		satelliteRB.velocity = glm::dvec3(-earthOrbitalSpeed, 0.0, 1080.0);
-		satelliteRB.acceleration = glm::dvec3(0.0);
-		satelliteRB.mass = 20;
-
-
-		PhysicsComponent::OrbitingBody satelliteOB{};
-		satelliteOB.centralMass = earthMass;
-
-
-		RenderComponent::MeshRenderable satelliteRenderable{};
-		satelliteRenderable.meshRange = satelliteRange;
-
-
-		m_registry->addComponent(satellite.id, satelliteRB);
-		m_registry->addComponent(satellite.id, satelliteRefFrame);
-		m_registry->addComponent(satellite.id, satelliteOB);
-		m_registry->addComponent(satellite.id, satelliteRenderable);
-		m_registry->addComponent(satellite.id, TelemetryComponent::RenderTransform{});
-	}
-
-
-	m_geomData = m_geometryLoader.bakeGeometry();
-	m_meshCount = m_geomData->meshCount;
-
-	RenderComponent::SceneData globalSceneData{};
-	globalSceneData.pGeomData = m_geomData;
-	m_registry->addComponent(m_renderSpace.id, globalSceneData);
 }

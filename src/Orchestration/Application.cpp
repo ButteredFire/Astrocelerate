@@ -45,9 +45,19 @@ int main() {
 
 
     try {
+        Engine engine(windowPtr);
+        engine.initComponents();
+
+
         // Texture manager
         std::shared_ptr<TextureManager> textureManager = std::make_shared<TextureManager>();
         ServiceLocator::RegisterService(textureManager);
+
+
+        // Scene manager
+        std::shared_ptr<SceneManager> sceneManager = std::make_shared<SceneManager>();
+        ServiceLocator::RegisterService(sceneManager);
+        sceneManager->init();
 
 
         // GUI management
@@ -83,10 +93,6 @@ int main() {
 
 
         // Pipeline initialization
-        Engine engine(windowPtr);
-        engine.initComponents();
-
-
             // Instance manager
         VkInstanceManager instanceManager;
         instanceManager.init();
@@ -107,12 +113,6 @@ int main() {
         std::shared_ptr<VkCommandManager> commandManager = std::make_shared<VkCommandManager>();
         ServiceLocator::RegisterService(commandManager);
         commandManager->init();
-
-
-            // Scene manager
-        std::shared_ptr<SceneManager> sceneManager = std::make_shared<SceneManager>();
-        ServiceLocator::RegisterService(sceneManager);
-        sceneManager->init();
 
 
             // Buffer manager

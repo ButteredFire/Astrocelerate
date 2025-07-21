@@ -32,6 +32,11 @@ void UIRenderer::initImGui() {
     //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // IF using Docking Branch
 
+    io.ConfigErrorRecoveryEnableAssert = false; // Disable asserts on recoverable errors
+    io.ConfigErrorRecoveryEnableDebugLog = true; // Still log errors to debug output
+    io.ConfigErrorRecoveryEnableTooltip = true; // Show a tooltip indicating an error
+
+
     // Setup Platform/Renderer backends
     ImGui_ImplGlfw_InitForVulkan(g_vkContext.window, true);
 

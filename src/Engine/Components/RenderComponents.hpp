@@ -21,6 +21,7 @@ namespace RenderComponent {
 
 
     struct MeshRenderable {
+        std::string meshPath;                   // The source path to the mesh file.
         Math::Interval<uint32_t> meshRange;     // The mesh-offset range of THIS mesh (i.e., the index range of its child meshes in the mesh offsets array).
     };
 

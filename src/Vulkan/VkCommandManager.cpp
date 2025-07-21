@@ -271,7 +271,7 @@ VkCommandPool VkCommandManager::createCommandPool(VkDevice device, uint32_t queu
 	createInfo.flags = flags;
 
 	if (cmdPoolMappings.find(createInfo) != cmdPoolMappings.end()) {
-		Log::Print(Log::T_WARNING, __FUNCTION__, "The command pool to be created has creation parameters matching those of an existing pool, which will be used instead.");
+		//Log::Print(Log::T_WARNING, __FUNCTION__, "The command pool to be created has creation parameters matching those of an existing pool, which will be used instead.");
 		return cmdPoolMappings[createInfo];
 	}
 

@@ -4,9 +4,11 @@
 
 Camera::Camera(Entity self, GLFWwindow* window, glm::dvec3 position, glm::quat orientation):
 	m_camEntity(self),
+	m_attachedEntityID(m_camEntity.id),
 	m_window(window),
 	m_position(position),
-	m_orientation(orientation) {
+	m_orientation(orientation),
+	m_inFreeFlyMode(true) {
 
 	m_registry = ServiceLocator::GetService<Registry>(__FUNCTION__);
 
@@ -24,24 +26,20 @@ void Camera::update() {
 
 
 	// Update camera's position if currently attached to an entity
-	static bool inFreeFlyMode = true;
-
 	if (m_attachedEntityID != m_camEntity.id) {
-		if (inFreeFlyMode) {
-			m_freeFlyPosition = m_position;
-			inFreeFlyMode = false;
-		}
-
 		PhysicsComponent::ReferenceFrame &entityRefFrame = m_registry->getComponent<PhysicsComponent::ReferenceFrame>(m_attachedEntityID);
 
-		glm::dvec3 &entityPosition = entityRefFrame.globalTransform.position;
-		glm::dvec3 camOffsetPos = entityPosition + SpaceUtils::ToSimulationSpace(glm::dvec3(m_attachmentOffset));
+		glm::dvec3 entityPosition = entityRefFrame.globalTransform.position;
+		glm::dvec3 camOffsetPos = entityPosition + glm::dvec3(m_attachmentOffset);
 		
+
 		// Compute camera position based on orbit angles and radius
 		glm::dvec3 orbitalPos{};
-		orbitalPos.x = camOffsetPos.x + m_orbitRadius * std::cos(m_orbitPitch) * std::sin(m_orbitYaw);
-		orbitalPos.y = camOffsetPos.y + m_orbitRadius * std::sin(m_orbitPitch);
-		orbitalPos.z = camOffsetPos.z + m_orbitRadius * std::cos(m_orbitPitch) * std::cos(m_orbitYaw);
+		double horizontalDistance = m_orbitRadius * std::cos(m_orbitPitch);
+
+		orbitalPos.x = camOffsetPos.x + horizontalDistance * std::sin(m_orbitYaw);   // X-coordinate
+		orbitalPos.y = camOffsetPos.y + horizontalDistance * std::cos(m_orbitYaw);   // Y-coordinate
+		orbitalPos.z = camOffsetPos.z + m_orbitRadius * std::sin(m_orbitPitch);     // Z-coordinate (up/down)
 
 		m_position = orbitalPos;
 
@@ -50,16 +48,12 @@ void Camera::update() {
 		glm::vec3 lookDirection = glm::normalize(camOffsetPos - m_position);
 		m_orientation = glm::quatLookAt(lookDirection, m_worldUp); // NOTE: Always use m_worldUp for the "up" vector when looking at a target
 
+		// Derive camera transform from the newly calculated orientation
 		m_front = lookDirection;
 		m_localUp = m_orientation * m_worldUp;
 		m_right = glm::normalize(glm::cross(m_front, m_localUp));
 	}
 	else {
-		if (!inFreeFlyMode) {
-			m_position = m_freeFlyPosition;
-			inFreeFlyMode = true;
-		}
-
 		m_front = m_orientation * glm::vec3(0.0, -1.0, 0.0);
 		m_localUp = m_orientation * m_worldUp;
 		m_right = glm::normalize(glm::cross(m_front, m_localUp));
@@ -84,12 +78,27 @@ CommonComponent::Transform Camera::getGlobalTransform() const {
 
 
 void Camera::attachToEntity(EntityID entityID) {
+	if (m_attachedEntityID == m_camEntity.id && entityID != m_camEntity.id) {
+		m_freeFlyPosition = m_position;
+		m_freeFlyOrientation = m_orientation;
+
+		m_inFreeFlyMode = false;
+	}
+
 	m_attachedEntityID = entityID;
+	update(); // Forces an immediate update after changing attachment
 }
 
 
 void Camera::detachFromEntity() {
+	if (m_attachedEntityID != m_camEntity.id) {
+		m_inFreeFlyMode = true;
+		m_position = m_freeFlyPosition;
+		m_orientation = m_freeFlyOrientation;
+	}
+
 	m_attachedEntityID = m_camEntity.id;
+	update();
 }
 
 
