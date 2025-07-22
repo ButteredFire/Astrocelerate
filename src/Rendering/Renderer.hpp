@@ -46,8 +46,6 @@ public:
 	Renderer();
 	~Renderer();
 
-	void init();
-
 	/* Updates the rendering. */
 	void update(glm::dvec3& renderOrigin);
 
@@ -63,15 +61,6 @@ private:
 	std::shared_ptr<UIRenderer> m_imguiRenderer;
 
 	uint32_t m_currentFrame = 0;
-
-	Entity m_vertexRenderable{};
-	Entity m_guiRenderable{};
-
-	RenderComponent::MeshRenderable m_vertexRenderComponent{};
-	RenderComponent::GUIRenderable m_guiRenderComponent{};
-
-	/* Creates renderable entities. */
-	void initializeRenderables();
 
 
 	/* Renders a frame. 

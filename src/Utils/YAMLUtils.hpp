@@ -4,7 +4,7 @@
 #pragma once
 
 #include <Core/Data/YAMLConversions.hpp>
-#include <Core/Data/YAMLEntries.hpp>
+#include <Core/Data/YAMLKeys.hpp>
 
 
 namespace YAMLUtils {
@@ -30,6 +30,6 @@ namespace YAMLUtils {
         @return The entity name.
     */
     inline std::string GetReferenceSubstring(const std::string &refStr) {
-        return refStr.substr(YAMLEntry::Ref.size(), (refStr.size() - YAMLEntry::Ref.size()));
+        return refStr.substr(YAMLKey::Ref.size(), (refStr.size() - YAMLKey::Ref.size()));
     }
 }

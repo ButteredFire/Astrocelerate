@@ -16,8 +16,19 @@
 
 #include <boxer/boxer.h>
 
+
 const int WIN_WIDTH = WindowConsts::DEFAULT_WINDOW_WIDTH;
 const int WIN_HEIGHT = WindowConsts::DEFAULT_WINDOW_HEIGHT;
+
+
+void processCleanupStack() {
+    if (g_vkContext.Device.logicalDevice != VK_NULL_HANDLE)
+        vkDeviceWaitIdle(g_vkContext.Device.logicalDevice);
+
+    std::shared_ptr<GarbageCollector> garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
+    garbageCollector->processCleanupStack();
+}
+
 
 int main() {
     Log::PrintAppInfo();
@@ -29,25 +40,8 @@ int main() {
 
     window.initGLFWBindings(&g_callbackContext);
 
-    // Event dispatcher
-    std::shared_ptr<EventDispatcher> eventDispatcher = std::make_shared<EventDispatcher>();
-    ServiceLocator::RegisterService(eventDispatcher);
-
-
-    // Garbage collector
-    std::shared_ptr<GarbageCollector> garbageCollector = std::make_shared<GarbageCollector>();
-    ServiceLocator::RegisterService(garbageCollector);
-
-
-    // ECS Registry
-    std::shared_ptr<Registry> globalRegistry = std::make_shared<Registry>();
-    ServiceLocator::RegisterService(globalRegistry);
-
-
     try {
         Engine engine(windowPtr);
-        engine.initComponents();
-
 
         // Texture manager
         std::shared_ptr<TextureManager> textureManager = std::make_shared<TextureManager>();
@@ -73,6 +67,7 @@ int main() {
 
         // Camera
         //glm::dvec3 cameraPosition = glm::vec3(8e8, (PhysicsConsts::AU + 10e8), 1e7);
+        std::shared_ptr<Registry> globalRegistry = ServiceLocator::GetService<Registry>(__FUNCTION__);
         Entity cameraEntity = globalRegistry->createEntity("Camera");
         glm::dvec3 cameraPosition = glm::vec3(0.0, 1.3e8, 0.0);
 
@@ -144,7 +139,6 @@ int main() {
 
         std::shared_ptr<Renderer> renderer = std::make_shared<Renderer>();
         ServiceLocator::RegisterService(renderer);
-        renderer->init();
 
         
             // Systems
@@ -161,11 +155,8 @@ int main() {
     }
     catch (const Log::RuntimeException& e) {
         Log::Print(e.severity(), e.origin(), e.what());
-
-        if (g_vkContext.Device.logicalDevice != VK_NULL_HANDLE)
-            vkDeviceWaitIdle(g_vkContext.Device.logicalDevice);
-
-        garbageCollector->processCleanupStack();
+        
+        processCleanupStack();
         Log::Print(Log::T_ERROR, APP_NAME, "Program exited with errors.");
 
         std::string errOrigin = "Origin: " + std::string(e.origin()) + "\n";
@@ -183,7 +174,9 @@ int main() {
 
 
     vkDeviceWaitIdle(g_vkContext.Device.logicalDevice);
-    garbageCollector->processCleanupStack();
+    
+    processCleanupStack();
+
     Log::Print(Log::T_SUCCESS, APP_NAME, "Program exited successfully.");
     return EXIT_SUCCESS;
 }

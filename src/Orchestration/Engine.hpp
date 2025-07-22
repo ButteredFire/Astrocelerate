@@ -9,6 +9,16 @@
 #include <vector>
 #include <unordered_set>
 
+#include <Core/Application/AppWindow.hpp>
+#include <Core/Application/LoggingManager.hpp>
+#include <Core/Application/EventDispatcher.hpp>
+#include <Core/Application/GarbageCollector.hpp>
+#include <Core/Data/Constants.h>
+#include <Core/Data/Application.hpp>
+#include <Core/Data/Contexts/VulkanContext.hpp>
+#include <Core/Engine/ECS.hpp>
+#include <Core/Engine/InputManager.hpp>
+
 #include <Vulkan/VkInstanceManager.hpp>
 #include <Vulkan/VkDeviceManager.hpp>
 #include <Vulkan/VkSwapchainManager.hpp>
@@ -22,15 +32,8 @@
 #include <Rendering/Pipelines/PresentPipeline.hpp>
 #include <Rendering/Geometry/GeometryLoader.hpp>
 
-#include <Core/Data/Constants.h>
-#include <Core/Data/Application.hpp>
-#include <Core/Data/Contexts/VulkanContext.hpp>
-#include <Core/Engine/ECS.hpp>
-#include <Core/Engine/InputManager.hpp>
-#include <Core/Application/AppWindow.hpp>
-#include <Core/Application/LoggingManager.hpp>
-#include <Core/Application/EventDispatcher.hpp>
-
+#include <Engine/RenderSystem.hpp>
+#include <Engine/PhysicsSystem.hpp>
 #include <Engine/Components/CommonComponents.hpp>
 #include <Engine/Components/ModelComponents.hpp>
 #include <Engine/Components/RenderComponents.hpp>
@@ -38,9 +41,6 @@
 #include <Engine/Components/TelemetryComponents.hpp>
 
 #include <Simulation/Systems/Time.hpp>
-#include <Simulation/Systems/RenderSystem.hpp>
-#include <Simulation/Systems/PhysicsSystem.hpp>
-
 #include <Simulation/Systems/ReferenceFrameSystem.hpp>
 
 #include <Scene/SceneManager.hpp>
@@ -55,6 +55,8 @@ public:
 	Engine(GLFWwindow *w);
 	~Engine();
 
+	void initPersistentServices();
+
 	void initComponents();
 
 	void setApplicationStage(Application::Stage newAppStage);
@@ -67,6 +69,7 @@ private:
 	Application::Stage m_currentAppStage = Application::Stage::WORKSPACE_ORBITAL;
 
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
+	std::shared_ptr<GarbageCollector> m_garbageCollector;
 	std::shared_ptr<Registry> m_registry;
 	std::shared_ptr<Renderer> m_renderer;
 

@@ -1,4 +1,4 @@
-/* YAMLEntries.hpp - Common data pertaining to main entry names in YAML simulation files.
+/* YAMLKeys.hpp - Common data pertaining to main entry names in YAML simulation files.
 */
 
 #pragma once
@@ -6,7 +6,7 @@
 #include <string_view>	// std::string_view is efficient as it avoids string copying.
 
 
-namespace YAMLEntry {
+namespace YAMLKey {
     // Entries (keys)
     static constexpr std::string_view Physics_ReferenceFrame        = "PhysicsComponent::ReferenceFrame";
     static constexpr std::string_view Physics_RigidBody             = "PhysicsComponent::RigidBody";

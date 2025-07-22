@@ -359,6 +359,7 @@ public:
 	}
 	~Registry() = default;
 
+
 	inline Entity createEntity(const std::string& name = "Unknown entity") {
 		return entityManager.createEntity(name);
 	}
@@ -421,6 +422,13 @@ public:
 	template<typename Component>
 	inline bool hasComponent(EntityID entityID) {
 		return componentManager.entityHasComponent<Component>(entityID);
+	}
+
+
+	inline void clear() {
+		// NOTE: Assigning a new object automatically destroys the old class instance and constructs/moves the new one
+		entityManager = EntityManager();
+		componentManager = ComponentManager();
 	}
 
 

@@ -13,6 +13,8 @@
 #include <Engine/Components/PhysicsComponents.hpp>
 #include <Engine/Components/TelemetryComponents.hpp>
 
+#include <Utils/SpaceUtils.hpp>
+
 
 // ----- std::optional -----
 // YAML-CPP does not know how to handle this yet, so we have to provide explicit conversions.
@@ -144,8 +146,10 @@ namespace YAML {
         static Node encode(const PhysicsComponent::ReferenceFrame &rhs) {
             Node node;
             node["parentID"] = rhs._parentID_str;
+
             node["localTransform"]["position"] = rhs.localTransform.position;
-            node["localTransform"]["rotation"] = rhs.localTransform.rotation;
+            node["localTransform"]["rotation"] = SpaceUtils::QuatToEulerAngles(rhs.localTransform.rotation);
+
             node["scale"] = rhs.scale;
             node["visualScale"] = rhs.visualScale;
             // if (rhs.visualScaleAffectsChildren) node["visualScaleAffectsChildren"] = rhs.visualScaleAffectsChildren;
@@ -158,10 +162,8 @@ namespace YAML {
 
             rhs._parentID_str = node["parentID"].as<std::string>();
             
-            if (node["localTransform"]) {
-                if (node["localTransform"]["position"]) rhs.localTransform.position = node["localTransform"]["position"].as<glm::dvec3>();
-                if (node["localTransform"]["rotation"]) rhs.localTransform.rotation = node["localTransform"]["rotation"].as<glm::dquat>();
-            }
+            rhs.localTransform.position = node["localTransform"]["position"].as<glm::dvec3>();
+            rhs.localTransform.rotation = SpaceUtils::EulerAnglesToQuat(node["localTransform"]["rotation"].as<glm::dvec3>());
             
             rhs.scale = node["scale"].as<double>();
             rhs.visualScale = node["visualScale"].as<double>();

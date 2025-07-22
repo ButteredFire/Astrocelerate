@@ -22,11 +22,11 @@
 #include <Core/Application/GarbageCollector.hpp>
 #include <Core/Data/Contexts/VulkanContext.hpp>
 
+#include <Engine/RenderSystem.hpp>
 #include <Engine/Components/RenderComponents.hpp>
 
 #include <Vulkan/VkSyncManager.hpp>
 
-#include <Simulation/Systems/RenderSystem.hpp>
 
 
 // A structure that stores the configuration for single-use command buffers

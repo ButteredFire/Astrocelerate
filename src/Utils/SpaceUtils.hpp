@@ -63,5 +63,33 @@ namespace SpaceUtils {
 	/* Gets the maximum smallest scale that could be rendered in render space. */  
 	inline double GetRenderableScale(double scale) {  
 		return std::fmax(scale, 0.1);  
-	}  
+	}
+
+
+	/* Converts Euler angles to Quaternions.
+		@param eulerAngles: The vector containing Euler angles.
+		@param inRadians (default: False): Are the angles in radians? If True, they will be treated as radians. Otherwise, they will be treated as degrees.
+
+		@return The corresponding quaternion.
+	*/
+	inline glm::dquat EulerAnglesToQuat(const glm::dvec3 &eulerAngles, bool inRadians = false) {
+		return glm::dquat(
+			((inRadians)? eulerAngles : glm::radians(eulerAngles))
+		);
+	}
+
+
+	/* Converts Quaternions to Euler angles.
+		@param quat: The quaternion to be converted.
+		@param convertToRadians (default: False): Should the resulting vector be in radians? If True, it will be in radians. Otherwise, it will be in degrees.
+
+		@return The corresponding vector with Euler coordinates.
+	*/
+	inline glm::dvec3 QuatToEulerAngles(const glm::dquat &quat, bool convertToRadians = false) {
+		glm::dvec3 eulerRads = glm::eulerAngles(quat);
+		if (convertToRadians)
+			return eulerRads;
+
+		return glm::degrees(eulerRads);
+	}
 }

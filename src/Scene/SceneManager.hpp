@@ -25,18 +25,22 @@ public:
 
 	void init();
 
+
 	/* Deserializes and loads scene data. */
 	void loadScene();
+
 
 	/* Loads the scene from a YAML simulation configuration file.
 		@param filePath: The path to the YAML file.
 	*/
 	void loadSceneFromFile(const std::string &filePath);
 
+
 	/* Saves the current scene to a YAML simulation configuration file.
 		@param filePath: The path to the YAML file.
 	*/
 	void saveSceneToFile(const std::string &filePath);
+
 
 	/* Gets the number of meshes in the current scene. */
 	inline uint32_t GetMeshCount() const { return m_meshCount; }

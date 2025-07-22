@@ -131,9 +131,6 @@ void RenderSystem::renderScene(const Event::UpdateRenderables &event) {
 
 
 void RenderSystem::renderGUI(const Event::UpdateGUI &event) {
-	auto view = m_registry->getView<RenderComponent::GUIRenderable>();
-	for (const auto &[entity, guiRenderable] : view) {
-		m_imguiRenderer->renderFrames(event.currentFrame);
-		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), event.commandBuffer);
-	}
+	m_imguiRenderer->renderFrames(event.currentFrame);
+	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), event.commandBuffer);
 }

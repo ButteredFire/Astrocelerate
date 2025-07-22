@@ -30,22 +30,7 @@ void Renderer::update(glm::dvec3& renderOrigin) {
 }
 
 
-void Renderer::init() {
-    initializeRenderables();
-}
-
-
-void Renderer::initializeRenderables() {
-    m_guiRenderable = m_globalRegistry->createEntity();
-    m_globalRegistry->addComponent(m_guiRenderable.id, m_guiRenderComponent);
-}
-
-
 void Renderer::drawFrame(glm::dvec3& renderOrigin) {
-    m_guiRenderComponent.guiDrawData = ImGui::GetDrawData();
-
-    m_globalRegistry->updateComponent(m_guiRenderable.id, m_guiRenderComponent);
-
     /* How a frame is drawn:
         1. Wait for the previous frame to finish rendering (i.e., waiting for its fence)
         2. After waiting, acquire a new image from the swap-chain for rendering
@@ -99,11 +84,10 @@ void Renderer::drawFrame(glm::dvec3& renderOrigin) {
     }, true);
 
         // Updates all ImGui textures (aka descriptor sets) after the current frame has been processed (i.e., its fence has been reset)
-    m_imguiRenderer->updateTextures(m_currentFrame);
+    m_imguiRenderer->preRenderUpdate(m_currentFrame);
     
         // Records commands
     m_commandManager->recordRenderingCommandBuffer(g_vkContext.CommandObjects.graphicsCmdBuffers[m_currentFrame], imageIndex, m_currentFrame);
-
 
 
     // Submits the buffer to the queue

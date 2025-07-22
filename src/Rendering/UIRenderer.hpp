@@ -59,8 +59,8 @@ public:
 	void renderFrames(uint32_t currentFrame);
 
 
-	/* Updates ImGui textures (i.e., descriptor sets). */
-	void updateTextures(uint32_t currentFrame);
+	/* Any updates that cannot happen while the command buffer is currently being processed (e.g., updating descriptor sets) must happen here. */
+	void preRenderUpdate(uint32_t currentFrame);
 
 private:
 	std::shared_ptr<Registry> m_registry;

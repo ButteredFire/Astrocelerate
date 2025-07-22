@@ -71,7 +71,7 @@ void SceneManager::loadSceneFromFile(const std::string &filePath) {
             for (const auto &componentNode : entityNode["Components"]) {
                 std::string componentType = componentNode["Type"].as<std::string>();
 
-                if (componentType == YAMLEntry::Physics_ReferenceFrame) {
+                if (componentType == YAMLKey::Physics_ReferenceFrame) {
                     PhysicsComponent::ReferenceFrame refFrame{};
 
                     if (!YAMLUtils::GetComponentData(componentNode, refFrame)) {
@@ -83,9 +83,9 @@ void SceneManager::loadSceneFromFile(const std::string &filePath) {
 					if (componentNode["Data"]["parentID"]) {
 						std::string parentName = componentNode["Data"]["parentID"].as<std::string>();
 
-						if (parentName.starts_with(YAMLEntry::Ref)) {
+						if (parentName.starts_with(YAMLKey::Ref)) {
 							// The reference frame references an entity name as their parent
-							LOG_ASSERT(parentName.size() > YAMLEntry::Ref.size(), info(entityName, componentType) + "Reference value for parentID cannot be empty!");
+							LOG_ASSERT(parentName.size() > YAMLKey::Ref.size(), info(entityName, componentType) + "Reference value for parentID cannot be empty!");
 
 							parentName = YAMLUtils::GetReferenceSubstring(parentName);
 							if (entityNameToID.count(parentName) && m_registry->hasEntity(entityNameToID[parentName])); {
@@ -110,7 +110,7 @@ void SceneManager::loadSceneFromFile(const std::string &filePath) {
                 }
 
 
-                else if (componentType == YAMLEntry::Physics_RigidBody) {
+                else if (componentType == YAMLKey::Physics_RigidBody) {
                     PhysicsComponent::RigidBody rigidBody{};
 
                     if (!YAMLUtils::GetComponentData(componentNode, rigidBody))
@@ -121,7 +121,7 @@ void SceneManager::loadSceneFromFile(const std::string &filePath) {
                 }
 
 
-                else if (componentType == YAMLEntry::Physics_ShapeParameters) {
+                else if (componentType == YAMLKey::Physics_ShapeParameters) {
                     PhysicsComponent::ShapeParameters shapeParams{};
 
                     YAMLUtils::GetComponentData(componentNode, shapeParams);
@@ -129,7 +129,7 @@ void SceneManager::loadSceneFromFile(const std::string &filePath) {
                 }
 
 
-                else if (componentType == YAMLEntry::Physics_OrbitingBody) {
+                else if (componentType == YAMLKey::Physics_OrbitingBody) {
                     PhysicsComponent::OrbitingBody orbitingBody;
 
                     if (!YAMLUtils::GetComponentData(componentNode, orbitingBody))
@@ -139,8 +139,8 @@ void SceneManager::loadSceneFromFile(const std::string &filePath) {
                     if (componentNode["Data"]["centralMass"]) {
                         std::string centralMassRef = componentNode["Data"]["centralMass"].as<std::string>();
 
-						if (centralMassRef.starts_with(YAMLEntry::Ref)) {
-							LOG_ASSERT(centralMassRef.size() > YAMLEntry::Ref.size(), info(entityName, componentType) + "Reference value for centralMass cannot be empty!");
+						if (centralMassRef.starts_with(YAMLKey::Ref)) {
+							LOG_ASSERT(centralMassRef.size() > YAMLKey::Ref.size(), info(entityName, componentType) + "Reference value for centralMass cannot be empty!");
 
 							centralMassRef = YAMLUtils::GetReferenceSubstring(centralMassRef);
 							if (entityNameToMass.count(centralMassRef)) {
@@ -158,7 +158,7 @@ void SceneManager::loadSceneFromFile(const std::string &filePath) {
                 }
 
 
-                else if (componentType == YAMLEntry::Render_MeshRenderable) {
+                else if (componentType == YAMLKey::Render_MeshRenderable) {
                     RenderComponent::MeshRenderable meshRenderable{};
 
                     if (!YAMLUtils::GetComponentData(componentNode, meshRenderable))
@@ -179,7 +179,7 @@ void SceneManager::loadSceneFromFile(const std::string &filePath) {
                 }
 
 
-                else if (componentType == YAMLEntry::Telemetry_RenderTransform) {
+                else if (componentType == YAMLKey::Telemetry_RenderTransform) {
                     // This component has no data, just add it as a tag
                     m_registry->addComponent(newEntity.id, TelemetryComponent::RenderTransform{});
                 }

@@ -8,7 +8,7 @@ Entities:
           visualScale: 10.0
           localTransform:
             position: [0.0, 0.0, 0.0]
-            rotation: [1.0, 0.0, 0.0, 0.0]
+            rotation: [0.0, 0.0, 0.0]
 
       - Type: PhysicsComponent::RigidBody
         Data:
@@ -40,7 +40,7 @@ Entities:
           visualScale: 1.0
           localTransform:
             position: [0.0, 8378000.0, 0.0] # earthRadius + 2e6 -> Satellite is orbiting 2378 km above the Earth
-            rotation: [1.0, 1.0, 0.0, 0.0]
+            rotation: [0.0, 0.0, -90.0]
 
       - Type: PhysicsComponent::RigidBody
         Data:

@@ -7,8 +7,9 @@
 Engine::Engine(GLFWwindow *w):
     window(w) {
 
-    m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
-    m_registry = ServiceLocator::GetService<Registry>(__FUNCTION__);
+    initPersistentServices();
+
+    initComponents();
 
     LOG_ASSERT(window != nullptr, "Engine crashed: Invalid window context!");
 
@@ -20,6 +21,23 @@ Engine::~Engine() {
     // Frees up all associated memory.
     glfwDestroyWindow(window);
     glfwTerminate();
+}
+
+
+void Engine::initPersistentServices() {
+    // Event dispatcher
+    m_eventDispatcher = std::make_shared<EventDispatcher>();
+    ServiceLocator::RegisterService(m_eventDispatcher);
+
+
+    // Garbage collector
+    m_garbageCollector = std::make_shared<GarbageCollector>();
+    ServiceLocator::RegisterService(m_garbageCollector);
+
+
+    // ECS Registry
+    m_registry = std::make_shared<Registry>();
+    ServiceLocator::RegisterService(m_registry);
 }
 
 
@@ -43,7 +61,6 @@ void Engine::initComponents() {
     /* Rendering */
     m_registry->initComponentArray<RenderComponent::SceneData>();
     m_registry->initComponentArray<RenderComponent::MeshRenderable>();
-    m_registry->initComponentArray<RenderComponent::GUIRenderable>();
 
     /* Physics */
     m_registry->initComponentArray<PhysicsComponent::RigidBody>();

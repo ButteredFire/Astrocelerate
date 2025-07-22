@@ -333,12 +333,12 @@ void OrbitalWorkspace::renderTelemetryPanel() {
 				ImGui::Text("\tMagnitude: ||vec|| ≈ %.2f m", glm::length(refFrame.localTransform.position));
 
 
+				glm::dvec3 localRotationEuler = SpaceUtils::QuatToEulerAngles(refFrame.localTransform.rotation);
 				ImGuiUtils::ComponentField(
 					{
-						{"W", refFrame.localTransform.rotation.w},
-						{"X", refFrame.localTransform.rotation.x},
-						{"Y", refFrame.localTransform.rotation.y},
-						{"Z", refFrame.localTransform.rotation.z}
+						{"X", localRotationEuler.x},
+						{"Y", localRotationEuler.y},
+						{"Z", localRotationEuler.z}
 					},
 					"%.2f", "\tRotation"
 				);
@@ -369,12 +369,12 @@ void OrbitalWorkspace::renderTelemetryPanel() {
 				ImGui::Text("\tMagnitude: ||vec|| ≈ %.2f units", glm::length(renderT.position));
 
 
+				glm::dvec3 globalRotationEuler = SpaceUtils::QuatToEulerAngles(refFrame.globalTransform.rotation);
 				ImGuiUtils::ComponentField(
 					{
-						{"W", refFrame.globalTransform.rotation.w},
-						{"X", refFrame.globalTransform.rotation.x},
-						{"Y", refFrame.globalTransform.rotation.y},
-						{"Z", refFrame.globalTransform.rotation.z}
+						{"X", globalRotationEuler.x},
+						{"Y", globalRotationEuler.y},
+						{"Z", globalRotationEuler.z}
 					},
 					"%.2f", "\tRotation"
 				);
@@ -418,12 +418,12 @@ void OrbitalWorkspace::renderTelemetryPanel() {
 			"%.2f", "\tPosition (render)"
 		);
 
+		glm::dvec3 camRotationEuler = SpaceUtils::QuatToEulerAngles(cameraTransform.rotation);
 		ImGuiUtils::ComponentField(
 			{
-				{"W", cameraTransform.rotation.w},
-				{"X", cameraTransform.rotation.x},
-				{"Y", cameraTransform.rotation.y},
-				{"Z", cameraTransform.rotation.z}
+				{"X", camRotationEuler.x},
+				{"Y", camRotationEuler.y},
+				{"Z", camRotationEuler.z}
 			},
 			"%.2f", "\tRotation"
 		);

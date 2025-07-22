@@ -278,6 +278,6 @@ void UIRenderer::renderFrames(uint32_t currentFrame) {
 }
 
 
-void UIRenderer::updateTextures(uint32_t currentFrame) {
+void UIRenderer::preRenderUpdate(uint32_t currentFrame) {
     m_uiPanelManager->preRenderUpdate(currentFrame);
 }
