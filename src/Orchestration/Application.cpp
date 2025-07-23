@@ -2,13 +2,14 @@
 */
 
 #include <Core/Application/AppWindow.hpp>
-#include <Orchestration/Engine.hpp>
-#include <Core/Engine/ServiceLocator.hpp>
 #include <Core/Data/Constants.h>
-
-#include <Core/Data/Contexts/VulkanContext.hpp>
 #include <Core/Data/Contexts/AppContext.hpp>
+#include <Core/Data/Contexts/VulkanContext.hpp>
 #include <Core/Data/Contexts/CallbackContext.hpp>
+#include <Core/Engine/ServiceLocator.hpp>
+
+#include <Orchestration/Engine.hpp>
+#include <Orchestration/Session.hpp>
 
 #include <iostream>
 #include <stdexcept>
@@ -119,7 +120,7 @@ int main() {
             // Pipelines
         std::shared_ptr<OffscreenPipeline> offscreenPipeline = std::make_shared<OffscreenPipeline>();
         ServiceLocator::RegisterService(offscreenPipeline);
-        offscreenPipeline->init();
+        //offscreenPipeline->init();
 
         std::shared_ptr<PresentPipeline> presentPipeline = std::make_shared<PresentPipeline>();
         ServiceLocator::RegisterService(presentPipeline);
@@ -150,6 +151,16 @@ int main() {
 
         std::shared_ptr<ReferenceFrameSystem> refFrameSystem = std::make_shared<ReferenceFrameSystem>();
         ServiceLocator::RegisterService(refFrameSystem);
+
+
+        std::shared_ptr<Session> currentSession = std::make_shared<Session>();
+        ServiceLocator::RegisterService(currentSession);
+        currentSession->init();
+
+
+        std::shared_ptr<EventDispatcher> eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
+        eventDispatcher->publish(Event::AppIsStable{});
+
 
         engine.run();
     }

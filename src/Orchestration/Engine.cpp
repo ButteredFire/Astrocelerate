@@ -11,6 +11,8 @@ Engine::Engine(GLFWwindow *w):
 
     initComponents();
 
+    bindEvents();
+
     LOG_ASSERT(window != nullptr, "Engine crashed: Invalid window context!");
 
     Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
@@ -42,6 +44,13 @@ void Engine::initPersistentServices() {
 
 
 void Engine::bindEvents() {
+    m_eventDispatcher->subscribe<Event::RegistryReset>(
+        [this](const Event::RegistryReset &event) {
+            this->initComponents();
+        }
+    );
+
+
     m_eventDispatcher->subscribe<Event::UpdateAppStage>(
         [this](const Event::UpdateAppStage &event) {
             setApplicationStage(event.newStage);
@@ -81,11 +90,8 @@ void Engine::setApplicationStage(Application::Stage newAppStage) {
 
 
 void Engine::run() {
-    m_physicsSystem = ServiceLocator::GetService<PhysicsSystem>(__FUNCTION__);
-    m_refFrameSystem = ServiceLocator::GetService<ReferenceFrameSystem>(__FUNCTION__);
-
     m_inputManager = ServiceLocator::GetService<InputManager>(__FUNCTION__);
-
+    m_currentSession = ServiceLocator::GetService<Session>(__FUNCTION__);
     m_renderer = ServiceLocator::GetService<Renderer>(__FUNCTION__);
 
     update();
@@ -141,41 +147,14 @@ void Engine::updateOrbitalSetup() {
 
 
 void Engine::updateOrbitalWorkspace() {
-    static double accumulator = 0.0;
-    static float timeScale = 0;
-
-    static bool initialUpdate = false;
-    if (!initialUpdate) {
-        initialUpdate = true;
-        m_refFrameSystem->updateAllFrames();
-    }
-
-
-    timeScale = Time::GetTimeScale();
-
-    Time::UpdateDeltaTime();
-    double deltaTime = Time::GetDeltaTime();
-    accumulator += deltaTime * timeScale;
-
     // Process key input events
     m_eventDispatcher->publish(Event::UpdateInput{
-        .deltaTime = deltaTime
+        .deltaTime = Time::GetDeltaTime()
         }, true);
-
-
-    // Update physics
-        // TODO: Implement adaptive timestepping instead of a constant TIME_STEP
-    while (accumulator >= SimulationConsts::TIME_STEP) {
-        const double scaledDeltaTime = SimulationConsts::TIME_STEP * timeScale;
-
-        m_physicsSystem->update(scaledDeltaTime);
-        m_refFrameSystem->updateAllFrames();
-
-        accumulator -= scaledDeltaTime;
-    }
-
-
+    
     // Update rendering
+    m_currentSession->update();
+
     glm::dvec3 floatingOrigin = m_inputManager->getCamera()->getGlobalTransform().position;
     m_renderer->update(floatingOrigin);
 }

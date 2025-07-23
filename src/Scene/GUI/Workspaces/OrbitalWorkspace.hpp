@@ -82,6 +82,7 @@ private:
 		// Viewport/Offscreen resources
 	std::vector<ImTextureID> m_viewportRenderTextureIDs;
 	ImVec2 m_lastViewportPanelSize = { 0.0f, 0.0f };
+	bool m_sceneSampleReady = false;
 
 	// Other
 	uint32_t m_currentFrame = 0;

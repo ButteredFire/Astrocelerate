@@ -111,6 +111,9 @@ private:
     // Before this, new textures are added to a deference list, and the texture array descriptor set will be updated when it is valid.
     // After this, the texture array descriptor set will be immeadiately updated upon the creation of new textures.
     bool m_textureArrayDescSetIsValid = false;
+
+    // If the scene is not ready (i.e., its resources are not initialized yet), indexed textures should not be updated.
+    bool m_sceneReady = false;
     
 
     void bindEvents();

@@ -73,10 +73,28 @@ void OffscreenPipeline::init() {
 	initOffscreenColorResources(g_vkContext.SwapChain.extent.width, g_vkContext.SwapChain.extent.height);
 	initOffscreenSampler();
 	initOffscreenFramebuffer(g_vkContext.SwapChain.extent.width, g_vkContext.SwapChain.extent.height);
+
+	m_eventDispatcher->publish(Event::OffscreenPipelineInitialized{});
 }
 
 
 void OffscreenPipeline::bindEvents() {
+	m_eventDispatcher->subscribe<Event::UpdateSessionStatus>(
+		[this](const Event::UpdateSessionStatus &event) {
+			using namespace Event;
+
+			switch (event.sessionStatus) {
+			case UpdateSessionStatus::Status::PREPARE_FOR_INIT:
+				for (auto &cleanupID : m_sessionCleanupIDs)
+					m_garbageCollector->executeCleanupTask(cleanupID);
+				m_sessionCleanupIDs.clear();
+
+				break;
+			}
+		}
+	);
+
+
 	m_eventDispatcher->subscribe<Event::SwapchainIsRecreated>(
 		[this](const Event::SwapchainIsRecreated& event) {
 			this->recreateOffscreenResources(g_vkContext.SwapChain.extent.width, g_vkContext.SwapChain.extent.height, event.imageIndex);
@@ -133,7 +151,9 @@ void OffscreenPipeline::createPipelineLayout() {
 	task.vkObjects = { g_vkContext.Device.logicalDevice, m_pipelineLayout };
 	task.cleanupFunc = [&]() { vkDestroyPipelineLayout(g_vkContext.Device.logicalDevice, m_pipelineLayout, nullptr); };
 
-	m_garbageCollector->createCleanupTask(task);
+	m_sessionCleanupIDs.push_back(
+		m_garbageCollector->createCleanupTask(task)
+	);
 
 
 	if (result != VK_SUCCESS) {
@@ -244,7 +264,9 @@ void OffscreenPipeline::createRenderPass() {
 	task.vkObjects = { g_vkContext.Device.logicalDevice, m_renderPass };
 	task.cleanupFunc = [this]() { vkDestroyRenderPass(g_vkContext.Device.logicalDevice, m_renderPass, nullptr); };
 
-	m_garbageCollector->createCleanupTask(task);
+	m_sessionCleanupIDs.push_back(
+		m_garbageCollector->createCleanupTask(task)
+	);
 
 
 	if (result != VK_SUCCESS) {
@@ -400,7 +422,9 @@ VkDescriptorSetLayout OffscreenPipeline::createDescriptorSetLayout(uint32_t bind
 		vkDestroyDescriptorSetLayout(g_vkContext.Device.logicalDevice, descriptorSetLayout, nullptr);
 	};
 	
-	m_garbageCollector->createCleanupTask(task);
+	m_sessionCleanupIDs.push_back(
+		m_garbageCollector->createCleanupTask(task)
+	);
 
 	LOG_ASSERT(result == VK_SUCCESS, "Failed to create descriptor set layout!");
 
@@ -435,7 +459,9 @@ void OffscreenPipeline::createPerFrameDescriptorSets(VkDescriptorPool descriptor
 		vkFreeDescriptorSets(g_vkContext.Device.logicalDevice, descriptorPool, m_perFrameDescriptorSets.size(), m_perFrameDescriptorSets.data());
 	};
 
-	m_garbageCollector->createCleanupTask(task);
+	m_sessionCleanupIDs.push_back(
+		m_garbageCollector->createCleanupTask(task)
+	);
 
 	LOG_ASSERT(result == VK_SUCCESS, "Failed to create per-frame descriptor sets!");
 
@@ -530,7 +556,10 @@ void OffscreenPipeline::createSingularDescriptorSet(VkDescriptorSet &descriptorS
 	task.cleanupFunc = [this, descriptorSet, descriptorPool]() {
 		vkFreeDescriptorSets(g_vkContext.Device.logicalDevice, descriptorPool, 1, &descriptorSet);
 	};
-	m_garbageCollector->createCleanupTask(task);
+
+	m_sessionCleanupIDs.push_back(
+		m_garbageCollector->createCleanupTask(task)
+	);
 
 	LOG_ASSERT(result == VK_SUCCESS, "Failed to create singular descriptor set!");
 }
@@ -593,7 +622,9 @@ void OffscreenPipeline::initShaderStage() {
 		vkDestroyShaderModule(g_vkContext.Device.logicalDevice, m_fragShaderModule, nullptr);
 		};
 
-	m_garbageCollector->createCleanupTask(cleanupTask);
+	m_sessionCleanupIDs.push_back(
+		m_garbageCollector->createCleanupTask(cleanupTask)
+	);
 }
 
 

@@ -9,10 +9,32 @@ VkCommandManager::VkCommandManager() {
 	m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
 	m_garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
 
+	bindEvents();
+
 	Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 };
 
 VkCommandManager::~VkCommandManager() {};
+
+
+void VkCommandManager::bindEvents() {
+	m_eventDispatcher->subscribe<Event::UpdateSessionStatus>(
+		[this](const Event::UpdateSessionStatus &event) {
+			using namespace Event;
+
+			switch (event.sessionStatus) {
+			case UpdateSessionStatus::Status::NOT_READY:
+				m_sceneReady = false;
+				break;
+
+			case UpdateSessionStatus::Status::INITIALIZED:
+				vkDeviceWaitIdle(g_vkContext.Device.logicalDevice);
+				m_sceneReady = true;
+				break;
+			}
+		}
+	);
+}
 
 
 void VkCommandManager::init() {
@@ -52,15 +74,6 @@ void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, 
 	LOG_ASSERT(beginCmdBufferResult == VK_SUCCESS, "Failed to start recording command buffer!");
 
 
-
-	// OFFSCREEN RENDER PASS
-	VkRenderPassBeginInfo offscreenRenderPassBeginInfo{};
-	offscreenRenderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	offscreenRenderPassBeginInfo.renderPass = g_vkContext.OffscreenPipeline.renderPass;
-	offscreenRenderPassBeginInfo.framebuffer = g_vkContext.OffscreenResources.framebuffers[currentFrame];
-	offscreenRenderPassBeginInfo.renderArea.offset = { 0, 0 };
-	offscreenRenderPassBeginInfo.renderArea.extent = g_vkContext.SwapChain.extent;
-
 	VkClearValue clearValue{};  // NOTE: we must specify this since the color attachment's load operation is VK_ATTACHMENT_LOAD_OP_CLEAR
 	clearValue.color = { 0.0f, 0.0f, 0.0f, 1.0f }; // (0, 0, 0, 1) -> Black
 	clearValue.depthStencil = VkClearDepthStencilValue(); // Null for now (if depth stencil is implemented, you must also specify the color attachment load and store operations before specifying the clear value here)
@@ -74,88 +87,99 @@ void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, 
 		depthStencilClearValue
 	};
 
-	offscreenRenderPassBeginInfo.clearValueCount = static_cast<uint32_t>(sizeof(clearValues) / sizeof(clearValues[0]));
-	offscreenRenderPassBeginInfo.pClearValues = clearValues;
+
+
+	if (m_sceneReady) {
+		// OFFSCREEN RENDER PASS
+		VkRenderPassBeginInfo offscreenRenderPassBeginInfo{};
+		offscreenRenderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+		offscreenRenderPassBeginInfo.renderPass = g_vkContext.OffscreenPipeline.renderPass;
+		offscreenRenderPassBeginInfo.framebuffer = g_vkContext.OffscreenResources.framebuffers[currentFrame];
+		offscreenRenderPassBeginInfo.renderArea.offset = { 0, 0 };
+		offscreenRenderPassBeginInfo.renderArea.extent = g_vkContext.SwapChain.extent;
+		offscreenRenderPassBeginInfo.clearValueCount = static_cast<uint32_t>(SIZE_OF(clearValues));
+		offscreenRenderPassBeginInfo.pClearValues = clearValues;
 
 		/* The final parameter controls how the drawing commands within the render pass will be provided. It can have 2 values: VK_SUBPASS_...
 			...CONTENTS_INLINE: The render pass commands will be embedded in the primary command buffer itself and no secondary command buffers will be executed
 			..SECONDARY_COMMAND_BUFFERS: The render pass commands will be executed from secondary command buffers
 		*/
-	vkCmdBeginRenderPass(cmdBuffer, &offscreenRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+		vkCmdBeginRenderPass(cmdBuffer, &offscreenRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 
-	vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, g_vkContext.OffscreenPipeline.pipeline);
+		vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, g_vkContext.OffscreenPipeline.pipeline);
 
 		// Specify viewport and scissor states (since they're dynamic states)
 			// Viewport
-	VkViewport viewport{};
-	viewport.x = 0.0f;
-	viewport.y = 0.0f;
-	viewport.width = static_cast<float>(g_vkContext.SwapChain.extent.width);
-	viewport.height = static_cast<float>(g_vkContext.SwapChain.extent.height);
-	viewport.minDepth = 0.0f;
-	viewport.maxDepth = 1.0f;
-	vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
+		VkViewport viewport{};
+		viewport.x = 0.0f;
+		viewport.y = 0.0f;
+		viewport.width = static_cast<float>(g_vkContext.SwapChain.extent.width);
+		viewport.height = static_cast<float>(g_vkContext.SwapChain.extent.height);
+		viewport.minDepth = 0.0f;
+		viewport.maxDepth = 1.0f;
+		vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
 
-			// Scissor
-	VkRect2D scissor{};
-	scissor.offset = { 0, 0 };
-	scissor.extent = g_vkContext.SwapChain.extent;
-	vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
+		// Scissor
+		VkRect2D scissor{};
+		scissor.offset = { 0, 0 };
+		scissor.extent = g_vkContext.SwapChain.extent;
+		vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
 
 
 		// Processes renderables
-	m_eventDispatcher->publish(Event::UpdateRenderables {
-		.commandBuffer = cmdBuffer,
-		.descriptorSet = g_vkContext.OffscreenPipeline.perFrameDescriptorSets[currentFrame]
-	}, true);
+		m_eventDispatcher->publish(Event::UpdateRenderables{
+			.commandBuffer = cmdBuffer,
+			.descriptorSet = g_vkContext.OffscreenPipeline.perFrameDescriptorSets[currentFrame]
+			}, true);
 
 
-	vkCmdEndRenderPass(cmdBuffer);
+		vkCmdEndRenderPass(cmdBuffer);
 
 
 
-	// Transitions swapchain image to the layout COLOR_ATTACHMENT_OPTIMAL before the presentation render pass
-	// This is because the image layout is UNDEFINED for the first swapchain image, and PRESENT_SRC_KHR for subsequent ones.
-	// 
-	VkImageMemoryBarrier swapchainImgToPresentBarrier{};
-	swapchainImgToPresentBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-	swapchainImgToPresentBarrier.oldLayout = g_vkContext.SwapChain.imageLayouts[imageIndex];
-	swapchainImgToPresentBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-	swapchainImgToPresentBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
-	swapchainImgToPresentBarrier.image = g_vkContext.SwapChain.images[imageIndex];
-	swapchainImgToPresentBarrier.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-	swapchainImgToPresentBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-	swapchainImgToPresentBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-	
+		// Transitions swapchain image to the layout COLOR_ATTACHMENT_OPTIMAL before the presentation render pass
+		// This is because the image layout is UNDEFINED for the first swapchain image, and PRESENT_SRC_KHR for subsequent ones.
+		// 
+		VkImageMemoryBarrier swapchainImgToPresentBarrier{};
+		swapchainImgToPresentBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		swapchainImgToPresentBarrier.oldLayout = g_vkContext.SwapChain.imageLayouts[imageIndex];
+		swapchainImgToPresentBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		swapchainImgToPresentBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
+		swapchainImgToPresentBarrier.image = g_vkContext.SwapChain.images[imageIndex];
+		swapchainImgToPresentBarrier.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+		swapchainImgToPresentBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		swapchainImgToPresentBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
 		// We must account for the fact that the layout of the first image is UNDEFINED, but subsequent images is PRESENT_SRC_KHR
 	//static std::vector<bool> imageFirstAcquired;
 	//if (imageFirstAcquired.empty() || imageFirstAcquired.size() != g_vkContext.SwapChain.images.size()) {
 	//	imageFirstAcquired.assign(g_vkContext.SwapChain.images.size(), true);
 	//}
 
-	VkPipelineStageFlags srcStage;
+		VkPipelineStageFlags srcStage;
 
-	if (g_vkContext.SwapChain.imageLayouts[imageIndex] == VK_IMAGE_LAYOUT_UNDEFINED) {
-		swapchainImgToPresentBarrier.srcAccessMask = 0;
+		if (g_vkContext.SwapChain.imageLayouts[imageIndex] == VK_IMAGE_LAYOUT_UNDEFINED) {
+			swapchainImgToPresentBarrier.srcAccessMask = 0;
 
-		srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+			srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		}
+		else {
+			swapchainImgToPresentBarrier.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+
+			srcStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		}
+
+		vkCmdPipelineBarrier(
+			cmdBuffer,
+			srcStage,
+			VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+			0,
+			0, nullptr,
+			0, nullptr,
+			1, &swapchainImgToPresentBarrier
+		);
 	}
-	else {
-		swapchainImgToPresentBarrier.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-
-		srcStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	}
-
-	vkCmdPipelineBarrier(
-		cmdBuffer,
-		srcStage,
-		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-		0,
-		0, nullptr,
-		0, nullptr,
-		1, &swapchainImgToPresentBarrier
-	);
 
 
 	
@@ -166,8 +190,8 @@ void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, 
 	presentRenderPassBeginInfo.framebuffer = g_vkContext.SwapChain.imageFrameBuffers[imageIndex];
 	presentRenderPassBeginInfo.renderArea.offset = { 0, 0 };
 	presentRenderPassBeginInfo.renderArea.extent = g_vkContext.SwapChain.extent;
-	presentRenderPassBeginInfo.clearValueCount = offscreenRenderPassBeginInfo.clearValueCount;
-	presentRenderPassBeginInfo.pClearValues = offscreenRenderPassBeginInfo.pClearValues;
+	presentRenderPassBeginInfo.clearValueCount = static_cast<uint32_t>(SIZE_OF(clearValues));
+	presentRenderPassBeginInfo.pClearValues = clearValues;
 
 
 	vkCmdBeginRenderPass(cmdBuffer, &presentRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);

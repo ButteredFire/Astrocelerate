@@ -130,4 +130,9 @@ private:
 
 	// Primarily used in command pool creation to implicitly return an existing command pool if the creation parameters matches its own.
 	inline static std::unordered_map<CommandPoolCreateInfo, VkCommandPool> cmdPoolMappings;
+
+	// Session data
+	bool m_sceneReady = false;
+
+	void bindEvents();
 };

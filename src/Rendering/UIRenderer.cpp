@@ -69,7 +69,7 @@ void UIRenderer::initImGui() {
         { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE },
         
         // Samplers to draw offscreen resources (for rendering onto the viewport)
-        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, static_cast<uint32_t>(g_vkContext.OffscreenResources.images.size()) }
+        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, static_cast<uint32_t>(SimulationConsts::MAX_FRAMES_IN_FLIGHT) }
     };
     VkDescriptorPoolCreateFlags imgui_DescPoolCreateFlags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
     VkDescriptorUtils::CreateDescriptorPool(m_descriptorPool, imgui_PoolSizes.size(), imgui_PoolSizes.data(), imgui_DescPoolCreateFlags);

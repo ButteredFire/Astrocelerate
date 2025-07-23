@@ -25,22 +25,46 @@ void VkBufferManager::bindEvents() {
 			this->m_geomData = event.pGeomData;
 			this->m_totalObjects = event.pGeomData->meshCount;
 			this->createUniformBuffers();
-
-			m_camera->attachToEntity(3);
-			m_camera->detachFromEntity();
 		}
 	);
 
 
-	m_eventDispatcher->subscribe<Event::PipelinesInitialized>(
-		[this](const Event::PipelinesInitialized &event) {
+	m_eventDispatcher->subscribe<Event::OffscreenPipelineInitialized>(
+		[this](const Event::OffscreenPipelineInitialized &event) {
 			this->createMatParamsUniformBuffer();
+		}
+	);
+
+
+
+	m_eventDispatcher->subscribe<Event::UpdateSessionStatus>(
+		[this](const Event::UpdateSessionStatus &event) {
+			using namespace Event;
+
+			switch (event.sessionStatus) {
+			case UpdateSessionStatus::Status::NOT_READY:
+				m_sceneReady = false;
+				break;
+
+			case UpdateSessionStatus::Status::PREPARE_FOR_INIT:
+				m_sceneReady = true;
+
+				// Clean up (i.e., unmap memory of) all per-session buffers
+				for (auto &cleanupID : m_bufferCleanupIDs)
+					m_garbageCollector->executeCleanupTask(cleanupID);
+				m_bufferCleanupIDs.clear();
+
+				break;
+			}
 		}
 	);
 
 
 	m_eventDispatcher->subscribe<Event::UpdateUBOs>(
 		[this](const Event::UpdateUBOs& event) {
+			if (!m_sceneReady)
+				return;
+
 			this->updateGlobalUBO(event.currentFrame);
 			this->updateObjectUBOs(event.currentFrame, event.renderOrigin);
 		}
@@ -53,7 +77,7 @@ void VkBufferManager::init() {
 }
 
 
-uint32_t VkBufferManager::CreateBuffer(VkBuffer& buffer, VkDeviceSize bufferSize, VkBufferUsageFlags usageFlags, VmaAllocation& bufferAllocation, VmaAllocationCreateInfo bufferAllocationCreateInfo) {
+CleanupID VkBufferManager::CreateBuffer(VkBuffer& buffer, VkDeviceSize bufferSize, VkBufferUsageFlags usageFlags, VmaAllocation& bufferAllocation, VmaAllocationCreateInfo bufferAllocationCreateInfo) {
 
 	std::shared_ptr<GarbageCollector> m_garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
 
@@ -98,14 +122,16 @@ uint32_t VkBufferManager::CreateBuffer(VkBuffer& buffer, VkDeviceSize bufferSize
 	bufTask.vkObjects = { g_vkContext.vmaAllocator, buffer, bufferAllocation };
 	bufTask.cleanupFunc = [buffer, bufferAllocation]() { vmaDestroyBuffer(g_vkContext.vmaAllocator, buffer, bufferAllocation); };
 
-	uint32_t bufferTaskID = m_garbageCollector->createCleanupTask(bufTask);
-
+	CleanupID bufferTaskID = m_garbageCollector->createCleanupTask(bufTask);
 
 	return bufferTaskID;
 }
 
 
 void VkBufferManager::createGlobalVertexBuffer(const std::vector<Geometry::Vertex>& vertexData) {
+	if (!m_sceneReady)
+		return;
+
 	VkDeviceSize bufferSize = (sizeof(vertexData[0]) * vertexData.size());
 	VkBufferUsageFlags vertBufUsage = (VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
 
@@ -115,13 +141,18 @@ void VkBufferManager::createGlobalVertexBuffer(const std::vector<Geometry::Verte
 	vertBufAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE; // PREFERS fast device-local memory
 	vertBufAllocInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT; // FORCES device-local memory
 
-	CreateBuffer(m_vertexBuffer, bufferSize, vertBufUsage, m_vertexBufferAllocation, vertBufAllocInfo);
+	CleanupID taskID = CreateBuffer(m_vertexBuffer, bufferSize, vertBufUsage, m_vertexBufferAllocation, vertBufAllocInfo);
+
+	m_bufferCleanupIDs.push_back(taskID);
 
 	writeDataToGPUBuffer(vertexData.data(), m_vertexBuffer, bufferSize);
 }
 
 
 void VkBufferManager::createGlobalIndexBuffer(const std::vector<uint32_t>& indexData) {
+	if (!m_sceneReady)
+		return;
+
 	VkDeviceSize bufferSize = (sizeof(indexData[0]) * indexData.size());
 	VkBufferUsageFlags indexBufUsage = (VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
 
@@ -131,13 +162,18 @@ void VkBufferManager::createGlobalIndexBuffer(const std::vector<uint32_t>& index
 	indexBufAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE; // PREFERS fast device-local memory
 	indexBufAllocInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT; // FORCES device-local memory
 
-	CreateBuffer(m_indexBuffer, bufferSize, indexBufUsage, m_indexBufferAllocation, indexBufAllocInfo);
+	CleanupID taskID = CreateBuffer(m_indexBuffer, bufferSize, indexBufUsage, m_indexBufferAllocation, indexBufAllocInfo);
+
+	m_bufferCleanupIDs.push_back(taskID);
 
 	writeDataToGPUBuffer(indexData.data(), m_indexBuffer, bufferSize);
 }
 
 
 void VkBufferManager::createMatParamsUniformBuffer() {
+	if (!m_sceneReady)
+		return;
+
 	LOG_ASSERT(m_geomData, "Cannot create material parameters uniform buffer: Geometry data is invalid!");
 
 	VkDeviceSize minUBOAlignment = g_vkContext.Device.deviceProperties.limits.minUniformBufferOffsetAlignment;
@@ -166,7 +202,9 @@ void VkBufferManager::createMatParamsUniformBuffer() {
 	task.cleanupFunc = [this]() {
 		vmaUnmapMemory(g_vkContext.vmaAllocator, m_matParamsBufferAllocation);
 	};
-	m_garbageCollector->createCleanupTask(task);
+	m_bufferCleanupIDs.push_back(
+		m_garbageCollector->createCleanupTask(task)
+	);
 
 
 	// Populate buffer with all materials
@@ -289,7 +327,7 @@ void VkBufferManager::updateObjectUBOs(uint32_t currentImage, const glm::dvec3& 
 
 			If not: Directly use the entity's global position.
 		*/
-		if (refFrame.parentID.value() != m_renderSpace.id) {
+		if (refFrame.parentID.value() != m_renderSpace.id) {	// WARNING: I don't know where m_renderSpace comes from! Might need to get it from SceneManager!
 			const PhysicsComponent::ReferenceFrame& parentRefFrame = m_registry->getComponent<PhysicsComponent::ReferenceFrame>(refFrame.parentID.value());
 		
 			glm::dvec3 scaledOffsetFromParent = refFrame.localTransform.position * parentRefFrame.visualScale;
@@ -395,6 +433,9 @@ void VkBufferManager::writeDataToGPUBuffer(const void* data, VkBuffer& buffer, V
 
 
 void VkBufferManager::createUniformBuffers() {
+	if (!m_sceneReady)
+		return;
+
 	// NOTE: Since new data is copied to the UBOs every frame, we should not use staging buffers since they add overhead and thus degrade performance.
 	// However, we may use staging buffers if we want to utilize UBOs for instancing/compute.
 
@@ -458,7 +499,9 @@ void VkBufferManager::createUniformBuffers() {
 			vmaUnmapMemory(g_vkContext.vmaAllocator, objectUBOAlloc);
 		};
 
-		m_garbageCollector->createCleanupTask(task);
+		m_bufferCleanupIDs.push_back(
+			m_garbageCollector->createCleanupTask(task)
+		);
 	}
 }
 

@@ -26,6 +26,27 @@ void OrbitalWorkspace::bindEvents() {
 	);
 
 
+	m_eventDispatcher->subscribe<Event::UpdateSessionStatus>(
+		[this](const Event::UpdateSessionStatus &event) {
+			using namespace Event;
+
+			switch (event.sessionStatus) {
+			case UpdateSessionStatus::Status::NOT_READY:
+				m_sceneSampleReady = false;
+				break;
+
+			case UpdateSessionStatus::Status::PREPARE_FOR_INIT:
+				m_sceneSampleReady = true;
+				break;
+
+			case UpdateSessionStatus::Status::INITIALIZED:
+				initPerFrameTextures();
+				break;
+			}
+		}
+	);
+
+
 	m_eventDispatcher->subscribe<Event::InputIsValid>(
 		[this](const Event::InputIsValid &event) {
 			m_inputManager = ServiceLocator::GetService<InputManager>(__FUNCTION__);
@@ -36,7 +57,9 @@ void OrbitalWorkspace::bindEvents() {
 
 void OrbitalWorkspace::init() {
 	initStaticTextures();
-	initPerFrameTextures();
+
+	if (m_sceneSampleReady)
+		initPerFrameTextures();
 
 	initPanels();
 }
@@ -84,7 +107,7 @@ void OrbitalWorkspace::update(uint32_t currentFrame) {
 	m_currentFrame = currentFrame;
 
 	// The input blocker serves to capture all input and prevent interaction with other widgets when using the viewport.
-	if (m_inputManager->isViewportInputAllowed()) {
+	if (m_inputManager->isViewportInputAllowed() && m_sceneSampleReady) {
 		m_inputBlockerIsOn = true;
 		ImGui::SetNextWindowPos(ImVec2(0, 0));
 		ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
@@ -110,7 +133,9 @@ void OrbitalWorkspace::preRenderUpdate(uint32_t currentFrame) {
 
 
 void OrbitalWorkspace::loadSimulationConfig(const std::string &configPath) {
-
+	m_eventDispatcher->publish(Event::RequireInitSession{
+		.simulationFilePath = configPath
+	});
 }
 
 
@@ -151,20 +176,22 @@ void OrbitalWorkspace::initPerFrameTextures() {
 
 void OrbitalWorkspace::updatePerFrameTextures(uint32_t currentFrame) {
 	// Simulation scene
-	VkDescriptorImageInfo imageInfo{};
-	imageInfo.imageView = g_vkContext.OffscreenResources.imageViews[currentFrame];
-	imageInfo.sampler = g_vkContext.OffscreenResources.samplers[currentFrame];
-	imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	if (m_sceneSampleReady) {
+		VkDescriptorImageInfo imageInfo{};
+		imageInfo.imageView = g_vkContext.OffscreenResources.imageViews[currentFrame];
+		imageInfo.sampler = g_vkContext.OffscreenResources.samplers[currentFrame];
+		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-	VkWriteDescriptorSet imageDescSetWrite{};
-	imageDescSetWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	imageDescSetWrite.dstBinding = 0;
-	imageDescSetWrite.descriptorCount = 1;
-	imageDescSetWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	imageDescSetWrite.dstSet = (VkDescriptorSet)m_viewportRenderTextureIDs[currentFrame];
-	imageDescSetWrite.pImageInfo = &imageInfo;
+		VkWriteDescriptorSet imageDescSetWrite{};
+		imageDescSetWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		imageDescSetWrite.dstBinding = 0;
+		imageDescSetWrite.descriptorCount = 1;
+		imageDescSetWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		imageDescSetWrite.dstSet = (VkDescriptorSet)m_viewportRenderTextureIDs[currentFrame];
+		imageDescSetWrite.pImageInfo = &imageInfo;
 
-	vkUpdateDescriptorSets(g_vkContext.Device.logicalDevice, 1, &imageDescSetWrite, 0, nullptr);
+		vkUpdateDescriptorSets(g_vkContext.Device.logicalDevice, 1, &imageDescSetWrite, 0, nullptr);
+	}
 }
 
 
@@ -225,22 +252,24 @@ void OrbitalWorkspace::renderViewportPanel() {
 		g_appContext.Input.isViewportHoveredOver = ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows) || m_inputBlockerIsOn;
 		g_appContext.Input.isViewportFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) || m_inputBlockerIsOn;
 
-		// Resizes the texture to its original aspect ratio before rendering
-		ImVec2 originalRenderSize = {
-			static_cast<float>(g_vkContext.SwapChain.extent.width),
-			static_cast<float>(g_vkContext.SwapChain.extent.height)
-		};
-		ImVec2 textureSize = ImGuiUtils::ResizeImagePreserveAspectRatio(originalRenderSize, viewportPanelSize);
+		if (m_sceneSampleReady) {
+			// Resizes the texture to its original aspect ratio before rendering
+			ImVec2 originalRenderSize = {
+				static_cast<float>(g_vkContext.SwapChain.extent.width),
+				static_cast<float>(g_vkContext.SwapChain.extent.height)
+			};
+			ImVec2 textureSize = ImGuiUtils::ResizeImagePreserveAspectRatio(originalRenderSize, viewportPanelSize);
 
-		// Padding to center the texture
-		ImVec2 offset{};
-		offset.x = (viewportPanelSize.x - textureSize.x) * 0.5f;
-		offset.y = (viewportPanelSize.y - textureSize.y) * 0.5f;
+			// Padding to center the texture
+			ImVec2 offset{};
+			offset.x = (viewportPanelSize.x - textureSize.x) * 0.5f;
+			offset.y = (viewportPanelSize.y - textureSize.y) * 0.5f;
 
-		ImVec2 cursorPos = ImGui::GetCursorPos();
-		ImGui::SetCursorPos({ cursorPos.x + offset.x, cursorPos.y + offset.y });
+			ImVec2 cursorPos = ImGui::GetCursorPos();
+			ImGui::SetCursorPos({ cursorPos.x + offset.x, cursorPos.y + offset.y });
 
-		ImGui::Image(m_viewportRenderTextureIDs[m_currentFrame], textureSize);
+			ImGui::Image(m_viewportRenderTextureIDs[m_currentFrame], textureSize);
+		}
 
 		ImGui::End();
 	}

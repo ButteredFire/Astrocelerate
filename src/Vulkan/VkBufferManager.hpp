@@ -58,7 +58,7 @@ public:
         
         @return The cleanup task ID for the newly created buffer.
     */
-    static uint32_t CreateBuffer(VkBuffer& buffer, VkDeviceSize bufferSize, VkBufferUsageFlags usageFlags, VmaAllocation& bufferAllocation, VmaAllocationCreateInfo bufferAllocationCreateInfo);
+    static CleanupID CreateBuffer(VkBuffer& buffer, VkDeviceSize bufferSize, VkBufferUsageFlags usageFlags, VmaAllocation& bufferAllocation, VmaAllocationCreateInfo bufferAllocationCreateInfo);
 
 
     /* Creates the global vertex buffer. */
@@ -114,7 +114,6 @@ public:
     /* Gets the global uniform buffers */
     inline const std::vector<Buffer::BufferAndAlloc>& getGlobalUBOs() const { return m_globalUBOs; }
 
-
     /* Gets the object uniform buffers */
     inline const std::vector<Buffer::BufferAndAlloc>& getObjectUBOs() const { return m_objectUBOs; }
 
@@ -146,6 +145,10 @@ private:
     std::vector<Buffer::BufferAndAlloc> m_objectUBOs;
     std::vector<void*> m_objectUBOMappedData;
     size_t m_alignedObjectUBOSize = 0;
+
+    // Session data
+    bool m_sceneReady = false;
+    std::vector<CleanupID> m_bufferCleanupIDs;
 
 
     std::vector<Geometry::Vertex> m_vertices = {};

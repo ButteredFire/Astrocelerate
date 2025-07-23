@@ -2,6 +2,8 @@
 */
 #pragma once
 
+#include <atomic>
+
 #include <Core/Application/EventDispatcher.hpp>
 #include <Core/Data/Math.hpp>
 #include <Core/Data/Constants.h>
@@ -48,6 +50,7 @@ public:
 private:
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 	std::shared_ptr<Registry> m_registry;
+
 	Entity m_renderSpace{};
 
 	GeometryLoader m_geometryLoader;

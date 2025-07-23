@@ -11,6 +11,13 @@ SceneManager::SceneManager() {
 
 
 void SceneManager::bindEvents() {
+    m_eventDispatcher->subscribe<Event::RegistryReset>(
+        [this](const Event::RegistryReset &event) {
+            this->init();
+        }
+    );
+
+
 	m_eventDispatcher->subscribe<Event::BufferManagerIsValid>(
 		[this](const Event::BufferManagerIsValid &event) {
 			loadScene();
@@ -35,9 +42,9 @@ void SceneManager::init() {
 
 
 void SceneManager::loadScene() {
-	loadSceneFromFile(
-		FilePathUtils::JoinPaths(APP_SOURCE_DIR, "samples", "SatelliteInLEO.yaml")
-	);
+	//loadSceneFromFile(
+	//	FilePathUtils::JoinPaths(APP_SOURCE_DIR, "samples", "SatelliteInLEO.yaml")
+	//);
 }
 
 
@@ -49,6 +56,12 @@ void SceneManager::loadSceneFromFile(const std::string &filePath) {
 #define info(entityName, componentType) "Entity " + enquote((entityName)) + ", component " + enquote((componentType)) + ": "
 
 
+    // Worker thread progress tracking
+    m_eventDispatcher->publish(Event::SceneLoadProgress{
+        .progress = 0.0f,
+        .message = "Preparing scene load from simulation file " + enquote(fileName) + "..."
+    });
+
     std::map<std::string, EntityID> entityNameToID; // Map entity names to their runtime IDs
     std::map<std::string, double> entityNameToMass; // Map entity names to their masses
 
@@ -56,6 +69,17 @@ void SceneManager::loadSceneFromFile(const std::string &filePath) {
 
 	try {
         YAML::Node scene = YAML::LoadFile(filePath);
+
+        m_eventDispatcher->publish(Event::SceneLoadProgress{
+            .progress = 0.1f,
+            .message = "Acquiring scene data..."
+        });
+
+        size_t processedEntities = 0;
+        size_t totalEntities = 0;
+        if (scene["Entities"])
+            totalEntities = scene["Entities"].size();
+
 
         // ----- Query each entity -----
         for (const auto &entityNode : scene["Entities"]) {
@@ -67,7 +91,15 @@ void SceneManager::loadSceneFromFile(const std::string &filePath) {
             entityNameToID[entityName] = newEntity.id;
 
 
-            // ----- Load Geometry Data -----
+            processedEntities++;
+            float entityProcessingProgress = static_cast<float>(processedEntities) / totalEntities;
+            m_eventDispatcher->publish(Event::SceneLoadProgress{
+                .progress = 0.1f + (entityProcessingProgress * 0.75f),
+                .message = "[" + std::string(entityName) + "] Parsing physical parameters..."
+            });
+
+
+            // ----- Load Physics & Geometry Data -----
             for (const auto &componentNode : entityNode["Components"]) {
                 std::string componentType = componentNode["Type"].as<std::string>();
 
@@ -167,6 +199,11 @@ void SceneManager::loadSceneFromFile(const std::string &filePath) {
                     if (componentNode["Data"]["meshPath"]) {
                         std::string meshPath = componentNode["Data"]["meshPath"].as<std::string>();
 
+                        m_eventDispatcher->publish(Event::SceneLoadProgress{
+                            .progress = 0.1f + (entityProcessingProgress * 0.75f),
+                            .message = "[" + std::string(entityName) + "] Loading geometry..."
+                        });
+
                         std::string fullPath = FilePathUtils::JoinPaths(APP_SOURCE_DIR, meshPath);
                         Math::Interval<uint32_t> meshRange = m_geometryLoader.loadGeometryFromFile(fullPath);
 
@@ -188,12 +225,27 @@ void SceneManager::loadSceneFromFile(const std::string &filePath) {
 
 
         // ----- Finalize geometry baking -----
+        m_eventDispatcher->publish(Event::SceneLoadProgress{
+            .progress = 0.9f,
+            .message = "Baking geometry data..."
+        });
+
 		m_geomData = m_geometryLoader.bakeGeometry();
 		m_meshCount = m_geomData->meshCount;
 
 		RenderComponent::SceneData globalSceneData{};
 		globalSceneData.pGeomData = m_geomData;
 		m_registry->addComponent(m_renderSpace.id, globalSceneData);
+
+
+        m_eventDispatcher->publish(Event::SceneLoadProgress{
+            .progress = 1.0f,
+            .message = "Scene load completed successfully."
+        });
+        m_eventDispatcher->publish(Event::SceneLoadComplete{
+            .loadSuccessful = true,
+            .finalMessage = "Successfully loaded scene from simulation file " + enquote(fileName) + "."
+        });
 	}
 
 	catch (const YAML::BadFile &e) {

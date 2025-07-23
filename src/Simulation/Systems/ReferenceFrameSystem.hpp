@@ -10,6 +10,7 @@
 
 #include <Core/Engine/ECS.hpp>
 #include <Core/Application/LoggingManager.hpp>
+#include <Core/Application/EventDispatcher.hpp>
 #include <Core/Engine/ServiceLocator.hpp>
 
 #include <Engine/Components/PhysicsComponents.hpp>
@@ -29,10 +30,14 @@ public:
 	void updateAllFrames();
 
 private:
+	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 	std::shared_ptr<Registry> m_registry;
+
 	std::vector<std::pair<EntityID, PhysicsComponent::ReferenceFrame*>> m_referenceFrames;
 
-	EntityID m_renderSpaceID{};
+	bool m_treeSorted = false;
+
+	void bindEvents();
 
 	/* Computes the absolute transforms of all reference frames. */
 	void computeGlobalTransforms();

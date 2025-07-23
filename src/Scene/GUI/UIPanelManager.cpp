@@ -22,6 +22,29 @@ void UIPanelManager::bindEvents() {
 			this->onImGuiInit();
 		}
 	);
+
+
+	m_eventDispatcher->subscribe<Event::SceneLoadProgress>(
+		[this](const Event::SceneLoadProgress &event) {
+			// NOTE: These updates will happen on the worker thread, but ImGui drawing happens on the main thread.
+			// Accessing these members directly is fine as they're simple types and updates will be observed eventually.
+			// For complex UI state, a concurrent queue or a deferred update might be needed.
+			m_showLoadingModal = true;
+			m_currentLoadProgress = event.progress;
+			m_currentLoadMessage = event.message;
+			m_loadErrorOccurred = false;
+		}
+	);
+
+
+	m_eventDispatcher->subscribe<Event::SceneLoadComplete>(
+		[this](const Event::SceneLoadComplete &event) {
+			m_currentLoadProgress = 1.0f;
+			m_currentLoadMessage = event.finalMessage;
+			m_loadErrorOccurred = !event.loadSuccessful;
+			m_loadErrorMessage = event.finalMessage;
+		}
+	);
 }
 
 
@@ -76,6 +99,10 @@ void UIPanelManager::renderWorkspace(uint32_t currentFrame) {
 		}
 	}
 
+	if (m_showLoadingModal) {
+		ImGui::OpenPopup(m_sceneLoadModelName);
+	}
+
 
 	// Workspace panel callbacks
 	for (auto&& [flag, callback] : m_workspacePanelCallbacks) {
@@ -95,7 +122,32 @@ void UIPanelManager::renderMenuBar() {
 		if (ImGui::BeginMenu("File")) {
 			// Open
 			if (ImGui::MenuItem("Open", "Ctrl+O")) {
-				// TODO: Handle Open
+				// Handle Open using tinyfiledialogs
+				const char *filterPatterns[] = { "*.yaml" };
+				const char *selectedFilePath = tinyfd_openFileDialog(
+					"Open Simulation File",
+					APP_SOURCE_DIR,          // Default path/filename
+					IM_ARRAYSIZE(filterPatterns),
+					filterPatterns,
+					NULL,        // Optional: filter description (e.g., "Text files")
+					0            // Allow multiple selections (0 for single, 1 for multiple)
+				);
+
+				if (selectedFilePath) {
+					// Reset UI state before starting a new load
+					m_showLoadingModal = true;
+					m_currentLoadProgress = 0.0f;
+					m_currentLoadMessage = "Starting scene load...";
+					m_loadErrorOccurred = false;
+					m_loadErrorMessage = "";
+
+					m_currentWorkspace->loadSimulationConfig(selectedFilePath);
+					// Start the loading in a new worker thread
+					/*
+					std::thread([this, selectedFilePath]() {
+					}).detach();
+					*/
+				}
 			}
 
 			// Save
@@ -442,5 +494,42 @@ void UIPanelManager::renderAboutPanel() {
 		}
 
 		ImGui::End();
+	}
+}
+
+
+void UIPanelManager::renderSceneLoadModal() {
+	if (ImGui::BeginPopupModal(m_sceneLoadModelName, &m_showLoadingModal, ImGuiWindowFlags_AlwaysAutoResize)) {
+		if (!m_loadErrorOccurred) {
+			ImGui::Text("%s", m_currentLoadMessage.c_str());
+			ImGui::ProgressBar(m_currentLoadProgress, ImVec2(0.f, 0.f), "");
+
+			// Display an "OK" button only when loading is complete and successful
+			if (m_currentLoadProgress >= 1.0f) {
+				// Give a moment for "Done" to show, or require manual close
+				if (ImGui::Button("OK")) {
+					ImGui::CloseCurrentPopup();
+					m_showLoadingModal = false;
+				}
+			}
+		}
+
+		else {
+			// Display error message and an "OK" button to close
+			ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 0, 0, 255));
+			{
+				ImGui::Text("Error during loading!");
+				ImGui::TextWrapped("%s", m_loadErrorMessage.c_str());
+			}
+			ImGui::PopStyleColor();
+
+			if (ImGui::Button("OK")) {
+				ImGui::CloseCurrentPopup();
+				m_showLoadingModal = false;
+			}
+		}
+
+
+		ImGui::EndPopup();
 	}
 }

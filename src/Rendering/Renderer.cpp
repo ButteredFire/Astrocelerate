@@ -30,6 +30,18 @@ void Renderer::update(glm::dvec3& renderOrigin) {
 }
 
 
+void Renderer::preRenderUpdate(uint32_t currentFrame, glm::dvec3 &renderOrigin) {
+    // Updates the uniform buffers
+    m_eventDispatcher->publish(Event::UpdateUBOs{
+        .currentFrame = m_currentFrame,
+        .renderOrigin = renderOrigin
+        }, true);
+
+    // GUI updates
+    m_imguiRenderer->preRenderUpdate(m_currentFrame);
+}
+
+
 void Renderer::drawFrame(glm::dvec3& renderOrigin) {
     /* How a frame is drawn:
         1. Wait for the previous frame to finish rendering (i.e., waiting for its fence)
@@ -76,15 +88,8 @@ void Renderer::drawFrame(glm::dvec3& renderOrigin) {
     VkResult cmdBufResetResult = vkResetCommandBuffer(g_vkContext.CommandObjects.graphicsCmdBuffers[m_currentFrame], 0);
     LOG_ASSERT(cmdBufResetResult == VK_SUCCESS, "Failed to reset command buffer!");
 
-
-        // Updates the uniform buffers
-    m_eventDispatcher->publish(Event::UpdateUBOs{
-        .currentFrame = m_currentFrame,
-        .renderOrigin = renderOrigin
-    }, true);
-
-        // Updates all ImGui textures (aka descriptor sets) after the current frame has been processed (i.e., its fence has been reset)
-    m_imguiRenderer->preRenderUpdate(m_currentFrame);
+        // Perform any updates prior to command buffer recording
+    preRenderUpdate(m_currentFrame, renderOrigin);
     
         // Records commands
     m_commandManager->recordRenderingCommandBuffer(g_vkContext.CommandObjects.graphicsCmdBuffers[m_currentFrame], imageIndex, m_currentFrame);

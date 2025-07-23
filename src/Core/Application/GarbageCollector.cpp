@@ -35,11 +35,11 @@ VmaAllocator GarbageCollector::createVMAllocator(VkInstance& instance, VkPhysica
 }
 
 
-uint32_t GarbageCollector::createCleanupTask(CleanupTask task) {
+CleanupID GarbageCollector::createCleanupTask(CleanupTask task) {
 	// Constructs a string displaying the object name(s) for logging
 	std::string objectNamesStr = enquote(getObjectNamesString(task));
 
-	uint32_t id = m_nextID++;
+	CleanupID id = m_nextID++;
 	m_cleanupStack.push_back(task);
 	m_idToIdxLookup[id] = (m_cleanupStack.size() - 1);
 
@@ -48,13 +48,13 @@ uint32_t GarbageCollector::createCleanupTask(CleanupTask task) {
 }
 
 
-CleanupTask& GarbageCollector::modifyCleanupTask(uint32_t taskID) {
+CleanupTask& GarbageCollector::modifyCleanupTask(CleanupID taskID) {
 	LOG_ASSERT(m_idToIdxLookup.count(taskID), "Cannot modify cleanup task: Task ID #" + std::to_string(taskID) + " is invalid!");
 	return m_cleanupStack[m_idToIdxLookup.at(taskID)];
 }
 
 
-bool GarbageCollector::executeCleanupTask(uint32_t taskID) {
+bool GarbageCollector::executeCleanupTask(CleanupID taskID) {
 	LOG_ASSERT(m_idToIdxLookup.count(taskID), "Cannot execute cleanup task: Task ID #" + std::to_string(taskID) + " is invalid!");
 	LOG_ASSERT(m_idToIdxLookup.at(taskID) < m_cleanupStack.size(), "Cannot execute cleanup task: Cannot retrieve task data for task ID #" + std::to_string(taskID) + "!");
 	
@@ -75,7 +75,7 @@ void GarbageCollector::processCleanupStack() {
 		vkDeviceWaitIdle(g_vkContext.Device.logicalDevice);
 
 	while (!m_cleanupStack.empty()) {
-		uint32_t id = (m_cleanupStack.size() - 1);
+		CleanupID id = (m_cleanupStack.size() - 1);
 		CleanupTask task = m_cleanupStack[id];
 		executeTask(task, id);
 
@@ -84,13 +84,13 @@ void GarbageCollector::processCleanupStack() {
 }
 
 
-bool GarbageCollector::executeTask(CleanupTask& task, uint32_t taskID) {
+bool GarbageCollector::executeTask(CleanupTask& task, CleanupID taskID) {
 	// Constructs a string displaying the object name(s) for logging
 	std::string objectNamesStr = enquote(getObjectNamesString(task));
 
 
 	// Checks whether the task is already invalid
-	if (!task.validTask) {
+	if (!task._validTask) {
 		Log::Print(Log::T_WARNING, __FUNCTION__, "Skipped cleanup task for object(s) " + objectNamesStr + ".");
 		return false;
 	}
@@ -118,13 +118,12 @@ bool GarbageCollector::executeTask(CleanupTask& task, uint32_t taskID) {
 		return false;
 	}
 
-
 	// Executes the task and invalidates it to prevent future executions
 	task.cleanupFunc();
 	
 	Log::Print(Log::T_VERBOSE, __FUNCTION__, "Executed cleanup task for object(s) " + objectNamesStr + ".");
 
-	task.validTask = false;
+	task._validTask = false;
 	m_invalidTaskCount++;
 
 	if (m_invalidTaskCount >= m_MAX_INVALID_TASKS) {
@@ -142,7 +141,7 @@ void GarbageCollector::optimizeStack() {
 	size_t oldSize = m_cleanupStack.size();
 
 	for (size_t i = 0; i < oldSize; i++) {
-		if (!m_cleanupStack[i].validTask) {
+		if (!m_cleanupStack[i]._validTask) {
 			displacement++;
 			locDisplacement++;
 			locInvalidTaskCount++;

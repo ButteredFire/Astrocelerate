@@ -62,6 +62,22 @@ TextureManager::TextureManager() {
 
 
 void TextureManager::bindEvents() {
+	m_eventDispatcher->subscribe<Event::UpdateSessionStatus>(
+		[this](const Event::UpdateSessionStatus &event) {
+			using namespace Event;
+
+			switch (event.sessionStatus) {
+			case UpdateSessionStatus::Status::NOT_READY:
+				m_sceneReady = false;
+				break;
+
+			case UpdateSessionStatus::Status::PREPARE_FOR_INIT:
+				m_sceneReady = true;
+				break;
+			}
+		}
+	);
+
 	m_eventDispatcher->subscribe<Event::BufferManagerIsValid>(
 		[this](const Event::BufferManagerIsValid &event) {
 			// Create a placeholder texture (index 0).
@@ -71,8 +87,8 @@ void TextureManager::bindEvents() {
 	);
 
 
-	m_eventDispatcher->subscribe<Event::PipelinesInitialized>(
-		[this](const Event::PipelinesInitialized &event) {
+	m_eventDispatcher->subscribe<Event::OffscreenPipelineInitialized>(
+		[this](const Event::OffscreenPipelineInitialized &event) {
 			m_textureArrayDescSetIsValid = true;
 
 			for (size_t i = 0; i < m_textureDescriptorInfos.size(); i++)
@@ -140,9 +156,11 @@ uint32_t TextureManager::createIndexedTexture(const std::string& texSource, VkFo
 	m_texturePathToIndexMap[texSource] = newIndex;
 
 	// Only update texture array descriptor set if it is valid. Else, defer the textures until it is (already done with m_textureDescriptorInfos).
-	if (m_textureArrayDescSetIsValid)
+	//if (m_textureArrayDescSetIsValid)
+	//	for (size_t i = 0; i < m_textureDescriptorInfos.size(); i++)
+	//		updateTextureArrayDescriptorSet(i, m_textureDescriptorInfos[i]);
 		// TODO: Support dynamic texture loading
-		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Cannot create indexed texture: Dynamic texture loading is not currently supported!");
+		//throw Log::RuntimeException(__FUNCTION__, __LINE__, "Cannot create indexed texture: Dynamic texture loading is not currently supported!");
 		//updateTextureArrayDescriptorSet(newIndex, m_textureDescriptorInfos.back());
 
 	return newIndex;
@@ -150,6 +168,9 @@ uint32_t TextureManager::createIndexedTexture(const std::string& texSource, VkFo
 
 
 void TextureManager::updateTextureArrayDescriptorSet(uint32_t texIndex, const VkDescriptorImageInfo &texImageInfo) {
+	if (!m_sceneReady)
+		return;
+
 	VkWriteDescriptorSet descriptorWrite{};
 	descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 	descriptorWrite.dstSet = g_vkContext.Textures.texArrayDescriptorSet;

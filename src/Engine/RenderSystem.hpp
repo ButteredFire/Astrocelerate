@@ -36,6 +36,7 @@ private:
 	std::shared_ptr<VkBufferManager> m_bufferManager;
 	std::shared_ptr<UIRenderer> m_imguiRenderer;
 
+	bool m_sceneReady = false;
 
 	void bindEvents();
 

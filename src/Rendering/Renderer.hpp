@@ -49,6 +49,8 @@ public:
 	/* Updates the rendering. */
 	void update(glm::dvec3& renderOrigin);
 
+	void preRenderUpdate(uint32_t currentFrame, glm::dvec3 &renderOrigin);
+
 private:
 	VkInstance& m_vulkInst;
 

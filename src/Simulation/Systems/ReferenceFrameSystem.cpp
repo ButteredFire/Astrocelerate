@@ -2,20 +2,33 @@
 
 
 ReferenceFrameSystem::ReferenceFrameSystem() {
+	m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
 	m_registry = ServiceLocator::GetService<Registry>(__FUNCTION__);
+
+	bindEvents();
 
 	Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
 
 
-void ReferenceFrameSystem::updateAllFrames() {
-	static bool treeSorted = false;
-	
-	if (!treeSorted) {
-		sortFrameTree();
-		m_renderSpaceID = m_referenceFrames[0].first;
+void ReferenceFrameSystem::bindEvents() {
+	m_eventDispatcher->subscribe<Event::UpdateSessionStatus>(
+		[this](const Event::UpdateSessionStatus &event) {
+			using namespace Event;
 
-		treeSorted = true;
+			switch (event.sessionStatus) {
+			case UpdateSessionStatus::Status::INITIALIZED:
+				m_treeSorted = false;
+			}
+		}
+	);
+}
+
+
+void ReferenceFrameSystem::updateAllFrames() {
+	if (!m_treeSorted) {
+		sortFrameTree();
+		m_treeSorted = true;
 	}
 
 	computeGlobalTransforms();
@@ -72,7 +85,7 @@ void ReferenceFrameSystem::sortFrameTree() {
 	std::function<void(EntityID)> visit = [&](EntityID entity) {
 		// If a cyclic dependency is detected
 		if (recursionStack.contains(entity)) {
-			throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to sort reference frame tree due to a cyclic dependency!\nEntry node of the cycle has entity ID #" + std::to_string(entity) + ".");
+			throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to sort reference frame tree due to a cyclic dependency!\nEntry node of the cycle has entity " + enquote(m_registry->getEntity(entity).name) + " (ID #" + std::to_string(entity) + ").");
 		}
 
 

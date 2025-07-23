@@ -111,6 +111,10 @@ private:
 	std::vector<uint32_t> m_offscreenCleanupIDs;
 
 
+	// Session data
+	std::vector<CleanupID> m_sessionCleanupIDs;	// Used to execute old cleanup tasks on new session initialization
+
+
 	void bindEvents();
 
 	void createGraphicsPipeline();

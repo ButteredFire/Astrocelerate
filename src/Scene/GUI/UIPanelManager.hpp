@@ -11,6 +11,8 @@
 #include <imgui/imgui_internal.h>
 #include <imgui/imgui_impl_vulkan.h>
 
+#include <tinyfiledialogs/tinyfiledialogs.h>
+
 #include <Core/Application/LoggingManager.hpp>
 #include <Core/Application/EventDispatcher.hpp>
 #include <Core/Data/GUI.hpp>
@@ -68,6 +70,14 @@ private:
 	ImGuiWindowClass m_windowClass;
 
 
+	// Session & Scene data/status
+	bool m_showLoadingModal = false;
+	float m_currentLoadProgress = 0.0f;
+	std::string m_currentLoadMessage = "";
+	bool m_loadErrorOccurred = false;
+	std::string m_loadErrorMessage = "";
+
+
 	void bindEvents();
 
 	void initCommonPanels();
@@ -80,4 +90,8 @@ private:
 		// Menu-bar panels
 	void renderPreferencesPanel();
 	void renderAboutPanel();
+
+		// Modals
+	const char *m_sceneLoadModelName = "Processing Scene";
+	void renderSceneLoadModal();
 };

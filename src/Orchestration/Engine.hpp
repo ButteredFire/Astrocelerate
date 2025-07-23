@@ -40,6 +40,8 @@
 #include <Engine/Components/PhysicsComponents.hpp>
 #include <Engine/Components/TelemetryComponents.hpp>
 
+#include <Orchestration/Session.hpp>
+
 #include <Simulation/Systems/Time.hpp>
 #include <Simulation/Systems/ReferenceFrameSystem.hpp>
 
@@ -74,9 +76,7 @@ private:
 	std::shared_ptr<Renderer> m_renderer;
 
 	std::shared_ptr<InputManager> m_inputManager;
-
-	std::shared_ptr<PhysicsSystem> m_physicsSystem;
-	std::shared_ptr<ReferenceFrameSystem> m_refFrameSystem;
+	std::shared_ptr<Session> m_currentSession;
 
 	void bindEvents();
 

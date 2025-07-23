@@ -6,37 +6,44 @@
 #include "ECSCore.hpp"
 
 
-
 class EntityManager {
 public:
-	EntityManager() {
-		for (EntityID id = 0; id < MAX_ENTITIES; id++) {
-			m_availableIDs.push(id);
-		}
+	EntityManager() :
+		m_nextEntity(0) {
 
 		Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 	};
 	~EntityManager() = default;
 
 
+	// To make the non-copyable and non-movable nature of EntityManager clear, the copy, copy assignment, move, and move assignment operators are deleted.
+	EntityManager(const EntityManager &) = delete;
+	EntityManager &operator=(const EntityManager &) = delete;
+
+	EntityManager(EntityManager &&) = delete;
+	EntityManager &operator=(EntityManager &&) = delete;
+
+
 	/* Creates a new entity.
 		@return The newly created entity.
 	*/
-	inline Entity createEntity(const std::string& name) {
-		if (m_availableIDs.size() == 0) {
-			throw Log::RuntimeException(__FUNCTION__, __LINE__, "Cannot create new entity: Entity count has reached the limit of " + std::to_string(MAX_ENTITIES) + " entities!");
-		}
-
-		EntityID newID = m_availableIDs.front();
-		m_availableIDs.pop();
+	inline Entity createEntity(const std::string &name) {
+		EntityID newID = m_nextEntity++;
 
 		Entity newEntity{};
 		newEntity.id = newID;
 		newEntity.name = name;
 		//newEntity.version = m_versions[newID];
 
+		// NOTE: For thread-safety, push_back, map insertions, and vector access would need synchronization (e.g., mutexes) if createEntity/destroyEntity are called concurrently.
 		m_activeEntityIDs.push_back(newEntity.id);
 		m_componentMasks.push_back(ComponentMask{});
+
+		// Ensure vectors are large enough to hold newID if it's not sequential
+		if (newID >= m_componentMasks.size()) {
+			m_componentMasks.resize(newID + 1);
+			// m_versions.resize(newID + 1);
+		}
 
 		m_entityIDToIndexMap[newEntity.id] = (m_activeEntityIDs.size() - 1);
 		m_entityIDToEntityMap[newEntity.id] = newEntity;
@@ -49,38 +56,47 @@ public:
 		@param entity: The entity to be destroyed.
 	*/
 	inline void destroyEntity(Entity entity) {
-		if (m_entityIDToIndexMap.find(entity.id) == m_entityIDToIndexMap.end()) {
-			Log::Print(Log::T_WARNING, __FUNCTION__, "Cannot destroy entity #" + std::to_string(entity.id) + " as it does not exist.");
+		auto it = m_entityIDToIndexMap.find(entity.id);
+		if (it == m_entityIDToIndexMap.end()) {
+			Log::Print(Log::T_WARNING, __FUNCTION__, "Cannot destroy entity " + enquote(entity.name) + " (ID #" + std::to_string(entity.id) + "): Entity does not exist!");
 			return;
 		}
 
-		size_t currentIndex = entity.id;
+		size_t indexToRemove = it->second;
 		size_t lastIndex = (m_activeEntityIDs.size() - 1);
 
-		std::swap(m_activeEntityIDs[currentIndex], m_activeEntityIDs[lastIndex]);
-		std::swap(m_componentMasks[currentIndex], m_componentMasks[lastIndex]);
+		if (indexToRemove != lastIndex) {
+			EntityID lastEntityID = m_activeEntityIDs[lastIndex];
 
-		m_entityIDToIndexMap[m_activeEntityIDs[currentIndex]] = currentIndex;
+			std::swap(m_activeEntityIDs[indexToRemove], m_activeEntityIDs[lastIndex]);
+			//std::swap(m_componentMasks[indexToRemove], m_componentMasks[lastIndex]);	// m_componentMasks is indexed by EntityID, so no need to swap the two here.
+
+			m_entityIDToIndexMap[lastEntityID] = indexToRemove;
+		}
 
 		m_activeEntityIDs.pop_back();
-		m_componentMasks.pop_back();
+		//m_componentMasks.pop_back();	// m_componentMasks is indexed by EntityID
 		m_entityIDToIndexMap.erase(entity.id);
+		m_entityIDToEntityMap.erase(entity.id);
 
-		m_componentMasks[entity.id].reset();
-		m_availableIDs.push(entity.id);
+		if (entity.id < m_componentMasks.size()) {
+			m_componentMasks[entity.id].reset();
+		}
+
+		// m_versions[entity.id]++;
 	}
 
 
 	/* Gets all entities. */
-	inline std::unordered_map<EntityID, Entity>& getAllEntities() { return m_entityIDToEntityMap; }
+	inline std::unordered_map<EntityID, Entity> &getAllEntities() { return m_entityIDToEntityMap; }
 
 
 	/* Gets all active entity IDs. */
-	inline std::vector<EntityID>& getAllEntityIDs() { return m_activeEntityIDs; }
+	inline std::vector<EntityID> &getAllEntityIDs() { return m_activeEntityIDs; }
 
 
 	/* Gets active entity component masks. */
-	inline std::vector<ComponentMask>& getAllComponentMasks() { return m_componentMasks; }
+	inline std::vector<ComponentMask> &getAllComponentMasks() { return m_componentMasks; }
 
 	/* Sets an entity's component mask.
 		@param entityID: The ID of the entity whose component mask needs to be set.
@@ -91,10 +107,22 @@ public:
 	}
 
 
-	inline const ComponentMask& getComponentMask(EntityID entityID) const { return m_componentMasks[entityID]; }
+	inline const ComponentMask &getComponentMask(EntityID entityID) const { return m_componentMasks[entityID]; }
+
+
+	/* Resets THIS entity manager to its initial state. */
+	inline void reset() {
+		m_nextEntity = 0;
+		m_activeEntityIDs.clear();
+		m_componentMasks.clear();
+		m_entityIDToIndexMap.clear();
+		m_entityIDToEntityMap.clear();
+		// NOTE: Clear any versioning here
+	}
 
 private:
-	std::queue<EntityID> m_availableIDs;
+	std::atomic<EntityID> m_nextEntity;
+
 	std::vector<EntityID> m_activeEntityIDs;
 	std::vector<ComponentMask> m_componentMasks;
 
@@ -354,7 +382,7 @@ private:
 class Registry {
 public:
 	Registry() {
-		Entity nullEntity = createEntity("null");
+		init();
 		Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 	}
 	~Registry() = default;
@@ -412,7 +440,7 @@ public:
     template<typename Component>
     inline Component& getComponent(EntityID entityID) {
        if (!componentManager.entityHasComponent<Component>(entityID)) {
-           throw Log::RuntimeException(__FUNCTION__, __LINE__, "Entity #" + std::to_string(entityID) + " does not have the component " + enquote(typeid(Component).name()) + "!");
+           throw Log::RuntimeException(__FUNCTION__, __LINE__, "Entity " + enquote(getEntity(entityID).name) + " (ID #" + std::to_string(entityID) + ") does not have the component " + enquote(typeid(Component).name()) + "!");
        }
 
        return componentManager.getComponent<Component>(entityID);
@@ -427,8 +455,12 @@ public:
 
 	inline void clear() {
 		// NOTE: Assigning a new object automatically destroys the old class instance and constructs/moves the new one
-		entityManager = EntityManager();
+		entityManager.reset();
 		componentManager = ComponentManager();
+
+		init();
+
+		Log::Print(Log::T_INFO, __FUNCTION__, "Registry has been cleared.");
 	}
 
 
@@ -456,4 +488,8 @@ public:
 private:
 	EntityManager entityManager;
 	ComponentManager componentManager;
+
+	inline void init() {
+		Entity nullEntity = createEntity("null");
+	}
 };
