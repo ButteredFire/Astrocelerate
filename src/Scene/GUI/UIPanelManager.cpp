@@ -102,6 +102,7 @@ void UIPanelManager::renderWorkspace(uint32_t currentFrame) {
 	if (m_showLoadingModal) {
 		ImGui::OpenPopup(m_sceneLoadModelName);
 	}
+	renderSceneLoadModal();
 
 
 	// Workspace panel callbacks
@@ -499,34 +500,57 @@ void UIPanelManager::renderAboutPanel() {
 
 
 void UIPanelManager::renderSceneLoadModal() {
-	if (ImGui::BeginPopupModal(m_sceneLoadModelName, &m_showLoadingModal, ImGuiWindowFlags_AlwaysAutoResize)) {
-		if (!m_loadErrorOccurred) {
-			ImGui::Text("%s", m_currentLoadMessage.c_str());
-			ImGui::ProgressBar(m_currentLoadProgress, ImVec2(0.f, 0.f), "");
+	ImGui::SetNextWindowSize(ImVec2(600.0f, 200.0f));
+	ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 
-			// Display an "OK" button only when loading is complete and successful
-			if (m_currentLoadProgress >= 1.0f) {
-				// Give a moment for "Done" to show, or require manual close
-				if (ImGui::Button("OK")) {
-					ImGui::CloseCurrentPopup();
-					m_showLoadingModal = false;
-				}
+	if (ImGui::BeginPopupModal(m_sceneLoadModelName, &m_showLoadingModal, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration)) {
+
+		ImVec2 availableRegion = ImGui::GetContentRegionAvail();
+		float availableScrollHeight = availableRegion.y - ImGuiUtils::GetBottomButtonAreaHeight();
+
+		if (ImGui::BeginChild("MainRegion", ImVec2(0.0f, availableScrollHeight))) {
+			if (!m_loadErrorOccurred) {
+				ImGuiUtils::BoldText("Loading Scene");
+				ImGuiUtils::Padding();
+				ImGui::Text("%s", m_currentLoadMessage.c_str());
+
+				char overlay[32];
+				sprintf(overlay, "%.1f%%", m_currentLoadProgress * 100);
+				ImGui::ProgressBar(m_currentLoadProgress, ImVec2(-1.0f, 0.0f), overlay);  // -1 for full width, 0 for default height
+
+				ImGuiUtils::Padding();
+
+				// Display an "OK" button only when loading is complete and successful
+				//if (m_currentLoadProgress >= 1.0f) {
+				//	
+				//}
 			}
+
+			else {
+				// Display error message and an "OK" button to close
+				ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 0, 0, 255));
+				{
+					ImGui::Text("Error during loading!");
+					ImGui::TextWrapped("%s", m_loadErrorMessage.c_str());
+				}
+				ImGui::PopStyleColor();
+
+				//if (ImGui::Button("OK")) {
+				//	ImGui::CloseCurrentPopup();
+				//	m_showLoadingModal = false;
+				//}
+			}
+
+			ImGui::EndChild();
 		}
 
-		else {
-			// Display error message and an "OK" button to close
-			ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 0, 0, 255));
-			{
-				ImGui::Text("Error during loading!");
-				ImGui::TextWrapped("%s", m_loadErrorMessage.c_str());
-			}
-			ImGui::PopStyleColor();
 
-			if (ImGui::Button("OK")) {
-				ImGui::CloseCurrentPopup();
-				m_showLoadingModal = false;
-			}
+		static const float btnWidth = 70.0f;
+		ImGuiUtils::BottomButtonPadding(btnWidth, 1);
+
+		if (ImGui::Button("OK", ImVec2(btnWidth, 0.0f))) {
+			ImGui::CloseCurrentPopup();
+			m_showLoadingModal = false;
 		}
 
 
