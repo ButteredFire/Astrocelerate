@@ -93,5 +93,5 @@ private:
 
 		// Modals
 	const char *m_sceneLoadModelName = "Processing Scene";
-	void renderSceneLoadModal();
+	void renderSceneLoadModal(const std::string &fileName);
 };

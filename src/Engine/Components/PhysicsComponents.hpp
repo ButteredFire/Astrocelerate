@@ -21,14 +21,14 @@ namespace PhysicsComponent {
 	/* Orbiting body (around another celestial body) */
 	struct OrbitingBody {
 		double centralMass;					// The mass of the body that this body is orbiting around.
-		std::string _centralMass_str;		// INTERNAL. OrbitingBody::centralMass in YAML files MUST be a reference to another entity.
+		std::string _centralMass_str;		// [INTERNAL] OrbitingBody::centralMass in YAML files MUST be a reference to another entity.
 	};
 
 
 	/* Inertial frame of reference. */
 	struct ReferenceFrame {
 		std::optional<EntityID> parentID;				// The parent reference frame's entity ID.
-		std::string _parentID_str;						// INTERNAL. ReferenceFrame::parentID in YAML files can either be a reference to another entity or null.
+		std::string _parentID_str;						// [INTERNAL] ReferenceFrame::parentID in YAML files can either be a reference to another entity or null.
 
 		Physics::FrameType frameType;					// TODO: Implement reference frame types
 

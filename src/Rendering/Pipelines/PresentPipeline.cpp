@@ -68,7 +68,7 @@ void PresentPipeline::createPipelineLayout() {
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(m_pipelineLayout) };
-	task.vkObjects = { g_vkContext.Device.logicalDevice, m_pipelineLayout };
+	task.vkHandles = { g_vkContext.Device.logicalDevice, m_pipelineLayout };
 	task.cleanupFunc = [&]() { vkDestroyPipelineLayout(g_vkContext.Device.logicalDevice, m_pipelineLayout, nullptr); };
 
 	m_garbageCollector->createCleanupTask(task);
@@ -164,7 +164,7 @@ void PresentPipeline::createRenderPass() {
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(m_renderPass) };
-	task.vkObjects = { g_vkContext.Device.logicalDevice, m_renderPass };
+	task.vkHandles = { g_vkContext.Device.logicalDevice, m_renderPass };
 	task.cleanupFunc = [this]() { vkDestroyRenderPass(g_vkContext.Device.logicalDevice, m_renderPass, nullptr); };
 
 	m_garbageCollector->createCleanupTask(task);

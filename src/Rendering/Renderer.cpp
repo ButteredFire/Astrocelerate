@@ -155,7 +155,7 @@ void Renderer::drawFrame(glm::dvec3& renderOrigin) {
     VkResult presentResult = vkQueuePresentKHR(graphicsQueue, &presentationInfo);
     if (presentResult != VK_SUCCESS) {
         if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR) {
-            m_swapchainManager->recreateSwapchain(m_currentFrame);
+            m_swapchainManager->recreateSwapchain(imageIndex);
             m_imguiRenderer->refreshImGui();
             return;
         }

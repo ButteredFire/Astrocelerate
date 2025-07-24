@@ -49,7 +49,13 @@ void VkBufferManager::bindEvents() {
 			case UpdateSessionStatus::Status::PREPARE_FOR_INIT:
 				m_sceneReady = true;
 
-				// Clean up (i.e., unmap memory of) all per-session buffers
+				// Clean up all per-session buffers
+					// Unmap memory
+				for (auto &cleanupID : m_bufferMemCleanupIDs)
+					m_garbageCollector->executeCleanupTask(cleanupID);
+				m_bufferMemCleanupIDs.clear();
+				
+					// Destroy buffers
 				for (auto &cleanupID : m_bufferCleanupIDs)
 					m_garbageCollector->executeCleanupTask(cleanupID);
 				m_bufferCleanupIDs.clear();
@@ -119,7 +125,7 @@ CleanupID VkBufferManager::CreateBuffer(VkBuffer& buffer, VkDeviceSize bufferSiz
 	CleanupTask bufTask{};
 	bufTask.caller = __FUNCTION__;
 	bufTask.objectNames = { VARIABLE_NAME(m_buffer) };
-	bufTask.vkObjects = { g_vkContext.vmaAllocator, buffer, bufferAllocation };
+	bufTask.vkHandles = { g_vkContext.vmaAllocator, buffer, bufferAllocation };
 	bufTask.cleanupFunc = [buffer, bufferAllocation]() { vmaDestroyBuffer(g_vkContext.vmaAllocator, buffer, bufferAllocation); };
 
 	CleanupID bufferTaskID = m_garbageCollector->createCleanupTask(bufTask);
@@ -191,18 +197,20 @@ void VkBufferManager::createMatParamsUniformBuffer() {
 	matParamsUBAllocInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 	matParamsUBAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
 
-	CreateBuffer(m_matParamsBuffer, bufferSize, bufferUsage, m_matParamsBufferAllocation, matParamsUBAllocInfo);
+	CleanupID cleanupTaskID = CreateBuffer(m_matParamsBuffer, bufferSize, bufferUsage, m_matParamsBufferAllocation, matParamsUBAllocInfo);
+
+	m_bufferCleanupIDs.push_back(cleanupTaskID);
 
 	vmaMapMemory(g_vkContext.vmaAllocator, m_matParamsBufferAllocation, &m_matParamsBufferMappedData);
 
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(m_matParamsBufferAllocation) };
-	task.vkObjects = { g_vkContext.vmaAllocator, m_matParamsBufferAllocation };
+	task.vkHandles = { g_vkContext.vmaAllocator, m_matParamsBufferAllocation };
 	task.cleanupFunc = [this]() {
 		vmaUnmapMemory(g_vkContext.vmaAllocator, m_matParamsBufferAllocation);
 	};
-	m_bufferCleanupIDs.push_back(
+	m_bufferMemCleanupIDs.push_back(
 		m_garbageCollector->createCleanupTask(task)
 	);
 
@@ -472,7 +480,7 @@ void VkBufferManager::createUniformBuffers() {
 
 	for (size_t i = 0; i < SimulationConsts::MAX_FRAMES_IN_FLIGHT; i++) {
 		// Global UBO
-		CreateBuffer(m_globalUBOs[i].buffer, globalBufSize, uniformBufUsageFlags, m_globalUBOs[i].allocation, uniformBufAllocInfo);
+		CleanupID bufCleanupID = CreateBuffer(m_globalUBOs[i].buffer, globalBufSize, uniformBufUsageFlags, m_globalUBOs[i].allocation, uniformBufAllocInfo);
 
 			/*
 			The buffer allocation stays mapped to the pointer for the application's whole lifetime.
@@ -480,10 +488,14 @@ void VkBufferManager::createUniformBuffers() {
 			*/
 		vmaMapMemory(g_vkContext.vmaAllocator, m_globalUBOs[i].allocation, &m_globalUBOMappedData[i]);
 
+		m_bufferCleanupIDs.push_back(bufCleanupID);
+
 
 		// Object UBO
-		CreateBuffer(m_objectUBOs[i].buffer, objectBufSize, uniformBufUsageFlags, m_objectUBOs[i].allocation, uniformBufAllocInfo);
+		bufCleanupID = CreateBuffer(m_objectUBOs[i].buffer, objectBufSize, uniformBufUsageFlags, m_objectUBOs[i].allocation, uniformBufAllocInfo);
 		vmaMapMemory(g_vkContext.vmaAllocator, m_objectUBOs[i].allocation, &m_objectUBOMappedData[i]);
+
+		m_bufferCleanupIDs.push_back(bufCleanupID);
 
 
 		// Cleanup task
@@ -493,13 +505,13 @@ void VkBufferManager::createUniformBuffers() {
 		CleanupTask task{};
 		task.caller = __FUNCTION__;
 		task.objectNames = { "Global and per-object UBOs" };
-		task.vkObjects = { g_vkContext.vmaAllocator, globalUBOAlloc, objectUBOAlloc };
+		task.vkHandles = { g_vkContext.vmaAllocator, globalUBOAlloc, objectUBOAlloc };
 		task.cleanupFunc = [this, i, globalUBOAlloc, objectUBOAlloc]() {
 			vmaUnmapMemory(g_vkContext.vmaAllocator, globalUBOAlloc);
 			vmaUnmapMemory(g_vkContext.vmaAllocator, objectUBOAlloc);
 		};
 
-		m_bufferCleanupIDs.push_back(
+		m_bufferMemCleanupIDs.push_back(
 			m_garbageCollector->createCleanupTask(task)
 		);
 	}

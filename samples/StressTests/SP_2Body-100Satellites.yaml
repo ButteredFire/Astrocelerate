@@ -1,0 +1,2931 @@
+Entities:
+  - Name: Earth
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: null
+          scale: 6378000.0
+          visualScale: 10.0
+          localTransform:
+            position: [0.0, 0.0, 0.0]
+            rotation: [0.0, 0.0, 0.0]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [0.0, 0.0, 0.0]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 5.972e+24
+
+      - Type: PhysicsComponent::ShapeParameters
+        Data:
+          equatRadius: 6378000.0
+          eccentricity: 0.0167
+          gravParam: 3.986004418e+14 # PhysicsConsts::G * earthMass
+          rotVelocity: 7.2921159e-5
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/CelestialBodies/Earth/Earth.gltf"
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {} # This is just an empty component, used to tag which entities appear on the telemetry dashboard
+
+
+  - Name: Satellite_001
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [3652831.6388252974, 5671612.323542445, 397578.3289111818]
+            rotation: [199.9021498280534, 320.525191137342, 207.18758189672073]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [642.2766310725219, -2058.11650606952, -8055.106304063044]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 4118.0023025813
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_002
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [-7010396.997146442, -3642324.3592494517, 2531328.0660160766]
+            rotation: [156.16042738651007, 80.89327319166922, 0.4532305117437829]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [537.2673225076811, -6678.646598859409, -2441.219826989365]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 1213.1226680954094
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_003
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [5423424.217067761, -2983915.6706540096, 5204895.256966473]
+            rotation: [145.10999849367226, 205.97900961803447, 209.17660222351577]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [-4857.0449643611855, 1242.496862538518, 4093.7465998912603]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 324.7941736518837
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_004
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [-657675.0572105997, 309497.00159142015, 6714222.512176276]
+            rotation: [32.616105990654496, 306.4551997914139, 326.04080031000063]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [3068.726660123947, 6855.067052417776, -2590.2835841521232]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 4488.405350891625
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_005
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [122208.06745357858, 213766.17994812544, -6754804.180542655]
+            rotation: [117.2733067888437, 145.82988328207907, 150.9155354662969]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [566.6214016255967, -7798.070391806113, -2483.585822796574]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 4326.563737435877
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_006
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [5776628.320707145, 4665284.618769733, -2247509.5519446954]
+            rotation: [38.07774115137936, 53.61560889507868, 47.38297466356012]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [4730.182798570452, 748.6953096634022, -5345.781344555032]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 41.04697449104289
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_007
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [1267586.6246904032, -364341.3241825869, -7928688.178394339]
+            rotation: [136.00102403477513, 143.06966475184228, 329.00000537929964]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [-4007.305849523823, 5533.682010229967, 2538.2522194649546]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 3432.77606349349
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_008
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [-2968987.1413983623, -3599552.342678564, -5102236.067372815]
+            rotation: [269.59064759488757, 60.792444973276766, 215.86543466154865]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [133.90518061526666, -6109.610735199489, 4867.659118550333]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 1646.109194355099
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_009
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [5955112.594173831, 2567974.4562521577, 1339163.7202989692]
+            rotation: [86.00238345021177, 283.84611015322315, 234.5724781385926]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [161.02251095401533, 6701.929887759206, -2690.784843519405]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 2996.216855721224
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_010
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [-353750.2597518872, 3817940.3332881117, -6326939.39969008]
+            rotation: [32.85230630613633, 221.39782830062657, 250.58783132658172]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [555.7158512128234, 2098.874708488589, 6779.111797484128]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 4210.864070919501
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_011
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [2728719.622967868, -3558665.552501287, -6403249.324007364]
+            rotation: [169.72894239435956, 233.91699192863592, 55.960891146257126]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [-5581.339412288699, 3812.2593170301493, -2095.965495975627]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 3649.4959672467076
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_012
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [-2138911.609099383, -4293185.200338338, 4645193.619898949]
+            rotation: [150.41055729586205, 242.90267173229324, 251.25655686543678]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [-5016.872854796945, -4456.629772120643, 3804.72256211933]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 2421.9270787493424
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_013
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [-4530247.660624305, -59417.116929281154, 6964116.197604718]
+            rotation: [21.004819350642165, 297.6415575300893, 317.8749555772851]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [-406.3621313837068, -6862.152069845907, 224.2095101733211]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 275.71456018539027
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_014
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [-3416375.325113469, 1522199.019902492, -5580527.673092457]
+            rotation: [233.56115223799316, 6.673368481339232, 49.74820796640239]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [-3637.739898482008, 7004.430652368421, 1982.9096127873381]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 3862.761965032351
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_015
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [-1449857.0714314955, -7380694.878246799, -2782882.3863281384]
+            rotation: [93.61674569372008, 228.53233101835272, 151.31861913610322]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [-4299.1209349925775, 4842.5552736344935, -1982.0461206624138]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 4900.0118786653575
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_016
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [-3624258.172046095, 1948636.7911742222, 6540353.260281441]
+            rotation: [73.62355351576225, 44.97162430180374, 172.99635524410346]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [1511.5255871376626, 4705.935499835495, 4832.1392332014075]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 3405.2851521646326
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_017
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [3881023.1884365436, -3718307.8567416775, -5094097.618391614]
+            rotation: [135.5964319825277, 30.736661353847047, 133.68773511023605]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [4268.430599718266, -511.8950482034463, -6009.875943607088]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 1739.449717156688
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_018
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [-2737025.59330716, -5088910.669409368, 3955777.795651231]
+            rotation: [73.38666883402695, 320.3877958963214, 103.9909449006779]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [-5093.932110315691, -2336.198881846074, -4862.187874940802]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 4234.425989614458
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_019
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [625813.372697149, 94256.35136687761, 7637383.320294925]
+            rotation: [140.61645276264105, 290.4775065237982, 286.87930667586437]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [-4853.624662524722, 4172.7803822488895, -3453.436634361702]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 204.9001270140462
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_020
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [2505299.4552300405, 2870609.10962061, 6337156.722115789]
+            rotation: [126.06055030206954, 34.51216873793534, 171.69869439177484]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [-2169.5540800247527, 5432.62601946571, 4465.628103784898]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 4623.71848880212
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_021
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [685555.9305104435, 223254.09325152298, 8255986.2879936565]
+            rotation: [69.10064118291726, 64.41330342648195, 158.6361250493654]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [-6561.148634104515, 1331.6211130277338, 77.10407569589634]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 3651.7145260012903
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_022
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [-5069585.526421004, 4031604.4020654396, 2249314.6696730196]
+            rotation: [298.6332688716325, 239.12569858048175, 257.0895425011508]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [3494.4098301195995, 4418.603449623117, 4705.882187900267]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 3193.744200054462
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_023
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [4634355.471563178, -1812429.8684461499, 5283949.257025713]
+            rotation: [69.0336626284273, 126.92024145594007, 45.78395004649469]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [5845.577383666339, 3652.894440685836, 2359.4218159607003]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 791.8203571481898
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_024
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [2267806.317994065, 5775469.429730895, 4896296.018255748]
+            rotation: [44.33785151120564, 44.88233429899595, 53.667539942815964]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [-1598.2595067070981, 6015.3577335686605, 2234.0468101053602]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 4945.468650548053
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_025
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [6793501.697381946, -3626467.464332709, -2998479.771227845]
+            rotation: [288.69801925475724, 97.33639948754798, 146.15024040117254]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [-432.4195485277873, 4847.439769327891, 5339.436444910617]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 4376.917265000214
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_026
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [1106161.9913974733, -1240190.351006969, 6667374.493448916]
+            rotation: [346.9681815723494, 210.67935174440407, 39.5005023095234]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [-4732.181549582872, 5152.999178639224, 3884.070192208156]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 1033.1135917211204
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_027
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [985610.4006216084, 836132.0516868563, -7079426.963908644]
+            rotation: [227.7203221956129, 318.08967347297107, 218.97305060697846]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [-3654.790486591101, -4450.68096075719, -4788.548773542566]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 163.2364042366953
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_028
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [1603374.8558370266, -6691274.506258256, -2139676.8143606354]
+            rotation: [135.44440667221426, 54.101127320050495, 174.5617895163254]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [-5615.634139374673, 3027.310983456961, 3384.2405913173043]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 705.3633319079042
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_029
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [1469510.1356894267, 2975346.937966392, 7686266.5568363955]
+            rotation: [134.44312136845429, 19.779646977862043, 319.5271963673973]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [5638.105574797787, 1108.283915393995, -3887.97130169667]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 3616.1597367920394
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_030
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [-2738935.3444517255, 5192839.197243936, 5349030.530701032]
+            rotation: [215.52769218781867, 34.956651462151015, 122.59291099492998]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [6977.959935678476, -1701.3324787323509, -1761.8178827223635]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 2116.6690554200136
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_031
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [-5154062.107386943, 3406276.3487725276, 3486820.378074075]
+            rotation: [154.63363683659338, 185.00066136075398, 263.93449309057456]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [-4277.026011050099, 3759.6739729988126, -4406.558882045825]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 1079.380874395036
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_032
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [-7731668.114555141, -508085.46123747266, 412798.5629626579]
+            rotation: [167.208043095321, 93.7391148307577, 238.36683886279087]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [1660.8722010415736, -4639.3311371965365, -5085.202115672833]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 1300.4471709579036
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_033
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [1622209.5191214483, -1664773.679148146, -6285680.275118187]
+            rotation: [208.94389699795744, 342.359668929291, 288.75266054234584]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [4778.1664621543705, 3359.9178128324133, 4341.319170395059]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 4636.178711566232
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_034
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [566386.8677092378, 8069040.424748686, -165920.83826326812]
+            rotation: [301.45795186339194, 184.65463644818746, 268.289601150399]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [-6222.246102543681, 2037.813979182897, 1172.3243957175146]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 1402.948089228979
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_035
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [-6201801.03432531, -2619758.9985822006, -3191760.6122066407]
+            rotation: [214.08465911983953, 104.84419640634451, 91.77531447923968]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [3181.885693045013, -4116.697378612169, 5088.855803343128]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 4251.706045683374
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_036
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [-2376390.4417739296, 6609371.955159731, 1299321.3549427134]
+            rotation: [207.10198585181354, 296.13058393439957, 299.65639010558897]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [1728.355962862357, -3024.1460764181725, -6630.942395821876]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 569.6595659850739
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_037
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [3198042.0214169384, 5970390.002306757, 2397129.162355516]
+            rotation: [270.0339635866291, 151.43518762330174, 157.2939250257108]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [-6891.617878791767, 40.473934899338154, -596.0824683946373]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 2033.3587379074324
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_038
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [-916426.1085924756, -868576.4259766449, 7571329.487940739]
+            rotation: [236.23951635148026, 203.56625002517916, 239.2829832114946]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [-1385.1712021085602, 6662.389067256172, -124.43711427605733]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 2877.8869429677684
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_039
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [-3217888.9903187007, 188852.97181148076, -6362867.4693068685]
+            rotation: [63.48120453257417, 175.79532872743945, 249.08050313716126]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [-3756.3359530586745, -4578.049507749457, 4623.88634620637]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 2628.6164714742035
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_040
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [-3960015.1168850427, -5243922.068201649, 1979821.140870841]
+            rotation: [157.91636325007028, 230.42451606413263, 139.93416366276568]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [4350.307839324974, -5803.152498616003, -1862.6366254469433]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 3122.9066115358883
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_041
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [-20915.427336583314, -246517.612397844, -7635616.96969766]
+            rotation: [98.43440926836674, 142.49464131748954, 235.0547274413744]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [-4649.222253682376, 5147.5308785026045, -675.7370058465563]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 3297.7502885307213
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_042
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [-1190902.0839006132, -6583720.735704736, 1048098.5967832414]
+            rotation: [92.2729473777563, 65.78890228424514, 113.31080532125559]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [542.2073388975762, 6634.522539074191, -3783.48748769588]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 2702.0910093095954
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_043
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [-2486019.9627021733, 191137.85040197385, 6249818.174070664]
+            rotation: [233.1061251670827, 230.32114349574002, 281.8967102308484]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [-5040.958175196406, 5796.222699704552, 1250.8402762112569]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 2637.0086598345897
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_044
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [2826427.417280456, -5027848.242451823, -3937743.0750975623]
+            rotation: [47.575935265865475, 332.12481535309513, 69.27576626642374]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [-5466.926402300739, 4805.292238649105, 1231.3815372379056]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 3720.194774555535
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_045
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [24447.58898509058, -7389529.339682829, 170514.2012270694]
+            rotation: [300.6060414862947, 267.741476234463, 149.53135547013403]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [-3915.571974664165, -5585.286864799154, 41.67935206281757]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 2612.0731068003934
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_046
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [-6144568.938581074, -3051486.0701160543, 1484017.74446844]
+            rotation: [327.27376973644, 77.72552106823188, 332.62943752452475]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [381.2704693732268, -6642.889832711677, -4895.9139712363785]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 142.79102267219983
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_047
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [2455578.6482629227, 7220070.663049114, -2183788.506836058]
+            rotation: [313.9945240988796, 84.48917140728555, 197.6277214901166]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [-7094.000471619266, 1714.8533360900599, -889.1976309362326]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 4302.138710514811
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_048
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [1297957.92449261, -2499344.944085992, 6849720.736044552]
+            rotation: [332.8620172137834, 261.2740968489447, 227.54773166488866]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [3906.423135005037, 3397.2904021443865, -4610.621448370578]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 4288.013578312759
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_049
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [5321510.323839906, 6044188.328410945, -1044412.775840885]
+            rotation: [222.16461695391436, 8.328595810902577, 124.85746785910719]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [2997.4550124817765, 2167.5692973795362, 5981.657832547285]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 1648.9755304105827
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_050
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [1692488.9784310954, 1148838.2147398416, -6896726.924787391]
+            rotation: [329.8582428434653, 189.75419351433933, 311.4062189848008]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [-1213.3639320137515, -5603.239111482866, 5452.993364989766]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 1029.304707263873
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_051
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [4431831.1055283705, 1647349.813866246, -6700786.839970884]
+            rotation: [276.4721205479745, 63.83715072692908, 212.7586013402831]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [5416.030791920463, -1166.3458483034635, -3039.1097074375666]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 1200.573166756927
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_052
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [3751538.8934900262, 1546755.0811091869, -6095542.975608506]
+            rotation: [163.96503527791498, 322.7167393562939, 117.39554105166964]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [394.90151290030474, -6021.492850932225, 3964.2559295309184]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 2394.2936408579126
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_053
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [4864415.955301177, -6526036.909615153, -502652.5420709809]
+            rotation: [280.413338046775, 107.70169042579879, 260.171332077965]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [3348.4843723305157, 1316.7953037764894, -5507.187557896154]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 3958.939233934545
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_054
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [1447426.864148819, -4463876.770959772, -4997049.2463186355]
+            rotation: [119.4561078780451, 158.54321194595758, 111.82494788629326]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [-7216.035683106905, -2418.536728622482, -1990.2640975488168]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 573.5475725947766
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_055
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [-1172966.8979269566, -2718057.592928156, 5896398.554607791]
+            rotation: [48.60899608765014, 254.64734852764832, 138.53217427037754]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [-6633.71086921519, 3716.7487566614705, -2405.3841883017703]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 3823.5460200002963
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_056
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [-199544.04937993758, -3869990.313677361, 5924356.27029404]
+            rotation: [102.61992958701946, 147.83230852317246, 192.2451482394672]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [4334.389691640062, 1408.3845771026122, -5651.012385728057]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 2900.080762344281
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_057
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [-110736.94957982044, -2566139.5473783226, 6126489.110116792]
+            rotation: [284.44288562633614, 41.0983129066929, 278.1692269745763]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [-2866.5028249399843, -4783.348388237933, 4513.6204817872695]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 2624.4770394698185
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_058
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [-12642.51583709061, 12491.271717981246, 8052013.149149779]
+            rotation: [308.99487679088963, 262.8844196780138, 120.56292607164158]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [-5949.3600931549745, -3919.8726164846184, 2103.16548670284]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 3151.0280203998805
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_059
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [3552853.743046192, 4682705.398204357, -3124586.8914966336]
+            rotation: [328.01933288860425, 221.83794967463547, 267.48371185772584]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [645.9646806427401, 6970.491567945995, 4033.9331257125214]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 1221.5048426958767
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_060
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [-583050.1148746922, -2051062.7471385186, 7787437.524231521]
+            rotation: [294.7048745244582, 272.8493655295056, 329.73188224139557]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [5591.126013933069, 1962.330688965058, -3740.3380676778206]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 954.1792265152943
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_061
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [2197409.3208030886, -5568801.359883604, -3000652.099837468]
+            rotation: [356.75796162479116, 251.91857591030254, 219.90607631887445]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [2914.0183645388634, -5102.296197127599, -4542.875298205888]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 419.6677307284938
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_062
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [3315348.8357009045, 5186335.756860156, -3318872.900717689]
+            rotation: [67.41766751478526, 135.8541727089669, 242.26995802780272]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [-2598.2675092804216, -4549.647233262245, -5610.258627773506]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 3736.577561289069
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_063
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [4699756.020062093, -1469484.6723331618, 6068063.76242654]
+            rotation: [275.23816169802706, 256.9430318145139, 205.19920019802873]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [3597.5126068901354, 3803.5217513517823, -4877.865302643092]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 3807.384104621596
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_064
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [1567934.579777183, 3208304.0484765735, -6881081.894749271]
+            rotation: [347.1301872914411, 315.57719697346505, 128.9076003478025]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [3077.7646041615258, 3747.792330487581, 5730.79914043351]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 3949.1953970509812
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_065
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [53952.030629803005, 6291671.869590194, 3983313.270974962]
+            rotation: [298.7870575038944, 247.3150252898458, 301.4746110823633]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [-1520.5417827059434, 7774.696580422633, 1042.1555387070061]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 4323.3777947391145
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_066
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [6254138.525816135, -2241645.226494744, -1297483.6777782228]
+            rotation: [197.05625444279713, 56.50721751475337, 82.57044412118199]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [-1142.1683382925169, 4157.640708814883, 5741.400696876277]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 4076.772645542619
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_067
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [29471.272487723574, -2455458.466211202, 7475785.963181255]
+            rotation: [181.25504897395822, 340.4274026482799, 305.2578498152947]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [-878.7835311335507, -7431.1149081925705, 969.7925718538348]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 1994.824584995725
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_068
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [1416444.6237947016, 5182381.939880192, 5892136.1880800035]
+            rotation: [121.85628616372387, 88.82789497436033, 135.95427280462138]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [91.50869996545607, 5000.978761735885, 5487.330496287534]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 4526.746317294005
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_069
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [5749428.710964215, -2292.7124675755367, 4979989.760240307]
+            rotation: [9.942388377128161, 234.68198933341083, 349.03896378960224]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [1692.0425996306892, 4785.87145657655, -4547.271021968798]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 1782.5582940263248
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_070
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [2925611.823624955, 3742231.025399167, -5868355.304440617]
+            rotation: [239.59627965277852, 162.66601313276232, 358.01244933576623]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [3640.0961866587386, -5751.3412915545805, -651.6269345740624]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 4335.330770045306
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_071
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [4059626.2849683724, 7214625.885426408, 851134.775556661]
+            rotation: [174.33557750465653, 256.7057592008292, 133.31348111819995]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [-6275.881271977482, 2002.021620291936, 556.3972620248884]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 396.85536310599514
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_072
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [7681563.5816174345, -283520.0428317883, 2824616.42165258]
+            rotation: [341.4278177146637, 82.18754234731111, 206.3388683152732]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [2285.1013571111926, -593.4509139375967, 6885.677694159559]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 4413.759544105413
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_073
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [-7295248.337682837, -2443312.283396274, 3173191.4966067607]
+            rotation: [195.95700429096948, 212.65952754564003, 305.38385362969734]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [3244.187914211187, 2878.3634344195943, 4750.867889765417]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 4660.469333535954
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_074
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [-5174143.816934242, -4203952.947202165, -3854721.2895824113]
+            rotation: [296.7870990152181, 147.19126572941195, 273.6646021293439]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [3638.270673445365, 4396.937276822331, 4245.388047080845]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 617.3806058173406
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_075
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [5659120.769075662, 3498263.5187296877, 1485976.3029871648]
+            rotation: [310.12529298535634, 155.44118098473893, 124.17999955710638]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [-6710.3918863966155, 2629.7714432446805, -1440.4981236660349]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 966.0145857376855
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_076
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [-1579251.1368616244, 6856272.80158009, -1658462.2874509795]
+            rotation: [185.18490488351034, 57.169929239016916, 238.67667762793292]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [826.829910379669, -807.8065430844136, -6736.180823470825]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 759.2903978757787
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_077
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [5773196.840644932, 3356508.932251404, -314071.17382061685]
+            rotation: [56.82871087715857, 81.01213427229816, 342.989030973884]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [3444.9770166235703, -1482.067062872619, -7049.737073100636]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 155.18288522916683
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_078
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [1142673.1844704424, -883697.4804126087, -8199386.297518089]
+            rotation: [235.0791048602051, 281.4993827253859, 355.4757197903268]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [3708.4285235207813, 4060.5344967362485, 4227.367935311052]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 1819.4090615249447
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_079
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [-2021124.019262153, 1270224.8253058398, 7058259.224784541]
+            rotation: [151.4849651030902, 292.39528045504045, 139.00395687945576]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [-5852.757487920289, -806.4585462912598, -3310.9787232735953]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 2954.963404223516
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_080
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [-1145699.6387781545, 1971744.8284720196, 6662512.270661988]
+            rotation: [240.1919303241519, 198.64669952748858, 63.75681172700651]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [333.50709468647057, 3401.385511328124, -7171.541253485654]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 3837.168488307103
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_081
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [186116.10292280556, 6917619.325529236, 1189119.799565088]
+            rotation: [223.91395251591766, 165.88436460745575, 293.42958379289536]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [10.248420828718372, 6996.948389803785, -1780.217522562596]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 2451.4254533675526
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_082
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [-3298902.252415816, -3464999.3073061276, -4892164.031133404]
+            rotation: [290.0951421007003, 287.5452727373398, 329.65579061060873]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [-6368.127869752093, -612.8059729130675, -3881.157285620961]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 4669.885457745241
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_083
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [4910920.987128704, -5222742.55339373, 3088525.197509851]
+            rotation: [18.990287875509217, 290.66379633304695, 202.0628859203564]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [3688.233461077363, 4144.693253440533, -4701.658424434424]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 2573.0229008848582
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_084
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [-1120456.595299679, 7395452.209094687, 2467910.9691303642]
+            rotation: [5.464809796662551, 228.82410431008887, 271.21933513513585]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [1231.3035306536267, -4932.926939169016, 4114.762759227894]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 576.8183480672766
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_085
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [-2252361.6650644625, 4426989.533722791, 6287247.505013546]
+            rotation: [173.37788834711404, 129.57510283135397, 10.470253172866997]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [848.1615595567544, 1028.2308833444645, -6746.533348362346]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 1970.9515372867686
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_086
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [4273727.455760802, -6569160.192123276, -1799637.7988084536]
+            rotation: [100.7184113892339, 285.8355569745631, 351.7332989584039]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [4667.748092574908, -2504.7372442572855, 4691.503726072953]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 4611.906092881522
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_087
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [5444530.045420803, 1159512.1912083083, -4998448.283829511]
+            rotation: [80.60396921236456, 185.5484700740522, 19.597970095189744]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [-908.7415521827186, 5483.831857727408, -4689.890174701378]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 3383.814515328401
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_088
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [-1070538.1754615584, 112950.91507552125, 8257279.865214067]
+            rotation: [279.6236584659978, 105.3888034483242, 135.04029615842776]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [6528.011035993087, -2976.5419630937463, -1422.8980212925474]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 1305.8859365300052
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_089
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [-1538167.6305397362, 474464.59463654953, -6525276.355433533]
+            rotation: [318.131451331515, 340.53538757819337, 344.31886305882443]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [5312.722606325477, -4442.171260216612, -3657.14169554956]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 1878.2880960471102
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_090
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [-2053997.828552809, 359133.5116943356, 7576094.866113574]
+            rotation: [239.0978307665429, 173.87557708337113, 46.00854419680735]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [-6847.86842588997, 638.6681442647148, -1714.1716058976328]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 3867.767662167241
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_091
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [4281324.698567401, -1609504.584553798, 6918992.748165292]
+            rotation: [338.3749882687828, 22.5887065585823, 291.9806558441868]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [3497.833332988623, 5912.864149353178, 918.5282546355797]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 1159.8235909140183
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_092
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [5124385.8292167345, 3240914.8906402565, 4456933.597064231]
+            rotation: [211.9178671350242, 133.47295895345, 319.061605765141]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [-3084.32608868974, 697.4754233841162, 6099.378689177514]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 4546.555989160964
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_093
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [1596793.292813524, 7177876.11329483, -3658406.034190495]
+            rotation: [105.59081929459339, 218.94886319308702, 103.87925145373231]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [6208.409555962281, -3235.5212966080962, 897.8134858295674]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 3424.2899261399616
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_094
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [-3895492.3948741145, 6517940.2834097445, -772473.8264724705]
+            rotation: [70.38139149458796, 253.4544422338388, 172.91758090454104]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [126.61777143567869, 6877.819887386038, 2946.527131925042]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 3468.5184280619865
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_095
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [216711.11736651338, -1691142.6259358034, 7727763.105359343]
+            rotation: [201.4266927865841, 342.46242996670827, 204.75662930687875]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [-5992.228135601029, -4079.772003445429, 176.61408324984308]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 299.71621011267456
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_096
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [-3409600.3364474024, -4182189.7182451813, -6108752.6678745365]
+            rotation: [191.20378734343575, 81.22233433486484, 50.27235359808258]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [-4134.6328511170805, 4188.668499360693, 4313.274065325009]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 3930.169332370713
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_097
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [-3825262.9200356216, -437304.154878009, 5639688.409809239]
+            rotation: [83.38095415704089, 125.75888879855856, 281.975303891769]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [-5476.50905354446, -4151.844948796791, 3126.6548247688174]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 4292.2440921400985
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_098
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [619180.8703680409, 22183.01591289862, 7035938.338558064]
+            rotation: [301.70765836149815, 76.58632221413515, 110.58772826247318]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [-605.5972778456131, -2546.3458612546438, 7331.052790506393]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 2286.7255743914816
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_099
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [-24914.213646886452, 1035202.7948066538, -7470331.0996337375]
+            rotation: [15.203738962889716, 179.96596324426747, 323.28092557045335]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [-3794.0983778078357, -4493.423265751699, 4755.164663885703]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 174.98705806812592
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}
+
+
+  - Name: Satellite_100
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Earth
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [-5165788.76566075, 1966583.6949582917, 6118519.457045529]
+            rotation: [213.82034253199987, 76.02772576468129, 201.1000595860156]
+
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [1808.6253912607656, 2612.13949024396, -6012.288939238838]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 2880.120210475017
+
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Earth
+
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf" # Re-using Chandra model
+
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}

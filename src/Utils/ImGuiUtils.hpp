@@ -164,6 +164,36 @@ namespace ImGuiUtils {
 	}
 
 
+	/* Renders centered text in the current ImGui window.
+		@param fmt: The (formatted) text to be centered.
+		@param ...: The arguments for the formatted text.
+	*/
+	inline void CenteredText(const char *fmt, ...) {
+		ImVec2 windowSize = ImGui::GetWindowSize();
+
+		// Turn formatted text into a complete string
+		char buffer[256];
+		va_list args;
+		va_start(args, fmt);
+		vsprintf(buffer, fmt, args);
+		va_end(args);
+
+		ImVec2 textSize = ImGui::CalcTextSize(buffer);
+
+		float textWidth = textSize.x;
+		float availableWidth = ImGui::GetContentRegionAvail().x; // Width remaining in the current line/container
+
+		// Calculate the horizontal offset needed to center the text
+		float offsetX = (availableWidth - textWidth) * 0.5f;
+
+		if (offsetX > 0.0f) {
+			ImGui::SetCursorPosX(ImGui::GetCursorPosX() + offsetX);
+		}
+
+		ImGui::TextWrapped("%s", buffer);
+	}
+
+
 	/* Displays a tooltip with the given text.
 		@param fmt: The (formatted) text to be displayed in the tooltip.
 		@param ...: The arguments for the formatted text.
@@ -274,7 +304,7 @@ namespace ImGuiUtils {
 	/* A separator... but vertical.
 		@param thickness (Default: 1.0): The separator's width.
 	*/
-	inline void VerticalSeparator(float thickness = 1.0f) {
+	inline void VerticalSeparator(float thickness = 2.0f) {
 		ImGui::SameLine();
 		ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical, thickness);
 		ImGui::SameLine();

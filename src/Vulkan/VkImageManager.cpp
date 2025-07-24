@@ -54,7 +54,7 @@ uint32_t VkImageManager::CreateImage(VkImage& image, VmaAllocation& imgAllocatio
 	CleanupTask imgTask{};
 	imgTask.caller = __FUNCTION__;
 	imgTask.objectNames = { VARIABLE_NAME(imgAllocation) };
-	imgTask.vkObjects = { g_vkContext.vmaAllocator, imgAllocation };
+	imgTask.vkHandles = { g_vkContext.vmaAllocator, imgAllocation };
 	imgTask.cleanupFunc = [allocator = g_vkContext.vmaAllocator, image, imgAllocation]() {
 		vmaDestroyImage(allocator, image, imgAllocation);
 	};
@@ -111,7 +111,7 @@ uint32_t VkImageManager::CreateImageView(VkImageView& imageView, VkImage& image,
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(imageView) };
-	task.vkObjects = { g_vkContext.Device.logicalDevice, imageView };
+	task.vkHandles = { g_vkContext.Device.logicalDevice, imageView };
 	task.cleanupFunc = [device = g_vkContext.Device.logicalDevice, imageView]() {
 		vkDestroyImageView(device, imageView, nullptr);
 	};
@@ -141,7 +141,7 @@ uint32_t VkImageManager::CreateFramebuffer(VkFramebuffer& framebuffer, VkRenderP
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(framebuffer) };
-	task.vkObjects = { g_vkContext.Device.logicalDevice, framebuffer };
+	task.vkHandles = { g_vkContext.Device.logicalDevice, framebuffer };
 	task.cleanupFunc = [device = g_vkContext.Device.logicalDevice, framebuffer]() {
 		vkDestroyFramebuffer(device, framebuffer, nullptr);
 	};

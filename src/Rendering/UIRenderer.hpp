@@ -48,7 +48,7 @@ public:
 
 	void initFonts();
 
-	void initDockspace();
+	void updateDockspace();
 
 
 	/* Refreshes ImGui. Call this when, for instance, the swap-chain is recreated. */

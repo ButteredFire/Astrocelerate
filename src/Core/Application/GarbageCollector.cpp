@@ -25,7 +25,7 @@ VmaAllocator GarbageCollector::createVMAllocator(VkInstance& instance, VkPhysica
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(m_vmaAllocator) };
-	task.vkObjects = { m_vmaAllocator };
+	task.vkHandles = { m_vmaAllocator };
 	task.cleanupFunc = [this]() { vmaDestroyAllocator(m_vmaAllocator); };
 
 	createCleanupTask(task);
@@ -40,8 +40,9 @@ CleanupID GarbageCollector::createCleanupTask(CleanupTask task) {
 	std::string objectNamesStr = enquote(getObjectNamesString(task));
 
 	CleanupID id = m_nextID++;
+    task._id = id;
+	m_idToIdxLookup[id] = m_cleanupStack.size();
 	m_cleanupStack.push_back(task);
-	m_idToIdxLookup[id] = (m_cleanupStack.size() - 1);
 
 	Log::Print(Log::T_VERBOSE, task.caller.c_str(), "Pushed object(s) " + objectNamesStr + " to cleanup stack.");
 	return id;
@@ -97,7 +98,7 @@ bool GarbageCollector::executeTask(CleanupTask& task, CleanupID taskID) {
 
 	// Checks the validity of all Vulkan objects involved in the task
 	bool proceedCleanup = true;
-	for (const auto& object : task.vkObjects) {
+	for (const auto& object : task.vkHandles) {
 		if (!vkIsValid(object)) {
 			proceedCleanup = false;
 			break;
@@ -135,39 +136,39 @@ bool GarbageCollector::executeTask(CleanupTask& task, CleanupID taskID) {
 
 
 void GarbageCollector::optimizeStack() {
-	size_t displacement = 0;		 // Cumulative displacement
-	size_t locDisplacement = 0;		 // Local displacement (used only for removing redundant key-value pairs in the ID-to-Index hashmap)
-	size_t locInvalidTaskCount = 0;	 // Local invalid task count (differs from GarbageCollector::invalidTaskCount because this keeps track of all invalid tasks, while the member variable only serves to trigger a call to optimizeStack on exceeding the maximum constant)
-	size_t oldSize = m_cleanupStack.size();
+	// TODO: Fix optimizeStack incorrect ID-to-cleanup index remapping issue
+	return;
 
-	for (size_t i = 0; i < oldSize; i++) {
-		if (!m_cleanupStack[i]._validTask) {
-			displacement++;
-			locDisplacement++;
-			locInvalidTaskCount++;
-		}
-		else {
-			m_idToIdxLookup[i] -= displacement;
-			m_cleanupStack[i - displacement] = m_cleanupStack[i];
+    // Create a new deque for valid tasks
+    std::deque<CleanupTask> newCleanupStack;
+    std::unordered_map<CleanupID, size_t> newIdToIdxLookup;
 
-			while (locDisplacement > 0) {
-				m_idToIdxLookup.erase(i - locDisplacement);
-				locDisplacement--;
-			}
-		}
-	}
+    size_t oldSize = m_cleanupStack.size();
 
-	m_nextID = (oldSize - locInvalidTaskCount);
+    size_t newIndex = 0;
+    for (size_t i = 0; i < m_cleanupStack.size(); ++i) {
+        if (m_cleanupStack[i]._validTask) {
+            // Only add valid tasks to the new stack
+            newCleanupStack.push_back(m_cleanupStack[i]);
+            newIdToIdxLookup[m_cleanupStack[i]._id] = newIndex;
+            newIndex++;
+        }
+    }
 
-	// Resizing down `invalidTaskCount` elements effectively discards tasks whose indices are greater than (size - locInvalidTaskCount)
-	m_cleanupStack.resize(m_nextID);
+	// A = std::move(B) efficiently swaps A with B
+    m_cleanupStack = std::move(newCleanupStack);
+    m_idToIdxLookup = std::move(newIdToIdxLookup);
 
-	m_invalidTaskCount = 0;
+    // Update m_nextID to reflect the number of remaining valid tasks
+    m_nextID = m_cleanupStack.size();
 
-	size_t newSize = m_cleanupStack.size();
-	if (newSize < oldSize)
-		Log::Print(Log::T_SUCCESS, __FUNCTION__, "Shrunk stack size from " + std::to_string(oldSize) + " down to " + std::to_string(newSize) + ".");
+    m_invalidTaskCount = 0;
 
-	else
-		Log::Print(Log::T_INFO, __FUNCTION__, "Cleanup stack cannot be optimized further.");
+    size_t newSize = m_cleanupStack.size();
+    if (newSize < oldSize) {
+        Log::Print(Log::T_SUCCESS, __FUNCTION__, "Shrunk stack size from " + std::to_string(oldSize) + " down to " + std::to_string(newSize) + ".");
+    }
+    else {
+        Log::Print(Log::T_INFO, __FUNCTION__, "Cleanup stack cannot be optimized further.");
+    }
 }

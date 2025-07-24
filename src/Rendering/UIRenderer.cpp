@@ -130,8 +130,8 @@ void UIRenderer::initImGui() {
 void UIRenderer::initFonts() {
     ImGuiIO& io = ImGui::GetIO();
 
-    constexpr float fontSize = 23.0f;
-    constexpr float iconSize = fontSize - 7.5f;
+    constexpr float fontSize = 20.0f;
+    constexpr float iconSize = fontSize;
 
 
     // Glyph ranges
@@ -208,7 +208,7 @@ void UIRenderer::initFonts() {
 }
 
 
-void UIRenderer::initDockspace() {
+void UIRenderer::updateDockspace() {
     ImGuiViewport* windowViewport = ImGui::GetMainViewport();
 
     ImGui::SetNextWindowPos(windowViewport->Pos);
@@ -260,7 +260,7 @@ void UIRenderer::renderFrames(uint32_t currentFrame) {
 
     ImGui::NewFrame();
     {
-        initDockspace();
+        updateDockspace();
 
         ImGui::PushFont(g_fontContext.primaryFont);
         m_uiPanelManager->renderWorkspace(currentFrame);

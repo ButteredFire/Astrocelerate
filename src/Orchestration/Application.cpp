@@ -120,7 +120,6 @@ int main() {
             // Pipelines
         std::shared_ptr<OffscreenPipeline> offscreenPipeline = std::make_shared<OffscreenPipeline>();
         ServiceLocator::RegisterService(offscreenPipeline);
-        //offscreenPipeline->init();
 
         std::shared_ptr<PresentPipeline> presentPipeline = std::make_shared<PresentPipeline>();
         ServiceLocator::RegisterService(presentPipeline);

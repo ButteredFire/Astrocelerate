@@ -149,6 +149,7 @@ private:
     // Session data
     bool m_sceneReady = false;
     std::vector<CleanupID> m_bufferCleanupIDs;
+    std::vector<CleanupID> m_bufferMemCleanupIDs;
 
 
     std::vector<Geometry::Vertex> m_vertices = {};

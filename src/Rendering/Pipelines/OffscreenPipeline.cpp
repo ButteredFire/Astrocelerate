@@ -64,12 +64,6 @@ void OffscreenPipeline::init() {
 	// Initialize offscreen resources
 		// TODO: Abstract this init procedure
 		// TODO: Handle window resizing
-
-	m_colorImages.resize(m_OFFSCREEN_RESOURCE_COUNT);
-	m_colorImgViews.resize(m_OFFSCREEN_RESOURCE_COUNT);
-	m_colorImgSamplers.resize(m_OFFSCREEN_RESOURCE_COUNT);
-	m_colorImgFramebuffers.resize(m_OFFSCREEN_RESOURCE_COUNT);
-
 	initOffscreenColorResources(g_vkContext.SwapChain.extent.width, g_vkContext.SwapChain.extent.height);
 	initOffscreenSampler();
 	initOffscreenFramebuffer(g_vkContext.SwapChain.extent.width, g_vkContext.SwapChain.extent.height);
@@ -84,12 +78,25 @@ void OffscreenPipeline::bindEvents() {
 			using namespace Event;
 
 			switch (event.sessionStatus) {
+			case UpdateSessionStatus::Status::NOT_READY:
+				m_sessionReady = false;
+				break;
+
 			case UpdateSessionStatus::Status::PREPARE_FOR_INIT:
+				m_sessionReady = true;
+
+				for (auto &cleanupID : m_offscreenCleanupIDs)
+					m_garbageCollector->executeCleanupTask(cleanupID);
+				m_offscreenCleanupIDs.clear();
+
 				for (auto &cleanupID : m_sessionCleanupIDs)
 					m_garbageCollector->executeCleanupTask(cleanupID);
 				m_sessionCleanupIDs.clear();
 
 				break;
+
+			case UpdateSessionStatus::Status::INITIALIZED:
+				m_sessionReady = true;
 			}
 		}
 	);
@@ -97,14 +104,10 @@ void OffscreenPipeline::bindEvents() {
 
 	m_eventDispatcher->subscribe<Event::SwapchainIsRecreated>(
 		[this](const Event::SwapchainIsRecreated& event) {
+			if (!m_sessionReady)
+				return;
+
 			this->recreateOffscreenResources(g_vkContext.SwapChain.extent.width, g_vkContext.SwapChain.extent.height, event.imageIndex);
-		}
-	);
-
-
-	m_eventDispatcher->subscribe<Event::ViewportIsResized>(
-		[this](const Event::ViewportIsResized& event) {
-			this->recreateOffscreenResources(event.newWidth, event.newHeight, event.currentFrame);
 		}
 	);
 }
@@ -148,7 +151,7 @@ void OffscreenPipeline::createPipelineLayout() {
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(m_pipelineLayout) };
-	task.vkObjects = { g_vkContext.Device.logicalDevice, m_pipelineLayout };
+	task.vkHandles = { g_vkContext.Device.logicalDevice, m_pipelineLayout };
 	task.cleanupFunc = [&]() { vkDestroyPipelineLayout(g_vkContext.Device.logicalDevice, m_pipelineLayout, nullptr); };
 
 	m_sessionCleanupIDs.push_back(
@@ -261,7 +264,7 @@ void OffscreenPipeline::createRenderPass() {
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(m_renderPass) };
-	task.vkObjects = { g_vkContext.Device.logicalDevice, m_renderPass };
+	task.vkHandles = { g_vkContext.Device.logicalDevice, m_renderPass };
 	task.cleanupFunc = [this]() { vkDestroyRenderPass(g_vkContext.Device.logicalDevice, m_renderPass, nullptr); };
 
 	m_sessionCleanupIDs.push_back(
@@ -417,7 +420,7 @@ VkDescriptorSetLayout OffscreenPipeline::createDescriptorSetLayout(uint32_t bind
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(descriptorSetLayout) };
-	task.vkObjects = { g_vkContext.Device.logicalDevice, descriptorSetLayout };
+	task.vkHandles = { g_vkContext.Device.logicalDevice, descriptorSetLayout };
 	task.cleanupFunc = [this, descriptorSetLayout]() {
 		vkDestroyDescriptorSetLayout(g_vkContext.Device.logicalDevice, descriptorSetLayout, nullptr);
 	};
@@ -454,7 +457,7 @@ void OffscreenPipeline::createPerFrameDescriptorSets(VkDescriptorPool descriptor
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(m_perFrameDescriptorSets) };
-	task.vkObjects = { g_vkContext.Device.logicalDevice, descriptorPool };
+	task.vkHandles = { g_vkContext.Device.logicalDevice, descriptorPool };
 	task.cleanupFunc = [this, descriptorPool]() {
 		vkFreeDescriptorSets(g_vkContext.Device.logicalDevice, descriptorPool, m_perFrameDescriptorSets.size(), m_perFrameDescriptorSets.data());
 	};
@@ -552,7 +555,7 @@ void OffscreenPipeline::createSingularDescriptorSet(VkDescriptorSet &descriptorS
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(descriptorSet) };
-	task.vkObjects = { g_vkContext.Device.logicalDevice, descriptorPool };
+	task.vkHandles = { g_vkContext.Device.logicalDevice, descriptorPool };
 	task.cleanupFunc = [this, descriptorSet, descriptorPool]() {
 		vkFreeDescriptorSets(g_vkContext.Device.logicalDevice, descriptorPool, 1, &descriptorSet);
 	};
@@ -616,7 +619,7 @@ void OffscreenPipeline::initShaderStage() {
 	CleanupTask cleanupTask{};
 	cleanupTask.caller = __FUNCTION__;
 	cleanupTask.objectNames = { VARIABLE_NAME(m_vertShaderModule), VARIABLE_NAME(m_fragShaderModule) };
-	cleanupTask.vkObjects = { g_vkContext.Device.logicalDevice, m_vertShaderModule, m_fragShaderModule };
+	cleanupTask.vkHandles = { g_vkContext.Device.logicalDevice, m_vertShaderModule, m_fragShaderModule };
 	cleanupTask.cleanupFunc = [&]() {
 		vkDestroyShaderModule(g_vkContext.Device.logicalDevice, m_vertShaderModule, nullptr);
 		vkDestroyShaderModule(g_vkContext.Device.logicalDevice, m_fragShaderModule, nullptr);
@@ -815,6 +818,12 @@ void OffscreenPipeline::recreateOffscreenResources(uint32_t width, uint32_t heig
 
 
 void OffscreenPipeline::initOffscreenColorResources(uint32_t width, uint32_t height) {
+	m_colorImages.resize(m_OFFSCREEN_RESOURCE_COUNT);
+	m_colorImgViews.resize(m_OFFSCREEN_RESOURCE_COUNT);
+	m_colorImgSamplers.resize(m_OFFSCREEN_RESOURCE_COUNT);
+	m_colorImgFramebuffers.resize(m_OFFSCREEN_RESOURCE_COUNT);
+
+
 	// Image
 	uint32_t depth = 1;
 
@@ -878,7 +887,7 @@ void OffscreenPipeline::initOffscreenSampler() {
 		CleanupTask task{};
 		task.caller = __FUNCTION__;
 		task.objectNames = { VARIABLE_NAME(m_colorImgSampler) };
-		task.vkObjects = { g_vkContext.Device.logicalDevice, sampler };
+		task.vkHandles = { g_vkContext.Device.logicalDevice, sampler };
 
 		task.cleanupFunc = [this, sampler]() {
 			vkDestroySampler(g_vkContext.Device.logicalDevice, sampler, nullptr);

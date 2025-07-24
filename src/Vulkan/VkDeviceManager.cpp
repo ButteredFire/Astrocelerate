@@ -193,7 +193,7 @@ void VkDeviceManager::createLogicalDevice() {
     CleanupTask task{};
     task.caller = __FUNCTION__;
     task.objectNames = { VARIABLE_NAME(m_GPULogicalDevice) };
-    task.vkObjects = { m_GPULogicalDevice };
+    task.vkHandles = { m_GPULogicalDevice };
     task.cleanupFunc = [this]() { vkDestroyDevice(m_GPULogicalDevice, nullptr); };
 
     m_garbageCollector->createCleanupTask(task);

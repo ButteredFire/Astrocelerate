@@ -352,7 +352,7 @@ VkSampler TextureManager::createTextureSampler(
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(textureSampler) };
-	task.vkObjects = { g_vkContext.Device.logicalDevice, textureSampler };
+	task.vkHandles = { g_vkContext.Device.logicalDevice, textureSampler };
 	task.cleanupFunc = [this, textureSampler]() { vkDestroySampler(g_vkContext.Device.logicalDevice, textureSampler, nullptr); };
 	m_garbageCollector->createCleanupTask(task);
 
@@ -421,7 +421,7 @@ void TextureManager::createImage(VkImage& image, VmaAllocation& imgAllocation, u
 	CleanupTask imgTask{};
 	imgTask.caller = __FUNCTION__;
 	imgTask.objectNames = { VARIABLE_NAME(imgAllocation) };
-	imgTask.vkObjects = { g_vkContext.vmaAllocator, imgAllocation };
+	imgTask.vkHandles = { g_vkContext.vmaAllocator, imgAllocation };
 	imgTask.cleanupFunc = [image, imgAllocation]() {
 		vmaDestroyImage(g_vkContext.vmaAllocator, image, imgAllocation);
 	};

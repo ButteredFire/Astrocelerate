@@ -99,7 +99,7 @@ void VkSyncManager::createPerFrameSyncPrimitives() {
 			CleanupTask syncObjTask{};
 			syncObjTask.caller = __FUNCTION__;
 			syncObjTask.objectNames = { VARIABLE_NAME(m_imageReadySemaphore), VARIABLE_NAME(m_renderFinishedSemaphore), VARIABLE_NAME(m_inFlightFence) };
-			syncObjTask.vkObjects = { g_vkContext.Device.logicalDevice };
+			syncObjTask.vkHandles = { g_vkContext.Device.logicalDevice };
 			syncObjTask.cleanupFunc = [this, i]() {
 				vkDestroySemaphore(g_vkContext.Device.logicalDevice, m_imageReadySemaphores[i], nullptr);
 				vkDestroySemaphore(g_vkContext.Device.logicalDevice, m_renderFinishedSemaphores[i], nullptr);

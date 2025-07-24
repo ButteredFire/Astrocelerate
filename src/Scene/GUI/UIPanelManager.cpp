@@ -50,7 +50,7 @@ void UIPanelManager::bindEvents() {
 
 void UIPanelManager::initCommonPanels() {
 	m_panelPreferences =	GUI::RegisterPanel("Preferences");
-	m_panelAbout =			GUI::RegisterPanel("About Astrocelerate");
+	m_panelAbout =			GUI::RegisterPanel("App Info & Attributions");
 
 	m_commonPanelCallbacks[m_panelPreferences] =	[this]() { this->renderPreferencesPanel(); };
 	m_commonPanelCallbacks[m_panelAbout] =			[this]() { this->renderAboutPanel(); };
@@ -61,14 +61,14 @@ void UIPanelManager::initStaticTextures() {
 	std::shared_ptr<TextureManager> textureManager = ServiceLocator::GetService<TextureManager>(__FUNCTION__);
 
 	// App logo
-	std::string logoPath = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/App", "AstrocelerateLogo-Branded.png");
+	std::string logoPath = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/App", "AstrocelerateLogo.png");
 	Geometry::Texture texture = textureManager->createIndependentTexture(logoPath, VK_FORMAT_R8G8B8A8_SRGB);
 	
 	m_appLogoTexProps.size = ImVec2(texture.size.x, texture.size.y);
 	m_appLogoTexProps.textureID = TextureUtils::GenerateImGuiTextureID(texture.imageLayout, texture.imageView, texture.sampler);
 
 	// Oriviet Aerospace logo
-	logoPath = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/App", "OrivietAerospaceLogo.png");
+	logoPath = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/App", "OrivietAerospaceLogo-Mono.png");
 	texture = textureManager->createIndependentTexture(logoPath, VK_FORMAT_R8G8B8A8_SRGB);
 
 	m_companyLogoTexProps.size = ImVec2(texture.size.x, texture.size.y);
@@ -99,11 +99,6 @@ void UIPanelManager::renderWorkspace(uint32_t currentFrame) {
 		}
 	}
 
-	if (m_showLoadingModal) {
-		ImGui::OpenPopup(m_sceneLoadModelName);
-	}
-	renderSceneLoadModal();
-
 
 	// Workspace panel callbacks
 	for (auto&& [flag, callback] : m_workspacePanelCallbacks) {
@@ -118,6 +113,14 @@ void UIPanelManager::renderWorkspace(uint32_t currentFrame) {
 
 
 void UIPanelManager::renderMenuBar() {
+	static std::string selectedFile{};
+
+	if (m_showLoadingModal) {
+		ImGui::OpenPopup(m_sceneLoadModelName);
+	}
+	renderSceneLoadModal(selectedFile);
+
+
 	if (ImGui::BeginMainMenuBar()) {
 
 		if (ImGui::BeginMenu("File")) {
@@ -143,6 +146,7 @@ void UIPanelManager::renderMenuBar() {
 					m_loadErrorMessage = "";
 
 					m_currentWorkspace->loadSimulationConfig(selectedFilePath);
+					selectedFile = FilePathUtils::GetFileName(selectedFilePath);
 					// Start the loading in a new worker thread
 					/*
 					std::thread([this, selectedFilePath]() {
@@ -453,6 +457,10 @@ void UIPanelManager::renderAboutPanel() {
 
 			ImGuiUtils::Padding();
 
+			ImGui::TextWrapped("Astrocelerate is Vietnam's first high-performance orbital mechanics and spaceflight simulation engine, designed from the ground up to serve as a sovereign alternative to foreign aerospace software.");
+
+			ImGuiUtils::Padding();
+
 			ImGui::SeparatorText("Attribution");
 			{
 				ImGui::TextWrapped("Graphics API:");
@@ -499,20 +507,27 @@ void UIPanelManager::renderAboutPanel() {
 }
 
 
-void UIPanelManager::renderSceneLoadModal() {
-	ImGui::SetNextWindowSize(ImVec2(600.0f, 200.0f));
+void UIPanelManager::renderSceneLoadModal(const std::string &fileName) {
+	ImGui::SetNextWindowSize(ImVec2(500.0f, 200.0f));
 	ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 
-	if (ImGui::BeginPopupModal(m_sceneLoadModelName, &m_showLoadingModal, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration)) {
+	ImGui::PushStyleColor(ImGuiCol_ModalWindowDimBg, ColorUtils::sRGBToLinear(0.0f, 0.0f, 0.0f, 0.80f));
+	{
+		if (ImGui::BeginPopupModal(m_sceneLoadModelName, &m_showLoadingModal, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration)) {
 
-		ImVec2 availableRegion = ImGui::GetContentRegionAvail();
-		float availableScrollHeight = availableRegion.y - ImGuiUtils::GetBottomButtonAreaHeight();
+			ImVec2 availableRegion = ImGui::GetContentRegionAvail();
+			float availableScrollHeight = availableRegion.y - ImGuiUtils::GetBottomButtonAreaHeight();
 
-		if (ImGui::BeginChild("MainRegion", ImVec2(0.0f, availableScrollHeight))) {
 			if (!m_loadErrorOccurred) {
-				ImGuiUtils::BoldText("Loading Scene");
+				ImGui::PushFont(g_fontContext.NotoSans.bold);
+				{
+					ImGuiUtils::CenteredText("Processing %s", enquote(fileName).c_str());
+					ImGuiUtils::Padding();
+					ImGuiUtils::CenteredText(m_currentLoadMessage.c_str());
+				}
+				ImGui::PopFont();
+
 				ImGuiUtils::Padding();
-				ImGui::Text("%s", m_currentLoadMessage.c_str());
 
 				char overlay[32];
 				sprintf(overlay, "%.1f%%", m_currentLoadProgress * 100);
@@ -541,19 +556,20 @@ void UIPanelManager::renderSceneLoadModal() {
 				//}
 			}
 
-			ImGui::EndChild();
+			
+			if (m_currentLoadProgress >= 1.0f) {
+				static const float btnWidth = 70.0f;
+				ImGuiUtils::BottomButtonPadding(btnWidth, 1);
+
+				if (ImGui::Button("OK", ImVec2(btnWidth, 0.0f))) {
+					ImGui::CloseCurrentPopup();
+					m_showLoadingModal = false;
+				}
+			}
+
+
+			ImGui::EndPopup();
 		}
-
-
-		static const float btnWidth = 70.0f;
-		ImGuiUtils::BottomButtonPadding(btnWidth, 1);
-
-		if (ImGui::Button("OK", ImVec2(btnWidth, 0.0f))) {
-			ImGui::CloseCurrentPopup();
-			m_showLoadingModal = false;
-		}
-
-
-		ImGui::EndPopup();
 	}
+	ImGui::PopStyleColor();
 }

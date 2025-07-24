@@ -147,9 +147,19 @@ void VkSwapchainManager::createSwapChain() {
 
     // Creates a VkSwapchainKHR object
     VkResult result = vkCreateSwapchainKHR(g_vkContext.Device.logicalDevice, &swapChainCreateInfo, nullptr, &m_swapChain);
-    if (result != VK_SUCCESS) {
-        throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create swap-chain!");
-    }
+    
+    LOG_ASSERT(result == VK_SUCCESS, "Failed to create swap-chain!");
+    
+    CleanupTask task;
+    task.caller = __FUNCTION__;
+    task.objectNames = { VARIABLE_NAME(m_swapChain) };
+    task.vkHandles = { m_swapChain };
+    task.cleanupFunc = [&]() { vkDestroySwapchainKHR(g_vkContext.Device.logicalDevice, m_swapChain, nullptr); };
+
+    m_cleanupTaskIDs.push_back(
+        m_garbageCollector->createCleanupTask(task)
+    );
+    
 
     // Saves swap-chain properties
     g_vkContext.SwapChain.swapChain = m_swapChain;
@@ -163,16 +173,6 @@ void VkSwapchainManager::createSwapChain() {
     vkGetSwapchainImagesKHR(g_vkContext.Device.logicalDevice, g_vkContext.SwapChain.swapChain, &imageCount, m_images.data());
 
     g_vkContext.SwapChain.images = m_images;
-
-
-    CleanupTask task;
-    task.caller = __FUNCTION__;
-    task.objectNames = { VARIABLE_NAME(m_swapChain) };
-    task.vkObjects = { m_swapChain };
-    task.cleanupFunc = [&]() { vkDestroySwapchainKHR(g_vkContext.Device.logicalDevice, m_swapChain, nullptr); };
-
-    uint32_t swapChainCleanupID = m_garbageCollector->createCleanupTask(task);
-    m_cleanupTaskIDs.push_back(swapChainCleanupID);
 }
 
 

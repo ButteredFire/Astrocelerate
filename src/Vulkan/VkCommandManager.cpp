@@ -321,7 +321,7 @@ VkCommandPool VkCommandManager::createCommandPool(VkDevice device, uint32_t queu
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(m_commandPool) };
-	task.vkObjects = { g_vkContext.Device.logicalDevice, commandPool };
+	task.vkHandles = { g_vkContext.Device.logicalDevice, commandPool };
 	task.cleanupFunc = [commandPool]() { vkDestroyCommandPool(g_vkContext.Device.logicalDevice, commandPool, nullptr); };
 
 	garbageCollector->createCleanupTask(task);
@@ -352,7 +352,7 @@ void VkCommandManager::allocCommandBuffers(VkCommandPool& commandPool, std::vect
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(m_commandBuffers) };
-	task.vkObjects = { g_vkContext.Device.logicalDevice, commandPool };
+	task.vkHandles = { g_vkContext.Device.logicalDevice, commandPool };
 	task.cleanupFunc = [this, commandPool, commandBuffers]() { vkFreeCommandBuffers(g_vkContext.Device.logicalDevice, commandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data()); };
 
 	m_garbageCollector->createCleanupTask(task);

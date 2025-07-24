@@ -17,7 +17,6 @@ enum EventType {
 	EVENT_ID_REGISTRY_IS_CLEARED,
 	EVENT_ID_SWAPCHAIN_IS_RECREATED,
 	EVENT_ID_OFFSCREEN_RESOURCES_ARE_RECREATED,
-	EVENT_ID_VIEWPORT_IS_RESIZED,
 	EVENT_ID_OFFSCREEN_PIPELINE_INITIALIZED,
 	EVENT_ID_PRESENT_PIPELINE_INITIALIZED,
 	EVENT_ID_GEOMETRY_INITIALIZED,
@@ -67,15 +66,6 @@ namespace Event {
 	/* Used when offscreen render targets are recreated. */
 	struct OffscreenResourcesAreRecreated {
 		const EventType eventType = EventType::EVENT_ID_OFFSCREEN_RESOURCES_ARE_RECREATED;
-	};
-
-
-	/* Used when the simulation viewport is resized. */
-	struct ViewportIsResized {
-		const EventType eventType = EventType::EVENT_ID_VIEWPORT_IS_RESIZED;
-		uint32_t currentFrame;
-		uint32_t newWidth;
-		uint32_t newHeight;
 	};
 
 

@@ -75,7 +75,7 @@ void VkInstanceManager::createDebugMessenger() {
     CleanupTask task{};
     task.caller = __FUNCTION__;
     task.objectNames = { VARIABLE_NAME(m_debugMessenger) };
-    task.vkObjects = { m_vulkInst, m_debugMessenger };
+    task.vkHandles = { m_vulkInst, m_debugMessenger };
     task.cleanupFunc = [&]() { destroyDebugUtilsMessengerEXT(m_vulkInst, m_debugMessenger, nullptr); };
     task.cleanupConditions = { IN_DEBUG_MODE };
 
@@ -149,7 +149,7 @@ void VkInstanceManager::createVulkanInstance() {
     CleanupTask task{};
     task.caller = __FUNCTION__;
     task.objectNames = { VARIABLE_NAME(m_vulkInst) };
-    task.vkObjects = { m_vulkInst };
+    task.vkHandles = { m_vulkInst };
     task.cleanupFunc = [&]() { vkDestroyInstance(m_vulkInst, nullptr); };
 
     m_garbageCollector->createCleanupTask(task);
@@ -172,7 +172,7 @@ void VkInstanceManager::createSurface() {
     CleanupTask task{};
     task.caller = __FUNCTION__;
     task.objectNames = { VARIABLE_NAME(m_windowSurface) };
-    task.vkObjects = { m_vulkInst, m_windowSurface };
+    task.vkHandles = { m_vulkInst, m_windowSurface };
     task.cleanupFunc = [this]() { vkDestroySurfaceKHR(m_vulkInst, m_windowSurface, nullptr); };
 
     m_garbageCollector->createCleanupTask(task);

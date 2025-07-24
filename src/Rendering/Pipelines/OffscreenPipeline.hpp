@@ -113,6 +113,7 @@ private:
 
 	// Session data
 	std::vector<CleanupID> m_sessionCleanupIDs;	// Used to execute old cleanup tasks on new session initialization
+	bool m_sessionReady = false;
 
 
 	void bindEvents();

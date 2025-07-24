@@ -20,7 +20,7 @@ void VkDescriptorUtils::CreateDescriptorPool(VkDescriptorPool& descriptorPool, u
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(descriptorPool) };
-	task.vkObjects = { g_vkContext.Device.logicalDevice, descriptorPool };
+	task.vkHandles = { g_vkContext.Device.logicalDevice, descriptorPool };
 	task.cleanupFunc = [device = g_vkContext.Device.logicalDevice, descriptorPool]() {
 		vkDestroyDescriptorPool(device, descriptorPool, nullptr);
 	};

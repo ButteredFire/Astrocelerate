@@ -25,6 +25,52 @@ namespace ImGuiTheme {
     };
 
 
+    // Color Palette Definitions
+    namespace DarkPalette {
+        // Grays
+        inline const ImVec4 DARK_GRAY_100 = ColorUtils::sRGBToLinear(0.08f, 0.08f, 0.08f, 1.0f); // Very dark, almost black
+        inline const ImVec4 DARK_GRAY_200 = ColorUtils::sRGBToLinear(0.10f, 0.10f, 0.10f, 1.0f); // Main dark background
+        inline const ImVec4 DARK_GRAY_300 = ColorUtils::sRGBToLinear(0.12f, 0.12f, 0.12f, 1.0f); // Slightly lighter background
+        inline const ImVec4 DARK_GRAY_400 = ColorUtils::sRGBToLinear(0.15f, 0.15f, 0.15f, 1.0f); // Frame/Child background
+        inline const ImVec4 DARK_GRAY_500 = ColorUtils::sRGBToLinear(0.18f, 0.18f, 0.18f, 1.0f); // Frame/Tab background
+        inline const ImVec4 DARK_GRAY_600 = ColorUtils::sRGBToLinear(0.20f, 0.20f, 0.20f, 1.0f); // Header/Button base
+        inline const ImVec4 DARK_GRAY_700 = ColorUtils::sRGBToLinear(0.25f, 0.25f, 0.25f, 1.0f); // Hovered states, borders
+        inline const ImVec4 DARK_GRAY_800 = ColorUtils::sRGBToLinear(0.28f, 0.28f, 0.28f, 1.0f); // Header hovered
+        inline const ImVec4 DARK_GRAY_900 = ColorUtils::sRGBToLinear(0.30f, 0.30f, 0.30f, 1.0f); // Active states, scrollbar grab
+
+        // Accent Blue
+        inline const ImVec4 ACCENT_BLUE_DARK            = ColorUtils::sRGBToLinear(0.20f, 0.35f, 0.50f, 1.0f); // Base accent
+        inline const ImVec4 ACCENT_BLUE_DARK_HOVER      = ColorUtils::sRGBToLinear(0.25f, 0.40f, 0.55f, 1.0f); // Lighter accent for hover
+        inline const ImVec4 ACCENT_BLUE_DARK_ACTIVE     = ColorUtils::sRGBToLinear(0.30f, 0.45f, 0.60f, 1.0f); // Even lighter for active
+
+        // Text Colors
+        inline const ImVec4 TEXT_LIGHT = ColorUtils::sRGBToLinear(0.90f, 0.90f, 0.90f, 1.00f);
+        inline const ImVec4 TEXT_MUTED = ColorUtils::sRGBToLinear(0.60f, 0.60f, 0.60f, 1.00f);
+    }
+
+    namespace LightPalette {
+        // Grays/Off-whites
+        inline const ImVec4 LIGHT_GRAY_100 = ColorUtils::sRGBToLinear(0.98f, 0.98f, 0.99f, 1.0f); // Very light, almost white
+        inline const ImVec4 LIGHT_GRAY_200 = ColorUtils::sRGBToLinear(0.95f, 0.95f, 0.96f, 1.0f); // Child background
+        inline const ImVec4 LIGHT_GRAY_300 = ColorUtils::sRGBToLinear(0.90f, 0.90f, 0.92f, 1.0f); // Main light background
+        inline const ImVec4 LIGHT_GRAY_400 = ColorUtils::sRGBToLinear(0.85f, 0.85f, 0.88f, 1.0f); // Frame/Title background
+        inline const ImVec4 LIGHT_GRAY_500 = ColorUtils::sRGBToLinear(0.80f, 0.80f, 0.82f, 1.0f); // Tab background
+        inline const ImVec4 LIGHT_GRAY_600 = ColorUtils::sRGBToLinear(0.78f, 0.78f, 0.80f, 1.0f); // Active title/Unfocused active tab
+        inline const ImVec4 LIGHT_GRAY_700 = ColorUtils::sRGBToLinear(0.75f, 0.80f, 0.85f, 1.0f); // Header base
+        inline const ImVec4 LIGHT_GRAY_800 = ColorUtils::sRGBToLinear(0.70f, 0.70f, 0.70f, 1.0f); // Scrollbar grab, borders
+        inline const ImVec4 LIGHT_GRAY_900 = ColorUtils::sRGBToLinear(0.60f, 0.60f, 0.60f, 1.0f); // Header hover, scrollbar hover
+
+        // Accent Blue
+        inline const ImVec4 ACCENT_BLUE_LIGHT           = ColorUtils::sRGBToLinear(0.30f, 0.50f, 0.70f, 1.0f); // Base accent
+        inline const ImVec4 ACCENT_BLUE_LIGHT_HOVER     = ColorUtils::sRGBToLinear(0.35f, 0.55f, 0.75f, 1.0f); // Lighter accent for hover
+        inline const ImVec4 ACCENT_BLUE_LIGHT_ACTIVE    = ColorUtils::sRGBToLinear(0.40f, 0.60f, 0.80f, 1.0f); // Even lighter for active
+
+        // Text Colors
+        inline const ImVec4 TEXT_DARK           = ColorUtils::sRGBToLinear(0.10f, 0.10f, 0.10f, 1.00f);
+        inline const ImVec4 TEXT_MUTED_LIGHT    = ColorUtils::sRGBToLinear(0.50f, 0.50f, 0.50f, 1.00f);
+    }
+
+
     // Holds all colors for a specific theme
     struct ThemeColors {
         ImVec4 WindowBg;
@@ -79,58 +125,57 @@ namespace ImGuiTheme {
         ThemeColors colors;
 
         // Backgrounds
-        colors.WindowBg = ColorUtils::sRGBToLinear(0.10f, 0.10f, 0.10f, 1.0f);
-        colors.MenuBarBg = colors.WindowBg;
-        colors.DockingEmptyBg = colors.WindowBg;
-        colors.ChildBg = ColorUtils::sRGBToLinear(0.12f, 0.12f, 0.12f, 1.0f);
-        colors.PopupBg = ColorUtils::sRGBToLinear(0.08f, 0.08f, 0.08f, 0.94f);
+        colors.WindowBg = DarkPalette::DARK_GRAY_300;
+        colors.MenuBarBg = DarkPalette::DARK_GRAY_300;
+        colors.DockingEmptyBg = DarkPalette::DARK_GRAY_300;
+        colors.ChildBg = DarkPalette::DARK_GRAY_400;
+        colors.PopupBg = DarkPalette::DARK_GRAY_200; // Slightly darker for popups, using 0.94f alpha in ApplyTheme if desired
 
         // Headers
-        colors.Header = ColorUtils::sRGBToLinear(0.25f, 0.25f, 0.25f, 1.0f);
-        colors.HeaderHovered = ColorUtils::sRGBToLinear(0.30f, 0.30f, 0.30f, 1.0f);
-        colors.HeaderActive = ColorUtils::sRGBToLinear(0.35f, 0.35f, 0.35f, 1.0f);
+        colors.Header = DarkPalette::DARK_GRAY_600;
+        colors.HeaderHovered = DarkPalette::DARK_GRAY_800;
+        colors.HeaderActive = DarkPalette::DARK_GRAY_900;
 
         // Borders and separators
-        colors.Border = ColorUtils::sRGBToLinear(0.25f, 0.25f, 0.25f, 0.50f);
+        colors.Border = ImVec4(DarkPalette::DARK_GRAY_700.x, DarkPalette::DARK_GRAY_700.y, DarkPalette::DARK_GRAY_700.z, 0.50f); // Adjust alpha if needed
         colors.BorderShadow = ColorUtils::sRGBToLinear(0, 0, 0, 0);
 
         // Text
-        colors.Text = ColorUtils::sRGBToLinear(0.95f, 0.96f, 0.98f, 1.00f);
-        colors.TextDisabled = ColorUtils::sRGBToLinear(0.50f, 0.50f, 0.50f, 1.00f);
+        colors.Text = DarkPalette::TEXT_LIGHT;
+        colors.TextDisabled = DarkPalette::TEXT_MUTED;
 
         // Frames
-        colors.FrameBg = ColorUtils::sRGBToLinear(0.15f, 0.15f, 0.15f, 1.0f);
-        colors.FrameBgHovered = ColorUtils::sRGBToLinear(0.20f, 0.20f, 0.20f, 1.0f);
-        colors.FrameBgActive = ColorUtils::sRGBToLinear(0.25f, 0.25f, 0.25f, 1.0f);
+        colors.FrameBg = DarkPalette::DARK_GRAY_500;
+        colors.FrameBgHovered = DarkPalette::DARK_GRAY_700;
+        colors.FrameBgActive = DarkPalette::DARK_GRAY_900;
 
         // Buttons
-        colors.Button = ColorUtils::sRGBToLinear(0.0f, 0.0f);
-        colors.ButtonHovered = ColorUtils::sRGBToLinear(0.3f, 0.5f);
-        colors.ButtonActive = ColorUtils::sRGBToLinear(0.3f, 0.5f);
+        colors.Button = DarkPalette::ACCENT_BLUE_DARK;
+        colors.ButtonHovered = DarkPalette::ACCENT_BLUE_DARK_HOVER;
+        colors.ButtonActive = DarkPalette::ACCENT_BLUE_DARK_ACTIVE;
 
         // Scrollbars
-        colors.ScrollbarBg = ColorUtils::sRGBToLinear(0.10f, 0.10f, 0.10f, 1.0f);
-        colors.ScrollbarGrab = ColorUtils::sRGBToLinear(0.20f, 0.25f, 0.30f, 1.0f);
-        colors.ScrollbarGrabHovered = ColorUtils::sRGBToLinear(0.25f, 0.30f, 0.35f, 1.0f);
-        colors.ScrollbarGrabActive = ColorUtils::sRGBToLinear(0.30f, 0.35f, 0.40f, 1.0f);
+        colors.ScrollbarBg = DarkPalette::DARK_GRAY_200;
+        colors.ScrollbarGrab = DarkPalette::DARK_GRAY_900;
+        colors.ScrollbarGrabHovered = ColorUtils::sRGBToLinear(0.40f, 0.40f, 0.40f, 1.0f); // Slightly unique, not directly from named palette
+        colors.ScrollbarGrabActive = ColorUtils::sRGBToLinear(0.50f, 0.50f, 0.50f, 1.0f); // Slightly unique, not directly from named palette
 
         // Tabs
-        colors.Tab = ColorUtils::sRGBToLinear(0.18f, 0.18f, 0.18f, 1.0f);
-        colors.TabHovered = ColorUtils::sRGBToLinear(0.26f, 0.26f, 0.26f, 1.0f);
-        colors.TabActive = ColorUtils::sRGBToLinear(0.28f, 0.28f, 0.28f, 1.0f);
-        colors.TabUnfocused = ColorUtils::sRGBToLinear(0.15f, 0.15f, 0.15f, 1.0f);
-        colors.TabUnfocusedActive = ColorUtils::sRGBToLinear(0.20f, 0.20f, 0.20f, 1.0f);
+        colors.Tab = DarkPalette::DARK_GRAY_400;
+        colors.TabHovered = DarkPalette::DARK_GRAY_700;
+        colors.TabActive = DarkPalette::ACCENT_BLUE_DARK;
+        colors.TabUnfocused = DarkPalette::DARK_GRAY_200;
+        colors.TabUnfocusedActive = DarkPalette::DARK_GRAY_500;
 
         // Title bar
-        colors.TitleBg = ColorUtils::sRGBToLinear(0.10f, 0.10f, 0.10f, 1.0f);
-        colors.TitleBgActive = ColorUtils::sRGBToLinear(0.15f, 0.15f, 0.15f, 1.0f);
-        colors.TitleBgCollapsed = ColorUtils::sRGBToLinear(0.10f, 0.10f, 0.10f, 0.75f);
+        colors.TitleBg = DarkPalette::DARK_GRAY_200;
+        colors.TitleBgActive = DarkPalette::DARK_GRAY_400;
+        colors.TitleBgCollapsed = ImVec4(DarkPalette::DARK_GRAY_100.x, DarkPalette::DARK_GRAY_100.y, DarkPalette::DARK_GRAY_100.z, 0.75f); // Adjust alpha if needed
 
         // Resize grips (bottom-right corner)
         colors.ResizeGrip = ColorUtils::sRGBToLinear(0.0f, 0.0f);
         colors.ResizeGripHovered = ColorUtils::sRGBToLinear(0.0f, 0.0f);
         colors.ResizeGripActive = ColorUtils::sRGBToLinear(0.0f, 0.0f);
-
 
         return colors;
     }
@@ -143,55 +188,55 @@ namespace ImGuiTheme {
         ThemeColors colors;
 
         // Background
-        colors.WindowBg = ColorUtils::sRGBToLinear(0.95f, 0.95f, 0.95f, 1.0f); // Very light gray
-        colors.MenuBarBg = colors.WindowBg;
-        colors.DockingEmptyBg = colors.WindowBg;
-        colors.ChildBg = ColorUtils::sRGBToLinear(0.90f, 0.90f, 0.90f, 1.0f); // Slightly darker light gray
-        colors.PopupBg = ColorUtils::sRGBToLinear(0.98f, 0.98f, 0.98f, 0.94f); // Almost white
-        
+        colors.WindowBg = LightPalette::LIGHT_GRAY_300;
+        colors.MenuBarBg = LightPalette::LIGHT_GRAY_300;
+        colors.DockingEmptyBg = LightPalette::LIGHT_GRAY_300;
+        colors.ChildBg = LightPalette::LIGHT_GRAY_200;
+        colors.PopupBg = LightPalette::LIGHT_GRAY_100; // Using 0.98f alpha in ApplyTheme if desired
+
         // Headers
-        colors.Header = ColorUtils::sRGBToLinear(0.70f, 0.70f, 0.70f, 1.0f);
-        colors.HeaderHovered = ColorUtils::sRGBToLinear(0.60f, 0.60f, 0.60f, 1.0f);
-        colors.HeaderActive = ColorUtils::sRGBToLinear(0.50f, 0.50f, 0.50f, 1.0f);
+        colors.Header = LightPalette::LIGHT_GRAY_700;
+        colors.HeaderHovered = LightPalette::LIGHT_GRAY_900;
+        colors.HeaderActive = ColorUtils::sRGBToLinear(0.55f, 0.60f, 0.65f, 1.0f); // Using a unique color here for variety
 
         // Borders and separators
-        colors.Border = ColorUtils::sRGBToLinear(0.75f, 0.75f, 0.75f, 0.50f);
+        colors.Border = ImVec4(LightPalette::LIGHT_GRAY_800.x, LightPalette::LIGHT_GRAY_800.y, LightPalette::LIGHT_GRAY_800.z, 0.60f); // Adjust alpha if needed
         colors.BorderShadow = ColorUtils::sRGBToLinear(0, 0, 0, 0);
 
         // Text
-        colors.Text = ColorUtils::sRGBToLinear(0.0f, 0.0f, 0.0f, 1.00f);
-        colors.TextDisabled = ColorUtils::sRGBToLinear(0.50f, 0.50f, 0.50f, 1.00f);
+        colors.Text = LightPalette::TEXT_DARK;
+        colors.TextDisabled = LightPalette::TEXT_MUTED_LIGHT;
 
         // Frames
-        colors.FrameBg = ColorUtils::sRGBToLinear(0.85f, 0.85f, 0.85f, 1.0f);
-        colors.FrameBgHovered = ColorUtils::sRGBToLinear(0.80f, 0.80f, 0.80f, 1.0f);
-        colors.FrameBgActive = ColorUtils::sRGBToLinear(0.75f, 0.75f, 0.75f, 1.0f);
+        colors.FrameBg = LightPalette::LIGHT_GRAY_400;
+        colors.FrameBgHovered = ColorUtils::sRGBToLinear(0.80f, 0.80f, 0.83f, 1.0f); // Unique, not directly from named palette
+        colors.FrameBgActive = ColorUtils::sRGBToLinear(0.75f, 0.75f, 0.78f, 1.0f); // Unique, not directly from named palette
 
         // Buttons
-        colors.Button = ColorUtils::sRGBToLinear(0.0f, 0.0f);
-        colors.ButtonHovered = ColorUtils::sRGBToLinear(0.7f, 0.5f);
-        colors.ButtonActive = ColorUtils::sRGBToLinear(0.7f, 0.5f);
+        colors.Button = LightPalette::ACCENT_BLUE_LIGHT;
+        colors.ButtonHovered = LightPalette::ACCENT_BLUE_LIGHT_HOVER;
+        colors.ButtonActive = LightPalette::ACCENT_BLUE_LIGHT_ACTIVE;
 
         // Scrollbars
-        colors.ScrollbarBg = ColorUtils::sRGBToLinear(0.90f, 0.90f, 0.90f, 1.0f);
-        colors.ScrollbarGrab = ColorUtils::sRGBToLinear(0.70f, 0.75f, 0.80f, 1.0f);
-        colors.ScrollbarGrabHovered = ColorUtils::sRGBToLinear(0.65f, 0.70f, 0.75f, 1.0f);
-        colors.ScrollbarGrabActive = ColorUtils::sRGBToLinear(0.60f, 0.65f, 0.70f, 1.0f);
+        colors.ScrollbarBg = LightPalette::LIGHT_GRAY_300;
+        colors.ScrollbarGrab = LightPalette::LIGHT_GRAY_800;
+        colors.ScrollbarGrabHovered = LightPalette::LIGHT_GRAY_900;
+        colors.ScrollbarGrabActive = LightPalette::LIGHT_GRAY_900; // Same as hover for consistency
 
         // Tabs
-        colors.Tab = ColorUtils::sRGBToLinear(0.82f, 0.82f, 0.82f, 1.0f);
-        colors.TabHovered = ColorUtils::sRGBToLinear(0.74f, 0.74f, 0.74f, 1.0f);
-        colors.TabActive = ColorUtils::sRGBToLinear(0.72f, 0.72f, 0.72f, 1.0f);
-        colors.TabUnfocused = ColorUtils::sRGBToLinear(0.85f, 0.85f, 0.85f, 1.0f);
-        colors.TabUnfocusedActive = ColorUtils::sRGBToLinear(0.80f, 0.80f, 0.80f, 1.0f);
+        colors.Tab = LightPalette::LIGHT_GRAY_500;
+        colors.TabHovered = LightPalette::LIGHT_GRAY_700;
+        colors.TabActive = LightPalette::ACCENT_BLUE_LIGHT;
+        colors.TabUnfocused = LightPalette::LIGHT_GRAY_400;
+        colors.TabUnfocusedActive = LightPalette::LIGHT_GRAY_600;
 
         // Title bar
-        colors.TitleBg = ColorUtils::sRGBToLinear(0.90f, 0.90f, 0.90f, 1.0f);
-        colors.TitleBgActive = ColorUtils::sRGBToLinear(0.85f, 0.85f, 0.85f, 1.0f);
-        colors.TitleBgCollapsed = ColorUtils::sRGBToLinear(0.90f, 0.90f, 0.90f, 0.75f);
+        colors.TitleBg = LightPalette::LIGHT_GRAY_400;
+        colors.TitleBgActive = LightPalette::LIGHT_GRAY_600;
+        colors.TitleBgCollapsed = ImVec4(LightPalette::LIGHT_GRAY_300.x, LightPalette::LIGHT_GRAY_300.y, LightPalette::LIGHT_GRAY_300.z, 0.90f);
 
         // Resize grip (bottom-right corner)
-        colors.ResizeGrip = ColorUtils::sRGBToLinear(0.0f,0.0f);
+        colors.ResizeGrip = ColorUtils::sRGBToLinear(0.0f, 0.0f);
         colors.ResizeGripHovered = ColorUtils::sRGBToLinear(0.0f, 0.0f);
         colors.ResizeGripActive = ColorUtils::sRGBToLinear(0.0f, 0.0f);
 

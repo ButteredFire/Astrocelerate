@@ -199,60 +199,69 @@ void OrbitalWorkspace::renderViewportPanel() {
 	if (ImGui::Begin(GUI::GetPanelName(m_panelViewport), nullptr, m_windowFlags | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse)) {
 		ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
 
-
-		// Simulation control group
-		ImGui::BeginGroup();
+		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
 		{
-			// Pause/Play button
-			static bool initialLoad = true;
-			static float lastTimeScale = 1.0f;
 
-			if (m_simulationIsPaused) {
-				if (initialLoad) {
-					Time::SetTimeScale(0.0f);
-					initialLoad = false;
+			// Simulation control group
+			ImGui::BeginGroup();
+			{
+				// Pause/Play button
+				static bool initialLoad = true;
+				static float lastTimeScale = 1.0f;
+
+				ImGui::AlignTextToFramePadding();
+
+				if (m_simulationIsPaused) {
+					if (initialLoad) {
+						Time::SetTimeScale(0.0f);
+						initialLoad = false;
+					}
+
+					if (ImGui::Button(ICON_FA_PLAY)) {
+						Time::SetTimeScale(lastTimeScale);
+						m_simulationIsPaused = false;
+					}
 				}
-
-				if (ImGui::Button(ICON_FA_PLAY "  Play")) {
-					Time::SetTimeScale(lastTimeScale);
-					m_simulationIsPaused = false;
+				else {
+					if (ImGui::Button(ICON_FA_PAUSE)) {
+						lastTimeScale = Time::GetTimeScale();
+						Time::SetTimeScale(0.0f);
+						m_simulationIsPaused = true;
+					}
 				}
 			}
-			else {
-				if (ImGui::Button(ICON_FA_PAUSE "  Pause")) {
-					lastTimeScale = Time::GetTimeScale();
-					Time::SetTimeScale(0.0f);
-					m_simulationIsPaused = true;
+			ImGui::EndGroup();
+
+			ImGuiUtils::VerticalSeparator();
+
+			// Camera
+			static Camera *camera = m_inputManager->getCamera();
+
+			ImGui::BeginGroup();
+			{
+				static bool inFreeFly = true;
+				if (ImGui::Button("Camera")) {
+					if (inFreeFly) camera->attachToEntity(3);
+					else camera->detachFromEntity();
+
+					inFreeFly = !inFreeFly;
 				}
 			}
+			ImGui::EndGroup();
+
 		}
-		ImGui::EndGroup();
-
-		ImGuiUtils::VerticalSeparator();
-
-		// Camera
-		static Camera *camera = m_inputManager->getCamera();
-
-		ImGui::BeginGroup();
-		{
-			static bool inFreeFly = true;
-			if (ImGui::Button("Camera")) {
-				if (inFreeFly) camera->attachToEntity(3);
-				else camera->detachFromEntity();
-
-				inFreeFly = !inFreeFly;
-			}
-		}
-		ImGui::EndGroup();
+		ImGui::PopStyleColor(3);
 
 
 		ImGui::Separator();
 
 
-		g_appContext.Input.isViewportHoveredOver = ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows) || m_inputBlockerIsOn;
-		g_appContext.Input.isViewportFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) || m_inputBlockerIsOn;
-
 		if (m_sceneSampleReady) {
+			g_appContext.Input.isViewportHoveredOver = ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows) || m_inputBlockerIsOn;
+			g_appContext.Input.isViewportFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) || m_inputBlockerIsOn;
+
 			// Resizes the texture to its original aspect ratio before rendering
 			ImVec2 originalRenderSize = {
 				static_cast<float>(g_vkContext.SwapChain.extent.width),
@@ -506,7 +515,7 @@ void OrbitalWorkspace::renderSimulationControlPanel() {
 			ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
 			ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
 			{
-				if (ImGui::BeginCombo("##NumericalIntegratorCombo", currentIntegrator.c_str())) {
+				if (ImGui::BeginCombo("##NumericalIntegratorCombo", currentIntegrator.c_str(), ImGuiComboFlags_NoArrowButton)) {
 					// TODO
 					ImGui::EndCombo();
 				}
@@ -630,7 +639,7 @@ void OrbitalWorkspace::renderDebugConsole() {
 		ImGui::Text("Sort by log type:");
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(150.0f); // Sets a fixed width of 150 pixels
-		if (ImGui::BeginCombo("##SortByLogTypeCombo", selectedLogType.c_str())) {
+		if (ImGui::BeginCombo("##SortByLogTypeCombo", selectedLogType.c_str(), ImGuiComboFlags_NoArrowButton)) {
 			// NOTE: The "##" prefix tells ImGui to use the label as the internal ID for the widget. This means the label will not be displayed.
 			for (const auto &logType : logTypes) {
 				bool isSelected = (selectedLogType == logType);
