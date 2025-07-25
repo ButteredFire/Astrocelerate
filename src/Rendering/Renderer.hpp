@@ -64,6 +64,10 @@ private:
 
 	uint32_t m_currentFrame = 0;
 
+	// Session data
+	bool m_sessionReady = false;
+
+	void bindEvents();
 
 	/* Renders a frame. 
 		At a high level, rendering a frame in Vulkan consists of a common set of steps:

@@ -24,9 +24,23 @@ void Session::bindEvents() {
 	);
 
 
-	m_eventDispatcher->subscribe<Event::RequireInitSession>(
-		[this](const Event::RequireInitSession &event) {
+	m_eventDispatcher->subscribe<Event::RequestInitSession>(
+		[this](const Event::RequestInitSession &event) {
 			this->loadSceneFromFile(event.simulationFilePath);
+		}
+	);
+
+
+	m_eventDispatcher->subscribe<Event::OffscreenPipelineInitialized>(
+		[this](const Event::OffscreenPipelineInitialized &event) {
+			// This event is just an alias for OffscreenPipelineInitialized for the sake of readability.
+			// Services that don't have a direct tie to the offscreen pipeline should listen to this event.
+			m_eventDispatcher->publish(Event::SceneIsInitialized{});
+
+			// Signal all managers that the newly initialized resources are safe to use
+			m_eventDispatcher->publish(Event::UpdateSessionStatus{
+				.sessionStatus = Event::UpdateSessionStatus::Status::INITIALIZED
+			});
 		}
 	);
 
@@ -54,6 +68,11 @@ void Session::bindEvents() {
 
 
 void Session::init() {
+	reset();
+}
+
+
+void Session::reset() {
 	m_eventDispatcher->publish(Event::UpdateSessionStatus{
 		.sessionStatus = Event::UpdateSessionStatus::Status::NOT_READY
 	});
@@ -67,9 +86,8 @@ void Session::update() {
 	static double accumulator = 0.0;
 	static float timeScale = 0;
 
-	static bool initialUpdate = false;
-	if (!initialUpdate) {
-		initialUpdate = true;
+	if (!m_initialRefFrameUpdate) {
+		m_initialRefFrameUpdate = true;
 		m_refFrameSystem->updateAllFrames();
 	}
 
@@ -108,14 +126,33 @@ void Session::loadSceneFromFile(const std::string &filePath) {
 
 
 	// Load scene from file
-	m_sceneManager->loadSceneFromFile(filePath);
-	m_offscreenPipeline->init();
+		// Detach scene loading from the main thread
+	std::thread([this, filePath]() {
+		try {
+			m_sceneManager->loadSceneFromFile(filePath);
+			m_eventDispatcher->publish(Event::RequestInitSceneResources{});
+		
+			// Propagate scene initialization status to GUI
+			m_eventDispatcher->publish(Event::SceneLoadProgress{
+				.progress = 1.0f,
+				.message = "Scene initialization complete."
+			});
+			m_eventDispatcher->publish(Event::SceneLoadComplete{
+				.loadSuccessful = true,
+				.finalMessage = "Scene initialization complete."
+			});
 
-
-	// Signal all managers that the newly initialized resources are safe to use
-	m_eventDispatcher->publish(Event::UpdateSessionStatus{
-		.sessionStatus = Event::UpdateSessionStatus::Status::INITIALIZED
-	});
+			// Update reference frame system once in update loop
+			m_initialRefFrameUpdate = false;
+		}
+		catch (const std::exception &e) {
+			// Catch any exceptions during the worker thread's CPU-bound execution.
+			Log::Print(Log::T_ERROR, __FUNCTION__, "Error in scene loading worker thread: " + std::string(e.what()));
+			reset();
+			// Signal an error via the SceneInitializationComplete event
+			//m_eventDispatcher.publish(Event::SceneInitializationComplete{ false, "Scene loading failed: " + std::string(e.what()) });
+		}
+	}).detach(); // Detach to run independently
 }
 
 

@@ -72,27 +72,22 @@ void TextureManager::bindEvents() {
 				break;
 
 			case UpdateSessionStatus::Status::PREPARE_FOR_INIT:
-				m_sceneReady = true;
+				m_sceneReady = false;
 				break;
 			}
-		}
-	);
-
-	m_eventDispatcher->subscribe<Event::BufferManagerIsValid>(
-		[this](const Event::BufferManagerIsValid &event) {
-			// Create a placeholder texture (index 0).
-			const std::string texturePath = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Textures", "Fallback/PlaceholderTexture.png");
-			//m_placeholderTextureIndex = createIndexedTexture(texturePath, VK_FORMAT_R8G8B8A8_SRGB);
 		}
 	);
 
 
 	m_eventDispatcher->subscribe<Event::OffscreenPipelineInitialized>(
 		[this](const Event::OffscreenPipelineInitialized &event) {
-			m_textureArrayDescSetIsValid = true;
+			m_sceneReady = true;
+
+			for (const auto &prop : m_deferredTextureProps)
+				createIndexedTexture(prop.texSource, prop.texImgFormat, prop.channels);
 
 			for (size_t i = 0; i < m_textureDescriptorInfos.size(); i++)
-				updateTextureArrayDescriptorSet(i, m_textureDescriptorInfos[i]);
+				updateTextureArrayDescriptorSet(i, m_textureDescriptorInfos[i].value());
 		}
 	);
 }
@@ -123,8 +118,30 @@ Geometry::Texture TextureManager::createIndependentTexture(const std::string &te
 
 
 uint32_t TextureManager::createIndexedTexture(const std::string& texSource, VkFormat texImgFormat, int channels) {
+	if (!m_sceneReady) {
+		// Defer indexed texture creation until the scene initialization worker thread is done (since it involves the creation and destruction of Vulkan handles, which must be done on the main thread).
+		// The new index will still be returned, but until the worker thread is done, the index will not be mapped to an actual texture.
+
+		auto it = m_texturePathToIndexMap.find(texSource);
+		if (it != m_texturePathToIndexMap.end())
+			return it->second;
+
+		uint32_t newIndex = static_cast<uint32_t>(m_textureDescriptorInfos.size());
+		m_textureDescriptorInfos.push_back(std::nullopt);
+		m_texturePathToIndexMap[texSource] = newIndex;
+
+		m_deferredTextureProps.push_back(_IndexedTextureProps{
+			.texSource = texSource,
+			.texImgFormat = texImgFormat,
+			.channels = channels
+		});
+
+		return newIndex;
+	}
+
+
 	auto it = m_texturePathToIndexMap.find(texSource);
-	if (it != m_texturePathToIndexMap.end())
+	if (it != m_texturePathToIndexMap.end() && m_textureDescriptorInfos[m_texturePathToIndexMap[texSource]].has_value())
 		return it->second;
 
 
@@ -151,19 +168,20 @@ uint32_t TextureManager::createIndexedTexture(const std::string& texSource, VkFo
 	descInfo.imageView = imageView;
 	descInfo.sampler = sampler;
 
-	uint32_t newIndex = static_cast<uint32_t>(m_textureDescriptorInfos.size());
-	m_textureDescriptorInfos.push_back(descInfo);
-	m_texturePathToIndexMap[texSource] = newIndex;
+	// If the texture does not exist yet, create a new index for it.
+	if (m_texturePathToIndexMap.count(texSource) == 0) {
+		uint32_t newIndex = static_cast<uint32_t>(m_textureDescriptorInfos.size());
+		m_textureDescriptorInfos.push_back(descInfo);
+		m_texturePathToIndexMap[texSource] = newIndex;
+		
+		return newIndex;
+	}
 
-	// Only update texture array descriptor set if it is valid. Else, defer the textures until it is (already done with m_textureDescriptorInfos).
-	//if (m_textureArrayDescSetIsValid)
-	//	for (size_t i = 0; i < m_textureDescriptorInfos.size(); i++)
-	//		updateTextureArrayDescriptorSet(i, m_textureDescriptorInfos[i]);
-		// TODO: Support dynamic texture loading
-		//throw Log::RuntimeException(__FUNCTION__, __LINE__, "Cannot create indexed texture: Dynamic texture loading is not currently supported!");
-		//updateTextureArrayDescriptorSet(newIndex, m_textureDescriptorInfos.back());
-
-	return newIndex;
+	// If the texture already exists, it can only mean that it was already created before in the scene initialization worker thread, and its index points to an empty element within m_textureDescriptorInfos.
+	// In that case, we must map its index to its actual texture.
+	uint32_t texIndex = m_texturePathToIndexMap[texSource];
+	m_textureDescriptorInfos[texIndex] = descInfo;
+	return texIndex;
 }
 
 

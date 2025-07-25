@@ -181,6 +181,12 @@ int main() {
         boxer::show((errOrigin + errLine + severity + "\n" + std::string(e.what())).c_str(), title.c_str(), boxer::Style::Error, boxer::Buttons::Quit);
         return EXIT_FAILURE;
     }
+#ifdef NDEBUG
+    catch (...) {
+        boxer::show("Caught an unknown exception!\nThis should not happen. Please raise an issue at https://github.com/ButteredFire/Astrocelerate!", "Unknown Exception", boxer::Style::Error, boxer::Buttons::Quit);
+        return EXIT_FAILURE;
+    }
+#endif
 
 
     vkDeviceWaitIdle(g_vkContext.Device.logicalDevice);

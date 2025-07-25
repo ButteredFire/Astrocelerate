@@ -50,7 +50,7 @@ void UIPanelManager::bindEvents() {
 
 void UIPanelManager::initCommonPanels() {
 	m_panelPreferences =	GUI::RegisterPanel("Preferences");
-	m_panelAbout =			GUI::RegisterPanel("App Info & Attributions");
+	m_panelAbout =			GUI::RegisterPanel("App Info & Attribution");
 
 	m_commonPanelCallbacks[m_panelPreferences] =	[this]() { this->renderPreferencesPanel(); };
 	m_commonPanelCallbacks[m_panelAbout] =			[this]() { this->renderAboutPanel(); };

@@ -5,7 +5,14 @@ GeometryLoader::GeometryLoader() {
 	m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
 	m_garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
 
+	bindEvents();
+
 	Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
+}
+
+
+void GeometryLoader::bindEvents() {
+
 }
 
 
@@ -89,7 +96,7 @@ Geometry::GeometryData* GeometryLoader::bakeGeometry() {
 		}
 	}
 
-	// NOTE: geomData is heap-allocated so that it's accessible throughout the application lifetime
+	// NOTE: geomData is heap-allocated so that it's accessible throughout the session lifetime
 	Geometry::GeometryData *geomData = new Geometry::GeometryData();
 	geomData->meshCount = globalMeshOffsets.size();
 	geomData->meshOffsets = globalMeshOffsets;

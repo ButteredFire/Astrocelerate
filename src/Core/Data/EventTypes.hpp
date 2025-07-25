@@ -20,6 +20,7 @@ enum EventType {
 	EVENT_ID_OFFSCREEN_PIPELINE_INITIALIZED,
 	EVENT_ID_PRESENT_PIPELINE_INITIALIZED,
 	EVENT_ID_GEOMETRY_INITIALIZED,
+	EVENT_ID_SCENE_INITIALIZED,
 
 	EVENT_ID_UPDATE_APP_STAGE,
 	EVENT_ID_UPDATE_INPUT,
@@ -33,7 +34,8 @@ enum EventType {
 	EVENT_ID_INPUT_IS_VALID,
 	EVENT_ID_BUFFER_MANAGER_IS_VALID,
 
-	EVENT_ID_REQUIRE_INIT_SESSION,
+	EVENT_ID_REQUEST_INIT_SESSION,
+	EVENT_ID_REQUEST_INIT_SCENE_VULKAN_RESOURCES,
 
 	EVENT_SCENE_LOAD_PROGRESS,
 	EVENT_SCENE_LOAD_COMPLETE
@@ -87,6 +89,15 @@ namespace Event {
 		std::vector<Geometry::Vertex> vertexData;
 		std::vector<uint32_t> indexData;
 		Geometry::GeometryData *pGeomData;
+	};
+
+
+	/* Used when the scene is initialized (most often emitted to signal the end of the scene initialization worker thread).
+		This event is just an alias for Event::OffscreenPipelineInitialized for the sake of readability.
+		Services that don't have a direct tie to the offscreen pipeline should listen to this event.
+	*/
+	struct SceneIsInitialized {
+		const EventType eventType = EventType::EVENT_ID_SCENE_INITIALIZED;
 	};
 
 
@@ -165,11 +176,17 @@ namespace Event {
 		const EventType eventType = EventType::EVENT_ID_BUFFER_MANAGER_IS_VALID;
 	};
 
-
-	/* Used when a manager/service requires initialization of a new user session. */
-	struct RequireInitSession {
-		const EventType eventType = EventType::EVENT_ID_REQUIRE_INIT_SESSION;
+	
+	/* Used when a manager/service requests initialization of a new user session. */
+	struct RequestInitSession {
+		const EventType eventType = EventType::EVENT_ID_REQUEST_INIT_SESSION;
 		std::string simulationFilePath;
+	};
+
+
+	/* Used when the scene processing is complete, and its Vulkan resources (e.g., offscreen pipeline) need to be initialized. */
+	struct RequestInitSceneResources {
+		const EventType eventType = EventType::EVENT_ID_REQUEST_INIT_SCENE_VULKAN_RESOURCES;
 	};
 
 

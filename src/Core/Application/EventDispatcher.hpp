@@ -72,12 +72,12 @@ public:
 		} // Mutex is automatically released here
 
 
+		if (!suppressLogs && !callbacks.empty())
+			Log::Print(Log::T_INFO, __FUNCTION__, "Invoking " + std::to_string(callbacks.size()) + " " + ((callbacks.size() == 1) ? "callback" : "callbacks") + " for event type " + enquote(typeid(EventType).name()) + "...");
+
 		for (auto& callback : callbacks) {
 			callback(&event);
 		}
-
-		if (!suppressLogs && !callbacks.empty())
-			Log::Print(Log::T_SUCCESS, __FUNCTION__, "Invoked " + std::to_string(callbacks.size()) + " " + ((callbacks.size() == 1) ? "callback" : "callbacks") + " for event type " + enquote(typeid(EventType).name()) + ".");
 	}
 
 	

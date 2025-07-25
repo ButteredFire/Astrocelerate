@@ -18,11 +18,32 @@ Renderer::Renderer():
 
     m_imguiRenderer = ServiceLocator::GetService<UIRenderer>(__FUNCTION__);
 
+    bindEvents();
+
     Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
 
 
 Renderer::~Renderer() {}
+
+
+void Renderer::bindEvents() {
+    m_eventDispatcher->subscribe<Event::UpdateSessionStatus>(
+        [this](const Event::UpdateSessionStatus &event) {
+            using namespace Event;
+
+            switch (event.sessionStatus) {
+            case UpdateSessionStatus::Status::NOT_READY:
+                m_sessionReady = false;
+                break;
+
+            case UpdateSessionStatus::Status::INITIALIZED:
+                m_sessionReady = true;
+                break;
+            }
+        }
+    );
+}
 
 
 void Renderer::update(glm::dvec3& renderOrigin) {
@@ -31,6 +52,9 @@ void Renderer::update(glm::dvec3& renderOrigin) {
 
 
 void Renderer::preRenderUpdate(uint32_t currentFrame, glm::dvec3 &renderOrigin) {
+    if (!m_sessionReady)
+        return;
+
     // Updates the uniform buffers
     m_eventDispatcher->publish(Event::UpdateUBOs{
         .currentFrame = m_currentFrame,

@@ -13,6 +13,53 @@ OffscreenPipeline::OffscreenPipeline() {
 }
 
 
+void OffscreenPipeline::bindEvents() {
+	m_eventDispatcher->subscribe<Event::RequestInitSceneResources>(
+		[this](const Event::RequestInitSceneResources &event) {
+			this->init();
+		}
+	);
+
+
+	m_eventDispatcher->subscribe<Event::UpdateSessionStatus>(
+		[this](const Event::UpdateSessionStatus &event) {
+			using namespace Event;
+
+			switch (event.sessionStatus) {
+			case UpdateSessionStatus::Status::NOT_READY:
+				m_sessionReady = false;
+				break;
+
+			case UpdateSessionStatus::Status::PREPARE_FOR_INIT:
+				m_sessionReady = true;
+
+				for (auto &cleanupID : m_offscreenCleanupIDs)
+					m_garbageCollector->executeCleanupTask(cleanupID);
+				m_offscreenCleanupIDs.clear();
+
+				for (auto &cleanupID : m_sessionCleanupIDs)
+					m_garbageCollector->executeCleanupTask(cleanupID);
+				m_sessionCleanupIDs.clear();
+
+				break;
+
+			case UpdateSessionStatus::Status::INITIALIZED:
+				m_sessionReady = true;
+			}
+		}
+	);
+
+
+	m_eventDispatcher->subscribe<Event::SwapchainIsRecreated>(
+		[this](const Event::SwapchainIsRecreated& event) {
+			if (!m_sessionReady)
+				return;
+
+			this->recreateOffscreenResources(g_vkContext.SwapChain.extent.width, g_vkContext.SwapChain.extent.height, event.imageIndex);
+		}
+	);
+}
+
 
 void OffscreenPipeline::init() {
 	// Set up fixed-function states
@@ -62,54 +109,11 @@ void OffscreenPipeline::init() {
 
 
 	// Initialize offscreen resources
-		// TODO: Abstract this init procedure
-		// TODO: Handle window resizing
 	initOffscreenColorResources(g_vkContext.SwapChain.extent.width, g_vkContext.SwapChain.extent.height);
 	initOffscreenSampler();
 	initOffscreenFramebuffer(g_vkContext.SwapChain.extent.width, g_vkContext.SwapChain.extent.height);
 
 	m_eventDispatcher->publish(Event::OffscreenPipelineInitialized{});
-}
-
-
-void OffscreenPipeline::bindEvents() {
-	m_eventDispatcher->subscribe<Event::UpdateSessionStatus>(
-		[this](const Event::UpdateSessionStatus &event) {
-			using namespace Event;
-
-			switch (event.sessionStatus) {
-			case UpdateSessionStatus::Status::NOT_READY:
-				m_sessionReady = false;
-				break;
-
-			case UpdateSessionStatus::Status::PREPARE_FOR_INIT:
-				m_sessionReady = true;
-
-				for (auto &cleanupID : m_offscreenCleanupIDs)
-					m_garbageCollector->executeCleanupTask(cleanupID);
-				m_offscreenCleanupIDs.clear();
-
-				for (auto &cleanupID : m_sessionCleanupIDs)
-					m_garbageCollector->executeCleanupTask(cleanupID);
-				m_sessionCleanupIDs.clear();
-
-				break;
-
-			case UpdateSessionStatus::Status::INITIALIZED:
-				m_sessionReady = true;
-			}
-		}
-	);
-
-
-	m_eventDispatcher->subscribe<Event::SwapchainIsRecreated>(
-		[this](const Event::SwapchainIsRecreated& event) {
-			if (!m_sessionReady)
-				return;
-
-			this->recreateOffscreenResources(g_vkContext.SwapChain.extent.width, g_vkContext.SwapChain.extent.height, event.imageIndex);
-		}
-	);
 }
 
 

@@ -46,7 +46,10 @@ private:
 	std::shared_ptr<PhysicsSystem> m_physicsSystem;
 
 	bool m_sessionInitialized = false;
+	bool m_initialRefFrameUpdate = false;
 
 
 	void bindEvents();
+
+	void reset();
 };

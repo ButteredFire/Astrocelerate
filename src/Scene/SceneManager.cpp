@@ -239,23 +239,24 @@ void SceneManager::loadSceneFromFile(const std::string &filePath) {
 
 
         m_eventDispatcher->publish(Event::SceneLoadProgress{
-            .progress = 1.0f,
-            .message = "Scene load completed successfully."
-        });
-        m_eventDispatcher->publish(Event::SceneLoadComplete{
-            .loadSuccessful = true,
-            .finalMessage = "Successfully loaded scene from simulation file " + enquote(fileName) + "."
+            .progress = 0.95f,
+            .message = "Initializing resources..."
         });
 	}
 
 	catch (const YAML::BadFile &e) {
 		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to read data from simulation file " + enquote(fileName) + ": " + e.what());
+
+        // Re-throw the original exception to the outer try-catch block (i.e., the Session try-catch block, for it to reset its status)
+        throw;
 	}
 	catch (const YAML::ParserException &e) {
 		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to parse data from simulation file " + enquote(fileName) + ": " + e.what());
+        throw;
 	}
 	catch (const std::exception &e) {
 		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to load scene from simulation file " + enquote(fileName) + ": " + e.what());
+        throw;
 	}
 
 

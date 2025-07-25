@@ -27,6 +27,10 @@ void VkCommandManager::bindEvents() {
 				m_sceneReady = false;
 				break;
 
+			case UpdateSessionStatus::Status::PREPARE_FOR_INIT:
+				m_sceneReady = false;
+				break;
+
 			case UpdateSessionStatus::Status::INITIALIZED:
 				vkDeviceWaitIdle(g_vkContext.Device.logicalDevice);
 				m_sceneReady = true;

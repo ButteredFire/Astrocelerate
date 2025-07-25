@@ -101,19 +101,22 @@ private:
     
     uint32_t m_placeholderTextureIndex = 0;
 
-    std::unordered_map<std::string, uint32_t> m_texturePathToIndexMap; // Maps path to its index in the descriptor infos vector.
-    std::vector<VkDescriptorImageInfo> m_textureDescriptorInfos;       // Contains all image views and samplers for the global array.
+    std::unordered_map<std::string, uint32_t> m_texturePathToIndexMap;                  // Maps path to its index in the descriptor infos vector.
+    std::vector<std::optional<VkDescriptorImageInfo>> m_textureDescriptorInfos;         // Contains all image views and samplers for the global array. If an element does not contain a VkDescriptorImageInfo, it is a placeholder for a deferred texture.
 
     // Keeps track of unique samplers for reuse when new textures are loaded (keyed by sampler create info hash).
     std::unordered_map<size_t, VkSampler> m_uniqueSamplers;
 
-    // This is set to True when all pipelines are initialized.
-    // Before this, new textures are added to a deference list, and the texture array descriptor set will be updated when it is valid.
-    // After this, the texture array descriptor set will be immeadiately updated upon the creation of new textures.
-    bool m_textureArrayDescSetIsValid = false;
-
-    // If the scene is not ready (i.e., its resources are not initialized yet), indexed textures should not be updated.
+    // Session data
+        // If the scene is not ready (i.e., its resources are not initialized yet), indexed textures should not be updated.
     bool m_sceneReady = false;
+
+    struct _IndexedTextureProps {
+        std::string texSource;
+        VkFormat texImgFormat;
+        int channels;
+    };
+    std::vector<_IndexedTextureProps> m_deferredTextureProps;
     
 
     void bindEvents();

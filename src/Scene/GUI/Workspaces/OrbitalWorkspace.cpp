@@ -36,10 +36,11 @@ void OrbitalWorkspace::bindEvents() {
 				break;
 
 			case UpdateSessionStatus::Status::PREPARE_FOR_INIT:
-				m_sceneSampleReady = true;
+				m_sceneSampleReady = false;
 				break;
 
 			case UpdateSessionStatus::Status::INITIALIZED:
+				m_sceneSampleReady = true;
 				initPerFrameTextures();
 				break;
 			}
@@ -133,7 +134,7 @@ void OrbitalWorkspace::preRenderUpdate(uint32_t currentFrame) {
 
 
 void OrbitalWorkspace::loadSimulationConfig(const std::string &configPath) {
-	m_eventDispatcher->publish(Event::RequireInitSession{
+	m_eventDispatcher->publish(Event::RequestInitSession{
 		.simulationFilePath = configPath
 	});
 }

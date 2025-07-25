@@ -40,4 +40,8 @@ private:
 	std::shared_ptr<GarbageCollector> m_garbageCollector;
 
 	std::vector<Geometry::MeshData> m_meshes;
+
+	std::vector<CleanupID> m_sessionCleanupIDs;
+
+	void bindEvents();
 };

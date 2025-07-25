@@ -32,9 +32,15 @@ void UIRenderer::initImGui() {
     //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // IF using Docking Branch
 
-    io.ConfigErrorRecoveryEnableAssert = false; // Disable asserts on recoverable errors
-    io.ConfigErrorRecoveryEnableDebugLog = true; // Still log errors to debug output
-    io.ConfigErrorRecoveryEnableTooltip = true; // Show a tooltip indicating an error
+    io.ConfigErrorRecoveryEnableAssert = false;     // Asserts on recoverable errors
+    io.ConfigErrorRecoveryEnableDebugLog = true;    // Log errors to debug output
+    io.ConfigErrorRecoveryEnableTooltip = true;     // Tooltip indicating an error
+
+    if (!IN_DEBUG_MODE) {
+        io.ConfigErrorRecoveryEnableAssert = false;
+        io.ConfigErrorRecoveryEnableDebugLog = false;
+        io.ConfigErrorRecoveryEnableTooltip = false;
+    }
 
 
     // Setup Platform/Renderer backends
@@ -87,7 +93,7 @@ void UIRenderer::initImGui() {
     // Other
     vkInitInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
     vkInitInfo.Allocator = nullptr;
-
+    
         // Actually show the real error origin in debug mode instead of a flashy error message box
     if (!IN_DEBUG_MODE) {
         vkInitInfo.CheckVkResultFn = [](VkResult result) {
