@@ -104,6 +104,10 @@ Astrocelerate made its first commit on November 28th, 2024. As of July 10th, 202
 ## Screenshots
 The following screenshots document the development of Astrocelerate.
 
+### 25/07/2025
+<img width="1919" height="1031" alt="2025-07-25" src="https://github.com/user-attachments/assets/fb586a14-5ddc-4442-a18a-12a35fca709e" />
+<img width="1919" height="1032" alt="2025-07-25" src="https://github.com/user-attachments/assets/958aa972-6ba2-4740-b331-321d3da697ed" />
+
 ### 10/07/2025
 ![2025-07-10](https://github.com/user-attachments/assets/fb0ea6af-8cf1-43de-9279-71a61d7c1744)
 
