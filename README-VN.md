@@ -92,7 +92,7 @@ Các nguyên tắc này có thể thay đổi theo thời gian, khi Astrocelerat
 ## Phần mềm thiết yếu
 - Vulkan SDK (Vulkan 1.2+)
 - Vcpkg dependency manager
-- CMake 3.20+
+- CMake 3.30+
 - Python 3.9+
 - C++20
 

@@ -3,14 +3,75 @@
 
 #pragma once
 
+#include <vector>
 #include <string>
+#include <fstream>
 #include <concepts>
+#include <algorithm>
 #include <filesystem>
+
+#ifdef _WIN32
+#include <windows.h>
+#elif __linux__
+#include <libgen.h> // For dirname
+#include <limits.h> // For PATH_MAX
+#include <unistd.h> // For readlink
+#elif __APPLE__
+#include <mach-o/dyld.h> // For _NSGetExecutablePath
+#include <limits.h> // For PATH_MAX
+#endif
 
 #include <Core/Application/LoggingManager.hpp>
 
 
 namespace FilePathUtils {
+	/* 	Gets the directory of the application executable.
+		This function is platform-specific and uses different methods to retrieve the executable path based on the operating system.
+		@return The directory of the executable as a std::filesystem::path.
+	*/
+	inline std::filesystem::path GetExecDir() {
+		char path_buffer[FILENAME_MAX];
+		std::string executablePath;
+
+#ifdef _WIN32
+		// Windows: GetModuleFileNameW for wide characters, then convert to narrow
+		DWORD length = GetModuleFileNameA(NULL, path_buffer, sizeof(path_buffer));
+		if (length == 0 || length == sizeof(path_buffer)) {
+			throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to get executable path on Windows.");
+		}
+		executablePath = path_buffer;
+#elif __linux__
+		// Linux: readlink /proc/self/exe
+		ssize_t length = readlink("/proc/self/exe", path_buffer, sizeof(path_buffer) - 1);
+		if (length == -1) {
+			throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to get executable path on Linux (readlink /proc/self/exe failed).");
+		}
+		path_buffer[length] = '\0'; // Null-terminate the string
+		executablePath = path_buffer;
+#elif __APPLE__
+		// macOS: _NSGetExecutablePath
+		uint32_t buffer_size = sizeof(path_buffer);
+		if (_NSGetExecutablePath(path_buffer, &buffer_size) != 0) {
+			// Buffer was too small, try again with a larger buffer if needed,
+			// but for simplicity, we'll just throw for now.
+			// In a real-world scenario, you might reallocate.
+			throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to get executable path on macOS (buffer too small or other error).");
+		}
+		executablePath = path_buffer;
+#else
+#error "Unsupported operating system."
+#endif
+
+		// Extract the directory part
+		size_t lastSlashPos = executablePath.find_last_of("/\\");
+		if (lastSlashPos == std::string::npos) {
+			// If no slash is found, it means the executable is in the current directory
+			return std::filesystem::current_path();
+		}
+		return std::filesystem::path(executablePath.substr(0, lastSlashPos));
+	}
+
+
 	/* Joins multiple paths.
 		@param root: The root path.
 		@param paths...: The paths to be joined to the root path.

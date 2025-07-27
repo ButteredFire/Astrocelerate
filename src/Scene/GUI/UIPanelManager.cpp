@@ -61,14 +61,14 @@ void UIPanelManager::initStaticTextures() {
 	std::shared_ptr<TextureManager> textureManager = ServiceLocator::GetService<TextureManager>(__FUNCTION__);
 
 	// App logo
-	std::string logoPath = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/App", "AstrocelerateLogo.png");
+	std::string logoPath = FilePathUtils::JoinPaths(ROOT_DIR, "assets/App", "AstrocelerateLogo.png");
 	Geometry::Texture texture = textureManager->createIndependentTexture(logoPath, VK_FORMAT_R8G8B8A8_SRGB);
 	
 	m_appLogoTexProps.size = ImVec2(texture.size.x, texture.size.y);
 	m_appLogoTexProps.textureID = TextureUtils::GenerateImGuiTextureID(texture.imageLayout, texture.imageView, texture.sampler);
 
 	// Oriviet Aerospace logo
-	logoPath = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/App", "OrivietAerospaceLogo-Mono.png");
+	logoPath = FilePathUtils::JoinPaths(ROOT_DIR, "assets/App", "OrivietAerospaceLogo-Mono.png");
 	texture = textureManager->createIndependentTexture(logoPath, VK_FORMAT_R8G8B8A8_SRGB);
 
 	m_companyLogoTexProps.size = ImVec2(texture.size.x, texture.size.y);
@@ -130,7 +130,7 @@ void UIPanelManager::renderMenuBar() {
 				const char *filterPatterns[] = { "*.yaml" };
 				const char *selectedFilePath = tinyfd_openFileDialog(
 					"Open Simulation File",
-					APP_SOURCE_DIR,          // Default path/filename
+					FilePathUtils::JoinPaths(ROOT_DIR, "samples/").c_str(),          // Default path/filename
 					IM_ARRAYSIZE(filterPatterns),
 					filterPatterns,
 					NULL,        // Optional: filter description (e.g., "Text files")
@@ -147,11 +147,6 @@ void UIPanelManager::renderMenuBar() {
 
 					m_currentWorkspace->loadSimulationConfig(selectedFilePath);
 					selectedFile = FilePathUtils::GetFileName(selectedFilePath);
-					// Start the loading in a new worker thread
-					/*
-					std::thread([this, selectedFilePath]() {
-					}).detach();
-					*/
 				}
 			}
 

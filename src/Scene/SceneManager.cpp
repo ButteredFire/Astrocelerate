@@ -42,9 +42,7 @@ void SceneManager::init() {
 
 
 void SceneManager::loadScene() {
-	//loadSceneFromFile(
-	//	FilePathUtils::JoinPaths(APP_SOURCE_DIR, "samples", "SatelliteInLEO.yaml")
-	//);
+
 }
 
 
@@ -204,7 +202,7 @@ void SceneManager::loadSceneFromFile(const std::string &filePath) {
                             .message = "[" + std::string(entityName) + "] Loading geometry..."
                         });
 
-                        std::string fullPath = FilePathUtils::JoinPaths(APP_SOURCE_DIR, meshPath);
+                        std::string fullPath = FilePathUtils::JoinPaths(ROOT_DIR, meshPath);
                         Math::Interval<uint32_t> meshRange = m_geometryLoader.loadGeometryFromFile(fullPath);
 
                         meshRenderable.meshRange = meshRange;

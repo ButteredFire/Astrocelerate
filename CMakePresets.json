@@ -1,0 +1,48 @@
+{
+    "version": 6,
+    "configurePresets": [
+        {
+            "name": "x64-Debug-Win32",
+            "displayName": "x64 Debug (Windows)",
+            "description": "Configures for x64 Debug builds with Ninja and vcpkg on Windows.",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/out/build/${presetName}",
+            "installDir": "${sourceDir}/out/install/${presetName}",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_TOOLCHAIN_FILE": "C:/vcpkg/scripts/buildsystems/vcpkg.cmake"
+            },
+            "environment": {
+                // Add environment variables here
+            }
+        },
+        {
+            "name": "x64-Release-Win32",
+            "displayName": "x64 Release (Windows)",
+            "description": "Configures for x64 Release builds with Ninja and vcpkg on Windows.",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/out/build/${presetName}",
+            "installDir": "${sourceDir}/out/install/${presetName}",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+                "CMAKE_TOOLCHAIN_FILE": "C:/vcpkg/scripts/buildsystems/vcpkg.cmake"
+            },
+            "environment": {}
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "x64-Debug-Win32",
+            "displayName": "x64-Debug (Windows)",
+            "configurePreset": "x64-Debug-Win32",
+            "verbose": true
+        },
+        {
+            "name": "x64-Release-Win32",
+            "displayName": "x64-Release (Windows)",
+            "configurePreset": "x64-Release-Win32",
+            "verbose": true
+        }
+    ],
+    "testPresets": []
+}

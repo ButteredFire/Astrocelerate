@@ -213,10 +213,10 @@ void AssimpParser::processMeshMaterials(const aiScene *scene, const aiMaterial *
 	
 	std::string textureAbsPath;
 
-	const std::string fallbackPlaceholder = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Textures", "Fallback/PlaceholderTexture.png");
-	const std::string fallbackWhite = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Textures", "Fallback/1x1_White.png");
-	const std::string fallbackBlack = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Textures", "Fallback/1x1_Black.png");
-	const std::string fallbackFlatNormal = FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Textures", "Fallback/1x1_Flat_Normal.png");
+	const std::string fallbackPlaceholder = FilePathUtils::JoinPaths(ROOT_DIR, "assets/Textures", "Fallback/PlaceholderTexture.png");
+	const std::string fallbackWhite = FilePathUtils::JoinPaths(ROOT_DIR, "assets/Textures", "Fallback/1x1_White.png");
+	const std::string fallbackBlack = FilePathUtils::JoinPaths(ROOT_DIR, "assets/Textures", "Fallback/1x1_Black.png");
+	const std::string fallbackFlatNormal = FilePathUtils::JoinPaths(ROOT_DIR, "assets/Textures", "Fallback/1x1_Flat_Normal.png");
 
 	// Albedo (base color)
 	aiColor3D albedoBaseColor(1.0f, 1.0f, 1.0f);

@@ -3,10 +3,11 @@
 
 #pragma once
 
-#include <filesystem>
 #include <string>
+#include <filesystem>
 
 #include <External/GLM.hpp>
+
 
 // Default working directory
 inline std::string DEFAULT_WORKING_DIR = std::filesystem::current_path().string();
@@ -38,7 +39,8 @@ using Byte = uint8_t;
 	#define AUTHOR "Duong Duy Nhat Minh"
 #endif
 
-//namespace APP {}
+extern const std::filesystem::path EXEC_DIR;
+extern const std::string ROOT_DIR;
 
 
 // Shader properties
@@ -76,8 +78,8 @@ namespace ShaderConsts {
 
 
 	// Compiled shaders
-	inline const std::string VERTEX = std::string(APP_BINARY_DIR) + std::string("/compiled_shaders/VertexShader.spv");
-	inline const std::string FRAGMENT = std::string(APP_BINARY_DIR) + std::string("/compiled_shaders/FragmentShader.spv");
+	extern const std::string VERTEX;
+	extern const std::string FRAGMENT;
 }
 
 
@@ -99,7 +101,7 @@ namespace WindowConsts {
 
 // Configuration properties
 namespace ConfigConsts {
-	const std::string IMGUI_DEFAULT_CONFIG = std::string(APP_SOURCE_DIR) + std::string("/configs/DefaultImGuiConfig.ini");
+	extern const std::string IMGUI_DEFAULT_CONFIG;
 }
 
 
@@ -109,15 +111,15 @@ namespace ConfigConsts {
 #define TO_STR(any)			std::to_string((any))
 
 namespace FontConsts {
-	struct {
-		const std::string BOLD				= std::string(APP_SOURCE_DIR) + "/assets/Fonts/NotoSans/NotoSans-Bold.ttf";
-		const std::string BOLD_ITALIC		= std::string(APP_SOURCE_DIR) + "/assets/Fonts/NotoSans/NotoSans-BoldItalic.ttf";
-		const std::string ITALIC			= std::string(APP_SOURCE_DIR) + "/assets/Fonts/NotoSans/NotoSans-Italic.ttf";
-		const std::string LIGHT				= std::string(APP_SOURCE_DIR) + "/assets/Fonts/NotoSans/NotoSans-Light.ttf";
-		const std::string LIGHT_ITALIC		= std::string(APP_SOURCE_DIR) + "/assets/Fonts/NotoSans/NotoSans-LightItalic.ttf";
-		const std::string REGULAR			= std::string(APP_SOURCE_DIR) + "/assets/Fonts/NotoSans/NotoSans-Regular.ttf";
-		const std::string REGULAR_MATH		= std::string(APP_SOURCE_DIR) + "/assets/Fonts/NotoSans/NotoSansMath-Regular.ttf";
-		const std::string REGULAR_MONO		= std::string(APP_SOURCE_DIR) + "/assets/Fonts/NotoSans/NotoSansMono-Regular.ttf";
+	extern struct NotoSansFonts {
+		const std::string BOLD;
+		const std::string BOLD_ITALIC;
+		const std::string ITALIC;
+		const std::string LIGHT;
+		const std::string LIGHT_ITALIC;
+		const std::string REGULAR;
+		const std::string REGULAR_MATH;
+		const std::string REGULAR_MONO;
 	} NotoSans;
 }
 

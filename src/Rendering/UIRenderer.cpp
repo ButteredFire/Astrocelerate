@@ -198,7 +198,7 @@ void UIRenderer::initFonts() {
         ICON_MIN_FA, ICON_MAX_FA, 0
     };
 
-    io.Fonts->AddFontFromFileTTF(FilePathUtils::JoinPaths(APP_SOURCE_DIR, "assets/Fonts", "FontAwesome", "FontAwesome-6-Free-Solid-900.otf").c_str(), iconSize, &mergeConfig, faGlyphRanges);
+    io.Fonts->AddFontFromFileTTF(FilePathUtils::JoinPaths(ROOT_DIR, "assets/Fonts", "FontAwesome", "FontAwesome-6-Free-Solid-900.otf").c_str(), iconSize, &mergeConfig, faGlyphRanges);
     
 
     // Other variations

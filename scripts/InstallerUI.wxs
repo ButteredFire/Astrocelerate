@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+
+	<Fragment>
+		<UI>
+			<TextStyle Id="WixUI_Font_Normal" FaceName="Tahoma" Size="10" Red="255" Green="255" Blue="255" />
+			<TextStyle Id="WixUI_Font_Bigger" FaceName="Tahoma" Size="14" Red="255" Green="255" Blue="255" />
+			<TextStyle Id="WixUI_Font_Title" FaceName="Tahoma" Size="11" Bold="yes" Red="255" Green="255" Blue="255" />
+			<UIRef Id="WixUI_InstallDir" />
+		</UI>
+	</Fragment>
+
+</Wix>

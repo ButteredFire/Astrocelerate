@@ -87,6 +87,7 @@ These principles are subject to change over time, as Astrocelerate (and I) becom
 ## Prerequisites
 - Vulkan SDK (Vulkan 1.2+)
 - Vcpkg dependency manager
+- CMake 3.30+
 - Python 3.9+
 - C++20
 

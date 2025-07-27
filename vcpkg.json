@@ -1,12 +1,11 @@
 {
     "name": "astrocelerate",
-    "version": "0.1-alpha",
+    "version": "0.1.0-alpha",
     "dependencies": [
         "glfw3",
         "glm",
         "vulkan-memory-allocator",
         "assimp",
-        "freetype",
         "yaml-cpp"
     ]
 }
