@@ -18,6 +18,7 @@
 
 #include <Engine/Components/PhysicsComponents.hpp>
 #include <Engine/Components/TelemetryComponents.hpp>
+#include <Engine/Components/SpacecraftComponents.hpp>
 
 #include <Rendering/Textures/TextureManager.hpp>
 
@@ -28,6 +29,7 @@
 #include <Utils/TextureUtils.hpp>
 #include <Utils/Vulkan/VkDescriptorUtils.hpp>
 
+#include <Scene/GUI/CodeEditor.hpp>
 #include <Scene/GUI/Workspaces/IWorkspace.hpp>
 
 
@@ -71,6 +73,9 @@ private:
 	GUI::PanelID m_panelOrbitalPlanner;
 	GUI::PanelID m_panelDebugConsole;
 	GUI::PanelID m_panelDebugApp;
+	GUI::PanelID m_panelSceneResourceTree;
+	GUI::PanelID m_panelSceneResourceDetails;
+	GUI::PanelID m_panelCodeEditor;
 
 	std::unordered_map<GUI::PanelID, GUI::PanelCallback> m_panelCallbacks;
 
@@ -88,6 +93,24 @@ private:
 	uint32_t m_currentFrame = 0;
 	bool m_inputBlockerIsOn = false;  // Viewport input blocker blocker (prevents interactions with other GUI elements if the viewport is focused)
 	bool m_simulationIsPaused = true;
+
+	// Scene resources
+	enum class m_ResourceType {
+		SPACECRAFT,
+		CELESTIAL_BODIES,
+		PROPAGATORS,
+		SOLVERS,
+		SCRIPTS,
+		COORDINATE_SYSTEMS
+	};
+	m_ResourceType m_currentSceneResourceType;
+	EntityID m_currentSceneResourceEntityID;
+
+		// Code editor
+	CodeEditor m_codeEditor;
+	std::string m_simulationConfigPath = "";
+	std::vector<char> m_simulationScriptData{};
+	bool m_simulationConfigChanged = false;
 
 
 	void bindEvents();
@@ -111,4 +134,7 @@ private:
 	void renderOrbitalPlannerPanel();
 	void renderDebugConsole();
 	void renderDebugApplication();
+	void renderSceneResourceTree();
+	void renderSceneResourceDetails();
+	void renderCodeEditor();
 };

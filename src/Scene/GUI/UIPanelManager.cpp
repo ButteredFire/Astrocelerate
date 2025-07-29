@@ -51,9 +51,12 @@ void UIPanelManager::bindEvents() {
 void UIPanelManager::initCommonPanels() {
 	m_panelPreferences =	GUI::RegisterPanel("Preferences");
 	m_panelAbout =			GUI::RegisterPanel("App Info & Attribution");
+	m_panelWelcome =		GUI::RegisterPanel("Welcome to Astrocelerate!", true);
 
 	m_commonPanelCallbacks[m_panelPreferences] =	[this]() { this->renderPreferencesPanel(); };
 	m_commonPanelCallbacks[m_panelAbout] =			[this]() { this->renderAboutPanel(); };
+
+	GUI::TogglePanel(m_commonPanelMask, m_panelWelcome, GUI::TOGGLE_ON);
 }
 
 
@@ -108,6 +111,11 @@ void UIPanelManager::renderWorkspace(uint32_t currentFrame) {
 		}
 	}
 
+		// Instanced panels
+	if (GUI::IsPanelOpen(m_commonPanelMask, m_panelWelcome))
+		renderWelcomePanel();
+
+
 	m_currentWorkspace->update(currentFrame);
 }
 
@@ -149,11 +157,13 @@ void UIPanelManager::renderMenuBar() {
 					selectedFile = FilePathUtils::GetFileName(selectedFilePath);
 				}
 			}
+			ImGuiUtils::CursorOnHover();
 
 			// Save
 			if (ImGui::MenuItem("Save", "Ctrl+S")) {
 				// TODO: Handle Save
 			}
+			ImGuiUtils::CursorOnHover();
 
 			ImGui::Separator();
 
@@ -164,6 +174,7 @@ void UIPanelManager::renderMenuBar() {
 
 				//ImGui::MenuItem(GetPanelName(m_panelPreferences), "Ctrl+Shift+P", &isOpen);
 				ImGui::MenuItem(GetPanelName(m_panelPreferences), "", &isOpen);
+				ImGuiUtils::CursorOnHover();
 				TogglePanel(m_commonPanelMask, m_panelPreferences, isOpen ? TOGGLE_ON : TOGGLE_OFF);
 			}
 
@@ -173,6 +184,8 @@ void UIPanelManager::renderMenuBar() {
 			if (ImGui::MenuItem("Exit")) {
 				// TODO: Handle Exit
 			}
+			ImGuiUtils::CursorOnHover();
+
 			ImGui::EndMenu();
 		}
 
@@ -183,6 +196,7 @@ void UIPanelManager::renderMenuBar() {
 			if (IN_DEBUG_MODE) {
 				static bool isDemoWindowOpen = false;
 				ImGui::MenuItem("ImGui Demo Window (Debug Mode)", "", &isDemoWindowOpen);
+				ImGuiUtils::CursorOnHover();
 				if (isDemoWindowOpen)
 					ImGui::ShowDemoWindow();
 
@@ -191,10 +205,11 @@ void UIPanelManager::renderMenuBar() {
 
 			// All other panels
 			for (auto& [panelID, _] : m_workspacePanelCallbacks) {
-				// Only render workspace-specific panels
-				if (m_commonPanels.find(panelID) == m_commonPanels.end()) {
+				// Only render workspace-specific, persistent panels
+				if (m_commonPanels.count(panelID) == 0 && !IsPanelInstanced(panelID)) {
 					bool isOpen = IsPanelOpen(m_workspacePanelMask, panelID);
 					ImGui::MenuItem(GetPanelName(panelID), "", &isOpen);
+					ImGuiUtils::CursorOnHover();
 					TogglePanel(m_workspacePanelMask, panelID, isOpen ? TOGGLE_ON : TOGGLE_OFF);
 				}
 			}
@@ -210,6 +225,7 @@ void UIPanelManager::renderMenuBar() {
 				bool isAboutPanelOpen = IsPanelOpen(m_commonPanelMask, m_panelAbout);
 
 				ImGui::MenuItem(GetPanelName(m_panelAbout), "", &isAboutPanelOpen);
+				ImGuiUtils::CursorOnHover();
 				TogglePanel(m_commonPanelMask, m_panelAbout, isAboutPanelOpen ? TOGGLE_ON : TOGGLE_OFF);
 			}
 
@@ -219,12 +235,16 @@ void UIPanelManager::renderMenuBar() {
 
 		// Plugins
 		if (ImGui::BeginMenu("Plugins")) {
-			if (ImGui::MenuItem("Weather Prediction")) {
-				// ...
-			}
+			ImGui::MenuItem("Weather Prediction");
+			ImGuiUtils::CursorOnHover();
+			ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 0, 0, 255));
+				ImGuiUtils::TextTooltip(ImGuiHoveredFlags_None, "This plugin is not currently supported.");
+			ImGui::PopStyleColor();
 
 			ImGui::EndMenu();
 		}
+
+		ImGui::TextLinkOpenURL("Give Feedback", "https://forms.gle/xpaqY4BoVRsGLhbC9/");
 
 
 		ImGui::EndMainMenuBar();
@@ -323,11 +343,15 @@ void UIPanelManager::renderPreferencesPanel() {
 				// TODO: Handle data-saving
 				GUI::TogglePanel(m_commonPanelMask, m_panelPreferences, GUI::TOGGLE_OFF);
 			}
+			ImGuiUtils::CursorOnHover();
+
 			ImGui::SameLine();
+
 			if (ImGui::Button("Cancel", ImVec2(btnWidth, 0.0f))) {
 				// TODO: Handle discarding changes
 				GUI::TogglePanel(m_commonPanelMask, m_panelPreferences, GUI::TOGGLE_OFF);
 			}
+			ImGuiUtils::CursorOnHover();
 
 			ImGui::End();
 		}
@@ -344,9 +368,11 @@ void UIPanelManager::renderPreferencesPanel() {
 				currentTree = TREE_APPEARANCE;
 				currentSelection = OPTION_APPEARANCE_COLOR_THEME;
 			}
+			ImGuiUtils::CursorOnHover();
 
 			ImGui::TreePop();
 		}
+		ImGuiUtils::CursorOnHover();
 
 
 		// DEBUGGING
@@ -355,9 +381,11 @@ void UIPanelManager::renderPreferencesPanel() {
 				currentTree = TREE_DEBUGGING;
 				currentSelection = OPTION_DEBUGGING_CONSOLE;
 			}
+			ImGuiUtils::CursorOnHover();
 
 			ImGui::TreePop();
 		}
+		ImGuiUtils::CursorOnHover();
 
 		ImGui::End();
 	}
@@ -385,13 +413,14 @@ void UIPanelManager::renderPreferencesPanel() {
 
 				ImGui::SameLine();
 				ImGui::SetNextItemWidth(150.0f);
-				if (ImGui::BeginCombo("##ColorTheme", AppearanceNames.at(g_appContext.GUI.currentAppearance).c_str())) {
+				if (ImGui::BeginCombo("##ColorTheme", AppearanceNames.at(g_appContext.GUI.currentAppearance).c_str(), ImGuiComboFlags_NoArrowButton)) {
 					for (size_t i = 0; i < SIZE_OF(AppearancesArray); i++) {
 						bool isSelected = (g_appContext.GUI.currentAppearance == AppearancesArray[i]);
 						if (ImGui::Selectable(AppearanceNames.at(AppearancesArray[i]).c_str(), isSelected)) {
 							ApplyTheme(AppearancesArray[i]);
 							g_appContext.GUI.currentAppearance = AppearancesArray[i];
 						}
+						ImGuiUtils::CursorOnHover();
 
 						if (isSelected)
 							ImGui::SetItemDefaultFocus();
@@ -414,6 +443,7 @@ void UIPanelManager::renderPreferencesPanel() {
 
 				ImGui::SetNextItemWidth(150.0f);
 				ImGui::InputInt("##LogBufferSize", &Log::MaxLogLines, 0, 0);
+				ImGuiUtils::CursorOnHover(ImGuiMouseCursor_TextInput);
 			}
 
 			break;
@@ -440,11 +470,15 @@ void UIPanelManager::renderAboutPanel() {
 			// Application logo
 			{
 				//ImGuiUtils::MoveCursorToMiddle(m_appLogoTexProps.size);
-				ImVec2 viewportSize = { ImGuiUtils::GetAvailableWidth() / 2, availableScrollHeight };
+				ImVec2 viewportSize = { ImGuiUtils::GetAvailableWidth() / 1.5f, availableScrollHeight };
+
+				// Calculate the horizontal offset needed to center the text
+				float offsetX = (availableRegion.x - viewportSize.x) * 0.5f;
+				ImGui::SetCursorPosX(ImGui::GetCursorPosX() + offsetX);
 
 				ImGui::Image(m_appLogoTexProps.textureID, ImGuiUtils::ResizeImagePreserveAspectRatio(m_appLogoTexProps.size, viewportSize));
-				ImGui::SameLine();
-				ImGui::Image(m_companyLogoTexProps.textureID, ImGuiUtils::ResizeImagePreserveAspectRatio(m_companyLogoTexProps.size, viewportSize));
+				//ImGui::SameLine();
+				//ImGui::Image(m_companyLogoTexProps.textureID, ImGuiUtils::ResizeImagePreserveAspectRatio(m_companyLogoTexProps.size, viewportSize));
 			}
 
 			ImGuiUtils::BoldText("%s (version %s)", APP_NAME, APP_VERSION);
@@ -470,19 +504,23 @@ void UIPanelManager::renderAboutPanel() {
 				ImGui::TextWrapped("by Omar Cornut");
 
 
+				ImGui::TextWrapped("Script parser:");
+				ImGui::SameLine();
+				ImGui::TextLinkOpenURL("YAML-CPP", "https://github.com/jbeder/yaml-cpp");
+
+
 				ImGui::TextWrapped("Simulation Assets:");
+				ImGui::Indent();
+				{
+					ImGui::TextLinkOpenURL("Earth 3D Model", "https://science.nasa.gov/resource/earth-3d-model/");
+					ImGui::SameLine();
+					ImGui::TextWrapped("by NASA Visualization Technology Applications and Development (VTAD)");
 
-				ImGui::BulletText("");
-				ImGui::SameLine();
-				ImGui::TextLinkOpenURL("Earth 3D Model", "https://science.nasa.gov/resource/earth-3d-model/");
-				ImGui::SameLine();
-				ImGui::TextWrapped("by NASA Visualization Technology Applications and Development (VTAD)");
-
-				ImGui::BulletText("");
-				ImGui::SameLine();
-				ImGui::TextLinkOpenURL("Chandra X-Ray Observatory Model", "https://nasa3d.arc.nasa.gov/detail/jpl-chandra");
-				ImGui::SameLine();
-				ImGui::TextWrapped("by Brian Kumanchik, NASA/JPL-Caltech");
+					ImGui::TextLinkOpenURL("Chandra X-Ray Observatory Model", "https://nasa3d.arc.nasa.gov/detail/jpl-chandra");
+					ImGui::SameLine();
+					ImGui::TextWrapped("by Brian Kumanchik, NASA/JPL-Caltech");
+				}
+				ImGui::Unindent();
 			}
 
 
@@ -496,6 +534,7 @@ void UIPanelManager::renderAboutPanel() {
 		if (ImGui::Button("OK", ImVec2(btnWidth, 0.0f))) {
 			GUI::TogglePanel(m_commonPanelMask, panelID, GUI::TOGGLE_OFF);
 		}
+		ImGuiUtils::CursorOnHover();
 
 		ImGui::End();
 	}
@@ -516,9 +555,9 @@ void UIPanelManager::renderSceneLoadModal(const std::string &fileName) {
 			if (!m_loadErrorOccurred) {
 				ImGui::PushFont(g_fontContext.NotoSans.bold);
 				{
-					ImGuiUtils::CenteredText("Processing %s", enquote(fileName).c_str());
+					ImGuiUtils::AlignedText(ImGuiUtils::TEXT_ALIGN_MIDDLE, "Processing %s", enquote(fileName).c_str());
 					ImGuiUtils::Padding();
-					ImGuiUtils::CenteredText(m_currentLoadMessage.c_str());
+					ImGuiUtils::AlignedText(ImGuiUtils::TEXT_ALIGN_MIDDLE, m_currentLoadMessage.c_str());
 				}
 				ImGui::PopFont();
 
@@ -560,6 +599,7 @@ void UIPanelManager::renderSceneLoadModal(const std::string &fileName) {
 					ImGui::CloseCurrentPopup();
 					m_showLoadingModal = false;
 				}
+				ImGuiUtils::CursorOnHover();
 			}
 
 
@@ -567,4 +607,63 @@ void UIPanelManager::renderSceneLoadModal(const std::string &fileName) {
 		}
 	}
 	ImGui::PopStyleColor();
+}
+
+
+void UIPanelManager::renderWelcomePanel() {
+	ImGui::SetNextWindowSize(ImVec2(800.0f, 550.0f));
+	ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+
+	static const char *panelName = GUI::GetPanelName(m_panelWelcome);
+	static bool panelOpen = GUI::IsPanelOpen(m_commonPanelMask, m_panelWelcome);
+	if (ImGui::Begin(panelName, &panelOpen, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoScrollbar)) {
+
+		ImVec2 availableRegion = ImGui::GetContentRegionAvail();
+		float availableScrollHeight = availableRegion.y - ImGuiUtils::GetBottomButtonAreaHeight();
+
+		// Render logo
+		ImVec2 viewportSize = { ImGuiUtils::GetAvailableWidth() / 1.5f, availableScrollHeight };
+
+			// Calculate the horizontal offset needed to center the text
+		float offsetX = (availableRegion.x - viewportSize.x) * 0.5f;
+		ImGui::SetCursorPosX(ImGui::GetCursorPosX() + offsetX);
+
+		ImGui::Image(m_appLogoTexProps.textureID, ImGuiUtils::ResizeImagePreserveAspectRatio(m_appLogoTexProps.size, viewportSize));
+
+
+		// Body
+		ImGuiUtils::AlignedText(ImGuiUtils::TEXT_ALIGN_MIDDLE, ImGuiUtils::IconString(ICON_FA_SATELLITE, "Welcome to Astrocelerate!").c_str());
+
+		ImGuiUtils::Padding();
+
+		ImGui::Text("To get started, please open a simulation script by going to File > Open.");
+		ImGui::Text("Two sample scripts have been provided. Feel free to play around with them!");
+
+		ImGuiUtils::Padding();
+
+		ImGui::TextWrapped("The source code for Astrocelerate is available in");
+		ImGui::SameLine();
+		ImGui::TextLinkOpenURL("this repository.", "https://github.com/ButteredFire/Astrocelerate/");
+		ImGui::TextWrapped("If you have any questions or concerns, you can submit an issue there. Contributions are absolutely welcome!");
+
+		ImGuiUtils::Padding();
+
+		ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 255, 0, 255));
+		{
+			ImGuiUtils::AlignedText(ImGuiUtils::TEXT_ALIGN_MIDDLE, ImGuiUtils::IconString(ICON_FA_TRIANGLE_EXCLAMATION, "WE WANT TO HEAR WHAT YOU HAVE TO SAY!").c_str());
+		}
+		ImGui::PopStyleColor();
+
+		ImGui::TextWrapped("Astrocelerate is in its early development phase. Your feedback is absolutely instrumental in shaping the future of Astrocelerate as an orbital mechanics simulation engine.");
+		ImGui::TextWrapped("We deeply value your feedback. To submit one, please fill in");
+		ImGui::SameLine();
+		ImGui::TextLinkOpenURL("this form.", "https://forms.gle/xpaqY4BoVRsGLhbC9/");
+
+		ImGuiUtils::Padding();
+
+		ImGuiUtils::AlignedText(ImGuiUtils::TEXT_ALIGN_MIDDLE, "Thank you, and may the future of spaceflight rise and shine!");
+
+		ImGui::End();
+	}
+	GUI::TogglePanel(m_commonPanelMask, m_panelWelcome, panelOpen ? GUI::TOGGLE_ON : GUI::TOGGLE_OFF);
 }

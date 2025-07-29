@@ -93,14 +93,14 @@ public:
 
 		@return The command buffer in question.
 	*/
-	static VkCommandBuffer beginSingleUseCommandBuffer(SingleUseCommandBufferInfo* commandBufInfo);
+	static VkCommandBuffer BeginSingleUseCommandBuffer(SingleUseCommandBufferInfo* commandBufInfo);
 
 
 	/* Stops recording a single-use/anonymous command buffer and submit its data to the GPU.
 		@param commandBufInfo: The command buffer configuration.
 		@param cmdBuffer: The command buffer.
 	*/
-	static void endSingleUseCommandBuffer(SingleUseCommandBufferInfo* commandBufInfo, VkCommandBuffer& cmdBuffer);
+	static void EndSingleUseCommandBuffer(SingleUseCommandBufferInfo* commandBufInfo, VkCommandBuffer& cmdBuffer);
 
 
 	/* Creates a command pool.
@@ -133,6 +133,9 @@ private:
 
 	// Session data
 	bool m_sceneReady = false;
+
+	uint32_t m_secondaryCmdBufCount = 0;
+	VkCommandBuffer *m_pCommandBuffers = nullptr;
 
 	void bindEvents();
 };

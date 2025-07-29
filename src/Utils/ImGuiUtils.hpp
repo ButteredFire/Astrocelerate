@@ -6,8 +6,10 @@
 #include <map>
 
 #include <imgui/imgui.h>
+#include <imgui/imgui_internal.h>
 
 #include <Core/Application/LoggingManager.hpp>
+#include <Core/Data/Contexts/AppContext.hpp>
 
 #include <Utils/SystemUtils.hpp>
 
@@ -101,6 +103,12 @@ namespace ImGuiUtils {
 	};
 
 
+	/* Converts an ImVec4 vector to an ImU32 format (0xAABBGGRR). */
+	inline ImU32 ImVec4ToImU32(const ImVec4 &color) {
+		return ImGui::ColorConvertFloat4ToU32(color);
+	}
+
+
 
 	// ----- TEXT FORMATTING -----
 
@@ -164,15 +172,20 @@ namespace ImGuiUtils {
 	}
 
 
-	/* Renders centered text in the current ImGui window.
-		@param fmt: The (formatted) text to be centered.
+	/* Renders aligned text in the current ImGui window.
+		@param alignment: The desired text alignment.
+		@param fmt: The (formatted) text to be aligned.
 		@param ...: The arguments for the formatted text.
 	*/
-	inline void CenteredText(const char *fmt, ...) {
+	enum Alignment {
+		TEXT_ALIGN_MIDDLE,
+		TEXT_ALIGN_RIGHT
+	};
+	inline void AlignedText(Alignment alignment, const char *fmt, ...) {
 		ImVec2 windowSize = ImGui::GetWindowSize();
 
 		// Turn formatted text into a complete string
-		char buffer[256];
+		char buffer[512];
 		va_list args;
 		va_start(args, fmt);
 		vsprintf(buffer, fmt, args);
@@ -184,7 +197,12 @@ namespace ImGuiUtils {
 		float availableWidth = ImGui::GetContentRegionAvail().x; // Width remaining in the current line/container
 
 		// Calculate the horizontal offset needed to center the text
-		float offsetX = (availableWidth - textWidth) * 0.5f;
+		float offsetX = availableWidth - textWidth;
+
+		if (alignment == TEXT_ALIGN_MIDDLE)
+			offsetX *= 0.5f;
+		else if (alignment == TEXT_ALIGN_RIGHT)
+			offsetX *= 1.0f;
 
 		if (offsetX > 0.0f) {
 			ImGui::SetCursorPosX(ImGui::GetCursorPosX() + offsetX);
@@ -194,16 +212,28 @@ namespace ImGuiUtils {
 	}
 
 
+	/* Renders a string with an icon prepended to it.
+		@param icon: The icon to be prepended to the string.
+		@param text: The text to be displayed after the icon.
+
+		@return A pointer to the resulting string.
+	*/
+	inline std::string IconString(const char *icon, const std::string &text) {
+		return std::string(icon) + (text.empty() ? "" : "  " + text);
+	}
+
+
 	/* Displays a tooltip with the given text.
+		@param hoveredFlags (Default: None): Item hover conditionals.
 		@param fmt: The (formatted) text to be displayed in the tooltip.
 		@param ...: The arguments for the formatted text.
 	*/
-	inline void Tooltip(const char* fmt, ...) {
-		if (ImGui::IsItemHovered()) {
+	inline void TextTooltip(ImGuiHoveredFlags hoveredFlags, const char* fmt, ...) {
+		if (ImGui::IsItemHovered(hoveredFlags)) {
 			ImGui::BeginTooltip();
 			va_list args;  // Handles variadic arguments
 			va_start(args, fmt);
-			ImGui::TextWrappedV(fmt, args);
+			ImGui::TextV(fmt, args);
 			va_end(args);
 			ImGui::EndTooltip();
 		}
@@ -328,5 +358,47 @@ namespace ImGuiUtils {
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + ImGui::GetStyle().ItemSpacing.y); // Adds a little vertical space
 		ImGui::Dummy(ImVec2(ImGui::GetContentRegionAvail().x - paddingRight - btnWidth * btnCount, 0.0f)); // Pushes buttons to the right
 		ImGui::SameLine();
+	}
+
+
+
+	// ----- MISCELLANEOUS -----
+
+	/* Sets the mouse cursor to a hand icon when hovering over an item.
+		@param cursorType (Default: ImGuiMouseCursor_Hand): The type of the cursor to set when hovering.
+		@param hoveredFlags (Default: None): Item hover conditionals.
+	*/
+	inline void CursorOnHover(ImGuiMouseCursor cursorType = ImGuiMouseCursor_Hand, ImGuiHoveredFlags hoveredFlags = 0) {
+		if (ImGui::IsItemHovered(hoveredFlags)) {
+			ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+		}
+	}
+
+
+	/* Pushes style flags to disable an item. */
+	inline void PushStyleDisabled() {
+		ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+		ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+	}
+
+
+	/* Pops style flags that were pushed to disable an item. */
+	inline void PopStyleDisabled() {
+		ImGui::PopItemFlag();
+		ImGui::PopStyleVar();
+	}
+
+
+	/* Pushes style flags for a button with a transparent background. */
+	inline void PushStyleClearButton() {
+		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.0f, 0.0f, 0.0f, 0.5f));
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.0f, 0.0f, 0.0f, 0.75f));
+	}
+
+
+	/* Pops style flags for a button with a transparent background. */
+	inline void PopStyleClearButton() {
+		ImGui::PopStyleColor(3);
 	}
 }

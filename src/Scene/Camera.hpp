@@ -12,7 +12,7 @@
 
 #include <Core/Data/Input.hpp>
 
-#include <Engine/Components/CommonComponents.hpp>
+#include <Engine/Components/CoreComponents.hpp>
 #include <Engine/Components/PhysicsComponents.hpp>
 
 #include <Utils/SpaceUtils.hpp>
@@ -34,7 +34,7 @@ public:
 
 
 	/* Gets the camera's transform in global simulation space. */
-	CommonComponent::Transform getGlobalTransform() const;
+	CoreComponent::Transform getGlobalTransform() const;
 
 
 	/* Fixes the camera to an entity (mesh) in the scene (or its own entity ID to enable free-fly mode).

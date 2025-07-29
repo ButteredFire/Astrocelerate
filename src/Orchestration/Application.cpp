@@ -158,7 +158,7 @@ int main() {
 
 
         std::shared_ptr<EventDispatcher> eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
-        eventDispatcher->publish(Event::AppIsStable{});
+        eventDispatcher->dispatch(Event::AppIsStable{});
 
 
         engine.run();
@@ -169,21 +169,27 @@ int main() {
         processCleanupStack();
         Log::Print(Log::T_ERROR, APP_NAME, "Program exited with errors.");
 
-        std::string errOrigin = "Origin: " + std::string(e.origin()) + "\n";
-        std::string errLine = "Line: " + std::to_string(e.errorLine()) + "\n";
+        std::string title = "Exception raised from " + STD_STR(e.origin());
+
+        std::string errOrigin = "Origin: " + STD_STR(e.origin()) + "\n";
+        std::string errLine = "Line: " + TO_STR(e.errorLine()) + "\n";
+
+        std::string threadInfo = "Thread: " + STD_STR(e.threadInfo()) + "\n";
 
         std::string msgType;
         Log::LogColor(e.severity(), msgType, false);
         std::string severity = "Exception type: " + msgType + "\n";
 
-        std::string title = "Exception raised from " + std::string(e.origin());
+        boxer::show((errOrigin + errLine + threadInfo + severity + "\n" + STD_STR(e.what())).c_str(), title.c_str(), boxer::Style::Error, boxer::Buttons::Quit);
 
-        boxer::show((errOrigin + errLine + severity + "\n" + std::string(e.what())).c_str(), title.c_str(), boxer::Style::Error, boxer::Buttons::Quit);
+        Log::EndLogging();
         return EXIT_FAILURE;
     }
 #ifdef NDEBUG
     catch (...) {
         boxer::show("Caught an unknown exception!\nThis should not happen. Please raise an issue at https://github.com/ButteredFire/Astrocelerate!", "Unknown Exception", boxer::Style::Error, boxer::Buttons::Quit);
+
+        Log::EndLogging();
         return EXIT_FAILURE;
     }
 #endif
@@ -194,5 +200,7 @@ int main() {
     processCleanupStack();
 
     Log::Print(Log::T_SUCCESS, APP_NAME, "Program exited successfully.");
+
+    Log::EndLogging();
     return EXIT_SUCCESS;
 }

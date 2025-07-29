@@ -8,6 +8,7 @@
 #include <atomic>
 #include <functional>
 #include <unordered_map>
+#include <unordered_set>
 
 #include <imgui/imgui.h>
 
@@ -36,6 +37,7 @@ namespace GUI {
 	static std::atomic<PanelID>	s_nextPanelID = PANEL_NULL + 1;
 	static std::unordered_map<std::string, PanelID> s_panelNameToID;
 	static std::vector<std::string> s_panelIDToName;	// Indexed by panel ID
+	static std::unordered_set<PanelID> s_instancedPanels;
 
 
 	enum Toggle {  
@@ -49,10 +51,11 @@ namespace GUI {
 		By "Register", it is meant that the new panel will be registered into the global panel registry, NOT a panel mask, which is instance-based!
 
 		@param panelName: The panel name.
+		@param makeInstanced (Default: False): Whether to treat this panel as instanced (True), or persistent (False). An instanced panel is a conditional panel only accessible through certain events that give it data to render (think the Details panel), and cannot be opened anywhere else. A persistent panel is always accessible, regardless of whether it has data to render or not (think the Console/Telemetry panels).
 		
 		@return The newly registered panel's ID.
 	*/
-	inline PanelID RegisterPanel(const std::string &panelName) {
+	inline PanelID RegisterPanel(const std::string &panelName, bool makeInstanced = false) {
 		if (s_nextPanelID >= MAX_PANEL_COUNT) {
 			Log::Print(Log::T_WARNING, __FUNCTION__, "Cannot register panel " + enquote(panelName) + ": Panel count exceeded the maximum of " + TO_STR(MAX_PANEL_COUNT) + "! The default NULL panel (ID: " + TO_STR(PANEL_NULL) + ") will be returned instead.");
 			return PANEL_NULL;
@@ -71,6 +74,9 @@ namespace GUI {
 		}
 
 		s_panelIDToName[newID] = panelName;
+
+		if (makeInstanced)
+			s_instancedPanels.insert(newID);
 
 		return newID;
 	}
@@ -100,7 +106,17 @@ namespace GUI {
 	inline bool IsPanelOpen(PanelMask& mask, PanelID panelID) {
 		NULL_PANEL_CHECK(panelID, false);
 		return mask.test(static_cast<size_t>(panelID));  
-	}  
+	}
+
+
+	/* Is a panel an instanced/conditional panel?
+		@param panelID: The ID of the panel to be checked.
+
+		@return True if the panel is instanced, otherwise False.
+	*/
+	inline bool IsPanelInstanced(PanelID panelID) {
+		return s_instancedPanels.count(panelID);
+	}
 
 
 	/* Toggles a panel on or off.  

@@ -36,6 +36,7 @@ enum EventType {
 
 	EVENT_ID_REQUEST_INIT_SESSION,
 	EVENT_ID_REQUEST_INIT_SCENE_VULKAN_RESOURCES,
+	EVENT_ID_REQUEST_PROCESS_SECONDARY_COMMAND_BUFFERS,
 
 	EVENT_SCENE_LOAD_PROGRESS,
 	EVENT_SCENE_LOAD_COMPLETE
@@ -123,11 +124,12 @@ namespace Event {
 	};
 
 
-	/* Used to update the render status of renderables (e.g., are renderables ready to be rendered?) */
+	/* Used to update the status of the current session. */
 	struct UpdateSessionStatus {
 		enum class Status {
-			NOT_READY,				// Session is not initialized (meaning that, e.g., scenes and per-scene resources should not be initialized)
-			PREPARE_FOR_INIT,		// Session is preparing to be initialized. This allows for managers listening to this event to also prepare.
+			PREPARE_FOR_RESET,		// Session is preparing to be reset. This allows for any manager using per-session resources to immediately stop accessing them
+			RESET,					// Session has been reset. This allows for per-session managers to destroy all outdated resources in preparation for new ones.
+			PREPARE_FOR_INIT,		// Session is preparing to be initialized. This allows for per-session managers to also prepare.
 			INITIALIZED				// Session is initialized. At this stage, scenes and per-scene resources are safe to use.
 		};
 
@@ -181,6 +183,14 @@ namespace Event {
 	struct RequestInitSession {
 		const EventType eventType = EventType::EVENT_ID_REQUEST_INIT_SESSION;
 		std::string simulationFilePath;
+	};
+
+
+	/* Used when any secondary command buffers have finished recording, and need to be recorded into the primary command buffer. */
+	struct RequestProcessSecondaryCommandBuffers {
+		const EventType eventType = EventType::EVENT_ID_REQUEST_PROCESS_SECONDARY_COMMAND_BUFFERS;
+		uint32_t bufferCount;
+		VkCommandBuffer *pBuffers;
 	};
 
 

@@ -42,24 +42,26 @@ void VkBufferManager::bindEvents() {
 			using namespace Event;
 
 			switch (event.sessionStatus) {
-			case UpdateSessionStatus::Status::NOT_READY:
+			case UpdateSessionStatus::Status::PREPARE_FOR_RESET:
 				m_sceneReady = false;
-				break;
 
-			case UpdateSessionStatus::Status::PREPARE_FOR_INIT:
-				m_sceneReady = true;
-
-				// Clean up all per-session buffers
-					// Unmap memory
+				// Unmap memory
 				for (auto &cleanupID : m_bufferMemCleanupIDs)
 					m_garbageCollector->executeCleanupTask(cleanupID);
 				m_bufferMemCleanupIDs.clear();
-				
-					// Destroy buffers
+
+				break;
+
+			case UpdateSessionStatus::Status::RESET:
+				// Destroy buffers
 				for (auto &cleanupID : m_bufferCleanupIDs)
 					m_garbageCollector->executeCleanupTask(cleanupID);
 				m_bufferCleanupIDs.clear();
 
+				break;
+
+			case UpdateSessionStatus::Status::PREPARE_FOR_INIT:
+				m_sceneReady = true;
 				break;
 			}
 		}
@@ -79,7 +81,7 @@ void VkBufferManager::bindEvents() {
 
 
 void VkBufferManager::init() {
-	m_eventDispatcher->publish(Event::BufferManagerIsValid{});
+	m_eventDispatcher->dispatch(Event::BufferManagerIsValid{});
 }
 
 
@@ -124,7 +126,7 @@ CleanupID VkBufferManager::CreateBuffer(VkBuffer& buffer, VkDeviceSize bufferSiz
 
 	CleanupTask bufTask{};
 	bufTask.caller = __FUNCTION__;
-	bufTask.objectNames = { VARIABLE_NAME(m_buffer) };
+	bufTask.objectNames = { VARIABLE_NAME(buffer) };
 	bufTask.vkHandles = { g_vkContext.vmaAllocator, buffer, bufferAllocation };
 	bufTask.cleanupFunc = [buffer, bufferAllocation]() { vmaDestroyBuffer(g_vkContext.vmaAllocator, buffer, bufferAllocation); };
 
@@ -259,7 +261,7 @@ void VkBufferManager::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDevic
 	cmdBufInfo.usingSingleUseFence = true;
 	cmdBufInfo.queue = selectedFamily.deviceQueue;
 
-	VkCommandBuffer commandBuffer = VkCommandManager::beginSingleUseCommandBuffer(&cmdBufInfo);
+	VkCommandBuffer commandBuffer = VkCommandManager::BeginSingleUseCommandBuffer(&cmdBufInfo);
 
 
 	// Copies the data
@@ -272,7 +274,7 @@ void VkBufferManager::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDevic
 
 
 	// Stops recording the command buffer and submits recorded data to the GPU
-	VkCommandManager::endSingleUseCommandBuffer(&cmdBufInfo, commandBuffer);
+	VkCommandManager::EndSingleUseCommandBuffer(&cmdBufInfo, commandBuffer);
 }
 
 

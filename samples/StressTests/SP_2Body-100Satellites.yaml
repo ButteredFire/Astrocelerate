@@ -9,19 +9,19 @@ Entities:
           localTransform:
             position: [0.0, 0.0, 0.0]
             rotation: [0.0, 0.0, 0.0]
-
       - Type: PhysicsComponent::RigidBody
         Data:
           velocity: [0.0, 0.0, 0.0]
           acceleration: [0.0, 0.0, 0.0]
           mass: 5.972e+24
-
+          
       - Type: PhysicsComponent::ShapeParameters
         Data:
-          equatRadius: 6378000.0
-          eccentricity: 0.0167
-          gravParam: 3.986004418e+14 # PhysicsConsts::G * earthMass
-          rotVelocity: 7.2921159e-5
+          equatRadius: 6378137.0
+          flattening: 0.0033528197
+          gravParam: 3.986004418e+14
+          rotVelocity: [0.0, 0.0, 7.2921159e-5]
+          j2: 0.00108263
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -39,18 +39,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [3652831.6388252974, 5671612.323542445, 397578.3289111818]
-            rotation: [199.9021498280534, 320.525191137342, 207.18758189672073]
+            position: [3215053.33388487, -6478728.704725364, -1350808.472438093]
+            rotation: [79.15977865744321, 20.861640546152454, 202.4619252826836]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [642.2766310725219, -2058.11650606952, -8055.106304063044]
+          velocity: [1762.9268764328488, 4769.03888771145, -5813.893161980909]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 4118.0023025813
+          mass: 4541.93450987792
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -68,18 +81,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [-7010396.997146442, -3642324.3592494517, 2531328.0660160766]
-            rotation: [156.16042738651007, 80.89327319166922, 0.4532305117437829]
+            position: [3468271.2466851366, 1527402.5511890794, -6764674.257490149]
+            rotation: [82.00067757860101, 146.49666122815793, 75.99486931058173]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [537.2673225076811, -6678.646598859409, -2441.219826989365]
+          velocity: [1197.4265218508117, 5283.659866037772, -4360.687372159393]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 1213.1226680954094
+          mass: 595.4202099444697
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -97,18 +123,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [5423424.217067761, -2983915.6706540096, 5204895.256966473]
-            rotation: [145.10999849367226, 205.97900961803447, 209.17660222351577]
+            position: [-2100835.1276958357, 2396891.466424474, 6536695.393487973]
+            rotation: [279.4732050462207, 169.1986983067789, 283.6954257204792]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [-4857.0449643611855, 1242.496862538518, 4093.7465998912603]
+          velocity: [1762.8662652901355, 4106.560092459922, 5574.441610575013]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 324.7941736518837
+          mass: 952.860734096567
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -126,18 +165,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [-657675.0572105997, 309497.00159142015, 6714222.512176276]
-            rotation: [32.616105990654496, 306.4551997914139, 326.04080031000063]
+            position: [3829583.4018530427, -6724696.017768658, 2853909.5084894183]
+            rotation: [274.59145933297754, 161.7006395864485, 259.1436443633823]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [3068.726660123947, 6855.067052417776, -2590.2835841521232]
+          velocity: [-475.42658012252554, 5803.281441267851, -3648.491455925711]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 4488.405350891625
+          mass: 3132.0763454545736
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -155,18 +207,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [122208.06745357858, 213766.17994812544, -6754804.180542655]
-            rotation: [117.2733067888437, 145.82988328207907, 150.9155354662969]
+            position: [6935188.420091471, 3732168.8760010535, -1681114.5921305965]
+            rotation: [252.25743784400152, 330.53493987501173, 297.5136400363255]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [566.6214016255967, -7798.070391806113, -2483.585822796574]
+          velocity: [-5384.926173814498, 3220.2242958847582, -3732.2134331683656]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 4326.563737435877
+          mass: 4116.688601698485
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -184,18 +249,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [5776628.320707145, 4665284.618769733, -2247509.5519446954]
-            rotation: [38.07774115137936, 53.61560889507868, 47.38297466356012]
+            position: [-4688899.886255473, -2893322.1407804484, 5500569.307829224]
+            rotation: [66.9217070995396, 246.8844813919515, 16.02025062772121]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [4730.182798570452, 748.6953096634022, -5345.781344555032]
+          velocity: [3267.2057826153423, 6627.854386031731, 2073.3276221398596]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 41.04697449104289
+          mass: 3966.2219658146255
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -213,18 +291,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [1267586.6246904032, -364341.3241825869, -7928688.178394339]
-            rotation: [136.00102403477513, 143.06966475184228, 329.00000537929964]
+            position: [-7130258.425023283, 2506209.282913831, 3607757.6964793694]
+            rotation: [9.649930161946848, 269.9568571699204, 204.90118153541303]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [-4007.305849523823, 5533.682010229967, 2538.2522194649546]
+          velocity: [-672.3424818436177, -3649.2881946167295, -5608.327184763767]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 3432.77606349349
+          mass: 4546.1321298471275
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -242,18 +333,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [-2968987.1413983623, -3599552.342678564, -5102236.067372815]
-            rotation: [269.59064759488757, 60.792444973276766, 215.86543466154865]
+            position: [-7039288.346227922, -846391.3334272776, 254138.2870687935]
+            rotation: [180.69408574853318, 147.731580903944, 49.80885272346828]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [133.90518061526666, -6109.610735199489, 4867.659118550333]
+          velocity: [-4005.862388696907, -2028.2045831894718, -6047.372620776788]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 1646.109194355099
+          mass: 2639.1495283745917
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -271,18 +375,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [5955112.594173831, 2567974.4562521577, 1339163.7202989692]
-            rotation: [86.00238345021177, 283.84611015322315, 234.5724781385926]
+            position: [-99424.71357696943, -5586336.827199122, 4421551.777854969]
+            rotation: [239.55471199696254, 4.583315493504729, 17.355773533644246]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [161.02251095401533, 6701.929887759206, -2690.784843519405]
+          velocity: [2712.0857131631765, -4990.62366942608, 4607.854229661876]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 2996.216855721224
+          mass: 3937.8811378112127
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -300,18 +417,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [-353750.2597518872, 3817940.3332881117, -6326939.39969008]
-            rotation: [32.85230630613633, 221.39782830062657, 250.58783132658172]
+            position: [-2857283.191610042, 6356141.221171464, 4289105.11649051]
+            rotation: [166.1872986609985, 272.1102024749561, 225.10987133485938]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [555.7158512128234, 2098.874708488589, 6779.111797484128]
+          velocity: [4549.285893559616, 3701.410506625965, -3624.5315727578964]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 4210.864070919501
+          mass: 1224.7716840660642
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -329,18 +459,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [2728719.622967868, -3558665.552501287, -6403249.324007364]
-            rotation: [169.72894239435956, 233.91699192863592, 55.960891146257126]
+            position: [140120.36442823752, -3129869.957345039, 7263756.31604501]
+            rotation: [131.5877766450751, 160.81391419797984, 166.04378472268573]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [-5581.339412288699, 3812.2593170301493, -2095.965495975627]
+          velocity: [-6745.75417765905, 2812.1219066410463, 719.4915554059995]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 3649.4959672467076
+          mass: 989.4400385956476
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -358,18 +501,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [-2138911.609099383, -4293185.200338338, 4645193.619898949]
-            rotation: [150.41055729586205, 242.90267173229324, 251.25655686543678]
+            position: [-4799315.477248255, -3678641.069128953, 2968951.193354272]
+            rotation: [294.5678894941056, 283.7862111147951, 17.972537515795825]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [-5016.872854796945, -4456.629772120643, 3804.72256211933]
+          velocity: [-1193.610398087259, -6646.543902418384, -2576.9605285223715]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 2421.9270787493424
+          mass: 4652.672106503095
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -387,18 +543,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [-4530247.660624305, -59417.116929281154, 6964116.197604718]
-            rotation: [21.004819350642165, 297.6415575300893, 317.8749555772851]
+            position: [-3050419.074959983, 173578.39513755305, 6819654.229624517]
+            rotation: [258.8343767951615, 321.61591882185473, 354.01341230098944]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [-406.3621313837068, -6862.152069845907, 224.2095101733211]
+          velocity: [5610.216484123526, -3243.2072984089677, 2611.8956428244924]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 275.71456018539027
+          mass: 3931.1921268055485
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -416,18 +585,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [-3416375.325113469, 1522199.019902492, -5580527.673092457]
-            rotation: [233.56115223799316, 6.673368481339232, 49.74820796640239]
+            position: [54261.98552194803, 45152.09875858129, -6892411.250267023]
+            rotation: [335.96181541614254, 247.75730446076574, 249.29597228867127]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [-3637.739898482008, 7004.430652368421, 1982.9096127873381]
+          velocity: [5632.61718349288, -4341.0043867919285, 2796.7883932160794]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 3862.761965032351
+          mass: 2026.578727453103
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -445,18 +627,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [-1449857.0714314955, -7380694.878246799, -2782882.3863281384]
-            rotation: [93.61674569372008, 228.53233101835272, 151.31861913610322]
+            position: [101898.53770209133, -99537.52091164848, -6800477.63786]
+            rotation: [241.31649516356848, 348.40207432999966, 354.0016171351466]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [-4299.1209349925775, 4842.5552736344935, -1982.0461206624138]
+          velocity: [-2687.3661293929295, -5203.942394171811, -5369.710596531536]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 4900.0118786653575
+          mass: 4371.4352230848035
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -474,18 +669,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [-3624258.172046095, 1948636.7911742222, 6540353.260281441]
-            rotation: [73.62355351576225, 44.97162430180374, 172.99635524410346]
+            position: [-434147.7875343523, 21900.017472556097, 6699438.526557601]
+            rotation: [34.311141046799555, 290.4239937542, 77.05760235317037]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [1511.5255871376626, 4705.935499835495, 4832.1392332014075]
+          velocity: [-3265.225276012217, 6603.8554442489, 3508.056774580826]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 3405.2851521646326
+          mass: 1727.1124742928246
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -503,18 +711,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [3881023.1884365436, -3718307.8567416775, -5094097.618391614]
-            rotation: [135.5964319825277, 30.736661353847047, 133.68773511023605]
+            position: [-3804810.9399406896, 6647036.410966583, -196854.99813449435]
+            rotation: [173.2742429930613, 163.85662017492854, 203.48778283286248]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [4268.430599718266, -511.8950482034463, -6009.875943607088]
+          velocity: [-5252.834500868872, 2803.5744316984224, -4282.465162990478]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 1739.449717156688
+          mass: 3425.8780971555884
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -532,18 +753,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [-2737025.59330716, -5088910.669409368, 3955777.795651231]
-            rotation: [73.38666883402695, 320.3877958963214, 103.9909449006779]
+            position: [875623.7811871513, 6292624.644345269, -2759602.1146825925]
+            rotation: [316.0270088505738, 228.23219114074806, 170.74696866286385]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [-5093.932110315691, -2336.198881846074, -4862.187874940802]
+          velocity: [3172.2861324366486, 5582.342552789068, 4064.4315245387793]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 4234.425989614458
+          mass: 1673.5189413777582
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -561,18 +795,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [625813.372697149, 94256.35136687761, 7637383.320294925]
-            rotation: [140.61645276264105, 290.4775065237982, 286.87930667586437]
+            position: [1338868.1793475873, -5903678.330098797, 2969099.5778916227]
+            rotation: [182.21282935133627, 309.55867659874275, 46.701682422181875]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [-4853.624662524722, 4172.7803822488895, -3453.436634361702]
+          velocity: [-1800.2775494108646, -2734.100861480629, 6563.780382173491]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 204.9001270140462
+          mass: 516.2968511911796
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -590,18 +837,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [2505299.4552300405, 2870609.10962061, 6337156.722115789]
-            rotation: [126.06055030206954, 34.51216873793534, 171.69869439177484]
+            position: [1666599.3358173245, -517997.7701723028, -6415028.443456956]
+            rotation: [312.57093618762246, 358.0082276309456, 329.7516014219752]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [-2169.5540800247527, 5432.62601946571, 4465.628103784898]
+          velocity: [5440.074298967831, 4366.093451219727, 2423.897966498934]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 4623.71848880212
+          mass: 4340.793243662168
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -619,18 +879,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [685555.9305104435, 223254.09325152298, 8255986.2879936565]
-            rotation: [69.10064118291726, 64.41330342648195, 158.6361250493654]
+            position: [3233086.4113906655, 2543182.237541778, 6632644.879287113]
+            rotation: [83.56894074612323, 76.80047615631543, 168.24002189606705]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [-6561.148634104515, 1331.6211130277338, 77.10407569589634]
+          velocity: [-4019.2004085639437, 4320.70951738973, -4401.157949199846]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 3651.7145260012903
+          mass: 2029.1113748223515
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -648,18 +921,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [-5069585.526421004, 4031604.4020654396, 2249314.6696730196]
-            rotation: [298.6332688716325, 239.12569858048175, 257.0895425011508]
+            position: [3806283.3834324875, 5706982.685782877, -1149376.379779195]
+            rotation: [323.9993345347826, 242.9644495860189, 331.7765463556353]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [3494.4098301195995, 4418.603449623117, 4705.882187900267]
+          velocity: [-3834.218944742856, 4767.756343443072, 4030.332956515036]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 3193.744200054462
+          mass: 4050.264054295128
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -677,18 +963,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [4634355.471563178, -1812429.8684461499, 5283949.257025713]
-            rotation: [69.0336626284273, 126.92024145594007, 45.78395004649469]
+            position: [-331116.7534077109, 922806.2132348199, -7813763.831409342]
+            rotation: [196.5313698070018, 5.043037314563583, 111.89599165125131]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [5845.577383666339, 3652.894440685836, 2359.4218159607003]
+          velocity: [5843.485149407707, 3268.3378875867807, -1647.5577662120081]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 791.8203571481898
+          mass: 2527.3626512573014
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -706,18 +1005,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [2267806.317994065, 5775469.429730895, 4896296.018255748]
-            rotation: [44.33785151120564, 44.88233429899595, 53.667539942815964]
+            position: [382651.3725147787, 5851359.6678580595, 5653649.162041063]
+            rotation: [3.5581464723291134, 236.68933993960164, 133.58932132112858]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [-1598.2595067070981, 6015.3577335686605, 2234.0468101053602]
+          velocity: [621.4661580986543, 4447.258605924273, -4630.246718210159]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 4945.468650548053
+          mass: 1497.0495127246475
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -735,18 +1047,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [6793501.697381946, -3626467.464332709, -2998479.771227845]
-            rotation: [288.69801925475724, 97.33639948754798, 146.15024040117254]
+            position: [-6747276.278003831, -438914.91406485485, -804789.7005300979]
+            rotation: [0.8119183614731451, 315.25023582546896, 275.10695669518765]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [-432.4195485277873, 4847.439769327891, 5339.436444910617]
+          velocity: [2880.8464738218786, -4492.8511571542485, -5235.354652017023]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 4376.917265000214
+          mass: 4915.899270458053
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -764,18 +1089,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [1106161.9913974733, -1240190.351006969, 6667374.493448916]
-            rotation: [346.9681815723494, 210.67935174440407, 39.5005023095234]
+            position: [2278211.6836810466, -6503455.589651127, -1158150.9885989395]
+            rotation: [326.9407400348963, 131.25476758692383, 132.26026737077967]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [-4732.181549582872, 5152.999178639224, 3884.070192208156]
+          velocity: [2829.555906686904, 3200.04145810223, 5807.597695310542]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 1033.1135917211204
+          mass: 1619.959329734608
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -793,18 +1131,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [985610.4006216084, 836132.0516868563, -7079426.963908644]
-            rotation: [227.7203221956129, 318.08967347297107, 218.97305060697846]
+            position: [-3217887.16907207, 2229453.010154015, -5486049.802404698]
+            rotation: [272.20953661742436, 119.4184371307245, 91.17072392128938]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [-3654.790486591101, -4450.68096075719, -4788.548773542566]
+          velocity: [-3489.244236545894, -6014.15336694926, -2121.0059342989816]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 163.2364042366953
+          mass: 128.25135341064515
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -822,18 +1173,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [1603374.8558370266, -6691274.506258256, -2139676.8143606354]
-            rotation: [135.44440667221426, 54.101127320050495, 174.5617895163254]
+            position: [-690347.2115156589, 423104.42131662206, 6981931.466431418]
+            rotation: [203.7473371771907, 29.678017083099437, 5.195321349377049]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [-5615.634139374673, 3027.310983456961, 3384.2405913173043]
+          velocity: [-5985.089624354149, -3411.6487687548497, -3295.6788767099056]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 705.3633319079042
+          mass: 4884.957155420745
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -851,18 +1215,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [1469510.1356894267, 2975346.937966392, 7686266.5568363955]
-            rotation: [134.44312136845429, 19.779646977862043, 319.5271963673973]
+            position: [-3524759.1552617857, -1370833.0759514766, -5581042.260515116]
+            rotation: [115.69205890713678, 344.9131058726652, 55.38513716512143]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [5638.105574797787, 1108.283915393995, -3887.97130169667]
+          velocity: [2800.3464099708162, -5866.648835389912, -3816.790786056159]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 3616.1597367920394
+          mass: 1544.4392488209658
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -880,18 +1257,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [-2738935.3444517255, 5192839.197243936, 5349030.530701032]
-            rotation: [215.52769218781867, 34.956651462151015, 122.59291099492998]
+            position: [-6165912.349094723, 834164.1410571812, 2977369.2255671103]
+            rotation: [269.06531308478196, 196.41928959720062, 67.98227787500684]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [6977.959935678476, -1701.3324787323509, -1761.8178827223635]
+          velocity: [-7467.871314614151, -45.17113681486778, 3578.313566413717]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 2116.6690554200136
+          mass: 1102.3929759391174
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -909,18 +1299,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [-5154062.107386943, 3406276.3487725276, 3486820.378074075]
-            rotation: [154.63363683659338, 185.00066136075398, 263.93449309057456]
+            position: [-3998088.544903334, 6190651.618332855, -2593652.161802142]
+            rotation: [302.99371116145414, 336.5698827405482, 168.09424477295318]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [-4277.026011050099, 3759.6739729988126, -4406.558882045825]
+          velocity: [-4364.380665360601, -5721.503730128597, -1482.486264631953]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 1079.380874395036
+          mass: 4314.836744158264
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -938,18 +1341,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [-7731668.114555141, -508085.46123747266, 412798.5629626579]
-            rotation: [167.208043095321, 93.7391148307577, 238.36683886279087]
+            position: [2056043.9025783706, 859759.1117397918, 7247767.773708977]
+            rotation: [227.3118338391578, 117.56208973957229, 52.86961529301549]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [1660.8722010415736, -4639.3311371965365, -5085.202115672833]
+          velocity: [1488.5388666462347, -6060.992476852277, -4591.563243307016]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 1300.4471709579036
+          mass: 1096.2341194052112
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -967,18 +1383,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [1622209.5191214483, -1664773.679148146, -6285680.275118187]
-            rotation: [208.94389699795744, 342.359668929291, 288.75266054234584]
+            position: [-2252956.6778413313, -6262724.195110251, 4285750.666209676]
+            rotation: [358.24014069768805, 82.078487437532, 138.5510548144013]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [4778.1664621543705, 3359.9178128324133, 4341.319170395059]
+          velocity: [1154.7066118608489, 7225.794293114346, -2159.8087033408183]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 4636.178711566232
+          mass: 3111.2053315604117
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -996,18 +1425,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [566386.8677092378, 8069040.424748686, -165920.83826326812]
-            rotation: [301.45795186339194, 184.65463644818746, 268.289601150399]
+            position: [-2061873.9382100843, -144420.62203684956, -6964331.051490944]
+            rotation: [57.52544120578183, 34.38866912331578, 316.96613778631934]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [-6222.246102543681, 2037.813979182897, 1172.3243957175146]
+          velocity: [255.8431203673321, 6027.062246972455, -3848.8504345729934]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 1402.948089228979
+          mass: 546.0581686144669
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -1025,18 +1467,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [-6201801.03432531, -2619758.9985822006, -3191760.6122066407]
-            rotation: [214.08465911983953, 104.84419640634451, 91.77531447923968]
+            position: [947323.7826647318, 4965106.131956756, -4926149.034366516]
+            rotation: [168.61873671084354, 194.8225091474443, 286.76210908424736]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [3181.885693045013, -4116.697378612169, 5088.855803343128]
+          velocity: [5427.33013506099, -4172.512319437368, -2531.914976730273]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 4251.706045683374
+          mass: 4612.176957378238
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -1054,18 +1509,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [-2376390.4417739296, 6609371.955159731, 1299321.3549427134]
-            rotation: [207.10198585181354, 296.13058393439957, 299.65639010558897]
+            position: [4044172.907531844, -3610862.9645081093, -6334424.636911464]
+            rotation: [80.40188519063067, 211.1662751551318, 145.07249161298455]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [1728.355962862357, -3024.1460764181725, -6630.942395821876]
+          velocity: [-3743.4865756314944, 3691.3718088259307, 4005.764720801094]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 569.6595659850739
+          mass: 2861.303306659647
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -1083,18 +1551,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [3198042.0214169384, 5970390.002306757, 2397129.162355516]
-            rotation: [270.0339635866291, 151.43518762330174, 157.2939250257108]
+            position: [-6306579.326864655, 293932.9380628358, -3086802.7741866102]
+            rotation: [97.0861784062906, 137.98736273673939, 306.15271669820123]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [-6891.617878791767, 40.473934899338154, -596.0824683946373]
+          velocity: [-538.4094161555719, 4865.793576150553, 5410.74646911258]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 2033.3587379074324
+          mass: 3704.0872174683236
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -1112,18 +1593,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [-916426.1085924756, -868576.4259766449, 7571329.487940739]
-            rotation: [236.23951635148026, 203.56625002517916, 239.2829832114946]
+            position: [-4914131.257714355, -4329694.029903581, -689564.8451688554]
+            rotation: [17.77162406355131, 312.57882691109467, 149.61573392147207]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [-1385.1712021085602, 6662.389067256172, -124.43711427605733]
+          velocity: [-2891.0695200488612, 5557.07193074121, -4117.281285441754]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 2877.8869429677684
+          mass: 2921.7884319563245
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -1141,18 +1635,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [-3217888.9903187007, 188852.97181148076, -6362867.4693068685]
-            rotation: [63.48120453257417, 175.79532872743945, 249.08050313716126]
+            position: [-5589393.7832589215, 2852218.6003050627, -2351590.3448724775]
+            rotation: [130.7666247542215, 330.53842285922997, 331.11828172507046]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [-3756.3359530586745, -4578.049507749457, 4623.88634620637]
+          velocity: [-1039.8731457341914, 5554.902838612012, 5146.384952312412]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 2628.6164714742035
+          mass: 3944.0123835213653
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -1170,18 +1677,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [-3960015.1168850427, -5243922.068201649, 1979821.140870841]
-            rotation: [157.91636325007028, 230.42451606413263, 139.93416366276568]
+            position: [-5237650.305974605, 4925912.51748612, -906775.651622148]
+            rotation: [248.1266013414423, 103.06106596887304, 41.19803976455876]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [4350.307839324974, -5803.152498616003, -1862.6366254469433]
+          velocity: [934.880494752425, 5603.807989243194, -4575.115972120295]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 3122.9066115358883
+          mass: 3075.382343548193
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -1199,18 +1719,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [-20915.427336583314, -246517.612397844, -7635616.96969766]
-            rotation: [98.43440926836674, 142.49464131748954, 235.0547274413744]
+            position: [1199832.098038075, -4132604.4344594744, -6332992.282234739]
+            rotation: [158.41796230421775, 85.38341664972688, 181.56263163559242]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [-4649.222253682376, 5147.5308785026045, -675.7370058465563]
+          velocity: [-5095.030392185221, -5925.731329034522, 301.76063812274737]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 3297.7502885307213
+          mass: 2653.862478807911
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -1228,18 +1761,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [-1190902.0839006132, -6583720.735704736, 1048098.5967832414]
-            rotation: [92.2729473777563, 65.78890228424514, 113.31080532125559]
+            position: [-2492462.0429625385, 6376752.587430366, 1913506.0136856062]
+            rotation: [26.24113536965909, 31.286245920570753, 12.138953370927945]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [542.2073388975762, 6634.522539074191, -3783.48748769588]
+          velocity: [283.33167771917897, -5722.486817747712, 4777.803664007238]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 2702.0910093095954
+          mass: 3235.3077012243043
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -1257,18 +1803,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [-2486019.9627021733, 191137.85040197385, 6249818.174070664]
-            rotation: [233.1061251670827, 230.32114349574002, 281.8967102308484]
+            position: [-487405.8436685291, 2784819.3903242913, -7328665.23848161]
+            rotation: [299.9234080626214, 139.86641306608803, 226.46595446793722]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [-5040.958175196406, 5796.222699704552, 1250.8402762112569]
+          velocity: [-3996.854270648371, -459.9318391507458, -6227.980018548676]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 2637.0086598345897
+          mass: 4931.248732724466
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -1286,18 +1845,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [2826427.417280456, -5027848.242451823, -3937743.0750975623]
-            rotation: [47.575935265865475, 332.12481535309513, 69.27576626642374]
+            position: [-3453693.6246390957, -236407.21655664608, 6282673.474299456]
+            rotation: [168.01725112635967, 134.14472890303819, 91.82059270028266]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [-5466.926402300739, 4805.292238649105, 1231.3815372379056]
+          velocity: [5985.512132056269, 4607.786201528887, -1367.4683535703277]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 3720.194774555535
+          mass: 1007.6729943384317
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -1315,18 +1887,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [24447.58898509058, -7389529.339682829, 170514.2012270694]
-            rotation: [300.6060414862947, 267.741476234463, 149.53135547013403]
+            position: [-422580.01802445576, -2567882.1124670412, 6108335.512296403]
+            rotation: [240.0953579944704, 102.27897583341868, 334.4580403817187]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [-3915.571974664165, -5585.286864799154, 41.67935206281757]
+          velocity: [2564.067291277167, -3288.507099046606, -6754.055511697818]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 2612.0731068003934
+          mass: 1865.875669126387
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -1344,18 +1929,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [-6144568.938581074, -3051486.0701160543, 1484017.74446844]
-            rotation: [327.27376973644, 77.72552106823188, 332.62943752452475]
+            position: [-105188.11147639554, -3449551.675399429, 7170827.39230334]
+            rotation: [213.60206584823945, 33.71449878925666, 217.8251314489641]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [381.2704693732268, -6642.889832711677, -4895.9139712363785]
+          velocity: [-4466.567833719943, -2525.323908672457, -4724.448672786397]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 142.79102267219983
+          mass: 4997.293798786642
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -1373,18 +1971,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [2455578.6482629227, 7220070.663049114, -2183788.506836058]
-            rotation: [313.9945240988796, 84.48917140728555, 197.6277214901166]
+            position: [-729110.8749179356, -1847413.1951002944, 6538986.672284147]
+            rotation: [138.0863531562606, 76.60054982454731, 276.1204781360167]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [-7094.000471619266, 1714.8533360900599, -889.1976309362326]
+          velocity: [-6864.737765339839, -213.3380437123571, -3914.3224850604224]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 4302.138710514811
+          mass: 4050.004982610975
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -1402,18 +2013,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [1297957.92449261, -2499344.944085992, 6849720.736044552]
-            rotation: [332.8620172137834, 261.2740968489447, 227.54773166488866]
+            position: [-3779488.393749966, -5512629.671553496, 2009346.5453392714]
+            rotation: [202.19953197415478, 92.9358346507548, 133.50506201819402]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [3906.423135005037, 3397.2904021443865, -4610.621448370578]
+          velocity: [-5598.183549014364, -5304.106510733602, -240.24077505330538]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 4288.013578312759
+          mass: 3671.9436780795622
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -1431,18 +2055,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [5321510.323839906, 6044188.328410945, -1044412.775840885]
-            rotation: [222.16461695391436, 8.328595810902577, 124.85746785910719]
+            position: [-7057584.729216528, -4324931.79442774, 548348.1004426589]
+            rotation: [125.85660976422253, 225.90579373257208, 285.73610649458607]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [2997.4550124817765, 2167.5692973795362, 5981.657832547285]
+          velocity: [3753.640530945708, -3122.020047521856, 5211.289422975855]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 1648.9755304105827
+          mass: 4260.7476205418
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -1460,18 +2097,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [1692488.9784310954, 1148838.2147398416, -6896726.924787391]
-            rotation: [329.8582428434653, 189.75419351433933, 311.4062189848008]
+            position: [6631728.395769862, 153180.47107243328, -1896472.9300015646]
+            rotation: [79.9357969590153, 244.20839476013856, 293.72486248762647]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [-1213.3639320137515, -5603.239111482866, 5452.993364989766]
+          velocity: [4728.139364885264, 4365.616267697601, -3806.9542360011415]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 1029.304707263873
+          mass: 4420.515150151259
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -1489,18 +2139,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [4431831.1055283705, 1647349.813866246, -6700786.839970884]
-            rotation: [276.4721205479745, 63.83715072692908, 212.7586013402831]
+            position: [5094.793696699489, 228741.04437276808, 7832664.839528469]
+            rotation: [337.2723741256876, 228.79339493963207, 87.8654525101627]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [5416.030791920463, -1166.3458483034635, -3039.1097074375666]
+          velocity: [-12.630181345214424, -5126.782236381067, 4170.494720123465]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 1200.573166756927
+          mass: 3129.033061657282
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -1518,18 +2181,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [3751538.8934900262, 1546755.0811091869, -6095542.975608506]
-            rotation: [163.96503527791498, 322.7167393562939, 117.39554105166964]
+            position: [1507807.233385469, 1319894.970662114, -7896162.566063187]
+            rotation: [322.0208821257101, 24.37487301673407, 326.53190604882]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [394.90151290030474, -6021.492850932225, 3964.2559295309184]
+          velocity: [3281.2987025111984, 6241.721341897837, 1401.2108749456947]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 2394.2936408579126
+          mass: 4794.8346683879045
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -1547,18 +2223,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [4864415.955301177, -6526036.909615153, -502652.5420709809]
-            rotation: [280.413338046775, 107.70169042579879, 260.171332077965]
+            position: [-5649079.187249192, 2587479.468937644, 2558774.823440802]
+            rotation: [303.7832994833911, 236.9170731792274, 164.84423879197172]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [3348.4843723305157, 1316.7953037764894, -5507.187557896154]
+          velocity: [2497.049075359174, -6960.922982729968, 650.847633350861]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 3958.939233934545
+          mass: 392.6327039107561
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -1576,18 +2265,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [1447426.864148819, -4463876.770959772, -4997049.2463186355]
-            rotation: [119.4561078780451, 158.54321194595758, 111.82494788629326]
+            position: [-4445012.558942816, -1651179.5861834039, 5604967.283449834]
+            rotation: [102.47807789484699, 267.7194304047937, 213.34127114289637]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [-7216.035683106905, -2418.536728622482, -1990.2640975488168]
+          velocity: [-3190.8713731278076, 5396.644466083517, -3329.086580997719]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 573.5475725947766
+          mass: 3770.6006612171527
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -1605,18 +2307,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [-1172966.8979269566, -2718057.592928156, 5896398.554607791]
-            rotation: [48.60899608765014, 254.64734852764832, 138.53217427037754]
+            position: [-1167152.0264736072, 4922611.580788581, -5253565.247067308]
+            rotation: [108.48913869167477, 357.61103804553704, 209.52740689715725]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [-6633.71086921519, 3716.7487566614705, -2405.3841883017703]
+          velocity: [-5575.462123350851, 3880.11181160193, -2697.8170763473086]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 3823.5460200002963
+          mass: 1377.1808876919945
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -1634,18 +2349,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [-199544.04937993758, -3869990.313677361, 5924356.27029404]
-            rotation: [102.61992958701946, 147.83230852317246, 192.2451482394672]
+            position: [3085695.70289343, 4821345.636093286, 3774900.1570972856]
+            rotation: [30.25632649242471, 211.5283235984085, 211.72823002894935]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [4334.389691640062, 1408.3845771026122, -5651.012385728057]
+          velocity: [-6618.687050328711, -3954.7506194358034, -63.50322116929386]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 2900.080762344281
+          mass: 3542.385105092482
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -1663,18 +2391,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [-110736.94957982044, -2566139.5473783226, 6126489.110116792]
-            rotation: [284.44288562633614, 41.0983129066929, 278.1692269745763]
+            position: [1367154.457860753, -3792979.5262571224, -5908154.682618747]
+            rotation: [338.52404513677214, 119.28263578957014, 313.97435610630805]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [-2866.5028249399843, -4783.348388237933, 4513.6204817872695]
+          velocity: [798.1934403287191, -5920.640126662208, -4936.142397279872]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 2624.4770394698185
+          mass: 3649.968112682197
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -1692,18 +2433,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [-12642.51583709061, 12491.271717981246, 8052013.149149779]
-            rotation: [308.99487679088963, 262.8844196780138, 120.56292607164158]
+            position: [7230161.557894499, -1855941.2518262772, -2877856.4862664733]
+            rotation: [74.838692676486, 33.37750154413066, 337.9008476454561]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [-5949.3600931549745, -3919.8726164846184, 2103.16548670284]
+          velocity: [4143.937236069292, 4782.4778369229725, -3558.033183951809]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 3151.0280203998805
+          mass: 1170.6406721168285
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -1721,18 +2475,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [3552853.743046192, 4682705.398204357, -3124586.8914966336]
-            rotation: [328.01933288860425, 221.83794967463547, 267.48371185772584]
+            position: [-991284.3185322119, -7837005.017354761, 970807.9745900449]
+            rotation: [302.4714618376755, 180.6309074530535, 254.15397485645735]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [645.9646806427401, 6970.491567945995, 4033.9331257125214]
+          velocity: [-3596.8903723573544, 1016.066363667655, -6670.937830364461]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 1221.5048426958767
+          mass: 1669.599131182214
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -1750,18 +2517,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [-583050.1148746922, -2051062.7471385186, 7787437.524231521]
-            rotation: [294.7048745244582, 272.8493655295056, 329.73188224139557]
+            position: [3900863.677171004, -5207607.777764263, 3732997.5917897685]
+            rotation: [130.55840721078994, 321.2999059136403, 121.77235363556147]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [5591.126013933069, 1962.330688965058, -3740.3380676778206]
+          velocity: [-4322.569271839262, -4414.789555620667, -3550.4073066689116]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 954.1792265152943
+          mass: 777.638257949774
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -1779,18 +2559,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [2197409.3208030886, -5568801.359883604, -3000652.099837468]
-            rotation: [356.75796162479116, 251.91857591030254, 219.90607631887445]
+            position: [1466728.0796649815, 3038169.065608421, 6593843.150530113]
+            rotation: [183.12930503126668, 327.29463193803855, 167.18481067806536]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [2914.0183645388634, -5102.296197127599, -4542.875298205888]
+          velocity: [3093.3458991600337, -2109.5445303781503, 5912.485093820635]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 419.6677307284938
+          mass: 2270.87720474299
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -1808,18 +2601,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [3315348.8357009045, 5186335.756860156, -3318872.900717689]
-            rotation: [67.41766751478526, 135.8541727089669, 242.26995802780272]
+            position: [-1517155.6183095376, 6932285.687969178, 285825.4524074482]
+            rotation: [195.9866447150333, 330.1147196571821, 161.8165849185419]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [-2598.2675092804216, -4549.647233262245, -5610.258627773506]
+          velocity: [25.391655706388317, -8158.140624181579, -1.0470878585171326]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 3736.577561289069
+          mass: 920.108033265045
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -1837,18 +2643,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [4699756.020062093, -1469484.6723331618, 6068063.76242654]
-            rotation: [275.23816169802706, 256.9430318145139, 205.19920019802873]
+            position: [276415.6939618675, -533264.2887417799, -6795003.276552517]
+            rotation: [97.36999564123529, 304.0922376725976, 113.78125886712229]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [3597.5126068901354, 3803.5217513517823, -4877.865302643092]
+          velocity: [-95.22356583003376, -6740.530988902264, -4253.200628066991]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 3807.384104621596
+          mass: 4880.763158290049
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -1866,18 +2685,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [1567934.579777183, 3208304.0484765735, -6881081.894749271]
-            rotation: [347.1301872914411, 315.57719697346505, 128.9076003478025]
+            position: [-677847.5489368777, -747995.302009473, 6983978.94792449]
+            rotation: [199.6162019332281, 29.32106689731189, 68.63700983387025]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [3077.7646041615258, 3747.792330487581, 5730.79914043351]
+          velocity: [-6579.058503096378, 1798.1815820990382, 3698.466104991202]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 3949.1953970509812
+          mass: 375.1838743545451
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -1895,18 +2727,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [53952.030629803005, 6291671.869590194, 3983313.270974962]
-            rotation: [298.7870575038944, 247.3150252898458, 301.4746110823633]
+            position: [1880713.7953622458, 3195565.80390476, 5731131.711364232]
+            rotation: [142.65262268979833, 169.50255456573717, 33.50872543062698]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [-1520.5417827059434, 7774.696580422633, 1042.1555387070061]
+          velocity: [3091.7694022682967, 5508.403250820276, -3803.015105605858]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 4323.3777947391145
+          mass: 4123.894897409879
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -1924,18 +2769,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [6254138.525816135, -2241645.226494744, -1297483.6777782228]
-            rotation: [197.05625444279713, 56.50721751475337, 82.57044412118199]
+            position: [-936606.49718335, -1592513.4467306798, 6881656.399494905]
+            rotation: [186.52547856380346, 302.94563517613136, 247.35941869759404]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [-1142.1683382925169, 4157.640708814883, 5741.400696876277]
+          velocity: [5413.137198670327, -866.0492716813483, -4731.954840247449]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 4076.772645542619
+          mass: 308.79160224469166
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -1953,18 +2811,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [29471.272487723574, -2455458.466211202, 7475785.963181255]
-            rotation: [181.25504897395822, 340.4274026482799, 305.2578498152947]
+            position: [-5731325.961810404, 3226264.075073626, 1937612.2574842875]
+            rotation: [21.534058183486216, 151.99381914822678, 51.52043739373722]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [-878.7835311335507, -7431.1149081925705, 969.7925718538348]
+          velocity: [-4069.407375659781, -6884.880124449581, 1765.9965651651273]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 1994.824584995725
+          mass: 1217.4483436106495
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -1982,18 +2853,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [1416444.6237947016, 5182381.939880192, 5892136.1880800035]
-            rotation: [121.85628616372387, 88.82789497436033, 135.95427280462138]
+            position: [-7674066.654780602, 751397.3687584099, -2346642.536471136]
+            rotation: [126.45311388727534, 140.56846893844795, 315.22964162928224]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [91.50869996545607, 5000.978761735885, 5487.330496287534]
+          velocity: [-5984.966443579522, -2754.2382520773604, 2617.017028891927]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 4526.746317294005
+          mass: 3608.400992808688
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -2011,18 +2895,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [5749428.710964215, -2292.7124675755367, 4979989.760240307]
-            rotation: [9.942388377128161, 234.68198933341083, 349.03896378960224]
+            position: [2935335.7279262864, 6720832.081065187, -1258064.0421714177]
+            rotation: [183.96357221781435, 302.09420770570523, 249.5806225094983]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [1692.0425996306892, 4785.87145657655, -4547.271021968798]
+          velocity: [1175.3598869088055, -5717.82921982184, -4807.3776529329525]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 1782.5582940263248
+          mass: 397.233578187916
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -2040,18 +2937,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [2925611.823624955, 3742231.025399167, -5868355.304440617]
-            rotation: [239.59627965277852, 162.66601313276232, 358.01244933576623]
+            position: [2737240.4702276015, 6294429.708055872, 3536964.7780950125]
+            rotation: [253.9040513757886, 16.691976638565052, 103.09552294222857]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [3640.0961866587386, -5751.3412915545805, -651.6269345740624]
+          velocity: [2581.365276695159, -6500.223158377815, -2501.129004157902]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 4335.330770045306
+          mass: 3268.453083406622
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -2069,18 +2979,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [4059626.2849683724, 7214625.885426408, 851134.775556661]
-            rotation: [174.33557750465653, 256.7057592008292, 133.31348111819995]
+            position: [3078111.7083457024, 5699022.081327934, 2672631.3257414023]
+            rotation: [24.26258572709546, 211.4590722025315, 32.53582766156464]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [-6275.881271977482, 2002.021620291936, 556.3972620248884]
+          velocity: [-3271.4225193526545, -5453.855495316975, 4430.295759235031]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 396.85536310599514
+          mass: 3976.6076735169795
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -2098,18 +3021,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [7681563.5816174345, -283520.0428317883, 2824616.42165258]
-            rotation: [341.4278177146637, 82.18754234731111, 206.3388683152732]
+            position: [-4960769.127399118, -4516061.170561342, 1170282.3817403456]
+            rotation: [321.8004324048265, 77.62778170365593, 211.16657027785632]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [2285.1013571111926, -593.4509139375967, 6885.677694159559]
+          velocity: [-1517.4502671924586, -5390.846223584726, -4513.836942424454]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 4413.759544105413
+          mass: 338.99820477443797
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -2127,18 +3063,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [-7295248.337682837, -2443312.283396274, 3173191.4966067607]
-            rotation: [195.95700429096948, 212.65952754564003, 305.38385362969734]
+            position: [932564.4106567024, -773893.6045132898, 7800600.1977862725]
+            rotation: [115.17250529215592, 166.33087312169707, 332.2264673025391]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [3244.187914211187, 2878.3634344195943, 4750.867889765417]
+          velocity: [-2843.18587223691, -6338.169950833531, 2809.1634404269885]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 4660.469333535954
+          mass: 1914.3724967529588
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -2156,18 +3105,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [-5174143.816934242, -4203952.947202165, -3854721.2895824113]
-            rotation: [296.7870990152181, 147.19126572941195, 273.6646021293439]
+            position: [-7337106.483417953, 3870268.9324357444, 770792.3044455484]
+            rotation: [150.42627129785126, 120.62560243313209, 274.4574793528468]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [3638.270673445365, 4396.937276822331, 4245.388047080845]
+          velocity: [-4669.522355150802, -2913.3056228810783, -4321.173836771589]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 617.3806058173406
+          mass: 131.015828603548
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -2185,18 +3147,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [5659120.769075662, 3498263.5187296877, 1485976.3029871648]
-            rotation: [310.12529298535634, 155.44118098473893, 124.17999955710638]
+            position: [2546075.4279103866, -1997792.6207500256, -6396093.983446384]
+            rotation: [123.89209001555102, 341.44273147024586, 252.1622945328751]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [-6710.3918863966155, 2629.7714432446805, -1440.4981236660349]
+          velocity: [4280.229271620239, -4460.6659894914965, -4207.762059302965]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 966.0145857376855
+          mass: 3955.26815033695
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -2214,18 +3189,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [-1579251.1368616244, 6856272.80158009, -1658462.2874509795]
-            rotation: [185.18490488351034, 57.169929239016916, 238.67667762793292]
+            position: [-1066622.1206179177, -1755544.533342422, -8027021.219121713]
+            rotation: [193.10296769149883, 63.44510939866374, 319.40807589867757]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [826.829910379669, -807.8065430844136, -6736.180823470825]
+          velocity: [-415.1696969346202, -7540.6999972111325, 225.85897678999584]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 759.2903978757787
+          mass: 4879.246760254803
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -2243,18 +3231,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [5773196.840644932, 3356508.932251404, -314071.17382061685]
-            rotation: [56.82871087715857, 81.01213427229816, 342.989030973884]
+            position: [125855.68985240327, -440907.2587249203, -6921275.96710358]
+            rotation: [300.4304357840779, 20.013919634762914, 77.40397652210595]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [3444.9770166235703, -1482.067062872619, -7049.737073100636]
+          velocity: [3140.58611672445, 5776.775053150676, -4219.9559775982]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 155.18288522916683
+          mass: 3082.603842378009
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -2272,18 +3273,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [1142673.1844704424, -883697.4804126087, -8199386.297518089]
-            rotation: [235.0791048602051, 281.4993827253859, 355.4757197903268]
+            position: [136545.56902589163, 21135.879923788096, -7210989.580732535]
+            rotation: [48.09912567271016, 134.26178198086512, 216.60135873052457]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [3708.4285235207813, 4060.5344967362485, 4227.367935311052]
+          velocity: [-4159.595968407171, -5863.794005397986, 942.3491403089629]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 1819.4090615249447
+          mass: 302.71563349319365
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -2301,18 +3315,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [-2021124.019262153, 1270224.8253058398, 7058259.224784541]
-            rotation: [151.4849651030902, 292.39528045504045, 139.00395687945576]
+            position: [2963020.399016601, 79970.28394101356, -5884613.24127654]
+            rotation: [279.1331616570066, 176.90912655879623, 123.98583669810905]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [-5852.757487920289, -806.4585462912598, -3310.9787232735953]
+          velocity: [5813.784336345824, 4526.262998347161, -770.0068530179643]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 2954.963404223516
+          mass: 1938.084928916859
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -2330,18 +3357,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [-1145699.6387781545, 1971744.8284720196, 6662512.270661988]
-            rotation: [240.1919303241519, 198.64669952748858, 63.75681172700651]
+            position: [276750.43500441435, 162783.47797086727, 7095432.39026845]
+            rotation: [253.35051667518374, 255.06889465443828, 62.25794708611743]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [333.50709468647057, 3401.385511328124, -7171.541253485654]
+          velocity: [-3761.7422959008454, -4604.693766487757, 4493.713528334794]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 3837.168488307103
+          mass: 3689.6929260169086
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -2359,18 +3399,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [186116.10292280556, 6917619.325529236, 1189119.799565088]
-            rotation: [223.91395251591766, 165.88436460745575, 293.42958379289536]
+            position: [-1053480.0685068762, -667710.7231120806, -6749886.16817602]
+            rotation: [295.7430978791132, 47.61881932888842, 95.86804369663146]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [10.248420828718372, 6996.948389803785, -1780.217522562596]
+          velocity: [3013.2491802373142, 6230.318194955403, -3710.3011542981317]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 2451.4254533675526
+          mass: 356.1832311408554
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -2388,18 +3441,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [-3298902.252415816, -3464999.3073061276, -4892164.031133404]
-            rotation: [290.0951421007003, 287.5452727373398, 329.65579061060873]
+            position: [5132047.53314785, 1331626.6528592813, -4250143.803335147]
+            rotation: [1.7754443468987535, 57.92392879001915, 34.17532842423931]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [-6368.127869752093, -612.8059729130675, -3881.157285620961]
+          velocity: [3868.2150780184224, -4178.69171777231, -5117.751069905439]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 4669.885457745241
+          mass: 678.9597895245598
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -2417,18 +3483,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [4910920.987128704, -5222742.55339373, 3088525.197509851]
-            rotation: [18.990287875509217, 290.66379633304695, 202.0628859203564]
+            position: [-2190585.604455165, 176124.11294392621, 6735898.265766105]
+            rotation: [174.1123745546905, 51.94534004655417, 313.72322553048554]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [3688.233461077363, 4144.693253440533, -4701.658424434424]
+          velocity: [2969.02839152659, 2762.9390311024836, -6251.401225264365]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 2573.0229008848582
+          mass: 4357.080892427986
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -2446,18 +3525,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [-1120456.595299679, 7395452.209094687, 2467910.9691303642]
-            rotation: [5.464809796662551, 228.82410431008887, 271.21933513513585]
+            position: [-170840.56043906783, 132221.40328763856, 7475320.982668191]
+            rotation: [129.42644092054152, 198.50482903150757, 156.9091915521041]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [1231.3035306536267, -4932.926939169016, 4114.762759227894]
+          velocity: [-6869.723771991874, 3419.341003453028, -585.9334584883258]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 576.8183480672766
+          mass: 4587.981347170089
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -2475,18 +3567,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [-2252361.6650644625, 4426989.533722791, 6287247.505013546]
-            rotation: [173.37788834711404, 129.57510283135397, 10.470253172866997]
+            position: [2470090.7832186697, 4344859.807282515, -5509347.123238923]
+            rotation: [315.09777297583867, 183.30230961776232, 50.55090457641748]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [848.1615595567544, 1028.2308833444645, -6746.533348362346]
+          velocity: [-4630.29919673223, -6228.7167343506735, -940.0340935793585]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 1970.9515372867686
+          mass: 2574.1954046789065
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -2504,18 +3609,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [4273727.455760802, -6569160.192123276, -1799637.7988084536]
-            rotation: [100.7184113892339, 285.8355569745631, 351.7332989584039]
+            position: [186917.83376390478, 6685891.599141113, 2916144.55465621]
+            rotation: [315.48489921958844, 206.58435496162235, 40.13202467610552]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [4667.748092574908, -2504.7372442572855, 4691.503726072953]
+          velocity: [1492.4156598824832, -6919.970017112873, -2655.937296177887]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 4611.906092881522
+          mass: 128.52486117812913
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -2533,18 +3651,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [5444530.045420803, 1159512.1912083083, -4998448.283829511]
-            rotation: [80.60396921236456, 185.5484700740522, 19.597970095189744]
+            position: [4237506.560094696, -504113.65112018894, -6566589.139481735]
+            rotation: [42.0386437648913, 171.8147542971997, 306.8979677664326]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [-908.7415521827186, 5483.831857727408, -4689.890174701378]
+          velocity: [-1793.4557250299847, -3749.5201708969107, -5825.404647197781]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 3383.814515328401
+          mass: 1898.4476228033384
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -2562,18 +3693,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [-1070538.1754615584, 112950.91507552125, 8257279.865214067]
-            rotation: [279.6236584659978, 105.3888034483242, 135.04029615842776]
+            position: [203338.2315513148, 6453381.806891856, 3178199.8308002055]
+            rotation: [192.4508055828515, 180.90269236378845, 166.84629185851918]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [6528.011035993087, -2976.5419630937463, -1422.8980212925474]
+          velocity: [3888.03341788698, 6353.054190354041, -940.1469897283216]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 1305.8859365300052
+          mass: 1600.3245035354018
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -2591,18 +3735,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [-1538167.6305397362, 474464.59463654953, -6525276.355433533]
-            rotation: [318.131451331515, 340.53538757819337, 344.31886305882443]
+            position: [-3884630.4205905274, -2659293.2932191743, -5103115.225950132]
+            rotation: [246.05502960539195, 129.91973470214916, 257.3724239477305]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [5312.722606325477, -4442.171260216612, -3657.14169554956]
+          velocity: [3805.849762192123, -2667.5467532761936, 6098.254657810584]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 1878.2880960471102
+          mass: 895.7869455659231
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -2620,18 +3777,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [-2053997.828552809, 359133.5116943356, 7576094.866113574]
-            rotation: [239.0978307665429, 173.87557708337113, 46.00854419680735]
+            position: [-3602490.7172902464, -440903.34438558936, 5505095.165779397]
+            rotation: [337.230136312003, 147.0822496804651, 205.28228106327992]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [-6847.86842588997, 638.6681442647148, -1714.1716058976328]
+          velocity: [4099.730818239182, 3367.5518395806125, 6097.864230561927]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 3867.767662167241
+          mass: 3352.4548517865223
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -2649,18 +3819,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [4281324.698567401, -1609504.584553798, 6918992.748165292]
-            rotation: [338.3749882687828, 22.5887065585823, 291.9806558441868]
+            position: [5584016.660180527, -3093248.04127798, 4946054.6900855275]
+            rotation: [51.073119227405805, 74.20787850124933, 346.02680059007247]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [3497.833332988623, 5912.864149353178, 918.5282546355797]
+          velocity: [-5879.300218991397, -3853.8797252151207, -2265.4654620947626]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 1159.8235909140183
+          mass: 655.3960181119111
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -2678,18 +3861,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [5124385.8292167345, 3240914.8906402565, 4456933.597064231]
-            rotation: [211.9178671350242, 133.47295895345, 319.061605765141]
+            position: [4222919.4966883445, -5108977.981738478, 3177677.805071276]
+            rotation: [205.5955093139901, 111.2420387959335, 270.3309904667698]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [-3084.32608868974, 697.4754233841162, 6099.378689177514]
+          velocity: [-2140.750076928277, 5555.241970330808, 4275.841423458072]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 4546.555989160964
+          mass: 453.7140496980359
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -2707,18 +3903,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [1596793.292813524, 7177876.11329483, -3658406.034190495]
-            rotation: [105.59081929459339, 218.94886319308702, 103.87925145373231]
+            position: [4274711.081454618, -3487269.804082842, -5835842.634477304]
+            rotation: [323.2128633713431, 14.873366242066787, 165.76276014931614]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [6208.409555962281, -3235.5212966080962, 897.8134858295674]
+          velocity: [58.32782987375517, 1551.267981799941, 7345.535124275861]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 3424.2899261399616
+          mass: 3139.1242674499163
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -2736,18 +3945,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [-3895492.3948741145, 6517940.2834097445, -772473.8264724705]
-            rotation: [70.38139149458796, 253.4544422338388, 172.91758090454104]
+            position: [-3569583.3607396944, 7464989.5052062385, -197975.04405299813]
+            rotation: [322.8863347527171, 120.89234377840289, 207.22974759844556]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [126.61777143567869, 6877.819887386038, 2946.527131925042]
+          velocity: [6344.806393167003, -2065.06150553698, 919.6458163064839]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 3468.5184280619865
+          mass: 4212.491845321567
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -2765,18 +3987,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [216711.11736651338, -1691142.6259358034, 7727763.105359343]
-            rotation: [201.4266927865841, 342.46242996670827, 204.75662930687875]
+            position: [2217050.8396261823, 3092266.652781424, -6812993.224598945]
+            rotation: [284.06268538958585, 254.91756336821388, 39.423911015056504]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [-5992.228135601029, -4079.772003445429, 176.61408324984308]
+          velocity: [6243.812337417947, 707.6547237513472, 4267.077169449226]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 299.71621011267456
+          mass: 4051.129795589543
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -2794,18 +4029,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [-3409600.3364474024, -4182189.7182451813, -6108752.6678745365]
-            rotation: [191.20378734343575, 81.22233433486484, 50.27235359808258]
+            position: [-2285185.290750609, 7068538.776361305, -1316388.1836491702]
+            rotation: [239.94459617826328, 193.82432261209834, 40.06168863129345]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [-4134.6328511170805, 4188.668499360693, 4313.274065325009]
+          velocity: [-3175.417973471399, -3380.260880792305, -5309.422137677377]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 3930.169332370713
+          mass: 803.0072224157401
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -2823,18 +4071,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [-3825262.9200356216, -437304.154878009, 5639688.409809239]
-            rotation: [83.38095415704089, 125.75888879855856, 281.975303891769]
+            position: [-1514827.195295132, 6554535.463958387, -2228537.2714218604]
+            rotation: [353.4600035268804, 42.65188681225611, 215.70796426776107]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [-5476.50905354446, -4151.844948796791, 3126.6548247688174]
+          velocity: [6246.862920847477, -3673.805992386311, 2677.643650123366]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 4292.2440921400985
+          mass: 1453.48567936101
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -2852,18 +4113,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [619180.8703680409, 22183.01591289862, 7035938.338558064]
-            rotation: [301.70765836149815, 76.58632221413515, 110.58772826247318]
+            position: [-4994087.715346913, 4471683.4322944805, 4122316.610844568]
+            rotation: [249.6068743900357, 94.4037649005715, 253.2037673602867]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [-605.5972778456131, -2546.3458612546438, 7331.052790506393]
+          velocity: [-5038.356635824724, 4800.93317511848, 1693.0056526491944]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 2286.7255743914816
+          mass: 3242.190838103808
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -2881,18 +4155,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [-24914.213646886452, 1035202.7948066538, -7470331.0996337375]
-            rotation: [15.203738962889716, 179.96596324426747, 323.28092557045335]
+            position: [-408216.4496982953, 714466.567674004, -7209278.089865259]
+            rotation: [119.0324144175746, 173.56713123926255, 282.45383568467736]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [-3794.0983778078357, -4493.423265751699, 4755.164663885703]
+          velocity: [-4164.032380650187, -4785.833266986516, -3443.505301556296]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 174.98705806812592
+          mass: 1619.8089516081852
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:
@@ -2910,18 +4197,31 @@ Entities:
           scale: 100.0
           visualScale: 1.0
           localTransform:
-            position: [-5165788.76566075, 1966583.6949582917, 6118519.457045529]
-            rotation: [213.82034253199987, 76.02772576468129, 201.1000595860156]
+            position: [4932215.244481027, 1494552.6425311032, -4264376.982372838]
+            rotation: [166.03967943651284, 66.87322001875678, 117.25510293014254]
 
       - Type: PhysicsComponent::RigidBody
         Data:
-          velocity: [1808.6253912607656, 2612.13949024396, -6012.288939238838]
+          velocity: [-3895.07425927157, -6197.998730762644, -2804.3168155635035]
           acceleration: [0.0, 0.0, 0.0]
-          mass: 2880.120210475017
+          mass: 4666.973790481693
 
       - Type: PhysicsComponent::OrbitingBody
         Data:
           centralMass: ref.Earth
+          
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+          
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
 
       - Type: RenderComponent::MeshRenderable
         Data:

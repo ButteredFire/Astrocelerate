@@ -13,8 +13,9 @@
 
 #include <Rendering/Geometry/GeometryLoader.hpp>
 
-#include <Engine/Components/PhysicsComponents.hpp>
 #include <Engine/Components/RenderComponents.hpp>
+#include <Engine/Components/PhysicsComponents.hpp>
+#include <Engine/Components/SpacecraftComponents.hpp>
 
 #include <Utils/YAMLUtils.hpp>
 #include <Utils/FilePathUtils.hpp>

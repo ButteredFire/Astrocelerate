@@ -67,7 +67,7 @@ void VkSwapchainManager::recreateSwapchain(uint32_t imageIndex) {
 
     g_vkContext.SwapChain.imageLayouts[imageIndex] = VK_IMAGE_LAYOUT_UNDEFINED;
 
-    m_eventDispatcher->publish(Event::SwapchainIsRecreated{
+    m_eventDispatcher->dispatch(Event::SwapchainIsRecreated{
         .imageIndex = imageIndex
     });
 }

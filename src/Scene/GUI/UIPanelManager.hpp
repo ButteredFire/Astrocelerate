@@ -59,6 +59,7 @@ private:
 
 	GUI::PanelID m_panelPreferences;
 	GUI::PanelID m_panelAbout;
+	GUI::PanelID m_panelWelcome;
 
 	// Workspace panel properties
 	IWorkspace *m_currentWorkspace;
@@ -90,6 +91,7 @@ private:
 		// Menu-bar panels
 	void renderPreferencesPanel();
 	void renderAboutPanel();
+	void renderWelcomePanel();
 
 		// Modals
 	const char *m_sceneLoadModelName = "Processing Scene";

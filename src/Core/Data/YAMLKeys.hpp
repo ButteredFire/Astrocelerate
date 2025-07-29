@@ -12,6 +12,8 @@ namespace YAMLKey {
     static constexpr std::string_view Physics_RigidBody             = "PhysicsComponent::RigidBody";
     static constexpr std::string_view Physics_ShapeParameters       = "PhysicsComponent::ShapeParameters";
     static constexpr std::string_view Physics_OrbitingBody          = "PhysicsComponent::OrbitingBody";
+    static constexpr std::string_view Spacecraft_Spacecraft         = "SpacecraftComponent::Spacecraft";
+    static constexpr std::string_view Spacecraft_Thruster           = "SpacecraftComponent::Thruster";
     static constexpr std::string_view Render_MeshRenderable         = "RenderComponent::MeshRenderable";
     static constexpr std::string_view Telemetry_RenderTransform     = "TelemetryComponent::RenderTransform";
 

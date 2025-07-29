@@ -21,6 +21,8 @@
 #include <Core/Data/Geometry.hpp>
 #include <Core/Data/Contexts/VulkanContext.hpp>
 
+#include <Engine/Threading/ThreadManager.hpp>
+
 #include <Vulkan/VkBufferManager.hpp>
 
 #include <Utils/SystemUtils.hpp>
@@ -81,8 +83,11 @@ public:
         @param imgFormat: The format of the image.
         @param oldLayout: The old image layout.
         @param newLayout: The new image layout.
+        @param useSecondaryCmdBuf (Default: False): Whether to record the image transition into a secondary command buffer (True), or into a primary command buffer (False). If True, the secondary command buffer will NOT be auto-submitted, and MUST be done manually (i.e., via vkQueueSubmit).
+        @param pSecondaryCmdBuf: The secondary command buffer to be recorded to.
+        @param pInheritanceInfo: The secondary command buffer's inheritance info.
     */
-    static void switchImageLayout(VkImage image, VkFormat imgFormat, VkImageLayout oldLayout, VkImageLayout newLayout);
+    static void SwitchImageLayout(VkImage image, VkFormat imgFormat, VkImageLayout oldLayout, VkImageLayout newLayout, bool useSecondaryCmdBuf = false, VkCommandBuffer *pSecondaryCmdBuf = nullptr, VkCommandBufferInheritanceInfo *pInheritanceInfo = nullptr);
 
 
     /* Defines the pipeline source and destination stages as image layout transition rules.
@@ -93,7 +98,7 @@ public:
         @param oldLayout: The old image layout.
         @param newLayout: The new image layout.
     */
-    static void defineImageLayoutTransitionStages(VkAccessFlags* srcAccessMask, VkAccessFlags* dstAccessMask, VkPipelineStageFlags* srcStage, VkPipelineStageFlags* dstStage, VkImageLayout oldLayout, VkImageLayout newLayout);
+    static void DefineImageLayoutTransitionStages(VkAccessFlags* srcAccessMask, VkAccessFlags* dstAccessMask, VkPipelineStageFlags* srcStage, VkPipelineStageFlags* dstStage, VkImageLayout oldLayout, VkImageLayout newLayout);
 
 private:
     std::shared_ptr<GarbageCollector> m_garbageCollector;
@@ -117,6 +122,8 @@ private:
         int channels;
     };
     std::vector<_IndexedTextureProps> m_deferredTextureProps;
+
+    std::vector<VkCommandBuffer> m_secondaryCommandBuffers;
     
 
     void bindEvents();

@@ -35,10 +35,10 @@ void Session::bindEvents() {
 		[this](const Event::OffscreenPipelineInitialized &event) {
 			// This event is just an alias for OffscreenPipelineInitialized for the sake of readability.
 			// Services that don't have a direct tie to the offscreen pipeline should listen to this event.
-			m_eventDispatcher->publish(Event::SceneIsInitialized{});
+			m_eventDispatcher->dispatch(Event::SceneIsInitialized{});
 
 			// Signal all managers that the newly initialized resources are safe to use
-			m_eventDispatcher->publish(Event::UpdateSessionStatus{
+			m_eventDispatcher->dispatch(Event::UpdateSessionStatus{
 				.sessionStatus = Event::UpdateSessionStatus::Status::INITIALIZED
 			});
 		}
@@ -50,7 +50,7 @@ void Session::bindEvents() {
 			using namespace Event;
 
 			switch (event.sessionStatus) {
-			case UpdateSessionStatus::Status::NOT_READY:
+			case UpdateSessionStatus::Status::RESET:
 				m_sessionInitialized = false;
 				break;
 
@@ -73,8 +73,16 @@ void Session::init() {
 
 
 void Session::reset() {
-	m_eventDispatcher->publish(Event::UpdateSessionStatus{
-		.sessionStatus = Event::UpdateSessionStatus::Status::NOT_READY
+	vkDeviceWaitIdle(g_vkContext.Device.logicalDevice);
+
+	m_eventDispatcher->dispatch(Event::UpdateSessionStatus{
+		.sessionStatus = Event::UpdateSessionStatus::Status::PREPARE_FOR_RESET
+	});
+
+	vkDeviceWaitIdle(g_vkContext.Device.logicalDevice);
+
+	m_eventDispatcher->dispatch(Event::UpdateSessionStatus{
+		.sessionStatus = Event::UpdateSessionStatus::Status::RESET
 	});
 }
 
@@ -112,17 +120,18 @@ void Session::update() {
 
 
 void Session::loadSceneFromFile(const std::string &filePath) {
-	vkDeviceWaitIdle(g_vkContext.Device.logicalDevice);
+	// Signal all listening managers to stop accessing per-session resources, and per-session managers to destroy old resources
+	reset();
 
-	// Signal per-session managers to prepare the necessary resources for new session initialization
-	m_eventDispatcher->publish(Event::UpdateSessionStatus{
+	// Signal per-session managers to prepare the necessary resources for new session initialization.
+	m_eventDispatcher->dispatch(Event::UpdateSessionStatus{
 		.sessionStatus = Event::UpdateSessionStatus::Status::PREPARE_FOR_INIT
 	});
 	
 
 	// Clear the registry and recreate its base resources
 	m_registry->clear();
-	m_eventDispatcher->publish(Event::RegistryReset{});
+	m_eventDispatcher->dispatch(Event::RegistryReset{});
 
 
 	// Load scene from file
@@ -130,14 +139,14 @@ void Session::loadSceneFromFile(const std::string &filePath) {
 	std::thread([this, filePath]() {
 		try {
 			m_sceneManager->loadSceneFromFile(filePath);
-			m_eventDispatcher->publish(Event::RequestInitSceneResources{});
+			m_eventDispatcher->dispatch(Event::RequestInitSceneResources{});
 		
 			// Propagate scene initialization status to GUI
-			m_eventDispatcher->publish(Event::SceneLoadProgress{
+			m_eventDispatcher->dispatch(Event::SceneLoadProgress{
 				.progress = 1.0f,
 				.message = "Scene initialization complete."
 			});
-			m_eventDispatcher->publish(Event::SceneLoadComplete{
+			m_eventDispatcher->dispatch(Event::SceneLoadComplete{
 				.loadSuccessful = true,
 				.finalMessage = "Scene initialization complete."
 			});
@@ -147,10 +156,15 @@ void Session::loadSceneFromFile(const std::string &filePath) {
 		}
 		catch (const std::exception &e) {
 			// Catch any exceptions during the worker thread's CPU-bound execution.
-			Log::Print(Log::T_ERROR, __FUNCTION__, "Error in scene loading worker thread: " + std::string(e.what()));
+			Log::Print(Log::T_ERROR, __FUNCTION__, std::string(e.what()));
+			m_eventDispatcher->dispatch(Event::SceneLoadComplete{
+				.loadSuccessful = false,
+				.finalMessage = STD_STR(e.what())
+			});
+
 			reset();
 			// Signal an error via the SceneInitializationComplete event
-			//m_eventDispatcher.publish(Event::SceneInitializationComplete{ false, "Scene loading failed: " + std::string(e.what()) });
+			//m_eventDispatcher.dispatch(Event::SceneInitializationComplete{ false, "Scene loading failed: " + std::string(e.what()) });
 		}
 	}).detach(); // Detach to run independently
 }

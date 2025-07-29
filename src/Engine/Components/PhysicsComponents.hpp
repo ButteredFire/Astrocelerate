@@ -5,7 +5,7 @@
 
 #include <External/GLM.hpp>
 
-#include "CommonComponents.hpp"
+#include "CoreComponents.hpp"
 #include <Core/Data/Physics.hpp>
 
 
@@ -32,18 +32,19 @@ namespace PhysicsComponent {
 
 		Physics::FrameType frameType;					// TODO: Implement reference frame types
 
-		CommonComponent::Transform localTransform;		// Transform relative to parent (meters, inertial frame).
-		CommonComponent::Transform globalTransform;		// Absolute transform in simulation space (meters).
+		CoreComponent::Transform localTransform;		// Transform relative to parent (meters, inertial frame).
+		CoreComponent::Transform globalTransform;		// Absolute transform in simulation space (meters).
 		double scale = 1.0;								// The entity's physical scale (radius).
 		double visualScale = 1.0;						// The entity's mesh size in render space (can be used to exaggerate size).
 	};
 
 
-	/* Mesh physical properties. */
+	/* Properties of ellipsoid celestial bodies. */
 	struct ShapeParameters {
 		double equatRadius;						// Mean equatorial radius (m)
-		double eccentricity;					// Eccentricity
+		double flattening;						// Flattening
 		double gravParam;						// Gravitational parameter (m^3 / s^(-2))
-		double rotVelocity;						// Rotational velocity (rad/s)
+		glm::dvec3 rotVelocity;					// Angular/Rotational velocity (rad/s)
+		double j2;								// J2 oblateness coefficient
 	};
 }

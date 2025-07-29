@@ -7,8 +7,9 @@
 Engine::Engine(GLFWwindow *w):
     window(w) {
 
-    initPersistentServices();
+    ThreadManager::SetMainThreadID(std::this_thread::get_id());
 
+    initPersistentServices();
     initComponents();
 
     bindEvents();
@@ -60,8 +61,8 @@ void Engine::bindEvents() {
 
 
 void Engine::initComponents() {
-    /* Common */
-    m_registry->initComponentArray<CommonComponent::Transform>();
+    /* Core */
+    m_registry->initComponentArray<CoreComponent::Transform>();
 
     /* Meshes & Models */
     m_registry->initComponentArray<ModelComponent::Mesh>();
@@ -76,6 +77,10 @@ void Engine::initComponents() {
     m_registry->initComponentArray<PhysicsComponent::OrbitingBody>();
     m_registry->initComponentArray<PhysicsComponent::ReferenceFrame>();
     m_registry->initComponentArray<PhysicsComponent::ShapeParameters>();
+
+    /* Spacecraft */
+    m_registry->initComponentArray<SpacecraftComponent::Spacecraft>();
+    m_registry->initComponentArray<SpacecraftComponent::Thruster>();
 
     /* Telemetry */
     m_registry->initComponentArray<TelemetryComponent::RenderTransform>();
@@ -103,7 +108,7 @@ void Engine::update() {
 
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
-
+        m_eventDispatcher->processQueuedEvents();
 
         switch (m_currentAppStage) {
         case Stage::START_SCREEN:
@@ -148,7 +153,7 @@ void Engine::updateOrbitalSetup() {
 
 void Engine::updateOrbitalWorkspace() {
     // Process key input events
-    m_eventDispatcher->publish(Event::UpdateInput{
+    m_eventDispatcher->dispatch(Event::UpdateInput{
         .deltaTime = Time::GetDeltaTime()
         }, true);
     

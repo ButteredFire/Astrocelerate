@@ -23,11 +23,7 @@ void VkCommandManager::bindEvents() {
 			using namespace Event;
 
 			switch (event.sessionStatus) {
-			case UpdateSessionStatus::Status::NOT_READY:
-				m_sceneReady = false;
-				break;
-
-			case UpdateSessionStatus::Status::PREPARE_FOR_INIT:
+			case UpdateSessionStatus::Status::PREPARE_FOR_RESET:
 				m_sceneReady = false;
 				break;
 
@@ -36,6 +32,14 @@ void VkCommandManager::bindEvents() {
 				m_sceneReady = true;
 				break;
 			}
+		}
+	);
+
+
+	m_eventDispatcher->subscribe<Event::RequestProcessSecondaryCommandBuffers>(
+		[this](const Event::RequestProcessSecondaryCommandBuffers &event) {
+			m_secondaryCmdBufCount = event.bufferCount;
+			m_pCommandBuffers = event.pBuffers;
 		}
 	);
 }
@@ -94,6 +98,12 @@ void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, 
 
 
 	if (m_sceneReady) {
+		// Record all secondary command buffers
+		if (m_pCommandBuffers) {
+			vkCmdExecuteCommands(cmdBuffer, m_secondaryCmdBufCount, m_pCommandBuffers);
+			m_pCommandBuffers = nullptr;
+		}
+
 		// OFFSCREEN RENDER PASS
 		VkRenderPassBeginInfo offscreenRenderPassBeginInfo{};
 		offscreenRenderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -132,58 +142,63 @@ void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, 
 
 
 		// Processes renderables
-		m_eventDispatcher->publish(Event::UpdateRenderables{
+		m_eventDispatcher->dispatch(Event::UpdateRenderables{
 			.commandBuffer = cmdBuffer,
 			.descriptorSet = g_vkContext.OffscreenPipeline.perFrameDescriptorSets[currentFrame]
 			}, true);
 
 
 		vkCmdEndRenderPass(cmdBuffer);
+	}
 
 
 
-		// Transitions swapchain image to the layout COLOR_ATTACHMENT_OPTIMAL before the presentation render pass
-		// This is because the image layout is UNDEFINED for the first swapchain image, and PRESENT_SRC_KHR for subsequent ones.
-		// 
-		VkImageMemoryBarrier swapchainImgToPresentBarrier{};
-		swapchainImgToPresentBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+	// Transitions swapchain image to the layout COLOR_ATTACHMENT_OPTIMAL before the presentation render pass
+	// This is because the image layout is UNDEFINED for the first swapchain image, and PRESENT_SRC_KHR for subsequent ones.
+	VkImageMemoryBarrier swapchainImgToPresentBarrier{};
+	swapchainImgToPresentBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+	swapchainImgToPresentBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	//swapchainImgToPresentBarrier.oldLayout = g_vkContext.SwapChain.imageLayouts[imageIndex];
+	//swapchainImgToPresentBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
+	swapchainImgToPresentBarrier.image = g_vkContext.SwapChain.images[imageIndex];
+	swapchainImgToPresentBarrier.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+	swapchainImgToPresentBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	swapchainImgToPresentBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+	VkAccessFlags srcAccessMask;
+	VkPipelineStageFlags srcStage;
+
+
+	if (m_sceneReady) {
+		// If the offscreen pass ran, the image is now VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+		swapchainImgToPresentBarrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT; // Access from the completed offscreen pass
+		srcStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	}
+	else {
+		// If the offscreen pass was skipped, the image is still in its acquired state
 		swapchainImgToPresentBarrier.oldLayout = g_vkContext.SwapChain.imageLayouts[imageIndex];
-		swapchainImgToPresentBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-		swapchainImgToPresentBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
-		swapchainImgToPresentBarrier.image = g_vkContext.SwapChain.images[imageIndex];
-		swapchainImgToPresentBarrier.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-		swapchainImgToPresentBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		swapchainImgToPresentBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-
-		// We must account for the fact that the layout of the first image is UNDEFINED, but subsequent images is PRESENT_SRC_KHR
-	//static std::vector<bool> imageFirstAcquired;
-	//if (imageFirstAcquired.empty() || imageFirstAcquired.size() != g_vkContext.SwapChain.images.size()) {
-	//	imageFirstAcquired.assign(g_vkContext.SwapChain.images.size(), true);
-	//}
-
-		VkPipelineStageFlags srcStage;
-
-		if (g_vkContext.SwapChain.imageLayouts[imageIndex] == VK_IMAGE_LAYOUT_UNDEFINED) {
-			swapchainImgToPresentBarrier.srcAccessMask = 0;
-
+		if (swapchainImgToPresentBarrier.oldLayout == VK_IMAGE_LAYOUT_UNDEFINED) {
+			srcAccessMask = 0;
 			srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 		}
-		else {
-			swapchainImgToPresentBarrier.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-
-			srcStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		else { // VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+			srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+			srcStage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT; // No prior writes this frame, so we will wait at bottom.
 		}
-
-		vkCmdPipelineBarrier(
-			cmdBuffer,
-			srcStage,
-			VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-			0,
-			0, nullptr,
-			0, nullptr,
-			1, &swapchainImgToPresentBarrier
-		);
 	}
+	swapchainImgToPresentBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT; // For the presentation render pass (read and write for GUI)
+
+
+	vkCmdPipelineBarrier(
+		cmdBuffer,
+		srcStage,
+		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+		0,
+		0, nullptr,
+		0, nullptr,
+		1, &swapchainImgToPresentBarrier
+	);
 
 
 	
@@ -200,7 +215,7 @@ void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, 
 
 	vkCmdBeginRenderPass(cmdBuffer, &presentRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-	m_eventDispatcher->publish(Event::UpdateGUI {
+	m_eventDispatcher->dispatch(Event::UpdateGUI {
 		.commandBuffer = cmdBuffer,
 		.currentFrame = currentFrame
 	}, true);
@@ -216,7 +231,7 @@ void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, 
 }
 
 
-VkCommandBuffer VkCommandManager::beginSingleUseCommandBuffer(SingleUseCommandBufferInfo* commandBufInfo) {
+VkCommandBuffer VkCommandManager::BeginSingleUseCommandBuffer(SingleUseCommandBufferInfo* commandBufInfo) {
 	VkCommandBufferAllocateInfo cmdBufAllocInfo{};
 	cmdBufAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 	cmdBufAllocInfo.level = commandBufInfo->bufferLevel;
@@ -243,15 +258,23 @@ VkCommandBuffer VkCommandManager::beginSingleUseCommandBuffer(SingleUseCommandBu
 }
 
 
-void VkCommandManager::endSingleUseCommandBuffer(SingleUseCommandBufferInfo* commandBufInfo, VkCommandBuffer& cmdBuffer) {
+void VkCommandManager::EndSingleUseCommandBuffer(SingleUseCommandBufferInfo* commandBufInfo, VkCommandBuffer& cmdBuffer) {
 	VkResult bufEndResult = vkEndCommandBuffer(cmdBuffer);
 	if (bufEndResult != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to stop recording single-use command buffer!");
 	}
 
 
-	if (!commandBufInfo->autoSubmit)
+	if (!commandBufInfo->autoSubmit) {
+		std::ostringstream stream;
+		stream << static_cast<const void *>(&cmdBuffer);
+		
+		if (commandBufInfo->usingSingleUseFence && IN_DEBUG_MODE)
+			// If fences are accidentally used
+			Log::Print(Log::T_WARNING, __FUNCTION__, "Command buffer " + stream.str() + " is not auto-submitted, but uses a single-use fence! Please, depending on your use case, either enable auto-submission or remove the fence.");
+
 		return;
+	}
 
 
 	VkSubmitInfo submitInfo{};

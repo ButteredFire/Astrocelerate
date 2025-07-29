@@ -33,7 +33,7 @@ void Renderer::bindEvents() {
             using namespace Event;
 
             switch (event.sessionStatus) {
-            case UpdateSessionStatus::Status::NOT_READY:
+            case UpdateSessionStatus::Status::PREPARE_FOR_RESET:
                 m_sessionReady = false;
                 break;
 
@@ -56,10 +56,10 @@ void Renderer::preRenderUpdate(uint32_t currentFrame, glm::dvec3 &renderOrigin) 
         return;
 
     // Updates the uniform buffers
-    m_eventDispatcher->publish(Event::UpdateUBOs{
+    m_eventDispatcher->dispatch(Event::UpdateUBOs{
         .currentFrame = m_currentFrame,
         .renderOrigin = renderOrigin
-        }, true);
+    }, true);
 
     // GUI updates
     m_imguiRenderer->preRenderUpdate(m_currentFrame);

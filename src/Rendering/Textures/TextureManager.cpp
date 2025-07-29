@@ -67,11 +67,7 @@ void TextureManager::bindEvents() {
 			using namespace Event;
 
 			switch (event.sessionStatus) {
-			case UpdateSessionStatus::Status::NOT_READY:
-				m_sceneReady = false;
-				break;
-
-			case UpdateSessionStatus::Status::PREPARE_FOR_INIT:
+			case UpdateSessionStatus::Status::PREPARE_FOR_RESET:
 				m_sceneReady = false;
 				break;
 			}
@@ -83,9 +79,16 @@ void TextureManager::bindEvents() {
 		[this](const Event::OffscreenPipelineInitialized &event) {
 			m_sceneReady = true;
 
+			// Process deferred textures
 			for (const auto &prop : m_deferredTextureProps)
 				createIndexedTexture(prop.texSource, prop.texImgFormat, prop.channels);
 
+			m_eventDispatcher->dispatch(Event::RequestProcessSecondaryCommandBuffers{
+				.bufferCount = static_cast<uint32_t>(m_secondaryCommandBuffers.size()),
+				.pBuffers = m_secondaryCommandBuffers.data()
+			});
+
+			// Populate texture array
 			for (size_t i = 0; i < m_textureDescriptorInfos.size(); i++)
 				updateTextureArrayDescriptorSet(i, m_textureDescriptorInfos[i].value());
 		}
@@ -266,13 +269,40 @@ TextureInfo TextureManager::createTextureImage(VkFormat imgFormat, const char* t
 	VkImageManager::CreateImage(image, imgAllocation, imgAllocCreateInfo, textureWidth, textureHeight, 1, imgFormat, imgTiling, imgUsageFlags, VK_IMAGE_TYPE_2D);
 
 	// Copy the staging buffer to the texture image
+	bool inMainThread = (std::this_thread::get_id() == ThreadManager::GetMainThreadID());
+
+	VkCommandBufferInheritanceInfo inheritanceInfo{};
+	inheritanceInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
+	inheritanceInfo.renderPass = g_vkContext.OffscreenPipeline.renderPass;
+	inheritanceInfo.subpass = 0;	// Offscreen subpass
+
+
 		// Transition the image layout to TRANSFER_DST (staging buffer (TRANSFER_SRC) -> image (TRANSFER_DST))
-	switchImageLayout(image, imgFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+	if (inMainThread) {
+		// If in main thread, record to and submit primary command buffer
+		SwitchImageLayout(image, imgFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+	}
+	else {
+		// If in worker thread, record to secondary command buffer and defer submission
+		VkCommandBuffer secondaryCmdBuf;
+		SwitchImageLayout(image, imgFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, true, &secondaryCmdBuf, &inheritanceInfo);
+
+		m_secondaryCommandBuffers.push_back(secondaryCmdBuf);
+	}
+
 	copyBufferToImage(stagingBuffer, image, static_cast<uint32_t>(textureWidth), static_cast<uint32_t>(textureHeight));
 
 
-	// Transition the image layout to the final SHADER_READ_ONLY layout so that it can be read by the shader for sampling
-	switchImageLayout(image, imgFormat, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		// Transition the image layout to the final SHADER_READ_ONLY layout so that it can be read by the shader for sampling
+	if (inMainThread) {
+		SwitchImageLayout(image, imgFormat, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	}
+	else {
+		VkCommandBuffer secondaryCmdBuf;
+		SwitchImageLayout(image, imgFormat, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, true, &secondaryCmdBuf, &inheritanceInfo);
+		m_secondaryCommandBuffers.push_back(secondaryCmdBuf);
+	}
+
 
 	// Destroy the staging buffer at the end as it has served its purpose
 	m_garbageCollector->executeCleanupTask(stagingBufTaskID);
@@ -448,14 +478,32 @@ void TextureManager::createImage(VkImage& image, VmaAllocation& imgAllocation, u
 }
 
 
-void TextureManager::switchImageLayout(VkImage image, VkFormat imgFormat, VkImageLayout oldLayout, VkImageLayout newLayout) {
+void TextureManager::SwitchImageLayout(VkImage image, VkFormat imgFormat, VkImageLayout oldLayout, VkImageLayout newLayout, bool useSecondaryCmdBuf, VkCommandBuffer *pSecondaryCmdBuf, VkCommandBufferInheritanceInfo *pInheritanceInfo) {
 	SingleUseCommandBufferInfo cmdInfo{};
 	cmdInfo.commandPool = VkCommandManager::createCommandPool(g_vkContext.Device.logicalDevice, g_vkContext.Device.queueFamilies.graphicsFamily.index.value(), VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
-	cmdInfo.fence = VkSyncManager::createSingleUseFence();
-	cmdInfo.usingSingleUseFence = true;
 	cmdInfo.queue = g_vkContext.Device.queueFamilies.graphicsFamily.deviceQueue;
 
-	VkCommandBuffer commandBuffer = VkCommandManager::beginSingleUseCommandBuffer(&cmdInfo);
+		// Since the texture manager will be used in a worker thread, we must use a secondary command buffer.
+	if (useSecondaryCmdBuf) {
+		LOG_ASSERT(pSecondaryCmdBuf, "Cannot switch image layout: Secondary command buffer cannot be null if useSecondaryCmdBuf is True!");
+		LOG_ASSERT(pInheritanceInfo, "Cannot switch image layout: Secondary command buffer's inheritance info cannot be null if useSecondaryCmdBuf is True!");
+
+		cmdInfo.bufferLevel = VK_COMMAND_BUFFER_LEVEL_SECONDARY;
+		cmdInfo.pInheritanceInfo = pInheritanceInfo;
+		cmdInfo.autoSubmit = false;
+	}
+
+	else if (std::this_thread::get_id() != ThreadManager::GetMainThreadID() && IN_DEBUG_MODE)
+		// If the image layout switch happens in a worker thread, and we're in Debug mode, log a warning
+		Log::Print(Log::T_WARNING, __FUNCTION__, "SwitchImageLayout() is called from Worker Thread " + ThreadManager::GetMainThreadIDAsString() + ", but a secondary command buffer to record to is not provided!");
+
+	else {
+		cmdInfo.usingSingleUseFence = true;
+		cmdInfo.fence = VkSyncManager::createSingleUseFence();
+	}
+
+	
+	VkCommandBuffer cmdBuf = VkCommandManager::BeginSingleUseCommandBuffer(&cmdInfo);
 
 	/* Perform layout transition using an image memory barrier.
 		It is part of Vulkan barriers, which are used for processes like:
@@ -507,18 +555,21 @@ void TextureManager::switchImageLayout(VkImage image, VkFormat imgFormat, VkImag
 	VkPipelineStageFlags srcStage = 0;
 	VkPipelineStageFlags dstStage = 0;
 
-	defineImageLayoutTransitionStages(&imgMemBarrier.srcAccessMask, &imgMemBarrier.dstAccessMask, &srcStage, &dstStage, oldLayout, newLayout);
+	DefineImageLayoutTransitionStages(&imgMemBarrier.srcAccessMask, &imgMemBarrier.dstAccessMask, &srcStage, &dstStage, oldLayout, newLayout);
 
 
 	// Creates the barrier
-	vkCmdPipelineBarrier(commandBuffer, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &imgMemBarrier);
+	vkCmdPipelineBarrier(cmdBuf, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &imgMemBarrier);
 
+	// End recording
+	VkCommandManager::EndSingleUseCommandBuffer(&cmdInfo, cmdBuf);
 
-	VkCommandManager::endSingleUseCommandBuffer(&cmdInfo, commandBuffer);
+	if (pSecondaryCmdBuf)
+		*pSecondaryCmdBuf = cmdBuf;
 }
 
 
-void TextureManager::defineImageLayoutTransitionStages(VkAccessFlags* srcAccessMask, VkAccessFlags* dstAccessMask, VkPipelineStageFlags* srcStage, VkPipelineStageFlags* dstStage, VkImageLayout oldLayout, VkImageLayout newLayout) {
+void TextureManager::DefineImageLayoutTransitionStages(VkAccessFlags* srcAccessMask, VkAccessFlags* dstAccessMask, VkPipelineStageFlags* srcStage, VkPipelineStageFlags* dstStage, VkImageLayout oldLayout, VkImageLayout newLayout) {
 	// Old layout
 	const bool oldLayoutIsUndefined = (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED);
 	const bool oldLayoutIsTransferDst = (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
@@ -569,11 +620,22 @@ void TextureManager::defineImageLayoutTransitionStages(VkAccessFlags* srcAccessM
 void TextureManager::copyBufferToImage(VkBuffer& buffer, VkImage& image, uint32_t width, uint32_t height) {
 	SingleUseCommandBufferInfo cmdInfo{};
 	cmdInfo.commandPool = VkCommandManager::createCommandPool(g_vkContext.Device.logicalDevice, g_vkContext.Device.queueFamilies.graphicsFamily.index.value(), VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
-	cmdInfo.fence = VkSyncManager::createSingleUseFence();
-	cmdInfo.usingSingleUseFence = true;
 	cmdInfo.queue = g_vkContext.Device.queueFamilies.graphicsFamily.deviceQueue;
 
-	VkCommandBuffer commandBuffer = VkCommandManager::beginSingleUseCommandBuffer(&cmdInfo);
+	bool inMainThread = (std::this_thread::get_id() == ThreadManager::GetMainThreadID());
+
+	if (!inMainThread) {
+		// If texture creation is being done in a worker thread, we must use a secondary command buffer.
+		cmdInfo.bufferLevel = VK_COMMAND_BUFFER_LEVEL_SECONDARY;
+		cmdInfo.autoSubmit = false;
+	}
+	else {
+		// Else, configure primary-buffer-specific settings
+		cmdInfo.usingSingleUseFence = true;
+		cmdInfo.fence = VkSyncManager::createSingleUseFence();
+	}
+
+	VkCommandBuffer secondaryCmdBuf = VkCommandManager::BeginSingleUseCommandBuffer(&cmdInfo);
 
 
 	// Specifies the region of the buffer to copy to the image
@@ -599,7 +661,7 @@ void TextureManager::copyBufferToImage(VkBuffer& buffer, VkImage& image, uint32_
 
 
 	vkCmdCopyBufferToImage(
-		commandBuffer,
+		secondaryCmdBuf,
 		buffer,
 		image,
 		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,	// The image layout is assumed to be an optimal one for pixel transference.
@@ -607,5 +669,8 @@ void TextureManager::copyBufferToImage(VkBuffer& buffer, VkImage& image, uint32_
 	);
 
 
-	VkCommandManager::endSingleUseCommandBuffer(&cmdInfo, commandBuffer);
+	VkCommandManager::EndSingleUseCommandBuffer(&cmdInfo, secondaryCmdBuf);
+
+	if (!inMainThread)
+		m_secondaryCommandBuffers.push_back(secondaryCmdBuf);
 }

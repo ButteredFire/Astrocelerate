@@ -24,7 +24,7 @@ void PresentPipeline::init() {
 	createRenderPass();
 
 	// Post-initialization: Data is ready to be used for framebuffer creation
-	m_eventDispatcher->publish(Event::PresentPipelineInitialized{});
+	m_eventDispatcher->dispatch(Event::PresentPipelineInitialized{});
 }
 
 

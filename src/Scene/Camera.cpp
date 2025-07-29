@@ -68,8 +68,8 @@ glm::mat4 Camera::getRenderSpaceViewMatrix() const {
 }
 
 
-CommonComponent::Transform Camera::getGlobalTransform() const {
-	CommonComponent::Transform transform{};
+CoreComponent::Transform Camera::getGlobalTransform() const {
+	CoreComponent::Transform transform{};
 	transform.position = m_position;
 	transform.rotation = m_orientation;
 	

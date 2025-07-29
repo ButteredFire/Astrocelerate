@@ -125,11 +125,11 @@ void UIRenderer::initImGui() {
     ImGuiTheme::ApplyTheme(defaultAppearance);
     g_appContext.GUI.currentAppearance = defaultAppearance;
 
-
+    std::cout << ConfigConsts::IMGUI_DEFAULT_CONFIG << '\n';
     auto iniBuffer = FilePathUtils::ReadFile(ConfigConsts::IMGUI_DEFAULT_CONFIG);
     ImGui::LoadIniSettingsFromMemory(iniBuffer.data(), iniBuffer.size());
 
-    m_eventDispatcher->publish(Event::GUIContextIsValid{});
+    m_eventDispatcher->dispatch(Event::GUIContextIsValid{});
 }
 
 

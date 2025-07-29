@@ -12,6 +12,7 @@
 #include <Engine/Components/RenderComponents.hpp>
 #include <Engine/Components/PhysicsComponents.hpp>
 #include <Engine/Components/TelemetryComponents.hpp>
+#include <Engine/Components/SpacecraftComponents.hpp>
 
 #include <Utils/SpaceUtils.hpp>
 
@@ -59,6 +60,7 @@ namespace YAML {
     struct convert<glm::dvec3> {
         static Node encode(const glm::dvec3 &rhs) {
             Node node;
+
             node.push_back(rhs.x);
             node.push_back(rhs.y);
             node.push_back(rhs.z);
@@ -75,6 +77,7 @@ namespace YAML {
             rhs.x = node[0].as<double>();
             rhs.y = node[1].as<double>();
             rhs.z = node[2].as<double>();
+
             return true;
         }
     };
@@ -87,6 +90,7 @@ namespace YAML {
     struct convert<glm::vec3> {
         static Node encode(const glm::vec3 &rhs) {
             Node node;
+
             node.push_back(rhs.x);
             node.push_back(rhs.y);
             node.push_back(rhs.z);
@@ -103,6 +107,7 @@ namespace YAML {
             rhs.x = node[0].as<double>();
             rhs.y = node[1].as<double>();
             rhs.z = node[2].as<double>();
+
             return true;
         }
     };
@@ -115,6 +120,7 @@ namespace YAML {
     struct convert<glm::dquat> {
         static Node encode(const glm::dquat &rhs) {
             Node node;
+
             node.push_back(rhs.w);
             node.push_back(rhs.x);
             node.push_back(rhs.y);
@@ -139,12 +145,38 @@ namespace YAML {
 }
 
 
+// ----- CoreComponent::Transform -----
+namespace YAML {
+    template<>
+    struct convert<CoreComponent::Transform> {
+        static Node encode(const CoreComponent::Transform &rhs) {
+            Node node;
+
+            node["position"] = rhs.position;
+            node["rotation"] = SpaceUtils::QuatToEulerAngles(rhs.rotation);
+
+            return node;
+        }
+
+        static bool decode(const Node &node, CoreComponent::Transform &rhs) {
+            if (!node.IsMap()) return false;
+
+            rhs.position = node["position"].as<glm::dvec3>();
+            rhs.rotation = SpaceUtils::EulerAnglesToQuat(node["rotation"].as<glm::dvec3>());
+
+            return true;
+        }
+    };
+}
+
+
 // ----- PhysicsComponent::ReferenceFrame -----
 namespace YAML {
     template<>
     struct convert<PhysicsComponent::ReferenceFrame> {
         static Node encode(const PhysicsComponent::ReferenceFrame &rhs) {
             Node node;
+
             node["parentID"] = rhs._parentID_str;
 
             node["localTransform"]["position"] = rhs.localTransform.position;
@@ -181,6 +213,7 @@ namespace YAML {
     struct convert<PhysicsComponent::RigidBody> {
         static Node encode(const PhysicsComponent::RigidBody &rhs) {
             Node node;
+
             node["velocity"] = rhs.velocity;
             node["acceleration"] = rhs.acceleration;
             node["mass"] = rhs.mass;
@@ -207,10 +240,12 @@ namespace YAML {
     struct convert<PhysicsComponent::ShapeParameters> {
         static Node encode(const PhysicsComponent::ShapeParameters &rhs) {
             Node node;
+
             node["equatRadius"] = rhs.equatRadius;
-            node["eccentricity"] = rhs.eccentricity;
+            node["flattening"] = rhs.flattening;
             node["gravParam"] = rhs.gravParam;
             node["rotVelocity"] = rhs.rotVelocity;
+            node["j2"] = rhs.j2;
 
             return node;
         }
@@ -219,9 +254,10 @@ namespace YAML {
             if (!node.IsMap()) return false;
 
             rhs.equatRadius = node["equatRadius"].as<double>();
-            rhs.eccentricity = node["eccentricity"].as<double>();
+            rhs.flattening = node["flattening"].as<double>();
             rhs.gravParam = node["gravParam"].as<double>();
-            rhs.rotVelocity = node["rotVelocity"].as<double>();
+            rhs.rotVelocity = node["rotVelocity"].as<glm::dvec3>();
+            rhs.j2 = node["j2"].as<double>();
 
             return true;
         }
@@ -235,6 +271,7 @@ namespace YAML {
     struct convert<PhysicsComponent::OrbitingBody> {
         static Node encode(const PhysicsComponent::OrbitingBody &rhs) {
             Node node;
+
             node["centralMass"] = rhs._centralMass_str;
 
             return node;
@@ -257,6 +294,7 @@ namespace YAML {
     struct convert<RenderComponent::MeshRenderable> {
         static Node encode(const RenderComponent::MeshRenderable &rhs) {
             Node node;
+
             node["meshPath"] = rhs.meshPath;
 
             return node;
@@ -283,6 +321,64 @@ namespace YAML {
         }
 
         static bool decode(const Node &node, TelemetryComponent::RenderTransform &rhs) {
+            return true;
+        }
+    };
+}
+
+
+
+// ----- SpacecraftComponent::Spacecraft -----
+namespace YAML {
+    template<>
+    struct convert<SpacecraftComponent::Spacecraft> {
+        static Node encode(const SpacecraftComponent::Spacecraft &rhs) {
+            Node node;
+
+            node["dragCoefficient"]             = rhs.dragCoefficient;
+            node["referenceArea"]               = rhs.referenceArea;
+            node["reflectivityCoefficient"]     = rhs.reflectivityCoefficient;
+
+            return node;
+        }
+
+        static bool decode(const Node &node, SpacecraftComponent::Spacecraft &rhs) {
+            if (!node.IsMap()) return false;
+
+            rhs.dragCoefficient                 = node["dragCoefficient"].as<double>();
+            rhs.referenceArea                   = node["referenceArea"].as<double>();
+            rhs.reflectivityCoefficient         = node["reflectivityCoefficient"].as<double>();
+
+            return true;
+        }
+    };
+}
+
+
+
+// ----- SpacecraftComponent::Thruster -----
+namespace YAML {
+    template<>
+    struct convert<SpacecraftComponent::Thruster> {
+        static Node encode(const SpacecraftComponent::Thruster &rhs) {
+            Node node;
+
+            node["thrustMagnitude"] = rhs.thrustMagnitude;
+            node["specificImpulse"] = rhs.specificImpulse;
+            node["currentFuelMass"] = rhs.currentFuelMass;
+            node["maxFuelMass"]     = rhs.maxFuelMass;
+
+            return node;
+        }
+
+        static bool decode(const Node &node, SpacecraftComponent::Thruster &rhs) {
+            if (!node.IsMap()) return false;
+
+            rhs.thrustMagnitude     = node["thrustMagnitude"].as<double>();
+            rhs.specificImpulse     = node["specificImpulse"].as<double>();
+            rhs.currentFuelMass     = node["currentFuelMass"].as<double>();
+            rhs.maxFuelMass         = node["maxFuelMass"].as<double>();
+
             return true;
         }
     };

@@ -34,11 +34,13 @@
 
 #include <Engine/RenderSystem.hpp>
 #include <Engine/PhysicsSystem.hpp>
-#include <Engine/Components/CommonComponents.hpp>
 #include <Engine/Components/ModelComponents.hpp>
 #include <Engine/Components/RenderComponents.hpp>
+#include <Engine/Components/CoreComponents.hpp>
 #include <Engine/Components/PhysicsComponents.hpp>
 #include <Engine/Components/TelemetryComponents.hpp>
+#include <Engine/Components/SpacecraftComponents.hpp>
+#include <Engine/Threading/ThreadManager.hpp>
 
 #include <Orchestration/Session.hpp>
 

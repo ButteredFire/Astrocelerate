@@ -118,7 +118,7 @@ Geometry::GeometryData* GeometryLoader::bakeGeometry() {
 	event.indexData = globalIndexData;
 	event.pGeomData = geomData;
 
-	m_eventDispatcher->publish(event);
+	m_eventDispatcher->dispatch(event);
 
 	Log::Print(Log::T_SUCCESS, __FUNCTION__, "Baked " + std::to_string(m_meshes.size()) + " meshes.");
 

@@ -26,12 +26,8 @@ void OffscreenPipeline::bindEvents() {
 			using namespace Event;
 
 			switch (event.sessionStatus) {
-			case UpdateSessionStatus::Status::NOT_READY:
+			case UpdateSessionStatus::Status::RESET:
 				m_sessionReady = false;
-				break;
-
-			case UpdateSessionStatus::Status::PREPARE_FOR_INIT:
-				m_sessionReady = true;
 
 				for (auto &cleanupID : m_offscreenCleanupIDs)
 					m_garbageCollector->executeCleanupTask(cleanupID);
@@ -43,8 +39,9 @@ void OffscreenPipeline::bindEvents() {
 
 				break;
 
-			case UpdateSessionStatus::Status::INITIALIZED:
+			case UpdateSessionStatus::Status::PREPARE_FOR_INIT:
 				m_sessionReady = true;
+				break;
 			}
 		}
 	);
@@ -113,7 +110,7 @@ void OffscreenPipeline::init() {
 	initOffscreenSampler();
 	initOffscreenFramebuffer(g_vkContext.SwapChain.extent.width, g_vkContext.SwapChain.extent.height);
 
-	m_eventDispatcher->publish(Event::OffscreenPipelineInitialized{});
+	m_eventDispatcher->dispatch(Event::OffscreenPipelineInitialized{});
 }
 
 
@@ -803,7 +800,18 @@ void OffscreenPipeline::initDepthBufferingResources() {
 
 	// Explicitly transitions the layout of the depth image to a depth attachment.
 	// This is not necessary, since it will be done in the render pass anyway. This is rather being explicit for the sake of being explicit. 
-	TextureManager::switchImageLayout(m_depthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+	VkCommandBuffer secondaryCmdBuf;
+
+	VkCommandBufferInheritanceInfo inheritanceInfo{};
+	inheritanceInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
+	inheritanceInfo.renderPass = m_renderPass;
+	inheritanceInfo.subpass = 0;	// Offscreen subpass
+
+	TextureManager::SwitchImageLayout(m_depthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, true, &secondaryCmdBuf, &inheritanceInfo);
+	m_eventDispatcher->dispatch(Event::RequestProcessSecondaryCommandBuffers{
+		.bufferCount = 1,
+		.pBuffers = &secondaryCmdBuf
+	});
 }
 
 
@@ -817,7 +825,7 @@ void OffscreenPipeline::recreateOffscreenResources(uint32_t width, uint32_t heig
 	initOffscreenSampler();
 	initOffscreenFramebuffer(width, height);
 
-	m_eventDispatcher->publish(Event::OffscreenResourcesAreRecreated{});
+	m_eventDispatcher->dispatch(Event::OffscreenResourcesAreRecreated{});
 }
 
 

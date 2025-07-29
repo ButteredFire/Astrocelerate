@@ -63,7 +63,7 @@ void RenderSystem::renderScene(const Event::UpdateRenderables &event) {
 
 	LOG_ASSERT(geomData, "Cannot process mesh renderable: Scene geometry data is invalid!");
 
-	if (IN_DEBUG_MODE || 1) {
+	if (IN_DEBUG_MODE) {
 		static bool printedOnce = false;
 		if (!printedOnce) {
 			printedOnce = true;

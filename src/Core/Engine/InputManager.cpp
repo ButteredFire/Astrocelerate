@@ -26,7 +26,7 @@ InputManager::InputManager() {
 
 
 void InputManager::init() {
-	m_eventDispatcher->publish(Event::InputIsValid{});
+	m_eventDispatcher->dispatch(Event::InputIsValid{});
 }
 
 

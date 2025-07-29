@@ -1,18 +1,30 @@
-﻿#pragma once
+#pragma once
 
-#include <iostream>
-#include <string>
-#include <exception>
 #include <deque>
+#include <mutex>
+#include <ctime>
+#include <thread>
+#include <string>
+#include <chrono>
+#include <iomanip>
+#include <fstream>
+#include <iostream>
+#include <exception>
+#include <filesystem>
+
 #include <termcolor/termcolor.hpp>
 
 #include <Core/Data/Constants.h>
+
+class ThreadManager;
+
 
 #define enquote(S) std::string(std::string("\"") + std::string(S) + std::string("\""))
 #define enquoteCOUT(S) '"' << (S) << '"'
 #define VARIABLE_NAME(V) std::string((#V))
 #define BOOLALPHA(COND) ((COND) ? "true" : "false")
 #define BOOLALPHACAP(COND) ((COND) ? "True" : "False")
+#define PLURAL(NUM, SUFFIX) ((NUM == 1) ? "" : (SUFFIX))
 
 // Usage: LOG_ASSERT(condition, message [, severity])
 #define LOG_ASSERT(cond, msg, ...) \
@@ -23,6 +35,10 @@
     } while (0)
 
 namespace Log {
+	inline std::mutex _printMutex;
+	inline std::ofstream _logFile;
+	inline std::string _logFilePath;
+
 	/* Purpose of each message type:
 	* - INFO: Used to log general information about the application's operation. This includes high-level events that are part of the normal operation.
 	*		Examples: Service initialization/stopping, user actions, configuration changes
@@ -64,6 +80,7 @@ namespace Log {
 
 	struct LogMessage {
 		MsgType type;				// The message type.
+		std::string threadInfo;		// The thread information.
 		std::string displayType;	// The message type in the form of a string.
 		std::string caller;			// The origin of the message.
 		std::string message;		// The message content.
@@ -134,31 +151,61 @@ namespace Log {
 		}
 	}
 
+
+	/* Gets the information of the current thread as a string. */
+	extern void LogThreadInfo(std::string &output);
+
+
 	/* Logs a message. 
 		@param type: The message type. Refer to Log::MsgType to see supported types.
 		@param caller: The name of the function from which this function is called. It should always be __FUNCTION__.
 		@param message: The message to be logged.
 		@param newline (default: true): A boolean determining whether the message ends with a newline character (true), or not (false).
 	*/
-	inline void Print(MsgType type, const char* caller, const std::string& message, bool newline = true) {
-		std::string displayType = "Unknown message type";
-		
-		LogColor(type, displayType);
-
-		std::cout << "[" << displayType << " @ " << caller << "]: " << message << ((newline) ? "\n" : "") << termcolor::reset;
-
-		LogMessage msg{};
-		msg.type = type;
-		msg.displayType = displayType;
-		msg.caller = caller;
-		msg.message = message;
-
-		AddToLogBuffer(msg);
-	}
+	extern void Print(MsgType type, const char *caller, const std::string &message, bool newline = true);
 
 
 	/* Logs application information to the console. */
 	inline void PrintAppInfo() {
+		/* Create new log file */
+		{
+			auto now = std::chrono::system_clock::now();
+			std::time_t currentTime = std::chrono::system_clock::to_time_t(now);
+			char buffer[80];
+			std::strftime(buffer, sizeof(buffer), "%Y%m%d_%H%M%S", std::localtime(&currentTime));
+
+			std::string logName = "AstroLog-" + std::string(buffer) + ".log";
+
+			std::filesystem::path p1 = ROOT_DIR;
+			std::filesystem::path p2 = "logs";
+			std::filesystem::path logDir = p1 / p2;
+
+			_logFilePath = (logDir / std::filesystem::path(logName)).string();
+
+			// Ensure the log directory exists
+			try {
+				if (!std::filesystem::exists(logDir)) {
+					std::filesystem::create_directories(logDir); // Creates the directory (and any parent directories)
+				}
+			}
+			catch (const std::filesystem::filesystem_error &e) {
+				std::cerr << "Error creating log directory '" << logDir << "': " << e.what() << std::endl;
+				// It's critical here: if we can't create the directory, we likely can't open the file either.
+				// You might want to throw an exception or set a flag to indicate the logger is in a failed state.
+				_logFile.setstate(std::ios_base::failbit); // Indicate that the file stream is in a bad state
+				return; // Exit constructor as opening the file will likely fail
+			}
+
+
+			_logFile.open(_logFilePath, std::ios::out | std::ios::app);
+			if (!_logFile.is_open()) {
+				std::cerr << "Error: Could not open log file: " << _logFilePath << std::endl;
+			}
+		}
+
+
+
+
 		std::cout << termcolor::reset;
 
 		std::cout << "Project " << APP_NAME << " (version: " << APP_VERSION << ").\n";
@@ -191,26 +238,22 @@ namespace Log {
 
 		std::cout << "\nCopyright (c) 2024-2025 " << AUTHOR << ".\n\n";
 	}
+
+
+	/* Stops logging to a log file. */
+	inline void EndLogging() {
+		if (_logFile.is_open()) {
+			_logFile.close();
+		}
+	}
 	
 
 	/* Custom RTE exception class that allows for origin specification. */
 	class RuntimeException : public std::exception {
 	public:
-		RuntimeException(const std::string& functionName, const int errLine, const std::string& message, MsgType severity = T_ERROR) : m_funcName(functionName), errLine(errLine), m_exceptionMessage(message), m_msgType(severity) {
-		
-			std::string displayType = "Unknown message type";
-			LogColor(m_msgType, displayType);
+		RuntimeException(const std::string &functionName, const int errLine, const std::string &message, MsgType severity = T_ERROR);
 
-			LogMessage msg{};
-			msg.type = m_msgType;
-			msg.displayType = displayType;
-			msg.caller = m_funcName;
-			msg.message = m_exceptionMessage;
-
-			AddToLogBuffer(msg);
-		}
-
-		/* Gets the name of the origin from which the exception was raised. 
+		/* Gets the name of the origin from which the exception was thrown. 
 			@return The name of the origin.
 		*/
 		inline const char* origin() const noexcept {
@@ -221,7 +264,14 @@ namespace Log {
 			@return The line.
 		*/
 		inline const int errorLine() const noexcept {
-			return errLine;
+			return m_errLine;
+		}
+
+		/* Gets the thread in which this exception was thrown.
+			@return Thread information as a string.
+		*/
+		inline const char* threadInfo() const noexcept {
+			return m_threadInfo.c_str();
 		}
 
 		/* Gets the message's severity.
@@ -240,7 +290,8 @@ namespace Log {
 	
 	private:
 		std::string m_funcName = "unknown origin";
-		int errLine;
+		int m_errLine;
+		std::string m_threadInfo;
 		std::string m_exceptionMessage;
 		MsgType m_msgType;
 	};

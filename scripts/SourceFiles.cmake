@@ -29,6 +29,7 @@ set(SOURCE_FILES
 	"src/Rendering/Textures/TextureManager.cpp"
 	"src/Scene/Camera.cpp"
 	"src/Scene/SceneManager.cpp"
+	"src/Scene/GUI/CodeEditor.cpp"
 	"src/Scene/GUI/UIPanelManager.cpp"
 	"src/Scene/GUI/Workspaces/OrbitalWorkspace.cpp"
 	"src/Simulation/Systems/ReferenceFrameSystem.cpp"
