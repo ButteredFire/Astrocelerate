@@ -144,5 +144,5 @@ The following screenshots document the development of Astrocelerate.
 ### 17/03/2025
 ![2025-03-17](https://github.com/user-attachments/assets/1fca2070-ff43-4595-bd6a-74c8c43ae982)
 
-### 09/12/2025 (Legacy Astrocelerate)
+### 09/12/2024 (Legacy Astrocelerate)
 ![2024-12-09](https://github.com/user-attachments/assets/db1f0232-cab3-4022-95f8-75ab503b029c)
