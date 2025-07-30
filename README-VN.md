@@ -3,7 +3,7 @@
 
 <div align="center" class="grid cards" style="display: flex; align-items: center; justify-content: center; text-decoration: none;" markdown>
     <img src="assets/App/AstrocelerateLogo-Branded.png" alt="Logo" width="80%">
-    <p>Bản quyền © 2024-2025 <a href="https://www.linkedin.com/in/minhduong-thechosenone/">Dương Duy Nhật Minh</a>, kinh doanh dưới tên <b>Hàng không Vũ trụ Oriviet</b>. Mọi quyền được bảo lưu.</p>
+    <p>Bản quyền © 2024-2025 <a href="https://www.linkedin.com/in/minhduong-thechosenone/">Dương Duy Nhật Minh</a>, kinh doanh dưới tên <b>Hàng không Vũ trụ Oriviet</b>.</p>
     </br>
 </div>
 
@@ -146,5 +146,5 @@ Các ảnh chụp màn hình sau đây ghi lại quá trình phát triển của
 ### 17/03/2025
 ![2025-03-17](https://github.com/user-attachments/assets/19f4eb20-e56b-4275-b877-eb5a6e027f51)
 
-### 09/12/2025 (Astrocelerate phiên bản cũ)
+### 09/12/2024 (Astrocelerate phiên bản cũ)
 ![2024-12-09](https://github.com/user-attachments/assets/419ba7f0-8b80-4663-bb30-a6815ffc8af4)
