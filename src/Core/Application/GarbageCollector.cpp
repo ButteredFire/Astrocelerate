@@ -30,12 +30,13 @@ VmaAllocator GarbageCollector::createVMAllocator(VkInstance& instance, VkPhysica
 
 	createCleanupTask(task);
 
-	g_vkContext.vmaAllocator = m_vmaAllocator;
 	return m_vmaAllocator;
 }
 
 
 CleanupID GarbageCollector::createCleanupTask(CleanupTask task) {
+	std::lock_guard<std::recursive_mutex> lock(m_cleanupMutex);
+
 	// Constructs a string displaying the object name(s) for logging
 	std::string objectNamesStr = enquote(getObjectNamesString(task));
 
@@ -50,12 +51,16 @@ CleanupID GarbageCollector::createCleanupTask(CleanupTask task) {
 
 
 CleanupTask& GarbageCollector::modifyCleanupTask(CleanupID taskID) {
+	std::lock_guard<std::recursive_mutex> lock(m_cleanupMutex);
+
 	LOG_ASSERT(m_idToIdxLookup.count(taskID), "Cannot modify cleanup task: Task ID #" + std::to_string(taskID) + " is invalid!");
 	return m_cleanupStack[m_idToIdxLookup.at(taskID)];
 }
 
 
 bool GarbageCollector::executeCleanupTask(CleanupID taskID) {
+	std::lock_guard<std::recursive_mutex> lock(m_cleanupMutex);
+
 	LOG_ASSERT(m_idToIdxLookup.count(taskID), "Cannot execute cleanup task: Task ID #" + std::to_string(taskID) + " is invalid!");
 	LOG_ASSERT(m_idToIdxLookup.at(taskID) < m_cleanupStack.size(), "Cannot execute cleanup task: Cannot retrieve task data for task ID #" + std::to_string(taskID) + "!");
 	
@@ -71,10 +76,6 @@ void GarbageCollector::processCleanupStack() {
 	std::string plural = (stackSize != 1)? "s" : "";
 	Log::Print(Log::T_VERBOSE, __FUNCTION__, "Executing " + std::to_string(stackSize) + " task" + plural + " in the cleanup stack...");
 
-	if (g_vkContext.Device.logicalDevice)
-		// Makes sure the CPU is idle before executing tasks
-		vkDeviceWaitIdle(g_vkContext.Device.logicalDevice);
-
 	while (!m_cleanupStack.empty()) {
 		CleanupID id = (m_cleanupStack.size() - 1);
 		CleanupTask task = m_cleanupStack[id];
@@ -86,6 +87,8 @@ void GarbageCollector::processCleanupStack() {
 
 
 bool GarbageCollector::executeTask(CleanupTask& task, CleanupID taskID) {
+	std::lock_guard<std::recursive_mutex> lock(m_cleanupMutex);
+
 	// Constructs a string displaying the object name(s) for logging
 	std::string objectNamesStr = enquote(getObjectNamesString(task));
 
@@ -120,8 +123,14 @@ bool GarbageCollector::executeTask(CleanupTask& task, CleanupID taskID) {
 	}
 
 	// Executes the task and invalidates it to prevent future executions
-	task.cleanupFunc();
+	try {
+		task.cleanupFunc();
+	}
+	catch (const std::bad_function_call &e) {
+		Log::Print(Log::T_ERROR, __FUNCTION__, "Cannot execute cleanup task " + enquote(getObjectNamesString(task)) + ": Bad function call!");
+	}
 	
+
 	Log::Print(Log::T_VERBOSE, __FUNCTION__, "Executed cleanup task for object(s) " + objectNamesStr + ".");
 
 	task._validTask = false;
@@ -136,8 +145,7 @@ bool GarbageCollector::executeTask(CleanupTask& task, CleanupID taskID) {
 
 
 void GarbageCollector::optimizeStack() {
-	// TODO: Fix optimizeStack incorrect ID-to-cleanup index remapping issue
-	return;
+	std::lock_guard<std::recursive_mutex> lock(m_cleanupMutex);
 
     // Create a new deque for valid tasks
     std::deque<CleanupTask> newCleanupStack;

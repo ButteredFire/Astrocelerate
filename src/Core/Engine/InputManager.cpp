@@ -8,8 +8,6 @@ InputManager::InputManager() {
 	m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
 	m_camera = ServiceLocator::GetService<Camera>(__FUNCTION__);
 
-	bindEvents();
-
 	m_keyToCamMovementBindings = {
 		{GLFW_KEY_W,					CameraMovement::FORWARD},
 		{GLFW_KEY_S,					CameraMovement::BACKWARD},
@@ -19,20 +17,22 @@ InputManager::InputManager() {
 		{GLFW_KEY_LEFT_SHIFT,			CameraMovement::DOWN}
 	};
 
-	
+	bindEvents();
 
 	Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
 
 
 void InputManager::init() {
-	m_eventDispatcher->dispatch(Event::InputIsValid{});
+	m_eventDispatcher->dispatch(InitEvent::InputManager{});
 }
 
 
 void InputManager::bindEvents() {
-	m_eventDispatcher->subscribe<Event::UpdateInput>(
-		[this](const Event::UpdateInput& event) {
+	static EventDispatcher::SubscriberIndex selfIndex = m_eventDispatcher->registerSubscriber<InputManager>();
+
+	m_eventDispatcher->subscribe<UpdateEvent::Input>(selfIndex,
+		[this](const UpdateEvent::Input& event) {
 			this->m_camera->update();
 			this->processKeyboardInput(event.deltaTime);
 		}

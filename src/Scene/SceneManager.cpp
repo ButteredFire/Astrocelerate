@@ -11,18 +11,13 @@ SceneManager::SceneManager() {
 
 
 void SceneManager::bindEvents() {
-    m_eventDispatcher->subscribe<Event::RegistryReset>(
-        [this](const Event::RegistryReset &event) {
+    static EventDispatcher::SubscriberIndex selfIndex = m_eventDispatcher->registerSubscriber<SceneManager>();
+
+    m_eventDispatcher->subscribe<UpdateEvent::RegistryReset>(selfIndex,
+        [this](const UpdateEvent::RegistryReset &event) {
             this->init();
         }
     );
-
-
-	m_eventDispatcher->subscribe<Event::BufferManagerIsValid>(
-		[this](const Event::BufferManagerIsValid &event) {
-			loadScene();
-		}
-	);
 }
 
 
@@ -41,11 +36,6 @@ void SceneManager::init() {
 }
 
 
-void SceneManager::loadScene() {
-
-}
-
-
 void SceneManager::loadSceneFromFile(const std::string &filePath) {
 	const std::string fileName = FilePathUtils::GetFileName(filePath);
 
@@ -55,7 +45,7 @@ void SceneManager::loadSceneFromFile(const std::string &filePath) {
 
 
     // Worker thread progress tracking
-    m_eventDispatcher->dispatch(Event::SceneLoadProgress{
+    m_eventDispatcher->dispatch(UpdateEvent::SceneLoadProgress{
         .progress = 0.0f,
         .message = "Preparing scene load from simulation file " + enquote(fileName) + "..."
     });
@@ -68,7 +58,7 @@ void SceneManager::loadSceneFromFile(const std::string &filePath) {
 	try {
         YAML::Node scene = YAML::LoadFile(filePath);
 
-        m_eventDispatcher->dispatch(Event::SceneLoadProgress{
+        m_eventDispatcher->dispatch(UpdateEvent::SceneLoadProgress{
             .progress = 0.1f,
             .message = "Acquiring scene data..."
         });
@@ -94,7 +84,7 @@ void SceneManager::loadSceneFromFile(const std::string &filePath) {
 
             processedEntities++;
             float entityProcessingProgress = static_cast<float>(processedEntities) / totalEntities;
-            m_eventDispatcher->dispatch(Event::SceneLoadProgress{
+            m_eventDispatcher->dispatch(UpdateEvent::SceneLoadProgress{
                 .progress = 0.1f + (entityProcessingProgress * 0.75f),
                 .message = "[" + std::string(entityName) + "] Parsing components..."
             });
@@ -240,7 +230,7 @@ void SceneManager::loadSceneFromFile(const std::string &filePath) {
                     if (componentNode["Data"]["meshPath"]) {
                         std::string meshPath = componentNode["Data"]["meshPath"].as<std::string>();
 
-                        m_eventDispatcher->dispatch(Event::SceneLoadProgress{
+                        m_eventDispatcher->dispatch(UpdateEvent::SceneLoadProgress{
                             .progress = 0.1f + (entityProcessingProgress * 0.75f),
                             .message = "[" + std::string(entityName) + "] Loading geometry..."
                         });
@@ -267,7 +257,7 @@ void SceneManager::loadSceneFromFile(const std::string &filePath) {
 
 
         // ----- Finalize geometry baking -----
-        m_eventDispatcher->dispatch(Event::SceneLoadProgress{
+        m_eventDispatcher->dispatch(UpdateEvent::SceneLoadProgress{
             .progress = 0.9f,
             .message = "Baking geometry data..."
         });
@@ -280,7 +270,7 @@ void SceneManager::loadSceneFromFile(const std::string &filePath) {
 		m_registry->addComponent(m_renderSpace.id, globalSceneData);
 
 
-        m_eventDispatcher->dispatch(Event::SceneLoadProgress{
+        m_eventDispatcher->dispatch(UpdateEvent::SceneLoadProgress{
             .progress = 0.95f,
             .message = "Initializing resources..."
         });

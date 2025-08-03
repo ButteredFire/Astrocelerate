@@ -113,7 +113,7 @@ Geometry::GeometryData* GeometryLoader::bakeGeometry() {
 	LOG_ASSERT(geomData, "Cannot bake geometry: Unable to allocate enough memory for geometry data!");
 
 
-	Event::GeometryInitialized event{};
+	InitEvent::Geometry event{};
 	event.vertexData = globalVertexData;
 	event.indexData = globalIndexData;
 	event.pGeomData = geomData;

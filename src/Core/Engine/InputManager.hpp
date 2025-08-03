@@ -10,7 +10,7 @@
 #include <Core/Engine/ServiceLocator.hpp>
 #include <Core/Application/LoggingManager.hpp>
 
-#include <Core/Data/Contexts/VulkanContext.hpp>
+
 #include <Core/Data/Contexts/AppContext.hpp>
 #include <Core/Data/Input.hpp>
 

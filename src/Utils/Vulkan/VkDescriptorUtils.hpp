@@ -9,10 +9,10 @@
 #include <Core/Application/GarbageCollector.hpp>
 #include <Core/Engine/ServiceLocator.hpp>
 
-#include <Core/Data/Contexts/VulkanContext.hpp>
+
 
 
 class VkDescriptorUtils {
 public:
-	static void CreateDescriptorPool(VkDescriptorPool &descriptorPool, uint32_t poolSizeCount, VkDescriptorPoolSize *poolSizes, VkDescriptorPoolCreateFlags createFlags, uint32_t maxSets = 500);
+	static void CreateDescriptorPool(VkDevice logicalDevice, VkDescriptorPool &descriptorPool, uint32_t poolSizeCount, VkDescriptorPoolSize *poolSizes, VkDescriptorPoolCreateFlags createFlags, uint32_t maxSets = 500);
 };

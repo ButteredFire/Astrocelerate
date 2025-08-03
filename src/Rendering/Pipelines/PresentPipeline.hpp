@@ -10,7 +10,7 @@
 #include <Core/Application/EventDispatcher.hpp>
 #include <Core/Application/GarbageCollector.hpp>
 
-#include <Core/Data/Contexts/VulkanContext.hpp>
+
 
 #include <Rendering/Pipelines/PipelineBuilder.hpp>
 
@@ -19,8 +19,12 @@
 
 class PresentPipeline {
 public:
-	PresentPipeline();
+	PresentPipeline(VkCoreResourcesManager *coreResources, VkSwapchainManager *swapchainMgr);
 	~PresentPipeline() = default;
+
+
+	inline VkRenderPass getRenderPass() const { return m_renderPass; }
+
 
 	void init();
 
@@ -28,6 +32,10 @@ private:
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 	std::shared_ptr<GarbageCollector> m_garbageCollector;
 	std::shared_ptr<VkBufferManager> m_bufferManager;
+
+	VkDevice m_logicalDevice;
+	VkSurfaceFormatKHR m_swapchainSurfaceFormat;
+	VkExtent2D m_swapchainExtent;
 
 	VkPipeline m_graphicsPipeline = VK_NULL_HANDLE;
 

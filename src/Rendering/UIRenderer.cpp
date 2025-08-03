@@ -4,7 +4,16 @@
 #include "UIRenderer.hpp"
 
 
-UIRenderer::UIRenderer() {
+UIRenderer::UIRenderer(GLFWwindow *window, VkRenderPass presentPipelineRenderPass, VkCoreResourcesManager *coreResources, VkSwapchainManager *swapchainMgr) :
+    m_window(window),
+    m_presentPipelineRenderPass(presentPipelineRenderPass),
+
+    m_instance(coreResources->getInstance()),
+    m_queueFamilies(coreResources->getQueueFamilyIndices()),
+    m_physicalDevice(coreResources->getPhysicalDevice()),
+    m_logicalDevice(coreResources->getLogicalDevice()),
+
+    m_minImageCount(swapchainMgr->getMinImageCount()) {
 
     m_registry = ServiceLocator::GetService<Registry>(__FUNCTION__);
     m_garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
@@ -44,7 +53,7 @@ void UIRenderer::initImGui() {
 
 
     // Setup Platform/Renderer backends
-    ImGui_ImplGlfw_InitForVulkan(g_vkContext.window, true);
+    ImGui_ImplGlfw_InitForVulkan(m_window, true);
 
 
     // When viewports are enabled, we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones
@@ -57,14 +66,13 @@ void UIRenderer::initImGui() {
 
     // Initialization info
     ImGui_ImplVulkan_InitInfo vkInitInfo{};
-    vkInitInfo.Instance = g_vkContext.vulkanInstance;         // Instance
-    vkInitInfo.PhysicalDevice = g_vkContext.Device.physicalDevice;   // Physical device
-    vkInitInfo.Device = g_vkContext.Device.logicalDevice;            // Logical device
+    vkInitInfo.Instance = m_instance;
+    vkInitInfo.PhysicalDevice = m_physicalDevice;
+    vkInitInfo.Device = m_logicalDevice;
 
     // Queue
-    QueueFamilyIndices familyIndices = g_vkContext.Device.queueFamilies;
-    vkInitInfo.QueueFamily = familyIndices.graphicsFamily.index.value();
-    vkInitInfo.Queue = familyIndices.graphicsFamily.deviceQueue;
+    vkInitInfo.QueueFamily = m_queueFamilies.graphicsFamily.index.value();
+    vkInitInfo.Queue = m_queueFamilies.graphicsFamily.deviceQueue;
 
     // Pipeline cache
     vkInitInfo.PipelineCache = VK_NULL_HANDLE;
@@ -78,17 +86,17 @@ void UIRenderer::initImGui() {
         { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, static_cast<uint32_t>(SimulationConsts::MAX_FRAMES_IN_FLIGHT) }
     };
     VkDescriptorPoolCreateFlags imgui_DescPoolCreateFlags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-    VkDescriptorUtils::CreateDescriptorPool(m_descriptorPool, imgui_PoolSizes.size(), imgui_PoolSizes.data(), imgui_DescPoolCreateFlags);
+    VkDescriptorUtils::CreateDescriptorPool(m_logicalDevice, m_descriptorPool, imgui_PoolSizes.size(), imgui_PoolSizes.data(), imgui_DescPoolCreateFlags);
     vkInitInfo.DescriptorPool = m_descriptorPool;
 
 
     // Render pass & subpass
-    vkInitInfo.RenderPass = g_vkContext.PresentPipeline.renderPass;
+    vkInitInfo.RenderPass = m_presentPipelineRenderPass;
     vkInitInfo.Subpass = 0;
 
     // Image count
-    vkInitInfo.MinImageCount = g_vkContext.SwapChain.minImageCount; // For some reason, ImGui does not actually use this property
-    vkInitInfo.ImageCount = g_vkContext.SwapChain.minImageCount;
+    vkInitInfo.MinImageCount = m_minImageCount; // For some reason, ImGui does not actually use this property
+    vkInitInfo.ImageCount = m_minImageCount;
 
     // Other
     vkInitInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
@@ -129,7 +137,7 @@ void UIRenderer::initImGui() {
     auto iniBuffer = FilePathUtils::ReadFile(ConfigConsts::IMGUI_DEFAULT_CONFIG);
     ImGui::LoadIniSettingsFromMemory(iniBuffer.data(), iniBuffer.size());
 
-    m_eventDispatcher->dispatch(Event::GUIContextIsValid{});
+    m_eventDispatcher->dispatch(InitEvent::ImGui{});
 }
 
 
@@ -250,13 +258,8 @@ void UIRenderer::updateDockspace() {
 
 void UIRenderer::refreshImGui() {
     int width = 0, height = 0;
-    glfwGetFramebufferSize(g_vkContext.window, &width, &height);
-
-    QueueFamilyIndices familyIndices = g_vkContext.Device.queueFamilies;
-    uint32_t queueFamily = familyIndices.graphicsFamily.index.value();
-
-    ImGui_ImplVulkan_SetMinImageCount(g_vkContext.SwapChain.minImageCount);
-    //ImGui_ImplVulkanH_CreateOrResizeWindow(g_vkContext.vulkanInstance, g_vkContext.Device.physicalDevice, g_vkContext.Device.logicalDevice, WINDOW, queueFamily, nullptr, width, height, g_vkContext.minImageCount);
+    glfwGetFramebufferSize(m_window, &width, &height);
+    ImGui_ImplVulkan_SetMinImageCount(m_minImageCount);
 }
 
 

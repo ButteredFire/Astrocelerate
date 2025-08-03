@@ -5,6 +5,9 @@ OrbitalWorkspace::OrbitalWorkspace() {
 	m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
 	m_registry = ServiceLocator::GetService<Registry>(__FUNCTION__);
 
+	m_coreResources = ServiceLocator::GetService<VkCoreResourcesManager>(__FUNCTION__);
+	m_swapchainManager = ServiceLocator::GetService<VkSwapchainManager>(__FUNCTION__);
+
 	m_windowFlags = ImGuiWindowFlags_NoCollapse;
 	m_popupWindowFlags = ImGuiWindowFlags_NoDocking;
 
@@ -15,8 +18,10 @@ OrbitalWorkspace::OrbitalWorkspace() {
 
 
 void OrbitalWorkspace::bindEvents() {
-	m_eventDispatcher->subscribe<Event::OffscreenResourcesAreRecreated>(
-		[this](const Event::OffscreenResourcesAreRecreated &event) {
+	static EventDispatcher::SubscriberIndex selfIndex = m_eventDispatcher->registerSubscriber<OrbitalWorkspace>();
+
+	m_eventDispatcher->subscribe<RecreationEvent::OffscreenResources>(selfIndex,
+		[this](const RecreationEvent::OffscreenResources &event) {
 			for (size_t i = 0; i < m_viewportRenderTextureIDs.size(); i++) {
 				ImGui_ImplVulkan_RemoveTexture((VkDescriptorSet)m_viewportRenderTextureIDs[i]);
 			}
@@ -26,16 +31,24 @@ void OrbitalWorkspace::bindEvents() {
 	);
 
 
-	m_eventDispatcher->subscribe<Event::UpdateSessionStatus>(
-		[this](const Event::UpdateSessionStatus &event) {
-			using namespace Event;
+	m_eventDispatcher->subscribe<InitEvent::OffscreenPipeline>(selfIndex, 
+		[this](const InitEvent::OffscreenPipeline &event) {
+			m_offscreenImageViews = event.offscreenImageViews;
+			m_offscreenSamplers = event.offscreenImageSamplers;
+		}
+	);
+
+
+	m_eventDispatcher->subscribe<UpdateEvent::SessionStatus>(selfIndex,
+		[this](const UpdateEvent::SessionStatus &event) {
+			using enum UpdateEvent::SessionStatus::Status;
 
 			switch (event.sessionStatus) {
-			case UpdateSessionStatus::Status::PREPARE_FOR_RESET:
+			case PREPARE_FOR_RESET:
 				m_sceneSampleReady = false;
 				break;
 
-			case UpdateSessionStatus::Status::INITIALIZED:
+			case INITIALIZED:
 				m_sceneSampleReady = true;
 				initPerFrameTextures();
 				break;
@@ -44,8 +57,8 @@ void OrbitalWorkspace::bindEvents() {
 	);
 
 
-	m_eventDispatcher->subscribe<Event::InputIsValid>(
-		[this](const Event::InputIsValid &event) {
+	m_eventDispatcher->subscribe<InitEvent::InputManager>(selfIndex,
+		[this](const InitEvent::InputManager &event) {
 			m_inputManager = ServiceLocator::GetService<InputManager>(__FUNCTION__);
 		}
 	);
@@ -151,7 +164,7 @@ void OrbitalWorkspace::loadSimulationConfig(const std::string &configPath) {
 	m_simulationConfigPath = configPath;
 	m_simulationScriptData = FilePathUtils::ReadFile(configPath);
 
-	m_eventDispatcher->dispatch(Event::RequestInitSession{
+	m_eventDispatcher->dispatch(RequestEvent::InitSession{
 		.simulationFilePath = configPath
 	});
 }
@@ -179,14 +192,14 @@ void OrbitalWorkspace::initStaticTextures() {
 
 void OrbitalWorkspace::initPerFrameTextures() {
 	// Simulation scene (sampled as a texture for the viewport)
-	const size_t OFFSCREEN_RESOURCE_COUNT = g_vkContext.OffscreenResources.images.size();
+	const size_t OFFSCREEN_RESOURCE_COUNT = m_offscreenImageViews.size();
 	m_viewportRenderTextureIDs.resize(OFFSCREEN_RESOURCE_COUNT);
 
 	for (size_t i = 0; i < OFFSCREEN_RESOURCE_COUNT; i++) {
 		m_viewportRenderTextureIDs[i] = TextureUtils::GenerateImGuiTextureID(
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-			g_vkContext.OffscreenResources.imageViews[i],
-			g_vkContext.OffscreenResources.samplers[i]
+			m_offscreenImageViews[i],
+			m_offscreenSamplers[i]
 		);
 	}
 }
@@ -196,8 +209,8 @@ void OrbitalWorkspace::updatePerFrameTextures(uint32_t currentFrame) {
 	// Simulation scene
 	if (m_sceneSampleReady) {
 		VkDescriptorImageInfo imageInfo{};
-		imageInfo.imageView = g_vkContext.OffscreenResources.imageViews[currentFrame];
-		imageInfo.sampler = g_vkContext.OffscreenResources.samplers[currentFrame];
+		imageInfo.imageView = m_offscreenImageViews[currentFrame];
+		imageInfo.sampler = m_offscreenSamplers[currentFrame];
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 		VkWriteDescriptorSet imageDescSetWrite{};
@@ -208,7 +221,7 @@ void OrbitalWorkspace::updatePerFrameTextures(uint32_t currentFrame) {
 		imageDescSetWrite.dstSet = (VkDescriptorSet)m_viewportRenderTextureIDs[currentFrame];
 		imageDescSetWrite.pImageInfo = &imageInfo;
 
-		vkUpdateDescriptorSets(g_vkContext.Device.logicalDevice, 1, &imageDescSetWrite, 0, nullptr);
+		vkUpdateDescriptorSets(m_coreResources->getLogicalDevice(), 1, &imageDescSetWrite, 0, nullptr);
 	}
 }
 
@@ -319,10 +332,11 @@ void OrbitalWorkspace::renderViewportPanel() {
 
 			// Resizes the texture to its original aspect ratio before rendering
 			ImVec2 originalRenderSize = {
-				static_cast<float>(g_vkContext.SwapChain.extent.width),
-				static_cast<float>(g_vkContext.SwapChain.extent.height)
+				static_cast<float>(m_swapchainManager->getSwapChainExtent().width),
+				static_cast<float>(m_swapchainManager->getSwapChainExtent().height)
 			};
 			ImVec2 textureSize = ImGuiUtils::ResizeImagePreserveAspectRatio(originalRenderSize, viewportPanelSize);
+
 
 			// Padding to center the texture
 			ImVec2 offset{};

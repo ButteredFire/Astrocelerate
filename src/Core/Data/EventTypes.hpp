@@ -11,198 +11,223 @@
 #include <Core/Data/Application.hpp>
 
 
-enum EventType {
-	EVENT_APP_IS_STABLE,
+// All events (used as bitfield flags)
+using EventFlags = unsigned int;
+enum EventFlag {
+	EVENT_FLAG_INIT_OFFSCREEN_PIPELINE_BIT				= 1 << 0,
+	EVENT_FLAG_INIT_PRESENT_PIPELINE_BIT				= 1 << 1,
+	EVENT_FLAG_INIT_GEOMETRY_BIT						= 1 << 2,
+	EVENT_FLAG_INIT_SCENE_BIT							= 1 << 3,
+	EVENT_FLAG_INIT_IMGUI_BIT							= 1 << 4,
+	EVENT_FLAG_INIT_INPUT_MANAGER_BIT					= 1 << 5,
+	EVENT_FLAG_INIT_BUFFER_MANAGER_BIT					= 1 << 6,
+	EVENT_FLAG_INIT_SWAPCHAIN_MANAGER_BIT				= 1 << 7,
 
-	EVENT_ID_REGISTRY_IS_CLEARED,
-	EVENT_ID_SWAPCHAIN_IS_RECREATED,
-	EVENT_ID_OFFSCREEN_RESOURCES_ARE_RECREATED,
-	EVENT_ID_OFFSCREEN_PIPELINE_INITIALIZED,
-	EVENT_ID_PRESENT_PIPELINE_INITIALIZED,
-	EVENT_ID_GEOMETRY_INITIALIZED,
-	EVENT_ID_SCENE_INITIALIZED,
+	EVENT_FLAG_RECREATION_SWAPCHAIN_BIT					= 1 << 8,
+	EVENT_FLAG_RECREATION_OFFSCREEN_RESOURCES_BIT		= 1 << 9,
 
-	EVENT_ID_UPDATE_APP_STAGE,
-	EVENT_ID_UPDATE_INPUT,
-	EVENT_ID_UPDATE_RENDERABLES,
-	EVENT_ID_UPDATE_SESSION_STATUS,
-	EVENT_ID_UPDATE_GUI,
-	EVENT_ID_UPDATE_PHYSICS,
-	EVENT_ID_UPDATE_UBOS,
+	EVENT_FLAG_UPDATE_APPLICATION_STATUS_BIT			= 1 << 10,
+	EVENT_FLAG_UPDATE_INPUT_BIT							= 1 << 11,
+	EVENT_FLAG_UPDATE_RENDERABLES_BIT					= 1 << 12,
+	EVENT_FLAG_UPDATE_SESSION_STATUS_BIT				= 1 << 13,
+	EVENT_FLAG_UPDATE_PHYSICS_BIT						= 1 << 14,
+	EVENT_FLAG_UPDATE_PER_FRAME_BUFFERS_BIT				= 1 << 15,
+	EVENT_FLAG_UPDATE_APP_IS_STABLE_BIT					= 1 << 16,
+	EVENT_FLAG_UPDATE_REGISTRY_RESET_BIT				= 1 << 17,
+	EVENT_FLAG_UPDATE_SCENE_LOAD_PROGRESS_BIT			= 1 << 18,
+	EVENT_FLAG_UPDATE_SCENE_LOAD_COMPLETE_BIT			= 1 << 19,
 
-	EVENT_ID_GUI_CONTEXT_IS_VALID,
-	EVENT_ID_INPUT_IS_VALID,
-	EVENT_ID_BUFFER_MANAGER_IS_VALID,
-
-	EVENT_ID_REQUEST_INIT_SESSION,
-	EVENT_ID_REQUEST_INIT_SCENE_VULKAN_RESOURCES,
-	EVENT_ID_REQUEST_PROCESS_SECONDARY_COMMAND_BUFFERS,
-
-	EVENT_SCENE_LOAD_PROGRESS,
-	EVENT_SCENE_LOAD_COMPLETE
+	EVENT_FLAG_REQUEST_INIT_SESSION_BIT					= 1 << 20,
+	EVENT_FLAG_REQUEST_PROCESS_SECONDARY_COMMAND_BUFFERS_BIT = 1 << 21,
+	EVENT_FLAG_REQUEST_INIT_SCENE_RESOURCES_BIT			= 1 << 22
 };
+constexpr size_t EVENT_FLAG_COUNT = 22 + 1; // Highest bit position + 1
 
 
-/* Event types for the event dispatcher. */
-namespace Event {
-	/* Used when all managers/services have been created, and the application is at a stable point.
-		Much like VkDeviceWaitIdle, this is a "catch-all" event.
-	*/
-	struct AppIsStable {
-		const EventType eventType = EventType::EVENT_APP_IS_STABLE;
-	};
-
-
-	/* Used when the registry has been reset. */
-	struct RegistryReset {
-		const EventType eventType = EventType::EVENT_ID_REGISTRY_IS_CLEARED;
-	};
-
-
-	/* Used when the swapchain is recreated. */
-	struct SwapchainIsRecreated {
-		const EventType eventType = EventType::EVENT_ID_SWAPCHAIN_IS_RECREATED;
-		uint32_t imageIndex;
-	};
-
-
-	/* Used when offscreen render targets are recreated. */
-	struct OffscreenResourcesAreRecreated {
-		const EventType eventType = EventType::EVENT_ID_OFFSCREEN_RESOURCES_ARE_RECREATED;
-	};
-
-
+namespace InitEvent {
 	/* Used when the offscreen pipeline has been initialized. */
-	struct OffscreenPipelineInitialized {
-		const EventType eventType = EventType::EVENT_ID_OFFSCREEN_PIPELINE_INITIALIZED;
+	struct OffscreenPipeline {
+		const EventFlag eventFlag = EVENT_FLAG_INIT_OFFSCREEN_PIPELINE_BIT;
+
+		VkRenderPass renderPass;
+		VkPipeline pipeline;
+		VkPipelineLayout pipelineLayout;
+
+		std::vector<VkDescriptorSet> perFrameDescriptorSets;
+		VkDescriptorSet pbrDescriptorSet;
+		VkDescriptorSet texArrayDescriptorSet;
+
+		std::vector<VkImageView> offscreenImageViews;
+		std::vector<VkSampler> offscreenImageSamplers;
+		std::vector<VkFramebuffer> offscreenFrameBuffers;
 	};
 
 
 	/* Used when the presentation pipeline has been initialized. */
-	struct PresentPipelineInitialized {
-		const EventType eventType = EventType::EVENT_ID_PRESENT_PIPELINE_INITIALIZED;
+	struct PresentPipeline {
+		const EventFlag eventFlag = EVENT_FLAG_INIT_PRESENT_PIPELINE_BIT;
+
+		VkRenderPass renderPass;
 	};
 
 
 	/* Used when data required to initialize global vertex and index buffers is available. */
-	struct GeometryInitialized {
-		const EventType eventType = EventType::EVENT_ID_GEOMETRY_INITIALIZED;
-		std::vector<Geometry::Vertex> vertexData;
+	struct Geometry {
+		/* NOTE:
+			There exists a namespace with the same name as this struct: "Geometry".
+			To resolve the ambiguity when we want to access data inside the Geometry namespace, we use the global scope resolution operator (::).
+			Example:
+				Geometry::Vertex	vertex;		// Conflict!
+			->  ::Geometry::Vertex	vertex;		// The compiler understands "Vertex" is in the Geometry namespace and not the Geometry struct.
+		*/
+		const EventFlag eventFlag = EVENT_FLAG_INIT_GEOMETRY_BIT;
+
+		std::vector<::Geometry::Vertex> vertexData;
 		std::vector<uint32_t> indexData;
-		Geometry::GeometryData *pGeomData;
+		::Geometry::GeometryData *pGeomData;
 	};
 
 
 	/* Used when the scene is initialized (most often emitted to signal the end of the scene initialization worker thread).
-		This event is just an alias for Event::OffscreenPipelineInitialized for the sake of readability.
+		This event is just an alias for InitEvent::OffscreenPipeline for the sake of readability.
 		Services that don't have a direct tie to the offscreen pipeline should listen to this event.
 	*/
-	struct SceneIsInitialized {
-		const EventType eventType = EventType::EVENT_ID_SCENE_INITIALIZED;
+	struct Scene {
+		const EventFlag eventFlag = EVENT_FLAG_INIT_SCENE_BIT;
 	};
 
 
-	/* Used when the application stage is updated. */
-	struct UpdateAppStage {
-		const EventType eventType = EventType::EVENT_ID_UPDATE_APP_STAGE;
-		Application::Stage newStage;
+	/* Used when the ImGui context is available. */
+	struct ImGui {
+		const EventFlag eventFlag = EVENT_FLAG_INIT_IMGUI_BIT;
+	};
+
+
+	/* Used when the input manager is initialized. */
+	struct InputManager {
+		const EventFlag eventFlag = EVENT_FLAG_INIT_INPUT_MANAGER_BIT;
+	};
+
+
+	/* Used when the buffer manager is initialized. */
+	struct BufferManager {
+		const EventFlag eventFlag = EVENT_FLAG_INIT_BUFFER_MANAGER_BIT;
+
+		VkBuffer globalVertexBuffer;
+		VkBuffer globalIndexBuffer;
+		std::vector<VkDescriptorSet> perFrameDescriptorSets;
+	};
+
+
+	/* Used when the swapchain manager is ready. */
+	struct SwapchainManager {
+		const EventFlag eventFlag = EVENT_FLAG_INIT_SWAPCHAIN_MANAGER_BIT;
+	};
+}
+
+
+
+namespace RecreationEvent {
+	/* Used AFTER the swapchain has been recreated. */
+	struct Swapchain {
+		const EventFlag eventFlag = EVENT_FLAG_RECREATION_SWAPCHAIN_BIT;
+
+		uint32_t imageIndex;
+		std::vector<VkImageLayout> imageLayouts;
+	};
+
+
+	/* Used AFTER offscreen render targets have been recreated. */
+	struct OffscreenResources {
+		const EventFlag eventFlag = EVENT_FLAG_RECREATION_OFFSCREEN_RESOURCES_BIT;
+	};
+}
+
+
+
+namespace UpdateEvent {
+	/* Used when the application status is updated. */
+	struct ApplicationStatus {
+		const EventFlag eventFlag = EVENT_FLAG_UPDATE_APPLICATION_STATUS_BIT;
+
+		Application::Stage appStage = Application::Stage::NULL_STAGE;
+		Application::State appState = Application::State::NULL_STATE;
 	};
 
 
 	/* Used when user input needs to be processed. */
-	struct UpdateInput {
-		const EventType eventType = EventType::EVENT_ID_UPDATE_INPUT;
+	struct Input {
+		const EventFlag eventFlag = EVENT_FLAG_UPDATE_INPUT_BIT;
+
 		double deltaTime;
 	};
 
 
 	/* Used when renderables need to be updated. */
-	struct UpdateRenderables {
-		const EventType eventType = EventType::EVENT_ID_UPDATE_RENDERABLES;
+	struct Renderables {
+		enum class Type {
+			MESHES,			// Meshes.
+			GUI				// Dear ImGui quads.
+		};
+		const EventFlag eventFlag = EVENT_FLAG_UPDATE_RENDERABLES_BIT;
+
+		Type renderableType;
+
 		VkCommandBuffer commandBuffer;
-		VkDescriptorSet descriptorSet;
+		uint32_t currentFrame;
 	};
 
 
 	/* Used to update the status of the current session. */
-	struct UpdateSessionStatus {
+	struct SessionStatus {
 		enum class Status {
 			PREPARE_FOR_RESET,		// Session is preparing to be reset. This allows for any manager using per-session resources to immediately stop accessing them
 			RESET,					// Session has been reset. This allows for per-session managers to destroy all outdated resources in preparation for new ones.
 			PREPARE_FOR_INIT,		// Session is preparing to be initialized. This allows for per-session managers to also prepare.
 			INITIALIZED				// Session is initialized. At this stage, scenes and per-scene resources are safe to use.
 		};
+		const EventFlag eventFlag = EVENT_FLAG_UPDATE_SESSION_STATUS_BIT;
 
-		const EventType eventType = EventType::EVENT_ID_UPDATE_SESSION_STATUS;
 		Status sessionStatus;
 	};
 
 
-	/* Used when the ImGui GUI needs to be updated. */
-	struct UpdateGUI {
-		const EventType eventType = EventType::EVENT_ID_UPDATE_GUI;
-		VkCommandBuffer commandBuffer;
-		uint32_t currentFrame;
-	};
-
-
 	/* Used when physics need to be updated. */
-	struct UpdatePhysics {
-		const EventType eventType = EventType::EVENT_ID_UPDATE_PHYSICS;
+	struct Physics {
+		const EventFlag eventFlag = EVENT_FLAG_UPDATE_PHYSICS_BIT;
+
 		double dt;
 	};
 
 
 	/* Used when uniform buffer objects need to be updated. */
-	struct UpdateUBOs {
-		const EventType eventType = EventType::EVENT_ID_UPDATE_UBOS;
+	struct PerFrameBuffers {
+		const EventFlag eventFlag = EVENT_FLAG_UPDATE_PER_FRAME_BUFFERS_BIT;
+
 		uint32_t currentFrame;
 		glm::dvec3 renderOrigin;
 	};
 
 
-	/* Used when the ImGui context is available. */
-	struct GUIContextIsValid {
-		const EventType eventType = EventType::EVENT_ID_GUI_CONTEXT_IS_VALID;
+
+	/* Used when all managers/services have been created, and the application is at a stable point.
+		Much like VkDeviceWaitIdle, this is a "catch-all" event.
+	*/
+	struct AppIsStable {
+		const EventFlag eventFlag = EVENT_FLAG_UPDATE_APP_IS_STABLE_BIT;
 	};
 
 
-	/* Used when the input manager is initialized. */
-	struct InputIsValid {
-		const EventType eventType = EventType::EVENT_ID_INPUT_IS_VALID;
-	};
-
-
-	/* Used when the buffer manager is initialized. */
-	struct BufferManagerIsValid {
-		const EventType eventType = EventType::EVENT_ID_BUFFER_MANAGER_IS_VALID;
-	};
-
-	
-	/* Used when a manager/service requests initialization of a new user session. */
-	struct RequestInitSession {
-		const EventType eventType = EventType::EVENT_ID_REQUEST_INIT_SESSION;
-		std::string simulationFilePath;
-	};
-
-
-	/* Used when any secondary command buffers have finished recording, and need to be recorded into the primary command buffer. */
-	struct RequestProcessSecondaryCommandBuffers {
-		const EventType eventType = EventType::EVENT_ID_REQUEST_PROCESS_SECONDARY_COMMAND_BUFFERS;
-		uint32_t bufferCount;
-		VkCommandBuffer *pBuffers;
-	};
-
-
-	/* Used when the scene processing is complete, and its Vulkan resources (e.g., offscreen pipeline) need to be initialized. */
-	struct RequestInitSceneResources {
-		const EventType eventType = EventType::EVENT_ID_REQUEST_INIT_SCENE_VULKAN_RESOURCES;
+	/* Used when the registry has been reset. */
+	struct RegistryReset {
+		const EventFlag eventFlag = EVENT_FLAG_UPDATE_REGISTRY_RESET_BIT;
 	};
 
 
 	/* Used to dispatch progress updates during heavy operations like scene loading. */
 	struct SceneLoadProgress {
-		const EventType eventType = EventType::EVENT_SCENE_LOAD_PROGRESS;
+		const EventFlag eventFlag = EVENT_FLAG_UPDATE_SCENE_LOAD_PROGRESS_BIT;
+
 		float progress; // 0.0 to 1.0
 		std::string message;
 	};
@@ -210,8 +235,33 @@ namespace Event {
 
 	/* Used to signal the completion of a heavy operation like scene loading. */
 	struct SceneLoadComplete {
-		const EventType eventType = EventType::EVENT_SCENE_LOAD_COMPLETE;
+		const EventFlag eventFlag = EVENT_FLAG_UPDATE_SCENE_LOAD_COMPLETE_BIT;
+
 		bool loadSuccessful;
 		std::string finalMessage;
+	};
+}
+
+
+namespace RequestEvent {
+	/* Used when a manager/service requests initialization of a new user session. */
+	struct InitSession {
+		const EventFlag eventFlag = EVENT_FLAG_REQUEST_INIT_SESSION_BIT;
+
+		std::string simulationFilePath;
+	};
+
+
+	/* Used when any secondary command buffers have finished recording, and need to be recorded into the primary command buffer. */
+	struct ProcessSecondaryCommandBuffers {
+		const EventFlag eventFlag = EVENT_FLAG_REQUEST_PROCESS_SECONDARY_COMMAND_BUFFERS_BIT;
+
+		std::vector<VkCommandBuffer> buffers;
+	};
+
+
+	/* Used when the scene processing is complete, and its Vulkan resources (e.g., offscreen pipeline) need to be initialized. */
+	struct InitSceneResources {
+		const EventFlag eventFlag = EVENT_FLAG_REQUEST_INIT_SCENE_RESOURCES_BIT;
 	};
 }

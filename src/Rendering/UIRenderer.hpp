@@ -23,7 +23,7 @@
 #include <Core/Engine/ServiceLocator.hpp>
 #include <Core/Application/GarbageCollector.hpp>
 
-#include <Core/Data/Contexts/VulkanContext.hpp>
+
 #include <Core/Data/Contexts/AppContext.hpp>
 
 #include <Scene/GUI/UIPanelManager.hpp>
@@ -39,7 +39,7 @@ class UIPanelManager;
 
 class UIRenderer {
 public:
-	UIRenderer();
+	UIRenderer(GLFWwindow *window, VkRenderPass presentPipelineRenderPass, VkCoreResourcesManager *coreResources, VkSwapchainManager *swapchainMgr);
 	~UIRenderer();
 
 	/* Initializes ImGui. */
@@ -67,6 +67,15 @@ private:
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 
 	std::shared_ptr<UIPanelManager> m_uiPanelManager;
+
+	GLFWwindow *m_window;
+	VkRenderPass m_presentPipelineRenderPass;
+	VkInstance m_instance;
+	QueueFamilyIndices m_queueFamilies;
+	VkPhysicalDevice m_physicalDevice;
+	VkDevice m_logicalDevice;
+	uint32_t m_minImageCount;
+
 
 	VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
 	bool m_showDemoWindow = true;

@@ -7,15 +7,12 @@
 
 #include <vector>
 
-#include <Core/Data/Constants.h>
 #include <Core/Application/GarbageCollector.hpp>
+#include <Core/Data/Constants.h>
 #include <Core/Engine/ServiceLocator.hpp>
 
 #include <Rendering/Textures/TextureManager.hpp>
 #include <Rendering/Pipelines/PipelineBuilder.hpp>
-
-#include <Vulkan/VkBufferManager.hpp>
-class VkBufferManager;
 
 #include <Vulkan/VkImageManager.hpp>
 
@@ -23,19 +20,35 @@ class VkBufferManager;
 #include <Utils/Vulkan/VkDescriptorUtils.hpp>
 
 
+
 class OffscreenPipeline {
 public:
-	OffscreenPipeline();
+	OffscreenPipeline(VkCoreResourcesManager *coreResources, VkSwapchainManager *swapchainMgr);
 	~OffscreenPipeline() = default;
 
 	void init();
 
+
+	inline VkPipelineLayout getPipelineLayout() const { return m_pipelineLayout; }
+	inline VkPipeline getPipeline() const { return m_graphicsPipeline; }
+	
+	inline VkRenderPass getRenderPass() const { return m_renderPass; }
+
 private:
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 	std::shared_ptr<GarbageCollector> m_garbageCollector;
-	std::shared_ptr<VkBufferManager> m_bufferManager;
 
+	VkPhysicalDevice m_physicalDevice;
+	VkPhysicalDeviceProperties m_deviceProperties;
+	VkDevice m_logicalDevice;
+
+	VkExtent2D m_swapchainExtent;
+
+	
+	// Pipeline
+	VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
 	VkPipeline m_graphicsPipeline = VK_NULL_HANDLE;
+
 
 	// Shaders
 		// Vertex shader
@@ -91,16 +104,12 @@ private:
 	// Descriptors
 	std::vector<VkDescriptorSetLayout> m_descriptorSetLayouts;
 	std::vector<VkDescriptorSet> m_perFrameDescriptorSets;
-	std::vector<VkDescriptorSet> m_singularDescriptorSets;
 
-	// Pipeline layout
-	VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
+	VkDescriptorSet m_pbrDescriptorSet;
+	VkDescriptorSet m_texArrayDescriptorSet;
 
 	// Offscreen resources
-	//VkImage m_colorImage{};
 	VmaAllocation m_colorImgAlloc{};
-	//VkImageView m_colorImgView{};
-	//VkFramebuffer m_colorImgFramebuffer{};
 
 	const size_t m_OFFSCREEN_RESOURCE_COUNT = SimulationConsts::MAX_FRAMES_IN_FLIGHT;
 	std::vector<VkImage> m_colorImages;
@@ -137,8 +146,16 @@ private:
 	*/
 	VkDescriptorSetLayout createDescriptorSetLayout(uint32_t bindingCount, VkDescriptorSetLayoutBinding *layoutBindings, VkDescriptorSetLayoutCreateFlags layoutFlags, const void *pNext);
 
-	void createPerFrameDescriptorSets(VkDescriptorPool descriptorPool, VkDescriptorSetLayout descriptorSetLayout);
-	void createSingularDescriptorSet(VkDescriptorSet& descriptorSet, VkDescriptorPool descriptorPool, VkDescriptorSetLayout descriptorSetLayout, const void *pNext);
+
+	/* Creates descriptor sets.
+		@param descriptorSetCount: The number of descriptor sets to create.
+		@param descriptorSets: A pointer to the descriptor sets (or an array of descriptor sets).
+		@param descriptorSetLayouts: A pointer to the descriptor set layouts (or an array of descriptor set layouts).
+		@param descriptorPool: The descriptor pool to allocate the sets from.
+		@param pNext: Vulkan struct chain for the descriptor set allocation info.
+	*/
+	void createDescriptorSets(uint32_t descriptorSetCount, VkDescriptorSet *descriptorSets, VkDescriptorSetLayout *descriptorSetLayouts, VkDescriptorPool descriptorPool, const void *pNext);
+
 
 	/* Creates the shader stage of the graphics pipeline from compiled SPIR-V shader files. */
 	void initShaderStage();

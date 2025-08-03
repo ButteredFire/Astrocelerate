@@ -47,7 +47,7 @@ struct QueueFamilyIndices {
 	}
 
 	/* Checks whether a queue family exists (based on whether it has a valid index).
-	* @return True if the queue family exists, otherwise False.
+	* @return True if the queue family exists, False otherwise.
 	*/
 	bool familyExists(QueueFamily family) {
 		return family.index.has_value();
@@ -96,3 +96,18 @@ struct QueueFamilyIndices {
 		return available;
 	}
 };
+
+
+
+struct PhysicalDeviceProperties {
+	VkPhysicalDevice device = VK_NULL_HANDLE;
+	std::string deviceName = "";
+	VkPhysicalDeviceProperties deviceProperties{};
+	bool isCompatible = true;
+	uint32_t optionalScore = 0;
+};
+
+inline bool ScoreComparator(const PhysicalDeviceProperties &s1, const PhysicalDeviceProperties &s2) {
+	// If (s1 is incompatible && s2 is compatible) OR (s2 is compatible && s1 score <= s2 score)
+	return (!s1.isCompatible && s2.isCompatible) || (s2.isCompatible && (s1.optionalScore <= s2.optionalScore));
+}

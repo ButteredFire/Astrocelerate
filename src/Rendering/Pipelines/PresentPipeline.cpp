@@ -1,12 +1,17 @@
 #include "PresentPipeline.hpp"
 
 
-PresentPipeline::PresentPipeline() {
+PresentPipeline::PresentPipeline(VkCoreResourcesManager *coreResources, VkSwapchainManager *swapchainMgr) :
+	m_logicalDevice(coreResources->getLogicalDevice()),
+
+	m_swapchainSurfaceFormat(swapchainMgr->getSurfaceFormat()),
+	m_swapchainExtent(swapchainMgr->getSwapChainExtent()) {
 
 	m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
 	m_garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
 	m_bufferManager = ServiceLocator::GetService<VkBufferManager>(__FUNCTION__);
 
+	init();
 
 	Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
@@ -24,7 +29,9 @@ void PresentPipeline::init() {
 	createRenderPass();
 
 	// Post-initialization: Data is ready to be used for framebuffer creation
-	m_eventDispatcher->dispatch(Event::PresentPipelineInitialized{});
+	m_eventDispatcher->dispatch(InitEvent::PresentPipeline{
+		.renderPass = m_renderPass
+	});
 }
 
 
@@ -46,7 +53,7 @@ void PresentPipeline::createGraphicsPipeline() {
 	builder.renderPass = m_renderPass;
 	builder.pipelineLayout = m_pipelineLayout;
 
-	m_graphicsPipeline = builder.buildGraphicsPipeline(g_vkContext.Device.logicalDevice);
+	m_graphicsPipeline = builder.buildGraphicsPipeline(m_logicalDevice);
 
 	g_vkContext.PresentPipeline.pipeline = m_graphicsPipeline;
 	*/
@@ -63,13 +70,13 @@ void PresentPipeline::createPipelineLayout() {
 	createInfo.pushConstantRangeCount = 0;
 	createInfo.pPushConstantRanges = nullptr;
 
-	VkResult result = vkCreatePipelineLayout(g_vkContext.Device.logicalDevice, &createInfo, nullptr, &m_pipelineLayout);
+	VkResult result = vkCreatePipelineLayout(m_logicalDevice, &createInfo, nullptr, &m_pipelineLayout);
 
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(m_pipelineLayout) };
-	task.vkHandles = { g_vkContext.Device.logicalDevice, m_pipelineLayout };
-	task.cleanupFunc = [&]() { vkDestroyPipelineLayout(g_vkContext.Device.logicalDevice, m_pipelineLayout, nullptr); };
+	task.vkHandles = { m_logicalDevice, m_pipelineLayout };
+	task.cleanupFunc = [&]() { vkDestroyPipelineLayout(m_logicalDevice, m_pipelineLayout, nullptr); };
 
 	m_garbageCollector->createCleanupTask(task);
 
@@ -77,8 +84,6 @@ void PresentPipeline::createPipelineLayout() {
 	if (result != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create graphics pipeline layout for the presentation pipeline!");
 	}
-
-	g_vkContext.PresentPipeline.layout = m_pipelineLayout;
 }
 
 
@@ -86,7 +91,7 @@ void PresentPipeline::createRenderPass() {
 	// Main attachments
 		// Color attachment
 	VkAttachmentDescription mainColorAttachment{};
-	mainColorAttachment.format = g_vkContext.SwapChain.surfaceFormat.format;
+	mainColorAttachment.format = m_swapchainSurfaceFormat.format;
 	mainColorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;				// Use 1 sample since multisampling is not enabled yet
 
 	// NOTE: loadOp = CLEAR is fine if we don't care about the "background" of the application (because the GUI is probably going to completely cover the screen anyway)
@@ -159,13 +164,13 @@ void PresentPipeline::createRenderPass() {
 	m_renderPassCreateInfo.dependencyCount = static_cast<uint32_t>(sizeof(dependencies) / sizeof(dependencies[0]));
 	m_renderPassCreateInfo.pDependencies = dependencies;
 
-	VkResult result = vkCreateRenderPass(g_vkContext.Device.logicalDevice, &m_renderPassCreateInfo, nullptr, &m_renderPass);
+	VkResult result = vkCreateRenderPass(m_logicalDevice, &m_renderPassCreateInfo, nullptr, &m_renderPass);
 
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(m_renderPass) };
-	task.vkHandles = { g_vkContext.Device.logicalDevice, m_renderPass };
-	task.cleanupFunc = [this]() { vkDestroyRenderPass(g_vkContext.Device.logicalDevice, m_renderPass, nullptr); };
+	task.vkHandles = { m_logicalDevice, m_renderPass };
+	task.cleanupFunc = [this]() { vkDestroyRenderPass(m_logicalDevice, m_renderPass, nullptr); };
 
 	m_garbageCollector->createCleanupTask(task);
 
@@ -173,23 +178,20 @@ void PresentPipeline::createRenderPass() {
 	if (result != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create render pass!");
 	}
-
-	g_vkContext.PresentPipeline.renderPass = m_renderPass;
-	g_vkContext.PresentPipeline.subpassCount = m_renderPassCreateInfo.subpassCount;
 }
 
 
 void PresentPipeline::initViewportState() {
 	m_viewport.x = m_viewport.y = 0.0f;
-	m_viewport.width = static_cast<float>(g_vkContext.SwapChain.extent.width);
-	m_viewport.height = static_cast<float>(g_vkContext.SwapChain.extent.height);
+	m_viewport.width = static_cast<float>(m_swapchainExtent.width);
+	m_viewport.height = static_cast<float>(m_swapchainExtent.height);
 	m_viewport.minDepth = 0.0f;
 	m_viewport.maxDepth = 1.0f;
 
 	// Since we want to draw the entire framebuffer, we'll specify a scissor rectangle that covers it entirely (i.e., that has the same extent as the swap chain's)
 	// If we want to (re)draw only a partial part of the framebuffer from (a, b) to (x, y), we'll specify the offset as {a, b} and extent as {x, y}
 	m_scissorRectangle.offset = { 0, 0 };
-	m_scissorRectangle.extent = g_vkContext.SwapChain.extent;
+	m_scissorRectangle.extent = m_swapchainExtent;
 
 	// NOTE: We don't need to specify pViewports and pScissors since the m_viewport was set as a dynamic state. Therefore, we only need to specify the m_viewport and scissor counts at pipeline creation time. The actual objects can be set up later at drawing time.
 	m_viewportStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;

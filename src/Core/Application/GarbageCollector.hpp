@@ -2,21 +2,57 @@
 
 // GLFW & Vulkan
 #include <External/GLFWVulkan.hpp>
+#include <vk_mem_alloc.h>
 
 #include <vector>
 #include <deque>
 #include <variant>
 #include <functional>
 
-#include <Core/Data/Contexts/VulkanContext.hpp>
 #include <Core/Application/LoggingManager.hpp>
+
+
+using VulkanHandles = std::variant<
+	VmaAllocator,
+	VmaAllocation,
+	VkDebugUtilsMessengerEXT,
+	VkInstance,
+	VkPhysicalDevice,   // Usually not destroyed explicitly, but listed for completeness  
+	VkDevice,
+	VkQueue,            // Generally managed by Vulkan and not destroyed manually  
+	VkCommandPool,
+	VkCommandBuffer,
+	VkBuffer,
+	VkBufferView,
+	VkImage,
+	VkImageView,
+	VkFramebuffer,
+	VkRenderPass,
+	VkShaderModule,
+	VkPipeline,
+	VkPipelineLayout,
+	VkDescriptorSetLayout,
+	VkDescriptorPool,
+	VkDescriptorSet,    // Generally managed by `VkDescriptorPool`  
+	VkSampler,
+	VkFence,
+	VkSemaphore,
+	VkEvent,
+	VkQueryPool,
+	VkSwapchainKHR,     // Requires `VK_KHR_swapchain` extension  
+	VkSurfaceKHR,       // Requires `VK_KHR_surface`  
+	VkDeviceMemory
+>;
+
+/* Checks whether a Vulkan object is valid/non-null. */
+template<typename T> bool vkIsValid(T vulkanObject) { return (vulkanObject != T()); }
 
 
 using CleanupID = uint32_t;
 
 // A structure specifying the properties of a cleanup task
 struct CleanupTask {
-	CleanupID _id;													// [INTERNAL] The task's own cleanup ID. This is used for stack optimization.
+	CleanupID _id{};												// [INTERNAL] The task's own cleanup ID. This is used for stack optimization.
 	bool _validTask = true;											// [INTERNAL] A special boolean specifying whether this task is executable or not.
 	std::string caller = "Unknown caller";							// The caller from which the task was pushed to the cleanup stack (used for logging).
 	std::vector<std::string> objectNames = {"Unknown object"};		// The variable name of objects to be cleaned up later (used for logging).
@@ -61,7 +97,7 @@ public:
 	/* Executes a cleanup task from anywhere in the cleanup stack. This can be dangerous if the main object of the cleanup task to be executed is still being referenced by other objects or tasks.
 		@param taskID: The task's ID.
 		
-		@return True if the execution was successful, otherwise False.
+		@return True if the execution was successful, False otherwise.
 	*/
 	bool executeCleanupTask(CleanupID taskID);
 
@@ -72,6 +108,7 @@ public:
 private:
 	VmaAllocator m_vmaAllocator = VK_NULL_HANDLE;
 
+	std::recursive_mutex m_cleanupMutex;
 	std::deque<CleanupTask> m_cleanupStack;
 
 	std::unordered_map<CleanupID, size_t> m_idToIdxLookup;  // A hashmap that maps a cleanup task's ID to its index in the cleanup stack
@@ -86,7 +123,7 @@ private:
 		@param task: The task to be executed.
 		@param taskID: The task's ID.
 		
-		@return True if the execution was successful, otherwise False.
+		@return True if the execution was successful, False otherwise.
 	*/
 	bool executeTask(CleanupTask& task, CleanupID taskID);
 

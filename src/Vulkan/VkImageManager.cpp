@@ -1,12 +1,16 @@
 #include "VkImageManager.hpp"
 
 
-uint32_t VkImageManager::CreateImage(VkImage& image, VmaAllocation& imgAllocation, VmaAllocationCreateInfo& imgAllocationCreateInfo, uint32_t width, uint32_t height, uint32_t depth, VkFormat imgFormat, VkImageTiling imgTiling, VkImageUsageFlags imgUsageFlags, VkImageType imgType) {
+CleanupID VkImageManager::CreateImage(VkImage& image, VmaAllocation& imgAllocation, VmaAllocationCreateInfo& imgAllocationCreateInfo, uint32_t width, uint32_t height, uint32_t depth, VkFormat imgFormat, VkImageTiling imgTiling, VkImageUsageFlags imgUsageFlags, VkImageType imgType) {
 	LOG_ASSERT(((imgType & VK_IMAGE_TYPE_2D == 1) && depth == 1),
 		"Unable to create image: Depth must be 1 if the image type is 2D!");
 
 
+	std::shared_ptr<VkCoreResourcesManager> coreResources = ServiceLocator::GetService<VkCoreResourcesManager>(__FUNCTION__);
 	std::shared_ptr<GarbageCollector> garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
+
+	const VmaAllocator &vmaAllocator = coreResources->getVmaAllocator();
+
 
 	VkImageCreateInfo imgCreateInfo{};
 	imgCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -49,26 +53,35 @@ uint32_t VkImageManager::CreateImage(VkImage& image, VmaAllocation& imgAllocatio
 	imgCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
 
-	VkResult imgCreateResult = vmaCreateImage(g_vkContext.vmaAllocator, &imgCreateInfo, &imgAllocationCreateInfo, &image, &imgAllocation, nullptr);
+	VkResult imgCreateResult = vmaCreateImage(vmaAllocator, &imgCreateInfo, &imgAllocationCreateInfo, &image, &imgAllocation, nullptr);
 
 	CleanupTask imgTask{};
 	imgTask.caller = __FUNCTION__;
 	imgTask.objectNames = { VARIABLE_NAME(imgAllocation) };
-	imgTask.vkHandles = { g_vkContext.vmaAllocator, imgAllocation };
-	imgTask.cleanupFunc = [allocator = g_vkContext.vmaAllocator, image, imgAllocation]() {
-		vmaDestroyImage(allocator, image, imgAllocation);
+	imgTask.vkHandles = { vmaAllocator, imgAllocation };
+	imgTask.cleanupFunc = [vmaAllocator, image, imgAllocation]() {
+		vmaDestroyImage(vmaAllocator, image, imgAllocation);
 	};
 
 	uint32_t taskID = garbageCollector->createCleanupTask(imgTask);
 
-	LOG_ASSERT(imgCreateResult == VK_SUCCESS, "Failed to create image!");
+	if (imgCreateResult != VK_SUCCESS) {
+		if (imgCreateResult == VK_ERROR_OUT_OF_HOST_MEMORY) 
+			throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create image: Your machine has run out of host memory!\nThis could be caused by loading heavy simulations.\nPlease update your " + coreResources->getDeviceName() + " driver and re-run Astrocelerate.");
+
+		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create image!\nVulkan error code: " + TO_STR(imgCreateResult));
+	}
 
 	return taskID;
 }
 
 
-uint32_t VkImageManager::CreateImageView(VkImageView& imageView, VkImage& image, VkFormat imgFormat, VkImageAspectFlags imgAspectFlags, VkImageViewType viewType, uint32_t levelCount, uint32_t layerCount) {
+CleanupID VkImageManager::CreateImageView(VkImageView& imageView, VkImage& image, VkFormat imgFormat, VkImageAspectFlags imgAspectFlags, VkImageViewType viewType, uint32_t levelCount, uint32_t layerCount) {
+	std::shared_ptr<VkCoreResourcesManager> coreResources = ServiceLocator::GetService<VkCoreResourcesManager>(__FUNCTION__);
 	std::shared_ptr<GarbageCollector> garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
+
+	const VkDevice &logicalDevice = coreResources->getLogicalDevice();
+
 
 	VkImageViewCreateInfo viewCreateInfo{};
 	viewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -106,14 +119,14 @@ uint32_t VkImageManager::CreateImageView(VkImageView& imageView, VkImage& image,
 	viewCreateInfo.subresourceRange.baseArrayLayer = 0; // Images will have no multiple layers
 	viewCreateInfo.subresourceRange.layerCount = layerCount;
 
-	VkResult result = vkCreateImageView(g_vkContext.Device.logicalDevice, &viewCreateInfo, nullptr, &imageView);
+	VkResult result = vkCreateImageView(logicalDevice, &viewCreateInfo, nullptr, &imageView);
 	
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(imageView) };
-	task.vkHandles = { g_vkContext.Device.logicalDevice, imageView };
-	task.cleanupFunc = [device = g_vkContext.Device.logicalDevice, imageView]() {
-		vkDestroyImageView(device, imageView, nullptr);
+	task.vkHandles = { logicalDevice, imageView };
+	task.cleanupFunc = [logicalDevice, imageView]() {
+		vkDestroyImageView(logicalDevice, imageView, nullptr);
 	};
 
 	uint32_t taskID = garbageCollector->createCleanupTask(task);
@@ -124,8 +137,12 @@ uint32_t VkImageManager::CreateImageView(VkImageView& imageView, VkImage& image,
 }
 
 
-uint32_t VkImageManager::CreateFramebuffer(VkFramebuffer& framebuffer, VkRenderPass& renderPass, std::vector<VkImageView> attachments, uint32_t width, uint32_t height) {
+CleanupID VkImageManager::CreateFramebuffer(VkFramebuffer& framebuffer, VkRenderPass& renderPass, std::vector<VkImageView> attachments, uint32_t width, uint32_t height) {
+	std::shared_ptr<VkCoreResourcesManager> coreResources = ServiceLocator::GetService<VkCoreResourcesManager>(__FUNCTION__);
 	std::shared_ptr<GarbageCollector> garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
+
+	const VkDevice &logicalDevice = coreResources->getLogicalDevice();
+
 
 	VkFramebufferCreateInfo bufferCreateInfo{};
 	bufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -136,14 +153,14 @@ uint32_t VkImageManager::CreateFramebuffer(VkFramebuffer& framebuffer, VkRenderP
 	bufferCreateInfo.height = height;
 	bufferCreateInfo.layers = 1;
 
-	VkResult result = vkCreateFramebuffer(g_vkContext.Device.logicalDevice, &bufferCreateInfo, nullptr, &framebuffer);
+	VkResult result = vkCreateFramebuffer(coreResources->getLogicalDevice(), &bufferCreateInfo, nullptr, &framebuffer);
 	
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(framebuffer) };
-	task.vkHandles = { g_vkContext.Device.logicalDevice, framebuffer };
-	task.cleanupFunc = [device = g_vkContext.Device.logicalDevice, framebuffer]() {
-		vkDestroyFramebuffer(device, framebuffer, nullptr);
+	task.vkHandles = { logicalDevice, framebuffer };
+	task.cleanupFunc = [logicalDevice, framebuffer]() {
+		vkDestroyFramebuffer(logicalDevice, framebuffer, nullptr);
 	};
 
 	uint32_t taskID = garbageCollector->createCleanupTask(task);

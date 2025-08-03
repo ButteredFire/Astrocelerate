@@ -5,12 +5,12 @@
 #include <cstddef> // For offsetof
 
 
-RenderSystem::RenderSystem() {
+RenderSystem::RenderSystem(VkCoreResourcesManager *coreResources, UIRenderer *uiRenderer) :
+	m_coreResources(coreResources),
+	m_uiRenderer(uiRenderer) {
 
 	m_registry = ServiceLocator::GetService<Registry>(__FUNCTION__);
 	m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
-	m_bufferManager = ServiceLocator::GetService<VkBufferManager>(__FUNCTION__);
-	m_imguiRenderer = ServiceLocator::GetService<UIRenderer>(__FUNCTION__);
 
 	bindEvents();
 
@@ -19,24 +19,81 @@ RenderSystem::RenderSystem() {
 
 
 void RenderSystem::bindEvents() {
-	m_eventDispatcher->subscribe<Event::UpdateRenderables>(
-		[this](const Event::UpdateRenderables& event) {
-			this->renderScene(event);
+	static EventDispatcher::SubscriberIndex selfIndex = m_eventDispatcher->registerSubscriber<RenderSystem>();
+
+	m_eventDispatcher->subscribe<InitEvent::BufferManager>(selfIndex,
+		[this](const InitEvent::BufferManager &event) {
+			m_globalVertexBuffer = event.globalVertexBuffer;
+			m_globalIndexBuffer = event.globalIndexBuffer;
+			m_perFrameDescriptorSets = event.perFrameDescriptorSets;
+			std::cout << "marked one whatdahelll\n";
 		}
 	);
 
 
-	m_eventDispatcher->subscribe<Event::UpdateGUI>(
-		[this](const Event::UpdateGUI& event) {
-			this->renderGUI(event);
+	m_eventDispatcher->subscribe<InitEvent::OffscreenPipeline>(selfIndex,
+		[this](const InitEvent::OffscreenPipeline &event) {
+			m_offscreenPipelineLayout = event.pipelineLayout;
+
+			m_texArrayDescriptorSet = event.texArrayDescriptorSet;
+			m_pbrDescriptorSet = event.pbrDescriptorSet;
+		}
+	);
+
+
+	m_eventDispatcher->subscribe<UpdateEvent::Renderables>(selfIndex,
+		[this](const UpdateEvent::Renderables& event) {
+			using enum UpdateEvent::Renderables::Type;
+
+			switch (event.renderableType) {
+			case MESHES:
+				this->renderScene(event.commandBuffer, event.currentFrame);
+				break;
+
+			case GUI:
+				this->renderGUI(event.commandBuffer, event.currentFrame);
+				break;
+			}
+		}
+	);
+
+
+	m_eventDispatcher->subscribe<UpdateEvent::SessionStatus>(selfIndex, 
+		[this](const UpdateEvent::SessionStatus &event) {
+			using enum UpdateEvent::SessionStatus::Status;
+
+			switch (event.sessionStatus) {
+			case PREPARE_FOR_INIT:
+				m_sceneReady = false;
+				waitForResources(selfIndex);
+
+				break;
+			}
 		}
 	);
 }
 
 
-void RenderSystem::renderScene(const Event::UpdateRenderables &event) {
+void RenderSystem::waitForResources(const EventDispatcher::SubscriberIndex &selfIndex) {
+	std::thread([this, selfIndex]() {
+		EventFlags eventFlags = EVENT_FLAG_INIT_BUFFER_MANAGER_BIT;
+
+		m_eventDispatcher->waitForEventCallbacks(selfIndex, eventFlags);
+
+		std::cout << "scene is ready\n";
+		m_sceneReady = true;
+	}).detach();
+}
+
+
+void RenderSystem::renderScene(VkCommandBuffer cmdBuffer, uint32_t currentFrame) {
+	if (!m_sceneReady)
+		return;
+
+	const VkDescriptorSet &currentDescriptorSet = m_perFrameDescriptorSets[currentFrame];
+
 	// Compute dynamic alignments
-	const size_t minUBOAlignment = static_cast<size_t>(g_vkContext.Device.deviceProperties.limits.minUniformBufferOffsetAlignment);
+	const size_t minUBOAlignment = static_cast<size_t>(m_coreResources->getDeviceProperties().limits.minUniformBufferOffsetAlignment);
 	const size_t objectUBOAlignment = SystemUtils::Align(sizeof(Buffer::ObjectUBO), minUBOAlignment);
 	const size_t pbrMaterialAlignment = SystemUtils::Align(sizeof(Geometry::Material), minUBOAlignment);
 
@@ -44,14 +101,14 @@ void RenderSystem::renderScene(const Event::UpdateRenderables &event) {
 	// Bind vertex and index buffers
 		// Vertex buffers
 	VkBuffer vertexBuffers[] = {
-		m_bufferManager->getVertexBuffer()
+		m_globalVertexBuffer
 	};
 	VkDeviceSize vertexBufferOffsets[] = { 0 };
-	vkCmdBindVertexBuffers(event.commandBuffer, 0, 1, vertexBuffers, vertexBufferOffsets);
+	vkCmdBindVertexBuffers(cmdBuffer, 0, 1, vertexBuffers, vertexBufferOffsets);
 
 		// Index buffer (note: you can only have 1 index buffer)
-	VkBuffer indexBuffer = m_bufferManager->getIndexBuffer();
-	vkCmdBindIndexBuffer(event.commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+	VkBuffer indexBuffer = m_globalIndexBuffer;
+	vkCmdBindIndexBuffer(cmdBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
 
 	// Updates the PBR material parameters uniform buffer and draws the meshes
@@ -100,7 +157,7 @@ void RenderSystem::renderScene(const Event::UpdateRenderables &event) {
 
 	// Update global data
 		// Textures array
-	vkCmdBindDescriptorSets(event.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, g_vkContext.OffscreenPipeline.layout, 2, 1, &g_vkContext.Textures.texArrayDescriptorSet, 0, nullptr);
+	vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_offscreenPipelineLayout, 2, 1, &m_texArrayDescriptorSet, 0, nullptr);
 
 
 	// Update each mesh's UBOs
@@ -113,24 +170,24 @@ void RenderSystem::renderScene(const Event::UpdateRenderables &event) {
 		for (uint32_t meshIndex : meshRenderable.meshRange()) {
 			// Object UBO
 			uint32_t objectUBOOffset = static_cast<uint32_t>(meshIndex * objectUBOAlignment);
-			vkCmdBindDescriptorSets(event.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, g_vkContext.OffscreenPipeline.layout, 0, 1, &event.descriptorSet, 1, &objectUBOOffset);
+			vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_offscreenPipelineLayout, 0, 1, &currentDescriptorSet, 1, &objectUBOOffset);
 
 
 			// Material parameters UBO
 			Geometry::MeshOffset &meshOffset = geomData->meshOffsets[meshIndex];
 			uint32_t meshMaterialOffset = static_cast<uint32_t>(meshOffset.materialIndex * pbrMaterialAlignment);
 
-			vkCmdBindDescriptorSets(event.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, g_vkContext.OffscreenPipeline.layout, 1, 1, &g_vkContext.Textures.pbrDescriptorSet, 1, &meshMaterialOffset);
+			vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_offscreenPipelineLayout, 1, 1, &m_pbrDescriptorSet, 1, &meshMaterialOffset);
 			
 
 			// Draw call
-			vkCmdDrawIndexed(event.commandBuffer, meshOffset.indexCount, 1, meshOffset.indexOffset, vertexOffset, 0);
+			vkCmdDrawIndexed(cmdBuffer, meshOffset.indexCount, 1, meshOffset.indexOffset, vertexOffset, 0);
 		}
 	}
 }
 
 
-void RenderSystem::renderGUI(const Event::UpdateGUI &event) {
-	m_imguiRenderer->renderFrames(event.currentFrame);
-	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), event.commandBuffer);
+void RenderSystem::renderGUI(VkCommandBuffer cmdBuffer, uint32_t currentFrame) {
+	m_uiRenderer->renderFrames(currentFrame);
+	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmdBuffer);
 }

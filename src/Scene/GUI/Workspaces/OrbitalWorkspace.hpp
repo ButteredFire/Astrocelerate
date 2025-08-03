@@ -12,7 +12,7 @@
 #include <iconfontcppheaders/IconsFontAwesome6.h>
 
 #include <Core/Data/GUI.hpp>
-#include <Core/Data/Contexts/VulkanContext.hpp>
+
 #include <Core/Data/Contexts/AppContext.hpp>
 #include <Core/Engine/InputManager.hpp>
 
@@ -59,8 +59,12 @@ public:
 
 private:
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
-	std::shared_ptr<InputManager> m_inputManager;
 	std::shared_ptr<Registry> m_registry;
+
+	std::shared_ptr<VkCoreResourcesManager> m_coreResources;
+	std::shared_ptr<VkSwapchainManager> m_swapchainManager;
+	std::shared_ptr<InputManager> m_inputManager;
+
 
 	// Panel IDs & masks
 	GUI::PanelMask m_panelMask;
@@ -85,6 +89,8 @@ private:
 
 	// Textures
 		// Viewport/Offscreen resources
+	std::vector<VkImageView> m_offscreenImageViews;
+	std::vector<VkSampler> m_offscreenSamplers;
 	std::vector<ImTextureID> m_viewportRenderTextureIDs;
 	ImVec2 m_lastViewportPanelSize = { 0.0f, 0.0f };
 	bool m_sceneSampleReady = false;

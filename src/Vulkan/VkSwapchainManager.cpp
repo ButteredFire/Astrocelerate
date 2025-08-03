@@ -3,27 +3,37 @@
 
 #include "VkSwapchainManager.hpp"
 
-VkSwapchainManager::VkSwapchainManager() {
+VkSwapchainManager::VkSwapchainManager(GLFWwindow *window, VkCoreResourcesManager *coreResources) :
+    m_window(window),
+    m_surface(coreResources->getSurface()),
+    m_physicalDevice(coreResources->getPhysicalDevice()),
+    m_logicalDevice(coreResources->getLogicalDevice()),
+    m_queueFamilies(coreResources->getQueueFamilyIndices()) {
 
     m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
     m_garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
 
-    LOG_ASSERT(g_vkContext.Device.physicalDevice != VK_NULL_HANDLE, "Cannot initialize swap-chain manager: The GPU's physical device handle is null!");
-
-    LOG_ASSERT(g_vkContext.Device.logicalDevice != VK_NULL_HANDLE, "Cannot initialize swap-chain manager: The GPU's logical device handle is null!");
-
-    m_swapChain = g_vkContext.SwapChain.swapChain;
-
     bindEvents();
+    init();
+
+    // Initializes per-frame swapchain image layouts
+    m_imageLayouts.assign(m_images.size(), VK_IMAGE_LAYOUT_UNDEFINED);
 
     Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
 
 
 void VkSwapchainManager::bindEvents() {
-    m_eventDispatcher->subscribe<Event::PresentPipelineInitialized>(
-        [this](const Event::PresentPipelineInitialized& event) {
+    static EventDispatcher::SubscriberIndex selfIndex = m_eventDispatcher->registerSubscriber<VkSwapchainManager>();
+
+    m_eventDispatcher->subscribe<InitEvent::PresentPipeline>(selfIndex,
+        [this](const InitEvent::PresentPipeline& event) {
+            m_presentPipelineRenderPass = event.renderPass;
+
             this->createFrameBuffers();
+
+            // At this point, all resources in the swapchain are ready.
+            m_eventDispatcher->dispatch(InitEvent::SwapchainManager{});
         }
     );
 }
@@ -36,73 +46,81 @@ void VkSwapchainManager::init() {
 
     // Parses data for each image
     createImageViews();
-
-    g_vkContext.SwapChain.imageViews = m_imageViews;
-    g_vkContext.SwapChain.imageLayouts.assign(m_images.size(), VK_IMAGE_LAYOUT_UNDEFINED);
 }
 
 
 void VkSwapchainManager::recreateSwapchain(uint32_t imageIndex) {
-    // If the window is minimized (i.e., (width, height) = (0, 0), pause the window until it is in the foreground again
-    int width = 0, height = 0;
-    glfwGetFramebufferSize(g_vkContext.window, &width, &height);
-    while (width == 0 || height == 0) {
-        glfwGetFramebufferSize(g_vkContext.window, &width, &height);
-        glfwWaitEvents();
-    }
+    m_eventDispatcher->dispatch(UpdateEvent::ApplicationStatus{
+        .appState = Application::State::RECREATING_SWAPCHAIN    
+    });
 
-    // Recreates swap-chain
-        // Waits for the host to be idle
-    vkDeviceWaitIdle(g_vkContext.Device.logicalDevice);
+    {
+        // If the window is minimized (i.e., (width, height) = (0, 0), pause the window until it is in the foreground again
+        int width = 0, height = 0;
+        glfwGetFramebufferSize(m_window, &width, &height);
+        while (width == 0 || height == 0) {
+            glfwGetFramebufferSize(m_window, &width, &height);
+            glfwWaitEvents();
+        }
+
+        // Recreates swap-chain
+            // Waits for the host to be idle
+        vkDeviceWaitIdle(m_logicalDevice);
 
         // Cleans up outdated swap-chain objects
-    for (const auto& taskID : m_cleanupTaskIDs) {
-        m_garbageCollector->executeCleanupTask(taskID);
-    }
-    m_cleanupTaskIDs.clear();
+        for (const auto &taskID : m_cleanupTaskIDs) {
+            m_garbageCollector->executeCleanupTask(taskID);
+        }
+        m_cleanupTaskIDs.clear();
 
         // Re-initialization
-    init();
-    createFrameBuffers();
+        init();
+        createFrameBuffers();
 
-    g_vkContext.SwapChain.imageLayouts[imageIndex] = VK_IMAGE_LAYOUT_UNDEFINED;
+        m_imageLayouts[imageIndex] = VK_IMAGE_LAYOUT_UNDEFINED;
 
-    m_eventDispatcher->dispatch(Event::SwapchainIsRecreated{
-        .imageIndex = imageIndex
+        m_eventDispatcher->dispatch(RecreationEvent::Swapchain{
+            .imageIndex = imageIndex,
+            .imageLayouts = m_imageLayouts
+        });
+    }
+
+    m_eventDispatcher->dispatch(UpdateEvent::ApplicationStatus{
+        .appState = Application::State::IDLE
     });
 }
 
 
 void VkSwapchainManager::createSwapChain() {
-    SwapChainProperties swapChainProperties = getSwapChainProperties(g_vkContext.Device.physicalDevice, g_vkContext.vkSurface);
+    SwapChainProperties swapChainProperties = GetSwapChainProperties(m_physicalDevice, m_surface);
 
-    VkExtent2D extent = getBestSwapExtent(swapChainProperties.surfaceCapabilities);
-    VkSurfaceFormatKHR surfaceFormat = getBestSurfaceFormat(swapChainProperties.surfaceFormats);
-    VkPresentModeKHR presentMode = getBestPresentMode(swapChainProperties.presentModes);
+    m_swapChainExtent = getBestSwapExtent(swapChainProperties.surfaceCapabilities);
+    m_surfaceFormat = getBestSurfaceFormat(swapChainProperties.surfaceFormats);
+    m_presentMode = getBestPresentMode(swapChainProperties.presentModes);
 
     // Specifies the number of m_images to be had in the swap-chain
     // It is recommended to request at least 1 more image than the minimum
-    uint32_t imageCount = swapChainProperties.surfaceCapabilities.minImageCount + 1;
+    m_minImageCount = swapChainProperties.surfaceCapabilities.minImageCount + 1;
 
     // If the swap chain's image count has a maximum value (0 is a special value that means there is no maximum)
     // and if the desired image count exceeds that maximum,
     // default the image count to the maximum value.
-    if (swapChainProperties.surfaceCapabilities.maxImageCount > 0 && imageCount > swapChainProperties.surfaceCapabilities.maxImageCount) {
-        imageCount = swapChainProperties.surfaceCapabilities.maxImageCount;
+    if (swapChainProperties.surfaceCapabilities.maxImageCount > 0 && m_minImageCount > swapChainProperties.surfaceCapabilities.maxImageCount) {
+        m_minImageCount = swapChainProperties.surfaceCapabilities.maxImageCount;
     }
 
     // Creates the swap-chain structure
     VkSwapchainCreateInfoKHR swapChainCreateInfo{};
     swapChainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    swapChainCreateInfo.surface = g_vkContext.vkSurface;
+    swapChainCreateInfo.surface = m_surface;
 
-    swapChainCreateInfo.imageExtent = extent;
-    swapChainCreateInfo.imageFormat = surfaceFormat.format;
-    swapChainCreateInfo.imageColorSpace = surfaceFormat.colorSpace;
-    swapChainCreateInfo.presentMode = presentMode;
+    swapChainCreateInfo.imageExtent = m_swapChainExtent;
+    swapChainCreateInfo.imageFormat = m_surfaceFormat.format;
+    swapChainCreateInfo.imageColorSpace = m_surfaceFormat.colorSpace;
+    swapChainCreateInfo.presentMode = m_presentMode;
     swapChainCreateInfo.clipped = VK_TRUE;
 
-    swapChainCreateInfo.minImageCount = imageCount;
+    swapChainCreateInfo.minImageCount = m_minImageCount;
 
     // imageArrayLayers specifies the number of layers each image consists of. Its value is almost always 1,
     // unless you're developing a stereoscopic 3D application.
@@ -115,13 +133,12 @@ void VkSwapchainManager::createSwapChain() {
     // use other bits like VK_IMAGE_USAGE_TRANSFER_DST_BIT.
     swapChainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-    QueueFamilyIndices families = g_vkContext.Device.queueFamilies;
-    std::vector<uint32_t> familyIndices = families.getAvailableIndices();
+    std::vector<uint32_t> familyIndices = m_queueFamilies.getAvailableIndices();
 
     // If the graphics family supports presentation (i.e., the presentation family is not separate),
     // set the image sharing mode to exclusive mode. MODE_EXCLUSIVE means that m_images are owned
     // by only 1 queue family at a time, and using them from another family requires ownership transference.
-    if (families.graphicsFamily.supportsPresentation) {
+    if (m_queueFamilies.graphicsFamily.supportsPresentation) {
         swapChainCreateInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
         swapChainCreateInfo.queueFamilyIndexCount = 0;
         swapChainCreateInfo.pQueueFamilyIndices = nullptr;
@@ -146,7 +163,7 @@ void VkSwapchainManager::createSwapChain() {
     swapChainCreateInfo.oldSwapchain = VK_NULL_HANDLE;
 
     // Creates a VkSwapchainKHR object
-    VkResult result = vkCreateSwapchainKHR(g_vkContext.Device.logicalDevice, &swapChainCreateInfo, nullptr, &m_swapChain);
+    VkResult result = vkCreateSwapchainKHR(m_logicalDevice, &swapChainCreateInfo, nullptr, &m_swapChain);
     
     LOG_ASSERT(result == VK_SUCCESS, "Failed to create swap-chain!");
     
@@ -154,25 +171,17 @@ void VkSwapchainManager::createSwapChain() {
     task.caller = __FUNCTION__;
     task.objectNames = { VARIABLE_NAME(m_swapChain) };
     task.vkHandles = { m_swapChain };
-    task.cleanupFunc = [&]() { vkDestroySwapchainKHR(g_vkContext.Device.logicalDevice, m_swapChain, nullptr); };
+    task.cleanupFunc = [&]() { vkDestroySwapchainKHR(m_logicalDevice, m_swapChain, nullptr); };
 
     m_cleanupTaskIDs.push_back(
         m_garbageCollector->createCleanupTask(task)
     );
-    
 
-    // Saves swap-chain properties
-    g_vkContext.SwapChain.swapChain = m_swapChain;
-    g_vkContext.SwapChain.surfaceFormat = surfaceFormat;
-    g_vkContext.SwapChain.extent = extent;
 
     // Fills swapChainImages with a set of VkImage objects provided after swap-chain creation
-    vkGetSwapchainImagesKHR(g_vkContext.Device.logicalDevice, g_vkContext.SwapChain.swapChain, &imageCount, nullptr);
-    m_images.resize(imageCount);
-    g_vkContext.SwapChain.minImageCount = imageCount;
-    vkGetSwapchainImagesKHR(g_vkContext.Device.logicalDevice, g_vkContext.SwapChain.swapChain, &imageCount, m_images.data());
-
-    g_vkContext.SwapChain.images = m_images;
+    vkGetSwapchainImagesKHR(m_logicalDevice, m_swapChain, &m_minImageCount, nullptr);
+        m_images.resize(m_minImageCount);
+    vkGetSwapchainImagesKHR(m_logicalDevice, m_swapChain, &m_minImageCount, m_images.data());
 }
 
 
@@ -185,8 +194,7 @@ void VkSwapchainManager::createImageViews() {
     m_imageViews.resize(m_images.size());
 
     for (size_t i = 0; i < m_images.size(); i++) {
-        //uint32_t viewCleanupID = CreateImageView(m_images[i], m_imageViews[i], g_vkContext.SwapChain.surfaceFormat.format, VK_IMAGE_ASPECT_COLOR_BIT);
-        uint32_t viewCleanupID = VkImageManager::CreateImageView(m_imageViews[i], m_images[i], g_vkContext.SwapChain.surfaceFormat.format, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_VIEW_TYPE_2D, 1, 1);
+        uint32_t viewCleanupID = VkImageManager::CreateImageView(m_imageViews[i], m_images[i], m_surfaceFormat.format, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_VIEW_TYPE_2D, 1, 1);
 
         m_cleanupTaskIDs.push_back(viewCleanupID);
     }
@@ -202,16 +210,14 @@ void VkSwapchainManager::createFrameBuffers() {
         std::vector<VkImageView> attachments = {
             m_imageViews[i]
         };
-        uint32_t framebufferCleanupID = VkImageManager::CreateFramebuffer(m_imageFrameBuffers[i], g_vkContext.PresentPipeline.renderPass, attachments, g_vkContext.SwapChain.extent.width, g_vkContext.SwapChain.extent.height);
+        uint32_t framebufferCleanupID = VkImageManager::CreateFramebuffer(m_imageFrameBuffers[i], m_presentPipelineRenderPass, attachments, m_swapChainExtent.width, m_swapChainExtent.height);
 
         m_cleanupTaskIDs.push_back(framebufferCleanupID);
     }
-
-    g_vkContext.SwapChain.imageFrameBuffers = m_imageFrameBuffers;
 }
 
 
-SwapChainProperties VkSwapchainManager::getSwapChainProperties(VkPhysicalDevice& device, VkSurfaceKHR& surface) {
+SwapChainProperties VkSwapchainManager::GetSwapChainProperties(VkPhysicalDevice device, VkSurfaceKHR surface) {
     SwapChainProperties swapChain;
 
     // Queries swap-chain properties
@@ -256,14 +262,25 @@ VkSurfaceFormatKHR VkSwapchainManager::getBestSurfaceFormat(std::vector<VkSurfac
 
 
 VkPresentModeKHR VkSwapchainManager::getBestPresentMode(std::vector<VkPresentModeKHR>& modes) {
-    for (const auto& mode : modes) {
-        // MAILBOX_KHR: Triple buffering => Best for performance and smoothness, but requires more GPU memory
-        if (mode == VK_PRESENT_MODE_MAILBOX_KHR)
-            return mode;
-    }
     // FIFO_KHR (fallback): V-Sync => No screen tearing and predictable frame pacing, but introduces input lag
         // There is also FIFO_RELAXED_KHR.
-    return VK_PRESENT_MODE_FIFO_RELAXED_KHR;
+    VkPresentModeKHR chosenPresentMode = VK_PRESENT_MODE_FIFO_KHR;
+
+
+    // Iterate through supported modes to find the best fit
+    for (const auto &availablePresentMode : modes) {
+        if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
+            chosenPresentMode = VK_PRESENT_MODE_MAILBOX_KHR;
+            break; // Mailbox is generally preferred for performance
+        }
+        // If Mailbox isn't available, check for FIFO_RELAXED
+        if (availablePresentMode == VK_PRESENT_MODE_FIFO_RELAXED_KHR) {
+            chosenPresentMode = VK_PRESENT_MODE_FIFO_RELAXED_KHR;
+        }
+    }
+
+
+    return chosenPresentMode;
 }
 
 
@@ -278,7 +295,7 @@ VkExtent2D VkSwapchainManager::getBestSwapExtent(VkSurfaceCapabilitiesKHR& capab
     // Else, it means we can create possible resolutions within the [minImageExtent, maxImageExtent] range.
     // In this case, the best swap extent is the one whose resolution best matches the window.
     int width, height;
-    glfwGetFramebufferSize(g_vkContext.window, &width, &height); // Gets the window resolution in pixels
+    glfwGetFramebufferSize(m_window, &width, &height); // Gets the window resolution in pixels
 
     // Creates the best swap extent and populate it with the current window resolution
     VkExtent2D bestExtent{};

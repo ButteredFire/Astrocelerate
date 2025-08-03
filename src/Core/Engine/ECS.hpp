@@ -227,7 +227,7 @@ public:
 
 		@param entity: The ID of the entity owning the component to be checked.
 	
-		@return True if the component exists, otherwise False.
+		@return True if the component exists, False otherwise.
 	*/
 	template<typename Component>
 	inline bool entityHasComponent(EntityID entityID) {
@@ -238,7 +238,7 @@ public:
 	/* Checks whether the component has been registered.
 		@tparam Component: The component type of the component array.
 
-		@return True if the component has been registered, otherwise False.
+		@return True if the component has been registered, False otherwise.
 	*/
 	template<typename Component>
 	inline bool arrayHasComponent() {

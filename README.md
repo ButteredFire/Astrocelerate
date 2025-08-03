@@ -2,7 +2,7 @@
 > Đây là bản README tiếng Anh. Vui lòng đọc bản tiếng Việt tại [đây](README-VN.md).
 
 <div align="center" class="grid cards" style="display: flex; align-items: center; justify-content: center; text-decoration: none;" markdown>
-    <img src="assets/App/AstrocelerateLogo-Branded.png" alt="Logo" width="75%">
+    <img src="assets/App/AstrocelerateLogo.png" alt="Logo" width="75%">
     <p>Copyright © 2024-2025 <a href="https://www.linkedin.com/in/minhduong-thechosenone/">Dương Duy Nhật Minh</a>, D.B.A. <b>Oriviet Aerospace</b>.</p>
     </br>
 </div>

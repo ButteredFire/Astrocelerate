@@ -4,6 +4,7 @@
 #pragma once
 
 #include <External/GLM.hpp>
+#include <vk_mem_alloc.h>
 
 
 namespace Buffer {

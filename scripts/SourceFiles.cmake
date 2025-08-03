@@ -36,6 +36,7 @@ set(SOURCE_FILES
 	"src/Utils/Vulkan/VkDescriptorUtils.cpp"
 	"src/Vulkan/VkBufferManager.cpp"
 	"src/Vulkan/VkCommandManager.cpp"
+	"src/Vulkan/VkCoreResourcesManager.cpp"
 	"src/Vulkan/VkDeviceManager.cpp"
 	"src/Vulkan/VkImageManager.cpp"
 	"src/Vulkan/VkInstanceManager.cpp"

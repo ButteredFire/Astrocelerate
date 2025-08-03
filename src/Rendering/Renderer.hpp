@@ -6,13 +6,12 @@
 
 #pragma once
 
-// GLFW & Vulkan
 #include <External/GLFWVulkan.hpp>
-
-// GLM
 #include <External/GLM.hpp>
 
-// C++ STLs
+#include <imgui/imgui.h>
+
+
 #include <iostream>
 #include <optional>
 #include <algorithm>
@@ -20,30 +19,26 @@
 #include <unordered_map>
 #include <unordered_set>
 
-// Dear ImGui
-#include <imgui/imgui.h>
 
-// Local
-#include <Vulkan/VkInstanceManager.hpp>
-#include <Vulkan/VkDeviceManager.hpp>
-#include <Vulkan/VkSwapchainManager.hpp>
-#include <Vulkan/VkCommandManager.hpp>
+#include <Core/Application/LoggingManager.hpp>
+#include <Core/Data/Constants.h>
+#include <Core/Engine/ECS.hpp>
+#include <Core/Engine/ServiceLocator.hpp>
 
 #include <Engine/Components/RenderComponents.hpp>
 
 #include <Rendering/UIRenderer.hpp>
 
-#include <Vulkan/VkBufferManager.hpp>
+#include <Vulkan/VkSyncManager.hpp>
+#include <Vulkan/VkCommandManager.hpp>
+#include <Vulkan/VkSwapchainManager.hpp>
+#include <Vulkan/VkCoreResourcesManager.hpp>
 
-#include <Core/Engine/ECS.hpp>
-#include <Core/Data/Constants.h>
-#include <Core/Application/LoggingManager.hpp>
-#include <Core/Engine/ServiceLocator.hpp>
 
 
 class Renderer {
 public:
-	Renderer();
+	Renderer(VkCoreResourcesManager *coreResources, VkSwapchainManager *swapchainMgr, VkCommandManager *commandMgr, VkSyncManager *syncMgr, UIRenderer *uiRenderer);
 	~Renderer();
 
 	/* Updates the rendering. */
@@ -52,15 +47,21 @@ public:
 	void preRenderUpdate(uint32_t currentFrame, glm::dvec3 &renderOrigin);
 
 private:
-	VkInstance& m_vulkInst;
-
 	std::shared_ptr<Registry> m_globalRegistry;
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 
-	std::shared_ptr<VkSwapchainManager> m_swapchainManager;
-	std::shared_ptr<VkCommandManager> m_commandManager;
+	VkCoreResourcesManager *m_coreResources;
+	VkSwapchainManager *m_swapchainManager;
+	VkCommandManager *m_commandManager;
+	VkSyncManager *m_syncManager;
+	UIRenderer *m_uiRenderer;
 
-	std::shared_ptr<UIRenderer> m_imguiRenderer;
+
+	std::vector<VkSemaphore> m_imageReadySemaphores;
+	std::vector<VkSemaphore> m_renderFinishedSemaphores;
+	std::vector<VkFence> m_inFlightFences;
+
+	std::vector<VkCommandBuffer> m_graphicsCommandBuffers;
 
 	uint32_t m_currentFrame = 0;
 
@@ -68,6 +69,8 @@ private:
 	bool m_sessionReady = false;
 
 	void bindEvents();
+
+	void init();
 
 	/* Renders a frame. 
 		At a high level, rendering a frame in Vulkan consists of a common set of steps:

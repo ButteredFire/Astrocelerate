@@ -24,7 +24,7 @@ class ThreadManager;
 #define VARIABLE_NAME(V) std::string((#V))
 #define BOOLALPHA(COND) ((COND) ? "true" : "false")
 #define BOOLALPHACAP(COND) ((COND) ? "True" : "False")
-#define PLURAL(NUM, SUFFIX) ((NUM == 1) ? "" : (SUFFIX))
+#define PLURAL(NUM, SUFFIX_SINGULAR, SUFFIX_PLURAL) (((NUM) == 1) ? (SUFFIX_SINGULAR) : (SUFFIX_PLURAL))
 
 // Usage: LOG_ASSERT(condition, message [, severity])
 #define LOG_ASSERT(cond, msg, ...) \
@@ -167,45 +167,6 @@ namespace Log {
 
 	/* Logs application information to the console. */
 	inline void PrintAppInfo() {
-		/* Create new log file */
-		{
-			auto now = std::chrono::system_clock::now();
-			std::time_t currentTime = std::chrono::system_clock::to_time_t(now);
-			char buffer[80];
-			std::strftime(buffer, sizeof(buffer), "%Y%m%d_%H%M%S", std::localtime(&currentTime));
-
-			std::string logName = "AstroLog-" + std::string(buffer) + ".log";
-
-			std::filesystem::path p1 = ROOT_DIR;
-			std::filesystem::path p2 = "logs";
-			std::filesystem::path logDir = p1 / p2;
-
-			_logFilePath = (logDir / std::filesystem::path(logName)).string();
-
-			// Ensure the log directory exists
-			try {
-				if (!std::filesystem::exists(logDir)) {
-					std::filesystem::create_directories(logDir); // Creates the directory (and any parent directories)
-				}
-			}
-			catch (const std::filesystem::filesystem_error &e) {
-				std::cerr << "Error creating log directory '" << logDir << "': " << e.what() << std::endl;
-				// It's critical here: if we can't create the directory, we likely can't open the file either.
-				// You might want to throw an exception or set a flag to indicate the logger is in a failed state.
-				_logFile.setstate(std::ios_base::failbit); // Indicate that the file stream is in a bad state
-				return; // Exit constructor as opening the file will likely fail
-			}
-
-
-			_logFile.open(_logFilePath, std::ios::out | std::ios::app);
-			if (!_logFile.is_open()) {
-				std::cerr << "Error: Could not open log file: " << _logFilePath << std::endl;
-			}
-		}
-
-
-
-
 		std::cout << termcolor::reset;
 
 		std::cout << "Project " << APP_NAME << " (version: " << APP_VERSION << ").\n";
@@ -235,9 +196,11 @@ namespace Log {
 		#else
 			std::cout << "\t- Compiler: Unknown\n";
 		#endif
-
-		std::cout << "\nCopyright (c) 2024-2025 " << AUTHOR << ".\n\n";
 	}
+
+
+	/* Starts directing output to an external log file. */
+	extern void BeginLogging();
 
 
 	/* Stops logging to a log file. */

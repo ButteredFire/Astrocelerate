@@ -12,12 +12,14 @@ ReferenceFrameSystem::ReferenceFrameSystem() {
 
 
 void ReferenceFrameSystem::bindEvents() {
-	m_eventDispatcher->subscribe<Event::UpdateSessionStatus>(
-		[this](const Event::UpdateSessionStatus &event) {
-			using namespace Event;
+	static EventDispatcher::SubscriberIndex selfIndex = m_eventDispatcher->registerSubscriber<ReferenceFrameSystem>();
+
+	m_eventDispatcher->subscribe<UpdateEvent::SessionStatus>(selfIndex,
+		[this](const UpdateEvent::SessionStatus &event) {
+			using enum UpdateEvent::SessionStatus::Status;
 
 			switch (event.sessionStatus) {
-			case UpdateSessionStatus::Status::INITIALIZED:
+			case INITIALIZED:
 				m_treeSorted = false;
 			}
 		}

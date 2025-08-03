@@ -5,25 +5,11 @@
 #include "VkDeviceManager.hpp"
 
 
-VkDeviceManager::VkDeviceManager():
-    m_vulkInst(g_vkContext.vulkanInstance) {
-
-    m_garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
-
-    if (m_vulkInst == VK_NULL_HANDLE) {
-        throw Log::RuntimeException(__FUNCTION__, __LINE__, "Cannot initialize device manager: Invalid Vulkan instance!");
-    }
-
-    if (g_vkContext.vkSurface == VK_NULL_HANDLE) {
-        throw Log::RuntimeException(__FUNCTION__, __LINE__, "Cannot initialize device manager: Invalid Vulkan window surface!");
-    }
+VkDeviceManager::VkDeviceManager() {
+    init();
 
     Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
-
-
-VkDeviceManager::~VkDeviceManager() {}
-
 
 
 void VkDeviceManager::init() {
@@ -34,21 +20,13 @@ void VkDeviceManager::init() {
         VK_EXT_INDEX_TYPE_UINT8_EXTENSION_NAME,
         VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME
     };
-
-
-    // Creates a GPU device
-    createPhysicalDevice();
-    createLogicalDevice();
-
-    // Creates a VMA
-    m_vmaAllocator = m_garbageCollector->createVMAllocator(g_vkContext.vulkanInstance, m_GPUPhysicalDevice, m_GPULogicalDevice);
 }
 
 
-void VkDeviceManager::createPhysicalDevice() {
+void VkDeviceManager::createPhysicalDevice(VkPhysicalDevice &physDevice, PhysicalDeviceProperties &chosenDevice, std::vector<PhysicalDeviceProperties> &availableDevices, VkInstance instance, VkSurfaceKHR surface) {
     // Queries available Vulkan-supported GPUs
     uint32_t physDeviceCount = 0;
-    vkEnumeratePhysicalDevices(m_vulkInst, &physDeviceCount, nullptr);
+    vkEnumeratePhysicalDevices(instance, &physDeviceCount, nullptr);
 
     if (physDeviceCount == 0) {
         throw Log::RuntimeException(__FUNCTION__, __LINE__, "This machine does not have Vulkan-supported GPUs!");
@@ -56,11 +34,12 @@ void VkDeviceManager::createPhysicalDevice() {
 
     VkPhysicalDevice physicalDevice = nullptr;
     std::vector<VkPhysicalDevice> physicalDevices(physDeviceCount);
-    vkEnumeratePhysicalDevices(m_vulkInst, &physDeviceCount, physicalDevices.data());
+    vkEnumeratePhysicalDevices(instance, &physDeviceCount, physicalDevices.data());
+
 
     // Finds the most suitable GPU that supports Astrocelerate's features through GPU scoring
-    m_GPUScores = rateGPUSuitability(physicalDevices);
-    PhysicalDeviceScoreProperties bestDevice = *std::max_element(m_GPUScores.begin(), m_GPUScores.end(), ScoreComparator);
+    std::vector<PhysicalDeviceProperties> availableGPUs = rateGPUSuitability(physicalDevices, surface);
+    PhysicalDeviceProperties bestDevice = *std::max_element(availableGPUs.begin(), availableGPUs.end(), ScoreComparator);
 
     physicalDevice = bestDevice.device;
     bool isDeviceCompatible = bestDevice.isCompatible;
@@ -69,17 +48,18 @@ void VkDeviceManager::createPhysicalDevice() {
     Log::Print(Log::T_INFO, __FUNCTION__, ("Out of " + std::to_string(physDeviceCount) + " GPU(s), GPU " + enquote(bestDevice.deviceName) + " was selected with the highest grading score of " + std::to_string(physicalDeviceScore) + "."));
 
     if (physicalDevice == nullptr || !isDeviceCompatible) {
-        throw Log::RuntimeException(__FUNCTION__, __LINE__, "No GPU on this machine supports the required features to run Astrocelerate!");
+        throw Log::RuntimeException(__FUNCTION__, __LINE__, "No GPU on this machine supports the required features to run Astrocelerate!\nPlease ensure your GPUs have their drivers updated to support Vulkan " VULKAN_VERSION_STR ".");
     }
 
-    g_vkContext.Device.physicalDevice = m_GPUPhysicalDevice = physicalDevice;
+    physDevice = bestDevice.device;
+    chosenDevice = bestDevice;
+    availableDevices = availableGPUs;
 }
 
 
-void VkDeviceManager::createLogicalDevice() {
-    QueueFamilyIndices queueFamilies = getQueueFamilies(m_GPUPhysicalDevice, g_vkContext.vkSurface);
-
-    // Verifies that all queue families exist before proceeding with device creation
+CleanupTask VkDeviceManager::createLogicalDevice(VkDevice &logicalDevice, QueueFamilyIndices &queueFamilies, VkPhysicalDevice physDevice, VkSurfaceKHR surface) {
+    // Verify that all queue families exist before proceeding with device creation
+    queueFamilies = getQueueFamilies(physDevice, surface);
     std::vector<QueueFamilyIndices::QueueFamily*> allFamilies;
 
     for (const auto& family : queueFamilies.getAllQueueFamilies()) {
@@ -90,10 +70,8 @@ void VkDeviceManager::createLogicalDevice() {
             allFamilies.push_back(family);
     }
 
-    // Queues must have a priority in [0.0; 1.0], which influences the scheduling of command buffer execution.
-    float queuePriority = 1.0f; 
 
-    // Creates a set of all unique queue families that are necessary for the required queues
+    // Create a set of all unique queue families that are necessary for the required queues
     std::vector<VkDeviceQueueCreateInfo> queues;
     std::set<uint32_t> uniqueQueueFamilies;
     for (const auto& family : allFamilies) {
@@ -101,7 +79,9 @@ void VkDeviceManager::createLogicalDevice() {
     }
 
 
-    // Creates a device queue for each queue family
+    // Create a device queue for each queue family
+    // NOTE: Queues must have a priority in [0.0; 1.0], which influences the scheduling of command buffer execution.
+    float queuePriority = 1.0f; 
     for (auto& family : uniqueQueueFamilies) {
         VkDeviceQueueCreateInfo queueInfo{};
 
@@ -113,7 +93,7 @@ void VkDeviceManager::createLogicalDevice() {
     }
 
 
-    // Specifies the features of the device to be used
+    // Specify the features of the device to be used
         // Base features
     VkPhysicalDeviceFeatures deviceFeatures{};
     deviceFeatures.samplerAnisotropy = VK_TRUE;
@@ -130,7 +110,8 @@ void VkDeviceManager::createLogicalDevice() {
     deviceVk12Features.descriptorBindingStorageBufferUpdateAfterBind = VK_TRUE;
     deviceVk12Features.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
 
-    // Creates the logical device
+
+    // Create the logical device
     VkDeviceCreateInfo deviceInfo{};
 
     deviceInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -141,42 +122,35 @@ void VkDeviceManager::createLogicalDevice() {
     deviceInfo.pNext = &deviceVk12Features;
 
     /* A note about extensions and validation layers:
-    * Extensions and validation layers can be classified into:
-    * - Vulkan Instance extensions and layers
-    * - Extensions and layers for specific Vulkan objects
-    * 
-    * In this case, when setting extensions and layers for deviceInfo, we're actually setting
-    * device-specific extensions and layers (e.g., VK_KHR_swapchain).
-    * 
-    * Previous implementations of Vulkan made a distinction between instance and device specific validation layers, 
-    * but this is no longer the case.
-    * 
-    * In the case of deviceInfo, it means that the enabledLayerCount and ppEnabledLayerNames fields are ignored by up-to-date implementations. 
-    * However, it is still a good idea to set them anyway to be compatible with older implementations.
+        Extensions and validation layers can be classified into:
+        - Vulkan Instance extensions and layers
+        - Extensions and layers for specific Vulkan objects
+        
+        In this case, when setting extensions and layers for deviceInfo, we're actually setting
+        device-specific extensions and layers (e.g., VK_KHR_swapchain).
+        
+        Previous implementations of Vulkan made a distinction between instance and device specific validation layers, 
+        but this is no longer the case.
+        
+        In the case of deviceInfo, it means that the enabledLayerCount and ppEnabledLayerNames fields are ignored by up-to-dateimplementations. 
+        However, it is still a good idea to set them anyway to be compatible with older implementations.
     */
 
     // Sets device-specific extensions
     deviceInfo.enabledExtensionCount = static_cast<uint32_t>(m_requiredDeviceExtensions.size());
     deviceInfo.ppEnabledExtensionNames = m_requiredDeviceExtensions.data();
 
-    // Sets device-specific validation layers
-    if (IN_DEBUG_MODE) {
-        deviceInfo.enabledLayerCount = static_cast<uint32_t> (g_vkContext.enabledValidationLayers.size());
-        deviceInfo.ppEnabledLayerNames = g_vkContext.enabledValidationLayers.data();
-    }
-    else {
-        deviceInfo.enabledLayerCount = 0;
-    }
 
-    VkResult result = vkCreateDevice(m_GPUPhysicalDevice, &deviceInfo, nullptr, &m_GPULogicalDevice);
+    VkResult result = vkCreateDevice(physDevice, &deviceInfo, nullptr, &logicalDevice);
     if (result != VK_SUCCESS) {
         throw Log::RuntimeException(__FUNCTION__, __LINE__, "Unable to create GPU logical device!");
     }
 
+
     // Populates each (available) family's device queue
     std::vector<QueueFamilyIndices::QueueFamily*> availableFamilies = queueFamilies.getAvailableQueueFamilies(allFamilies);
     for (auto& family : availableFamilies)
-        vkGetDeviceQueue(m_GPULogicalDevice, family->index.value(), 0, &family->deviceQueue);
+        vkGetDeviceQueue(logicalDevice, family->index.value(), 0, &family->deviceQueue);
 
         // If graphics queue family supports presentation operations (i.e., the presentation queue is not separate),
         // then set the presentation family's index and VkQueue to be the same as the graphics family's.
@@ -186,28 +160,23 @@ void VkDeviceManager::createLogicalDevice() {
     }
 
 
-    g_vkContext.Device.logicalDevice = m_GPULogicalDevice;
-    g_vkContext.Device.queueFamilies = queueFamilies;
-
-
     CleanupTask task{};
     task.caller = __FUNCTION__;
-    task.objectNames = { VARIABLE_NAME(m_GPULogicalDevice) };
-    task.vkHandles = { m_GPULogicalDevice };
-    task.cleanupFunc = [this]() { vkDestroyDevice(m_GPULogicalDevice, nullptr); };
+    task.objectNames = { VARIABLE_NAME(logicalDevice) };
+    task.vkHandles = { logicalDevice };
+    task.cleanupFunc = [logicalDevice]() { vkDestroyDevice(logicalDevice, nullptr); };
 
-    m_garbageCollector->createCleanupTask(task);
+    return task;
 }
 
 
-std::vector<PhysicalDeviceScoreProperties> VkDeviceManager::rateGPUSuitability(std::vector<VkPhysicalDevice>& physicalDevices) {
-    std::vector<PhysicalDeviceScoreProperties> m_GPUScores;
-    // Grades each device
+std::vector<PhysicalDeviceProperties> VkDeviceManager::rateGPUSuitability(std::vector<VkPhysicalDevice>& physicalDevices, VkSurfaceKHR surface) {
+    std::vector<PhysicalDeviceProperties> m_GPUScores;
+    // Grade each device
     for (VkPhysicalDevice& device : physicalDevices) {
-        // Queries basic device properties and optional features (e.g., 64-bit floats for accurate physics computations)
+        // Query basic device properties and optional features (e.g., 64-bit floats for accurate physics computations)
         VkPhysicalDeviceProperties deviceProperties;
         VkPhysicalDeviceFeatures deviceFeatures;
-
 
         VkPhysicalDeviceVulkan12Features deviceVk12Features{};
         deviceVk12Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
@@ -220,19 +189,21 @@ std::vector<PhysicalDeviceScoreProperties> VkDeviceManager::rateGPUSuitability(s
         vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
         vkGetPhysicalDeviceFeatures2(device, &deviceFeatures2); // Vulkan 1.2
 
-        g_vkContext.Device.deviceProperties = deviceProperties;
 
-        // Creates a device rating profile
-        PhysicalDeviceScoreProperties deviceRating;
+        // Create a device rating profile
+        PhysicalDeviceProperties deviceRating;
         deviceRating.device = device;
         deviceRating.deviceName = deviceProperties.deviceName;
+        deviceRating.deviceProperties = deviceProperties;
+
 
         // Creates a list of indices of device-supported queue families for later checking
-        QueueFamilyIndices queueFamilyIndices = getQueueFamilies(device, g_vkContext.vkSurface);
+        QueueFamilyIndices queueFamilyIndices = getQueueFamilies(device, surface);
 
         // Creates the GPU's swap-chain properties
-        SwapChainProperties swapChain = VkSwapchainManager::getSwapChainProperties(device, g_vkContext.vkSurface);
+        SwapChainProperties swapChain = VkSwapchainManager::GetSwapChainProperties(device, surface);
         
+
         // A "list" of minimum requirements; Variable will collapse to "true" if all are satisfied
         const bool meetsMinimumRequirements = (
             // If the GPU has an API version >= the instance Vulkan version

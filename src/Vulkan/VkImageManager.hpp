@@ -6,9 +6,11 @@
 #include <External/GLFWVulkan.hpp>
 
 #include <Core/Application/GarbageCollector.hpp>
+
 #include <Core/Engine/ServiceLocator.hpp>
 
-#include <Core/Data/Contexts/VulkanContext.hpp>
+#include <Vulkan/VkCoreResourcesManager.hpp>
+class VkCoreResourcesManager;
 
 
 class VkImageManager {
@@ -27,7 +29,7 @@ public:
 		
 		@note This function assumes the garbage collector service has already been registered.
 	*/
-	static uint32_t CreateImage(VkImage& image, VmaAllocation& imgAllocation, VmaAllocationCreateInfo& imgAllocationCreateInfo, uint32_t width, uint32_t height, uint32_t depth, VkFormat imgFormat, VkImageTiling imgTiling, VkImageUsageFlags imgUsageFlags, VkImageType imgType);
+	static CleanupID CreateImage(VkImage& image, VmaAllocation& imgAllocation, VmaAllocationCreateInfo& imgAllocationCreateInfo, uint32_t width, uint32_t height, uint32_t depth, VkFormat imgFormat, VkImageTiling imgTiling, VkImageUsageFlags imgUsageFlags, VkImageType imgType);
 
 
 	/* Creates an image view.
@@ -43,7 +45,7 @@ public:
 
 		@note This function assumes the garbage collector service has already been registered.
 	*/
-	static uint32_t CreateImageView(VkImageView& imageView, VkImage& image, VkFormat imgFormat, VkImageAspectFlags imgAspectFlags, VkImageViewType viewType, uint32_t levelCount, uint32_t layerCount);
+	static CleanupID CreateImageView(VkImageView& imageView, VkImage& image, VkFormat imgFormat, VkImageAspectFlags imgAspectFlags, VkImageViewType viewType, uint32_t levelCount, uint32_t layerCount);
 
 
 	/* Creates a framebuffer.
@@ -56,5 +58,5 @@ public:
 
 		@note This function assumes the garbage collector service has already been registered.
 	*/
-	static uint32_t CreateFramebuffer(VkFramebuffer& framebuffer, VkRenderPass& renderPass, std::vector<VkImageView> attachments, uint32_t width, uint32_t height);
+	static CleanupID CreateFramebuffer(VkFramebuffer& framebuffer, VkRenderPass& renderPass, std::vector<VkImageView> attachments, uint32_t width, uint32_t height);
 };

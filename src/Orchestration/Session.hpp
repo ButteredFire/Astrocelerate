@@ -7,19 +7,17 @@
 #include <Core/Application/EventDispatcher.hpp>
 #include <Core/Engine/ServiceLocator.hpp>
 
-#include <Vulkan/VkBufferManager.hpp>
-
 #include <Engine/PhysicsSystem.hpp>
-
-#include <Rendering/Pipelines/OffscreenPipeline.hpp>
 
 #include <Simulation/Systems/ReferenceFrameSystem.hpp>
 
 #include <Scene/SceneManager.hpp>
 
+
+
 class Session {
 public:
-	Session();
+	Session(VkCoreResourcesManager *coreResources, SceneManager *sceneMgr, PhysicsSystem *physicsSystem, ReferenceFrameSystem *refFrameSystem);
 	~Session() = default;
 
 	/* Creates a new session. */
@@ -38,12 +36,11 @@ private:
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 	std::shared_ptr<Registry> m_registry;
 
-	std::shared_ptr<SceneManager> m_sceneManager;
-	std::shared_ptr<VkBufferManager> m_bufferManager;
-	std::shared_ptr<OffscreenPipeline> m_offscreenPipeline;
+	VkCoreResourcesManager *m_coreResources;
+	SceneManager *m_sceneManager;
+	PhysicsSystem *m_physicsSystem;
+	ReferenceFrameSystem *m_refFrameSystem;
 
-	std::shared_ptr<ReferenceFrameSystem> m_refFrameSystem;
-	std::shared_ptr<PhysicsSystem> m_physicsSystem;
 
 	bool m_sessionInitialized = false;
 	bool m_initialRefFrameUpdate = false;

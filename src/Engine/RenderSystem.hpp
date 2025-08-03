@@ -11,7 +11,7 @@
 #include <Core/Engine/ServiceLocator.hpp>
 #include <Core/Application/EventDispatcher.hpp>
 
-#include <Core/Data/Contexts/VulkanContext.hpp>
+
 #include <Core/Data/Buffer.hpp>
 
 #include <Engine/Components/RenderComponents.hpp>
@@ -21,29 +21,41 @@ class UIRenderer;
 
 #include <Utils/SystemUtils.hpp>
 
-#include <Vulkan/VkBufferManager.hpp>
-class VkBufferManager;
-
 
 class RenderSystem {
 public:
-	RenderSystem();
+	RenderSystem(VkCoreResourcesManager *coreResources, UIRenderer *uiRenderer);
 	~RenderSystem() = default;
 
 private:
 	std::shared_ptr<Registry> m_registry;
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
-	std::shared_ptr<VkBufferManager> m_bufferManager;
-	std::shared_ptr<UIRenderer> m_imguiRenderer;
 
+	VkCoreResourcesManager *m_coreResources;
+	UIRenderer *m_uiRenderer;
+
+
+	// Session data
 	bool m_sceneReady = false;
+	VkBuffer m_globalVertexBuffer;
+	VkBuffer m_globalIndexBuffer;
+
+	VkPipelineLayout m_offscreenPipelineLayout;
+
+	std::vector<VkDescriptorSet> m_perFrameDescriptorSets;
+	VkDescriptorSet m_texArrayDescriptorSet;
+	VkDescriptorSet m_pbrDescriptorSet;
+
 
 	void bindEvents();
 
+	/* Waits for all necessary resources to be ready. */
+	void waitForResources(const EventDispatcher::SubscriberIndex &selfIndex);
+
 	/* Processes a mesh. */
-	void renderScene(const Event::UpdateRenderables &event);
+	void renderScene(VkCommandBuffer cmdBuffer, uint32_t currentFrame);
 
 
 	/* Processes the GUI. */
-	void renderGUI(const Event::UpdateGUI &event);
+	void renderGUI(VkCommandBuffer cmdBuffer, uint32_t currentFrame);
 };

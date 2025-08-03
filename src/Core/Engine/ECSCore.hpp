@@ -25,10 +25,10 @@ constexpr EntityID INVALID_ENTITY = UINT32_MAX;
 constexpr EntityID MAX_ENTITIES = 1e5;
 
 struct Entity {
-	EntityID id;
-	EntityVersion version;
+	EntityID id{};
+	EntityVersion version{};
 
-	std::string name;
+	std::string name{};
 
 	inline bool operator==(const Entity& other) const {
 		return (id == other.id) &&
@@ -160,7 +160,7 @@ public:
 	/* Checks whether a component exists in the component array.
 		@param entityID: The ID of the entity owning the component to be checked.
 
-		@return True if the component exists, otherwise False.
+		@return True if the component exists, False otherwise.
 	*/
 	inline bool contains(EntityID entityID) {
 		return (m_entityToArrayIndexMap.find(entityID) != m_entityToArrayIndexMap.end());

@@ -101,7 +101,7 @@ namespace GUI {
 		@param mask: The panel bit-field.  
 		@param panelID: The ID of the panel to be checked.  
 
-		@return True if the panel is open, otherwise False.  
+		@return True if the panel is open, False otherwise.  
 	*/  
 	inline bool IsPanelOpen(PanelMask& mask, PanelID panelID) {
 		NULL_PANEL_CHECK(panelID, false);
@@ -112,7 +112,7 @@ namespace GUI {
 	/* Is a panel an instanced/conditional panel?
 		@param panelID: The ID of the panel to be checked.
 
-		@return True if the panel is instanced, otherwise False.
+		@return True if the panel is instanced, False otherwise.
 	*/
 	inline bool IsPanelInstanced(PanelID panelID) {
 		return s_instancedPanels.count(panelID);
@@ -145,8 +145,8 @@ namespace GUI {
 
 		@return A compact string representation of the panel mask.
 	*/
-	inline const char* SerializePanelMask(const PanelMask &mask) {
-		return C_STR(mask.to_string()); // Compact string like "110010"
+	inline std::string SerializePanelMask(const PanelMask &mask) {
+		return STD_STR(mask.to_string()); // Compact string like "110010"
 	}
 
 

@@ -19,7 +19,7 @@
 #include <Core/Application/GarbageCollector.hpp>
 #include <Core/Data/Constants.h>
 #include <Core/Data/Geometry.hpp>
-#include <Core/Data/Contexts/VulkanContext.hpp>
+
 
 #include <Engine/Threading/ThreadManager.hpp>
 
@@ -40,7 +40,7 @@ struct TextureInfo {
 
 class TextureManager {
 public:
-	TextureManager();
+	TextureManager(VkCoreResourcesManager *coreResources);
 	~TextureManager() = default;
 
 
@@ -62,20 +62,6 @@ public:
         @return The created texture's index into an internally managed global texture array.
     */
     uint32_t createIndexedTexture(const std::string& texSource, VkFormat texImgFormat = VK_FORMAT_UNDEFINED, int channels = STBI_rgb_alpha);
-
-
-    /* Creates an image object.
-        @param image: The image to be created.
-        @param imgAllocation: The memory allocation for the image.
-        @param width: The width of the image.
-        @param height: The height of the image.
-        @param depth: The depth of the image.
-        @param imgFormat: The format of the image.
-        @param imgTiling: The tiling mode of the image.
-        @param imgUsageFlags: The usage flags for the image.
-        @param imgAllocCreateInfo: The allocation create info for the image.
-    */
-    static void createImage(VkImage& image, VmaAllocation& imgAllocation, uint32_t width, uint32_t height, uint32_t depth, VkFormat imgFormat, VkImageTiling imgTiling, VkImageUsageFlags imgUsageFlags, VmaAllocationCreateInfo& imgAllocCreateInfo);
 
 
     /* Handles image layout transition.
@@ -103,14 +89,25 @@ public:
 private:
     std::shared_ptr<GarbageCollector> m_garbageCollector;
     std::shared_ptr<EventDispatcher> m_eventDispatcher;
+
+    VkCoreResourcesManager *m_coreResources;
     
+
+    // Texture data
+    VkRenderPass m_offscreenPipelineRenderPass;
+    VkDescriptorSet m_texArrayDescriptorSet;
+
     uint32_t m_placeholderTextureIndex = 0;
 
-    std::unordered_map<std::string, uint32_t> m_texturePathToIndexMap;                  // Maps path to its index in the descriptor infos vector.
-    std::vector<std::optional<VkDescriptorImageInfo>> m_textureDescriptorInfos;         // Contains all image views and samplers for the global array. If an element does not contain a VkDescriptorImageInfo, it is a placeholder for a deferred texture.
+        // Maps path to its index in the descriptor infos vector.
+    std::unordered_map<std::string, uint32_t> m_texturePathToIndexMap;
 
-    // Keeps track of unique samplers for reuse when new textures are loaded (keyed by sampler create info hash).
+        // Contains all image views and samplers for the global array. If an element does not contain a VkDescriptorImageInfo, it is a placeholder for a deferred texture.
+    std::vector<std::optional<VkDescriptorImageInfo>> m_textureDescriptorInfos;
+
+        // Keeps track of unique samplers for reuse when new textures are loaded (keyed by sampler create info hash).
     std::unordered_map<size_t, VkSampler> m_uniqueSamplers;
+
 
     // Session data
         // If the scene is not ready (i.e., its resources are not initialized yet), indexed textures should not be updated.
@@ -122,8 +119,6 @@ private:
         int channels;
     };
     std::vector<_IndexedTextureProps> m_deferredTextureProps;
-
-    std::vector<VkCommandBuffer> m_secondaryCommandBuffers;
     
 
     void bindEvents();

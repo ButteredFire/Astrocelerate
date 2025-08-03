@@ -4,12 +4,21 @@
 #include "VkCommandManager.hpp"
 
 
-VkCommandManager::VkCommandManager() {
-
+VkCommandManager::VkCommandManager(VkCoreResourcesManager *coreResources, VkSwapchainManager *swapchainMgr) :
+	m_coreResources(coreResources),
+	m_swapchainManager(swapchainMgr),
+	m_queueFamilies(coreResources->getQueueFamilyIndices()),
+	m_logicalDevice(coreResources->getLogicalDevice()),
+	m_swapchainExtent(swapchainMgr->getSwapChainExtent()),
+	m_swapchainImages(swapchainMgr->getImages()),
+	m_swapchainImgLayouts(swapchainMgr->getImageLayouts()) {
+	
 	m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
 	m_garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
 
 	bindEvents();
+
+	init();
 
 	Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 };
@@ -18,17 +27,19 @@ VkCommandManager::~VkCommandManager() {};
 
 
 void VkCommandManager::bindEvents() {
-	m_eventDispatcher->subscribe<Event::UpdateSessionStatus>(
-		[this](const Event::UpdateSessionStatus &event) {
-			using namespace Event;
+	static EventDispatcher::SubscriberIndex selfIndex = m_eventDispatcher->registerSubscriber<VkCommandManager>();
+
+	m_eventDispatcher->subscribe<UpdateEvent::SessionStatus>(selfIndex,
+		[this](const UpdateEvent::SessionStatus &event) {
+			using enum UpdateEvent::SessionStatus::Status;
 
 			switch (event.sessionStatus) {
-			case UpdateSessionStatus::Status::PREPARE_FOR_RESET:
+			case PREPARE_FOR_RESET:
 				m_sceneReady = false;
 				break;
 
-			case UpdateSessionStatus::Status::INITIALIZED:
-				vkDeviceWaitIdle(g_vkContext.Device.logicalDevice);
+			case INITIALIZED:
+				vkDeviceWaitIdle(m_logicalDevice);
 				m_sceneReady = true;
 				break;
 			}
@@ -36,27 +47,58 @@ void VkCommandManager::bindEvents() {
 	);
 
 
-	m_eventDispatcher->subscribe<Event::RequestProcessSecondaryCommandBuffers>(
-		[this](const Event::RequestProcessSecondaryCommandBuffers &event) {
-			m_secondaryCmdBufCount = event.bufferCount;
-			m_pCommandBuffers = event.pBuffers;
+	m_eventDispatcher->subscribe<RequestEvent::ProcessSecondaryCommandBuffers>(selfIndex,
+		[this](const RequestEvent::ProcessSecondaryCommandBuffers &event) {
+			m_secondaryCmdBufs = event.buffers;
+		}
+	);
+
+
+	m_eventDispatcher->subscribe<InitEvent::OffscreenPipeline>(selfIndex,
+		[this](const InitEvent::OffscreenPipeline &event) {
+			m_offscreenRenderPass = event.renderPass;
+			m_offscreenPipeline = event.pipeline;
+
+			m_offscreenFrameBuffers = event.offscreenFrameBuffers;
+		}
+	);
+
+
+	m_eventDispatcher->subscribe<InitEvent::PresentPipeline>(selfIndex, 
+		[this](const InitEvent::PresentPipeline &event) {
+			m_presentPipelineRenderPass = event.renderPass;
+		}
+	);
+
+
+	m_eventDispatcher->subscribe<InitEvent::SwapchainManager>(selfIndex,
+		[this](const InitEvent::SwapchainManager &event) {
+			m_swapchainFramebuffers = m_swapchainManager->getFramebuffers();
+		}
+	);
+
+
+	m_eventDispatcher->subscribe<RecreationEvent::Swapchain>(selfIndex, 
+		[this](const RecreationEvent::Swapchain &event) {
+			m_swapchainImages = m_swapchainManager->getImages();
+			m_swapchainImgLayouts = event.imageLayouts;
+			m_swapchainFramebuffers = m_swapchainManager->getFramebuffers();
+			m_swapchainExtent = m_swapchainManager->getSwapChainExtent();
 		}
 	);
 }
 
 
 void VkCommandManager::init() {
-	QueueFamilyIndices familyIndices = g_vkContext.Device.queueFamilies;
+	QueueFamilyIndices familyIndices = m_queueFamilies;
 
-	m_graphicsCmdPool = createCommandPool(g_vkContext.Device.logicalDevice, familyIndices.graphicsFamily.index.value());
+	m_graphicsCmdPool = CreateCommandPool(m_logicalDevice, familyIndices.graphicsFamily.index.value());
 	allocCommandBuffers(m_graphicsCmdPool, m_graphicsCmdBuffers);
-	g_vkContext.CommandObjects.graphicsCmdBuffers = m_graphicsCmdBuffers;
 
 	
 	if (familyIndices.familyExists(familyIndices.transferFamily)) {
-		m_transferCmdPool = createCommandPool(g_vkContext.Device.logicalDevice, familyIndices.transferFamily.index.value());
+		m_transferCmdPool = CreateCommandPool(m_logicalDevice, familyIndices.transferFamily.index.value());
 		allocCommandBuffers(m_transferCmdPool, m_transferCmdBuffers);
-		g_vkContext.CommandObjects.transferCmdBuffers = m_transferCmdBuffers;
 	}
 }
 
@@ -99,18 +141,18 @@ void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, 
 
 	if (m_sceneReady) {
 		// Record all secondary command buffers
-		if (m_pCommandBuffers) {
-			vkCmdExecuteCommands(cmdBuffer, m_secondaryCmdBufCount, m_pCommandBuffers);
-			m_pCommandBuffers = nullptr;
+		if (!m_secondaryCmdBufs.empty()) {
+			vkCmdExecuteCommands(cmdBuffer, static_cast<uint32_t>(m_secondaryCmdBufs.size()), m_secondaryCmdBufs.data());
+			m_secondaryCmdBufs.clear();
 		}
 
 		// OFFSCREEN RENDER PASS
 		VkRenderPassBeginInfo offscreenRenderPassBeginInfo{};
 		offscreenRenderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		offscreenRenderPassBeginInfo.renderPass = g_vkContext.OffscreenPipeline.renderPass;
-		offscreenRenderPassBeginInfo.framebuffer = g_vkContext.OffscreenResources.framebuffers[currentFrame];
+		offscreenRenderPassBeginInfo.renderPass = m_offscreenRenderPass;
+		offscreenRenderPassBeginInfo.framebuffer = m_offscreenFrameBuffers[currentFrame];
 		offscreenRenderPassBeginInfo.renderArea.offset = { 0, 0 };
-		offscreenRenderPassBeginInfo.renderArea.extent = g_vkContext.SwapChain.extent;
+		offscreenRenderPassBeginInfo.renderArea.extent = m_swapchainExtent;
 		offscreenRenderPassBeginInfo.clearValueCount = static_cast<uint32_t>(SIZE_OF(clearValues));
 		offscreenRenderPassBeginInfo.pClearValues = clearValues;
 
@@ -121,15 +163,15 @@ void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, 
 		vkCmdBeginRenderPass(cmdBuffer, &offscreenRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 
-		vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, g_vkContext.OffscreenPipeline.pipeline);
+		vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_offscreenPipeline);
 
 		// Specify viewport and scissor states (since they're dynamic states)
 			// Viewport
 		VkViewport viewport{};
 		viewport.x = 0.0f;
 		viewport.y = 0.0f;
-		viewport.width = static_cast<float>(g_vkContext.SwapChain.extent.width);
-		viewport.height = static_cast<float>(g_vkContext.SwapChain.extent.height);
+		viewport.width = static_cast<float>(m_swapchainExtent.width);
+		viewport.height = static_cast<float>(m_swapchainExtent.height);
 		viewport.minDepth = 0.0f;
 		viewport.maxDepth = 1.0f;
 		vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
@@ -137,15 +179,16 @@ void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, 
 		// Scissor
 		VkRect2D scissor{};
 		scissor.offset = { 0, 0 };
-		scissor.extent = g_vkContext.SwapChain.extent;
+		scissor.extent = m_swapchainExtent;
 		vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
 
 
 		// Processes renderables
-		m_eventDispatcher->dispatch(Event::UpdateRenderables{
+		m_eventDispatcher->dispatch(UpdateEvent::Renderables{
+			.renderableType = UpdateEvent::Renderables::Type::MESHES,
 			.commandBuffer = cmdBuffer,
-			.descriptorSet = g_vkContext.OffscreenPipeline.perFrameDescriptorSets[currentFrame]
-			}, true);
+			.currentFrame = currentFrame
+		}, true);
 
 
 		vkCmdEndRenderPass(cmdBuffer);
@@ -160,7 +203,7 @@ void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, 
 	swapchainImgToPresentBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 	//swapchainImgToPresentBarrier.oldLayout = g_vkContext.SwapChain.imageLayouts[imageIndex];
 	//swapchainImgToPresentBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
-	swapchainImgToPresentBarrier.image = g_vkContext.SwapChain.images[imageIndex];
+	swapchainImgToPresentBarrier.image = m_swapchainImages[imageIndex];
 	swapchainImgToPresentBarrier.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 	swapchainImgToPresentBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 	swapchainImgToPresentBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -177,7 +220,7 @@ void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, 
 	}
 	else {
 		// If the offscreen pass was skipped, the image is still in its acquired state
-		swapchainImgToPresentBarrier.oldLayout = g_vkContext.SwapChain.imageLayouts[imageIndex];
+		swapchainImgToPresentBarrier.oldLayout = m_swapchainImgLayouts[imageIndex];
 		if (swapchainImgToPresentBarrier.oldLayout == VK_IMAGE_LAYOUT_UNDEFINED) {
 			srcAccessMask = 0;
 			srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
@@ -205,17 +248,18 @@ void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, 
 	// PRESENTATION RENDER PASS
 	VkRenderPassBeginInfo presentRenderPassBeginInfo{};
 	presentRenderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	presentRenderPassBeginInfo.renderPass = g_vkContext.PresentPipeline.renderPass;
-	presentRenderPassBeginInfo.framebuffer = g_vkContext.SwapChain.imageFrameBuffers[imageIndex];
+	presentRenderPassBeginInfo.renderPass = m_presentPipelineRenderPass;
+	presentRenderPassBeginInfo.framebuffer = m_swapchainFramebuffers[imageIndex];
 	presentRenderPassBeginInfo.renderArea.offset = { 0, 0 };
-	presentRenderPassBeginInfo.renderArea.extent = g_vkContext.SwapChain.extent;
+	presentRenderPassBeginInfo.renderArea.extent = m_swapchainExtent;
 	presentRenderPassBeginInfo.clearValueCount = static_cast<uint32_t>(SIZE_OF(clearValues));
 	presentRenderPassBeginInfo.pClearValues = clearValues;
 
 
 	vkCmdBeginRenderPass(cmdBuffer, &presentRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-	m_eventDispatcher->dispatch(Event::UpdateGUI {
+	m_eventDispatcher->dispatch(UpdateEvent::Renderables {
+		.renderableType = UpdateEvent::Renderables::Type::GUI,
 		.commandBuffer = cmdBuffer,
 		.currentFrame = currentFrame
 	}, true);
@@ -231,7 +275,7 @@ void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, 
 }
 
 
-VkCommandBuffer VkCommandManager::BeginSingleUseCommandBuffer(SingleUseCommandBufferInfo* commandBufInfo) {
+VkCommandBuffer VkCommandManager::BeginSingleUseCommandBuffer(VkDevice logicalDevice, SingleUseCommandBufferInfo* commandBufInfo) {
 	VkCommandBufferAllocateInfo cmdBufAllocInfo{};
 	cmdBufAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 	cmdBufAllocInfo.level = commandBufInfo->bufferLevel;
@@ -239,7 +283,7 @@ VkCommandBuffer VkCommandManager::BeginSingleUseCommandBuffer(SingleUseCommandBu
 	cmdBufAllocInfo.commandBufferCount = 1;
 	
 	VkCommandBuffer cmdBuffer;
-	VkResult bufAllocResult = vkAllocateCommandBuffers(g_vkContext.Device.logicalDevice, &cmdBufAllocInfo, &cmdBuffer);
+	VkResult bufAllocResult = vkAllocateCommandBuffers(logicalDevice, &cmdBufAllocInfo, &cmdBuffer);
 	if (bufAllocResult != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to allocate single-use command buffer!");
 	}
@@ -258,7 +302,7 @@ VkCommandBuffer VkCommandManager::BeginSingleUseCommandBuffer(SingleUseCommandBu
 }
 
 
-void VkCommandManager::EndSingleUseCommandBuffer(SingleUseCommandBufferInfo* commandBufInfo, VkCommandBuffer& cmdBuffer) {
+void VkCommandManager::EndSingleUseCommandBuffer(VkDevice logicalDevice, SingleUseCommandBufferInfo* commandBufInfo, VkCommandBuffer& cmdBuffer) {
 	VkResult bufEndResult = vkEndCommandBuffer(cmdBuffer);
 	if (bufEndResult != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to stop recording single-use command buffer!");
@@ -300,22 +344,22 @@ void VkCommandManager::EndSingleUseCommandBuffer(SingleUseCommandBufferInfo* com
 	
 	if (commandBufInfo->fence != VK_NULL_HANDLE) {
 		if (commandBufInfo->usingSingleUseFence) {
-			VkSyncManager::WaitForSingleUseFence(commandBufInfo->fence);
+			VkSyncManager::WaitForSingleUseFence(logicalDevice, commandBufInfo->fence);
 		}
 		else {
-			vkWaitForFences(g_vkContext.Device.logicalDevice, 1, &commandBufInfo->fence, VK_TRUE, UINT64_MAX);
-			vkResetFences(g_vkContext.Device.logicalDevice, 1, &commandBufInfo->fence);
+			vkWaitForFences(logicalDevice, 1, &commandBufInfo->fence, VK_TRUE, UINT64_MAX);
+			vkResetFences(logicalDevice, 1, &commandBufInfo->fence);
 		}
 	}
 	else
-		vkDeviceWaitIdle(g_vkContext.Device.logicalDevice);
+		vkDeviceWaitIdle(logicalDevice);
 
 	if (commandBufInfo->freeAfterSubmit)
-		vkFreeCommandBuffers(g_vkContext.Device.logicalDevice, commandBufInfo->commandPool, 1, &cmdBuffer);
+		vkFreeCommandBuffers(logicalDevice, commandBufInfo->commandPool, 1, &cmdBuffer);
 }
 
 
-VkCommandPool VkCommandManager::createCommandPool(VkDevice device, uint32_t queueFamilyIndex, VkCommandPoolCreateFlags flags) {
+VkCommandPool VkCommandManager::CreateCommandPool(VkDevice device, uint32_t queueFamilyIndex, VkCommandPoolCreateFlags flags) {
 	CommandPoolCreateInfo createInfo{};
 	createInfo.logicalDevice = device;
 	createInfo.queueFamilyIndex = queueFamilyIndex;
@@ -348,8 +392,8 @@ VkCommandPool VkCommandManager::createCommandPool(VkDevice device, uint32_t queu
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(m_commandPool) };
-	task.vkHandles = { g_vkContext.Device.logicalDevice, commandPool };
-	task.cleanupFunc = [commandPool]() { vkDestroyCommandPool(g_vkContext.Device.logicalDevice, commandPool, nullptr); };
+	task.vkHandles = { device, commandPool };
+	task.cleanupFunc = [device, commandPool]() { vkDestroyCommandPool(device, commandPool, nullptr); };
 
 	garbageCollector->createCleanupTask(task);
 
@@ -371,7 +415,7 @@ void VkCommandManager::allocCommandBuffers(VkCommandPool& commandPool, std::vect
 
 	bufferAllocInfo.commandBufferCount = static_cast<uint32_t>(commandBuffers.size());
 
-	VkResult result = vkAllocateCommandBuffers(g_vkContext.Device.logicalDevice, &bufferAllocInfo, commandBuffers.data());
+	VkResult result = vkAllocateCommandBuffers(m_logicalDevice, &bufferAllocInfo, commandBuffers.data());
 	if (result != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to allocate command buffers!");
 	}
@@ -379,8 +423,8 @@ void VkCommandManager::allocCommandBuffers(VkCommandPool& commandPool, std::vect
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(m_commandBuffers) };
-	task.vkHandles = { g_vkContext.Device.logicalDevice, commandPool };
-	task.cleanupFunc = [this, commandPool, commandBuffers]() { vkFreeCommandBuffers(g_vkContext.Device.logicalDevice, commandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data()); };
+	task.vkHandles = { m_logicalDevice, commandPool };
+	task.cleanupFunc = [this, commandPool, commandBuffers]() { vkFreeCommandBuffers(m_logicalDevice, commandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data()); };
 
 	m_garbageCollector->createCleanupTask(task);
 }

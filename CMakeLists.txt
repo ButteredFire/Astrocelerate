@@ -14,7 +14,11 @@ project(Astrocelerate)
     set(APP_VERSION_PATCH 0)
     set(APP_VERSION_IDENTIFIERS "alpha")
     set(APP_VERSION_FULL "${APP_VERSION_MAJOR}.${APP_VERSION_MINOR}.${APP_VERSION_PATCH}-${APP_VERSION_IDENTIFIERS}")
+
     add_compile_definitions(APP_VERSION="${APP_VERSION_FULL}")
+    add_compile_definitions(APP_VERSION_MAJOR="${APP_VERSION_MAJOR}")
+    add_compile_definitions(APP_VERSION_MINOR="${APP_VERSION_MINOR}")
+    add_compile_definitions(APP_VERSION_PATCH="${APP_VERSION_PATCH}")
 
     set(APP_VENDOR "Oriviet Aerospace")
     

@@ -20,7 +20,7 @@
 #include <Core/Engine/ServiceLocator.hpp>
 #include <Core/Application/EventDispatcher.hpp>
 #include <Core/Application/GarbageCollector.hpp>
-#include <Core/Data/Contexts/VulkanContext.hpp>
+
 
 #include <Engine/RenderSystem.hpp>
 #include <Engine/Components/RenderComponents.hpp>
@@ -75,8 +75,13 @@ namespace std {
 
 class VkCommandManager {
 public:
-	VkCommandManager();
+	VkCommandManager(VkCoreResourcesManager *coreResources, VkSwapchainManager *swapchainMgr);
 	~VkCommandManager();
+
+
+	inline std::vector<VkCommandBuffer> getGraphicsCommandBuffers() const { return m_graphicsCmdBuffers; }
+	inline std::vector<VkCommandBuffer> getTransferCommandBuffers() const { return m_transferCmdBuffers; }
+
 
 	void init();
 
@@ -89,18 +94,20 @@ public:
 
 
 	/* Begins recording a single-use/anonymous command buffer for single-time commands.
+		@param logicalDevice: The current logical device.
 		@param commandBufInfo: The command buffer configuration.
 
 		@return The command buffer in question.
 	*/
-	static VkCommandBuffer BeginSingleUseCommandBuffer(SingleUseCommandBufferInfo* commandBufInfo);
+	static VkCommandBuffer BeginSingleUseCommandBuffer(VkDevice logicalDevice, SingleUseCommandBufferInfo* commandBufInfo);
 
 
 	/* Stops recording a single-use/anonymous command buffer and submit its data to the GPU.
+		@param logicalDevice: The current logical device.
 		@param commandBufInfo: The command buffer configuration.
 		@param cmdBuffer: The command buffer.
 	*/
-	static void EndSingleUseCommandBuffer(SingleUseCommandBufferInfo* commandBufInfo, VkCommandBuffer& cmdBuffer);
+	static void EndSingleUseCommandBuffer(VkDevice logicalDevice, SingleUseCommandBufferInfo* commandBufInfo, VkCommandBuffer& cmdBuffer);
 
 
 	/* Creates a command pool.
@@ -110,7 +117,7 @@ public:
 
 		@return EITHER A new command pool (if the command pool has unique creation parameters), OR an existing command pool (if all of its creation parameters are the same as the ones passed in).
 	*/
-	static VkCommandPool createCommandPool(VkDevice device, uint32_t queueFamilyIndex, VkCommandPoolCreateFlags flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
+	static VkCommandPool CreateCommandPool(VkDevice device, uint32_t queueFamilyIndex, VkCommandPoolCreateFlags flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
 
 
 	/* Allocates a command buffer vector. */
@@ -120,6 +127,20 @@ private:
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 	std::shared_ptr<GarbageCollector> m_garbageCollector;
 
+	VkCoreResourcesManager *m_coreResources;
+	VkSwapchainManager *m_swapchainManager;
+
+	QueueFamilyIndices m_queueFamilies;
+	VkDevice m_logicalDevice;
+	VkExtent2D m_swapchainExtent;
+	std::vector<VkImage> m_swapchainImages;
+	std::vector<VkFramebuffer> m_swapchainFramebuffers;
+
+	std::vector<VkImageLayout> m_swapchainImgLayouts;
+
+	VkRenderPass m_presentPipelineRenderPass;
+
+
 	// Command pools manage the memory that is used to store the buffers
 	// Command buffers are allocated from them
 	VkCommandPool m_graphicsCmdPool = VK_NULL_HANDLE;
@@ -128,14 +149,20 @@ private:
 	VkCommandPool m_transferCmdPool = VK_NULL_HANDLE;
 	std::vector<VkCommandBuffer> m_transferCmdBuffers;
 
+
 	// Primarily used in command pool creation to implicitly return an existing command pool if the creation parameters matches its own.
 	inline static std::unordered_map<CommandPoolCreateInfo, VkCommandPool> cmdPoolMappings;
 
+
 	// Session data
 	bool m_sceneReady = false;
+	std::vector<VkCommandBuffer> m_secondaryCmdBufs{};
 
-	uint32_t m_secondaryCmdBufCount = 0;
-	VkCommandBuffer *m_pCommandBuffers = nullptr;
+		// Offscreen pipeline data
+	VkRenderPass m_offscreenRenderPass;
+	VkPipeline m_offscreenPipeline;
+	std::vector<VkFramebuffer> m_offscreenFrameBuffers;
+
 
 	void bindEvents();
 };

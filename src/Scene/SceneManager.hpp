@@ -29,10 +29,6 @@ public:
 	void init();
 
 
-	/* Deserializes and loads scene data. */
-	void loadScene();
-
-
 	/* Loads the scene from a YAML simulation configuration file.
 		@param filePath: The path to the YAML file.
 	*/

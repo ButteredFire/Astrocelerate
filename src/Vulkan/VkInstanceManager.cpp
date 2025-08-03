@@ -5,20 +5,131 @@
 #include "VkInstanceManager.hpp"
 
 VkInstanceManager::VkInstanceManager() {
-    
-    m_garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
+    init();
 
     Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
 
-VkInstanceManager::~VkInstanceManager() {}
-
 
 void VkInstanceManager::init() {
     initVulkan();
-    createVulkanInstance();
-    createDebugMessenger();
-    createSurface();
+}
+
+
+CleanupTask VkInstanceManager::createVulkanInstance(VkInstance &instance) {
+    // Specifies an application configuration for the driver
+    VkApplicationInfo appInfo{}; // INSIGHT: Using braced initialization (alt.: memset) zero-initializes all fields
+    appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO; // Specifies structure type
+
+    appInfo.pApplicationName = APP_NAME;
+    appInfo.applicationVersion = VK_MAKE_VERSION(APP_VERSION_MAJOR, APP_VERSION_MINOR, APP_VERSION_PATCH);
+
+    //appInfo.pEngineName = APP::ENGINE_NAME;
+    //appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+
+    appInfo.apiVersion = VULKAN_VERSION;
+
+
+    // Specifies which global extensions and validation layers are to be used
+    VkInstanceCreateInfo instanceInfo{};
+    instanceInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    instanceInfo.pApplicationInfo = &appInfo;
+
+        // Configures global extensions 
+    uint32_t glfwExtensionCount = 0;
+    const char **glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+
+        // Copies GLFW extensions into m_enabledExtensions
+    for (uint32_t i = 0; i < glfwExtensionCount; i++)
+        addVulkanExtensions({ glfwExtensions[i] });
+
+        // Sets up additional extensions
+    if (IN_DEBUG_MODE)
+        addVulkanExtensions({
+            VK_EXT_DEBUG_UTILS_EXTENSION_NAME
+        });
+
+    if (verifyVulkanExtensions(m_enabledExtensions) == false) {
+        m_enabledExtensions.clear();
+        throw Log::RuntimeException(__FUNCTION__, __LINE__, "GLFW Instance Extensions contain invalid or unsupported extensions!");
+    }
+
+    instanceInfo.enabledExtensionCount = static_cast<uint32_t>(m_enabledExtensions.size());
+    instanceInfo.ppEnabledExtensionNames = m_enabledExtensions.data();
+
+
+    // Configures global validation layers
+    VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
+    if (IN_DEBUG_MODE) {
+        instanceInfo.enabledLayerCount = static_cast<uint32_t>(m_enabledValidationLayers.size());
+        instanceInfo.ppEnabledLayerNames = m_enabledValidationLayers.data();
+
+        populateDebugMessengerCreateInfo(debugCreateInfo);
+        instanceInfo.pNext = reinterpret_cast<VkDebugUtilsMessengerCreateInfoEXT *>(&debugCreateInfo);
+    }
+    else {
+        instanceInfo.enabledLayerCount = 0;
+        instanceInfo.pNext = nullptr;
+    }
+
+
+    // Creates a Vulkan instance from the instance information configured above
+    // and initializes the member VkInstance variable
+    VkResult result = vkCreateInstance(&instanceInfo, nullptr, &instance);
+    if (result != VK_SUCCESS) {
+        throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create Vulkan instance!");
+    }
+
+    CleanupTask task{};
+    task.caller = __FUNCTION__;
+    task.objectNames = { VARIABLE_NAME(instance) };
+    task.vkHandles = { instance };
+    task.cleanupFunc = [instance]() { vkDestroyInstance(instance, nullptr); };
+
+    return task;
+}
+
+
+CleanupTask VkInstanceManager::createDebugMessenger(VkDebugUtilsMessengerEXT &dbgMessenger, VkInstance instance) {
+    if (!IN_DEBUG_MODE) return CleanupTask{};
+
+    VkDebugUtilsMessengerCreateInfoEXT createInfo;
+    populateDebugMessengerCreateInfo(createInfo);
+
+    VkResult result = createDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &dbgMessenger);
+    if (result != VK_SUCCESS) {
+        throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create debug messenger!");
+    }
+
+    CleanupTask task{};
+    task.caller = __FUNCTION__;
+    task.objectNames = { VARIABLE_NAME(dbgMessenger) };
+    task.vkHandles = { instance, dbgMessenger };
+    task.cleanupFunc = [instance, dbgMessenger]() { destroyDebugUtilsMessengerEXT(instance, dbgMessenger, nullptr); };
+    task.cleanupConditions = { IN_DEBUG_MODE };
+
+    return task;
+}
+
+
+CleanupTask VkInstanceManager::createSurface(VkSurfaceKHR &surface, VkInstance instance, GLFWwindow *window) {
+    /* Using glfwCreateWindowSurface to create a window surface is platform-agnostic.
+    * On the other hand, while the VkSurfaceKHR object is itself platform agnostic, its creation isn't
+    * because it depends on window system details (meaning that the creation structs vary across platforms,
+    * e.g., VkWin32SurfaceCreateInfoKHR for Windows).
+    */
+    VkResult result = glfwCreateWindowSurface(instance, window, nullptr, &surface);
+    if (result != VK_SUCCESS) {
+        throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create Vulkan window surface!");
+    }
+
+    CleanupTask task{};
+    task.caller = __FUNCTION__;
+    task.objectNames = { VARIABLE_NAME(surface) };
+    task.vkHandles = { instance, surface };
+    task.cleanupFunc = [instance, surface]() { vkDestroySurfaceKHR(instance, surface, nullptr); };
+
+    return task;
 }
 
 
@@ -52,130 +163,13 @@ void VkInstanceManager::initVulkan() {
     });
 }
 
-void VkInstanceManager::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo) {
+
+void VkInstanceManager::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &createInfo) {
     createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
     createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
     createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
     createInfo.pfnUserCallback = debugCallback;
-}
-
-
-void VkInstanceManager::createDebugMessenger() {
-    if (!IN_DEBUG_MODE) return;
-
-    VkDebugUtilsMessengerCreateInfoEXT createInfo;
-    populateDebugMessengerCreateInfo(createInfo);
-
-    VkResult result = createDebugUtilsMessengerEXT(m_vulkInst, &createInfo, nullptr, &m_debugMessenger);
-    if (result != VK_SUCCESS) {
-        throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create debug messenger!");
-    }
-
-    CleanupTask task{};
-    task.caller = __FUNCTION__;
-    task.objectNames = { VARIABLE_NAME(m_debugMessenger) };
-    task.vkHandles = { m_vulkInst, m_debugMessenger };
-    task.cleanupFunc = [&]() { destroyDebugUtilsMessengerEXT(m_vulkInst, m_debugMessenger, nullptr); };
-    task.cleanupConditions = { IN_DEBUG_MODE };
-
-    m_garbageCollector->createCleanupTask(task);
-}
-
-
-void VkInstanceManager::createVulkanInstance() {
-    // Specifies an application configuration for the driver
-    VkApplicationInfo appInfo{}; // INSIGHT: Using braced initialization (alt.: memset) zero-initializes all fields
-    appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO; // Specifies structure type
-
-    appInfo.pApplicationName = APP_NAME;
-    appInfo.applicationVersion = VK_MAKE_VERSION(0, 1, 0); // Major, minor, patch
-    
-    //appInfo.pEngineName = APP::ENGINE_NAME;
-    //appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-
-    appInfo.apiVersion = VULKAN_VERSION;
-
-    // Specifies which global extensions and validation layers are to be used
-    VkInstanceCreateInfo instanceInfo{};
-    instanceInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-    instanceInfo.pApplicationInfo = &appInfo;
-
-    // Configures global extensions 
-    uint32_t glfwExtensionCount = 0;
-    const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-
-        // Copies GLFW extensions into m_enabledExtensions
-    for (uint32_t i = 0; i < glfwExtensionCount; i++)
-        addVulkanExtensions({ glfwExtensions[i] });
-
-        // Sets up additional extensions
-    if (IN_DEBUG_MODE)
-        addVulkanExtensions({
-            VK_EXT_DEBUG_UTILS_EXTENSION_NAME
-        });
-
-    if (verifyVulkanExtensions(m_enabledExtensions) == false) {
-        m_enabledExtensions.clear();
-        throw Log::RuntimeException(__FUNCTION__, __LINE__, "GLFW Instance Extensions contain invalid or unsupported extensions!");
-    }
-
-    instanceInfo.enabledExtensionCount = static_cast<uint32_t>(m_enabledExtensions.size());
-    instanceInfo.ppEnabledExtensionNames = m_enabledExtensions.data();
-
-    // Configures global validation layers
-    VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
-    if (IN_DEBUG_MODE) {
-        instanceInfo.enabledLayerCount = static_cast<uint32_t>(m_enabledValidationLayers.size());
-        instanceInfo.ppEnabledLayerNames = m_enabledValidationLayers.data();
-
-        populateDebugMessengerCreateInfo(debugCreateInfo);
-        instanceInfo.pNext = reinterpret_cast<VkDebugUtilsMessengerCreateInfoEXT*>(&debugCreateInfo);
-    }
-    else {
-        instanceInfo.enabledLayerCount = 0;
-        instanceInfo.pNext = nullptr;
-    }
-
-    // Creates a Vulkan instance from the instance information configured above
-    // and initializes the member VkInstance variable
-    VkResult result = vkCreateInstance(&instanceInfo, nullptr, &m_vulkInst);
-    if (result != VK_SUCCESS) {
-        throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create Vulkan instance!");
-    }
-
-    g_vkContext.vulkanInstance = m_vulkInst;
-
-    CleanupTask task{};
-    task.caller = __FUNCTION__;
-    task.objectNames = { VARIABLE_NAME(m_vulkInst) };
-    task.vkHandles = { m_vulkInst };
-    task.cleanupFunc = [&]() { vkDestroyInstance(m_vulkInst, nullptr); };
-
-    m_garbageCollector->createCleanupTask(task);
-}
-
-
-void VkInstanceManager::createSurface() {
-    /* Using glfwCreateWindowSurface to create a window surface is platform-agnostic.
-    * On the other hand, while the VkSurfaceKHR object is itself platform agnostic, its creation isn't
-    * because it depends on window system details (meaning that the creation structs vary across platforms,
-    * e.g., VkWin32SurfaceCreateInfoKHR for Windows).
-    */
-    VkResult result = glfwCreateWindowSurface(m_vulkInst, g_vkContext.window, nullptr, &m_windowSurface);
-    if (result != VK_SUCCESS) {
-        throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create Vulkan window surface!");
-    }
-
-    g_vkContext.vkSurface = m_windowSurface;
-
-    CleanupTask task{};
-    task.caller = __FUNCTION__;
-    task.objectNames = { VARIABLE_NAME(m_windowSurface) };
-    task.vkHandles = { m_vulkInst, m_windowSurface };
-    task.cleanupFunc = [this]() { vkDestroySurfaceKHR(m_vulkInst, m_windowSurface, nullptr); };
-
-    m_garbageCollector->createCleanupTask(task);
 }
 
 
@@ -255,6 +249,4 @@ void VkInstanceManager::addVulkanValidationLayers(std::vector<const char*> layer
             m_UTIL_enabledValidationLayerSet.insert(layer);
         }
     }
-
-    g_vkContext.enabledValidationLayers = m_enabledValidationLayers;
 }

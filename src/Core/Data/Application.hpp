@@ -5,8 +5,10 @@
 
 
 namespace Application {
-	/* Specifies which state in the application pipeline the window/user is in. */
+	/* Specifies which stage in the application pipeline the window/user is in. */
 	enum class Stage {
+		NULL_STAGE,
+
 		// Welcome screens
 		START_SCREEN,
 
@@ -18,5 +20,14 @@ namespace Application {
 
 		// Workspaces
 		WORKSPACE_ORBITAL
+	};
+
+
+	/* Specifies the current application state. */
+	enum class State {
+		NULL_STATE,
+
+		IDLE,
+		RECREATING_SWAPCHAIN
 	};
 }

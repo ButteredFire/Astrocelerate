@@ -17,11 +17,10 @@
 #include <unordered_set>
 
 // Local
-#include <Vulkan/VkDeviceManager.hpp>
 #include <Core/Application/LoggingManager.hpp>
 #include <Core/Application/GarbageCollector.hpp>
 #include <Core/Engine/ServiceLocator.hpp>
-#include <Core/Data/Contexts/VulkanContext.hpp>
+
 #include <Core/Data/Constants.h>
 
 
@@ -87,10 +86,39 @@ inline static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSe
 class VkInstanceManager {
 public:
 	VkInstanceManager();
-	~VkInstanceManager();
+	~VkInstanceManager() = default;
 
-	/* Initializes the Vulkan instance setup process. */
+
+	/* Initializes the Vulkan setup process. */
 	void init();
+
+
+	/* Creates a debug messenger to display validation layer messages.
+			@param dbgMessenger: The messenger to be created.
+			@param instance: The Vulkan instance.
+
+			@return The debug messenger's cleanup task task.
+		*/
+	CleanupTask createDebugMessenger(VkDebugUtilsMessengerEXT &dbgMessenger, VkInstance instance);
+
+
+	/* Creates a Vulkan instance.
+		@param instance: The Vulkan instance to be created.
+
+		@return The instance's cleanup task task.
+	*/
+	CleanupTask createVulkanInstance(VkInstance &instance);
+
+
+	/* Creates a Vulkan surface on which to display rendered images.
+		@param surface: The window surface to be created.
+		@param instance: The Vulkan instance.
+		@param window: The pointer to the current window.
+
+		@return The surface's cleanup task task.
+	*/
+	CleanupTask createSurface(VkSurfaceKHR &surface, VkInstance instance, GLFWwindow *window);
+
 
 	/* Gets the renderer's currently enabled Vulkan validation layers.
 		@return A vector of type `const char*` that contains the names of currently enabled validation layers.
@@ -110,14 +138,6 @@ public:
 	std::vector<VkLayerProperties> getSupportedVulkanValidationLayers();
 
 
-	inline VkInstance getInstance() { 
-		if (m_vulkInst == VK_NULL_HANDLE) {
-			throw Log::RuntimeException(__FUNCTION__, __LINE__, "Cannot get Vulkan instance: Vulkan has not been initialized!");
-		}
-		return m_vulkInst;
-	};
-
-
 	/* Adds Vulkan extensions to the current list of enabled extensions.
 		@param extensions: A vector containing Vulkan extension names to be bound to the current list of enabled extensions.
 	*/
@@ -130,12 +150,6 @@ public:
 	void addVulkanValidationLayers(std::vector<const char*> layers);
 
 private:
-	VkInstance m_vulkInst = VK_NULL_HANDLE;
-	std::shared_ptr<GarbageCollector> m_garbageCollector;
-	VkSurfaceKHR m_windowSurface = VK_NULL_HANDLE;
-
-	VkDebugUtilsMessengerEXT m_debugMessenger = VK_NULL_HANDLE;
-
 	std::vector<const char*> m_enabledExtensions;
 	std::vector<const char*> m_enabledValidationLayers;
 	std::unordered_set<const char*> m_UTIL_enabledExtensionSet; // Purpose: Prevents copying extensions
@@ -150,21 +164,14 @@ private:
 	void initVulkan();
 
 
+	/* Configures the debug messenger. */
 	void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
 
-
-	void createDebugMessenger();
-
-	/* Creates a Vulkan instance. */
-	void createVulkanInstance();
-
-	/* Creates a Vulkan surface on which to display rendered images. */
-	void createSurface();
 
 	/* Verifies whether a given array of Vulkan extensions is available or supported.
 		@param extensions: A vector containing the names of Vulkan extensions to be evaluated for validity.
 		
-		@return True if all specified Vulkan extensions are supported, otherwise False.
+		@return True if all specified Vulkan extensions are supported, False otherwise.
 	*/
 	bool verifyVulkanExtensions(std::vector<const char*> extensions);
 
@@ -172,7 +179,7 @@ private:
 	/* Verifies whether a given vector of Vulkan validation layers is available or supported.
 		@param layers: A vector containing the names of Vulkan validation layers to be evaluated for validity.
 		
-		@return True if all specified Vulkan validation layers are supported, otherwise False.
+		@return True if all specified Vulkan validation layers are supported, False otherwise.
 	*/
 	bool verifyVulkanValidationLayers(std::vector<const char*>& layers);
 };

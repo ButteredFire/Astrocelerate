@@ -12,7 +12,7 @@ namespace YAMLUtils {
         @param componentNode: The YAML Node that contains the data.
         @param data: A reference to the ECS component.
 
-        @return True if the operation is successful, otherwise False.
+        @return True if the operation is successful, False otherwise.
     */
     template<typename T>
     inline bool GetComponentData(const YAML::Node &componentNode, T &data) {

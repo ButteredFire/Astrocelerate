@@ -17,15 +17,17 @@ void UIPanelManager::preRenderUpdate(uint32_t currentFrame) {
 
 
 void UIPanelManager::bindEvents() {
-	m_eventDispatcher->subscribe<Event::GUIContextIsValid>(
-		[this](const Event::GUIContextIsValid& event) {
+	static EventDispatcher::SubscriberIndex selfIndex = m_eventDispatcher->registerSubscriber<UIPanelManager>();
+
+	m_eventDispatcher->subscribe<InitEvent::ImGui>(selfIndex,
+		[this](const InitEvent::ImGui& event) {
 			this->onImGuiInit();
 		}
 	);
 
 
-	m_eventDispatcher->subscribe<Event::SceneLoadProgress>(
-		[this](const Event::SceneLoadProgress &event) {
+	m_eventDispatcher->subscribe<UpdateEvent::SceneLoadProgress>(selfIndex,
+		[this](const UpdateEvent::SceneLoadProgress &event) {
 			// NOTE: These updates will happen on the worker thread, but ImGui drawing happens on the main thread.
 			// Accessing these members directly is fine as they're simple types and updates will be observed eventually.
 			// For complex UI state, a concurrent queue or a deferred update might be needed.
@@ -37,8 +39,8 @@ void UIPanelManager::bindEvents() {
 	);
 
 
-	m_eventDispatcher->subscribe<Event::SceneLoadComplete>(
-		[this](const Event::SceneLoadComplete &event) {
+	m_eventDispatcher->subscribe<UpdateEvent::SceneLoadComplete>(selfIndex,
+		[this](const UpdateEvent::SceneLoadComplete &event) {
 			m_currentLoadProgress = 1.0f;
 			m_currentLoadMessage = event.finalMessage;
 			m_loadErrorOccurred = !event.loadSuccessful;

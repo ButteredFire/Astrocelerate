@@ -16,15 +16,16 @@
 #include <vector>
 
 // Local
-#include <Vulkan/VkInstanceManager.hpp>
 #include <Core/Application/LoggingManager.hpp>
 #include <Core/Application/GarbageCollector.hpp>
 #include <Core/Engine/ServiceLocator.hpp>
 #include <Core/Data/Constants.h>
-#include <Core/Data/Contexts/VulkanContext.hpp>
+
 #include <Core/Application/EventDispatcher.hpp>
 
 #include <Vulkan/VkImageManager.hpp>
+#include <Vulkan/VkCoreResourcesManager.hpp>
+class VkCoreResourcesManager;
 
 
 // A structure that manages properties of a swap chain.
@@ -37,8 +38,22 @@ typedef struct SwapChainProperties {
 
 class VkSwapchainManager {
 public:
-	VkSwapchainManager();
+	VkSwapchainManager(GLFWwindow *window, VkCoreResourcesManager *coreResources);
 	~VkSwapchainManager() = default;
+
+
+	inline const std::vector<VkImage> &getImages() const { return m_images; }
+	inline const std::vector<VkImageView> &getImageViews() const { return m_imageViews; }
+	inline const std::vector<VkFramebuffer> &getFramebuffers() const { return m_imageFrameBuffers; }
+
+	inline const std::vector<VkImageLayout> &getImageLayouts() const { return m_imageLayouts; }
+
+	inline VkSwapchainKHR getSwapChain() const { return m_swapChain; }
+	inline VkExtent2D getSwapChainExtent() const { return m_swapChainExtent; }
+	inline VkSurfaceFormatKHR getSurfaceFormat() const { return m_surfaceFormat; }
+	inline VkPresentModeKHR getPresentMode() const { return m_presentMode; }
+	inline uint32_t getMinImageCount() const { return m_minImageCount; }
+
 
 	/* Initializes the swap-chain manager. */
 	void init();
@@ -58,19 +73,34 @@ public:
 
 		@return A SwapChainProperties struct containing details of the GPU's swap-chain.
 	*/
-	static SwapChainProperties getSwapChainProperties(VkPhysicalDevice& device, VkSurfaceKHR& surface);
+	static SwapChainProperties GetSwapChainProperties(VkPhysicalDevice device, VkSurfaceKHR surface);
 
 private:
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 	std::shared_ptr<GarbageCollector> m_garbageCollector;
 	std::vector<uint32_t> m_cleanupTaskIDs; // Stores cleanup task IDs (used exclusively in the swap-chain recreation process)
 
-	VkSwapchainKHR m_swapChain = VK_NULL_HANDLE;
+	GLFWwindow *m_window;
+
+	VkSurfaceKHR m_surface;
+	VkPhysicalDevice m_physicalDevice;
+	VkDevice m_logicalDevice;
+	QueueFamilyIndices m_queueFamilies;
+
+	VkSwapchainKHR m_swapChain;
+	VkExtent2D m_swapChainExtent;
+	VkSurfaceFormatKHR m_surfaceFormat;
+	VkPresentModeKHR m_presentMode;
+	uint32_t m_minImageCount;
+
+	VkRenderPass m_presentPipelineRenderPass;
 
 	std::vector<VkImage> m_images;
 	std::vector<VkImageView> m_imageViews;
-
 	std::vector<VkFramebuffer> m_imageFrameBuffers;
+
+	std::vector<VkImageLayout> m_imageLayouts;
+
 
 	void bindEvents();
 
