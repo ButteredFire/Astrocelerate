@@ -145,6 +145,9 @@ bool GarbageCollector::executeTask(CleanupTask& task, CleanupID taskID) {
 
 
 void GarbageCollector::optimizeStack() {
+	// TODO: Fix optimize stack incorrectly reconstructing the new stack (leading to the GC freeing incorrect resources due to incorrect cleanup ID-stack index mappings)
+	return;
+
 	std::lock_guard<std::recursive_mutex> lock(m_cleanupMutex);
 
     // Create a new deque for valid tasks
@@ -179,4 +182,39 @@ void GarbageCollector::optimizeStack() {
     else {
         Log::Print(Log::T_INFO, __FUNCTION__, "Cleanup stack cannot be optimized further.");
     }
+}
+
+
+std::string GarbageCollector::getObjectNamesString(CleanupTask &task) {
+	std::stringstream ss;
+
+	// Representative object names
+	ss << task.caller << " -> " << task.objectNames[0];
+	for (size_t i = 1; i < task.objectNames.size(); i++)
+		ss << ", " << task.objectNames[i];
+
+	// Addresses of Vulkan handles
+	static auto printHandleTrueValue = [](const auto &handle) {
+		std::stringstream ss;
+		ss << std::showbase << std::hex << typeid(handle).name() << " " << (uint64_t)(handle);
+
+		return ss.str();
+	};
+
+	if (!task.vkHandles.empty()) {
+		ss << " (vkHandle" << PLURAL(task.vkHandles.size(), "", "s") << " ";
+		
+		// We must use std::visit to determine the actual type of any task.vkHandles[i] handle, which is a variant.
+		// Determining the actual handle type is crucial for casting the handle to a uint64_t to get its true hex value (e.g., 0x590000000059)
+		ss << std::visit(printHandleTrueValue, task.vkHandles[0]);
+
+		for (size_t i = 1; i < task.vkHandles.size(); i++) {
+			ss << ", " << std::visit(printHandleTrueValue, task.vkHandles[i]);
+		}
+
+		ss << ")";
+	}
+
+
+	return ss.str();
 }

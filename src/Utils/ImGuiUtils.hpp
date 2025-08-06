@@ -109,6 +109,12 @@ namespace ImGuiUtils {
 	}
 
 
+	/* Compares 2 ImVec2s for equality. */
+	inline bool CompImVec2(const ImVec2 &lhs, const ImVec2 &rhs) {
+		return (lhs.x == rhs.x) && (lhs.y == rhs.y);
+	}
+
+
 
 	// ----- TEXT FORMATTING -----
 

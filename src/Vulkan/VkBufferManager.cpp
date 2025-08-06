@@ -95,7 +95,11 @@ void VkBufferManager::bindEvents() {
 	);
 
 
-	
+	m_eventDispatcher->subscribe<UpdateEvent::ViewportSize>(selfIndex,
+		[this](const UpdateEvent::ViewportSize &event) {
+			m_uiViewportSceneRegion = event.sceneDimensions;
+		}
+	);
 }
 
 
@@ -157,7 +161,7 @@ CleanupID VkBufferManager::CreateBuffer(VkBuffer& buffer, VkDeviceSize bufferSiz
 	CleanupTask bufTask{};
 	bufTask.caller = __FUNCTION__;
 	bufTask.objectNames = { VARIABLE_NAME(buffer) };
-	bufTask.vkHandles = { vmaAllocator, buffer, bufferAllocation };
+	bufTask.vkHandles = { buffer, bufferAllocation };
 	bufTask.cleanupFunc = [vmaAllocator, buffer, bufferAllocation]() { vmaDestroyBuffer(vmaAllocator, buffer, bufferAllocation); };
 
 	CleanupID bufferTaskID = garbageCollector->createCleanupTask(bufTask);
@@ -367,7 +371,7 @@ void VkBufferManager::createPerFrameUniformBuffers() {
 		CleanupTask task{};
 		task.caller = __FUNCTION__;
 		task.objectNames = { "Global and per-object UBOs" };
-		task.vkHandles = { m_vmaAllocator, globalUBOAlloc, objectUBOAlloc };
+		task.vkHandles = { globalUBOAlloc, objectUBOAlloc };
 		task.cleanupFunc = [this, i, globalUBOAlloc, objectUBOAlloc]() {
 			vmaUnmapMemory(m_vmaAllocator, globalUBOAlloc);
 			vmaUnmapMemory(m_vmaAllocator, objectUBOAlloc);
@@ -410,7 +414,7 @@ void VkBufferManager::createMatParamsUniformBuffer() {
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(m_matParamsBufferAllocation) };
-	task.vkHandles = { m_vmaAllocator, m_matParamsBufferAllocation };
+	task.vkHandles = { m_matParamsBufferAllocation };
 	task.cleanupFunc = [this]() {
 		vmaUnmapMemory(m_vmaAllocator, m_matParamsBufferAllocation);
 	};
@@ -517,6 +521,10 @@ void VkBufferManager::initMatParamsUniformBuffer() {
 
 
 void VkBufferManager::updateGlobalUBO(uint32_t currentImage) {
+	// If the scene dimensions are not available yet, do not update the global UBO
+	if (m_uiViewportSceneRegion.x == 0.0f && m_uiViewportSceneRegion.y == 0.0f)
+		return;
+
 	Buffer::GlobalUBO ubo{};
 
 
@@ -529,7 +537,7 @@ void VkBufferManager::updateGlobalUBO(uint32_t currentImage) {
 
 	// Perspective
 	const float fieldOfView = glm::radians(m_camera->zoom);
-	float aspectRatio = static_cast<float>(m_swapchainExtent.width) / static_cast<float>(m_swapchainExtent.height);
+	float aspectRatio = static_cast<float>(m_uiViewportSceneRegion.x) / static_cast<float>(m_uiViewportSceneRegion.y);
 	float nearClipPlane = 0.01f;
 	float farClipPlane = 1e8f;
 

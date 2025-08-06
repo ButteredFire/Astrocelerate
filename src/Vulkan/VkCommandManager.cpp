@@ -86,6 +86,13 @@ void VkCommandManager::bindEvents() {
 			m_swapchainExtent = m_swapchainManager->getSwapChainExtent();
 		}
 	);
+
+
+	m_eventDispatcher->subscribe<RecreationEvent::OffscreenResources>(selfIndex,
+		[this](const RecreationEvent::OffscreenResources &event) {
+			m_offscreenFrameBuffers = event.framebuffers;
+		}
+	);
 }
 
 
@@ -139,7 +146,8 @@ void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, 
 
 
 
-	if (m_sceneReady) {
+	bool offscreenLoadConditions = (m_sceneReady && m_coreResources->getAppState() != Application::State::RECREATING_SWAPCHAIN);
+	if (offscreenLoadConditions) {
 		// Record all secondary command buffers
 		if (!m_secondaryCmdBufs.empty()) {
 			vkCmdExecuteCommands(cmdBuffer, static_cast<uint32_t>(m_secondaryCmdBufs.size()), m_secondaryCmdBufs.data());
@@ -196,75 +204,77 @@ void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, 
 
 
 
-	// Transitions swapchain image to the layout COLOR_ATTACHMENT_OPTIMAL before the presentation render pass
+	if (m_coreResources->getAppState() != Application::State::RECREATING_SWAPCHAIN) {
+		// Transitions swapchain image to the layout COLOR_ATTACHMENT_OPTIMAL before the presentation render pass
 	// This is because the image layout is UNDEFINED for the first swapchain image, and PRESENT_SRC_KHR for subsequent ones.
-	VkImageMemoryBarrier swapchainImgToPresentBarrier{};
-	swapchainImgToPresentBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-	swapchainImgToPresentBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-	//swapchainImgToPresentBarrier.oldLayout = g_vkContext.SwapChain.imageLayouts[imageIndex];
-	//swapchainImgToPresentBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
-	swapchainImgToPresentBarrier.image = m_swapchainImages[imageIndex];
-	swapchainImgToPresentBarrier.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-	swapchainImgToPresentBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-	swapchainImgToPresentBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		VkImageMemoryBarrier swapchainImgToPresentBarrier{};
+		swapchainImgToPresentBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		swapchainImgToPresentBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		//swapchainImgToPresentBarrier.oldLayout = g_vkContext.SwapChain.imageLayouts[imageIndex];
+		//swapchainImgToPresentBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
+		swapchainImgToPresentBarrier.image = m_swapchainImages[imageIndex];
+		swapchainImgToPresentBarrier.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+		swapchainImgToPresentBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		swapchainImgToPresentBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
-	VkAccessFlags srcAccessMask;
-	VkPipelineStageFlags srcStage;
+		VkAccessFlags srcAccessMask;
+		VkPipelineStageFlags srcStage;
 
 
-	if (m_sceneReady) {
-		// If the offscreen pass ran, the image is now VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-		swapchainImgToPresentBarrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-		srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT; // Access from the completed offscreen pass
-		srcStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	}
-	else {
-		// If the offscreen pass was skipped, the image is still in its acquired state
-		swapchainImgToPresentBarrier.oldLayout = m_swapchainImgLayouts[imageIndex];
-		if (swapchainImgToPresentBarrier.oldLayout == VK_IMAGE_LAYOUT_UNDEFINED) {
-			srcAccessMask = 0;
-			srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		if (offscreenLoadConditions) {
+			// If the offscreen pass ran, the image is now VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+			swapchainImgToPresentBarrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT; // Access from the completed offscreen pass
+			srcStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 		}
-		else { // VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
-			srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-			srcStage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT; // No prior writes this frame, so we will wait at bottom.
+		else {
+			// If the offscreen pass was skipped, the image is still in its acquired state
+			swapchainImgToPresentBarrier.oldLayout = m_swapchainImgLayouts[imageIndex];
+			if (swapchainImgToPresentBarrier.oldLayout == VK_IMAGE_LAYOUT_UNDEFINED) {
+				srcAccessMask = 0;
+				srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+			}
+			else { // VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+				srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+				srcStage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT; // No prior writes this frame, so we will wait at bottom.
+			}
 		}
+		swapchainImgToPresentBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT; // For the presentation render pass (read and write for GUI)
+
+
+		vkCmdPipelineBarrier(
+			cmdBuffer,
+			srcStage,
+			VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+			0,
+			0, nullptr,
+			0, nullptr,
+			1, &swapchainImgToPresentBarrier
+		);
+
+
+
+		// PRESENTATION RENDER PASS
+		VkRenderPassBeginInfo presentRenderPassBeginInfo{};
+		presentRenderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+		presentRenderPassBeginInfo.renderPass = m_presentPipelineRenderPass;
+		presentRenderPassBeginInfo.framebuffer = m_swapchainFramebuffers[imageIndex];
+		presentRenderPassBeginInfo.renderArea.offset = { 0, 0 };
+		presentRenderPassBeginInfo.renderArea.extent = m_swapchainExtent;
+		presentRenderPassBeginInfo.clearValueCount = static_cast<uint32_t>(SIZE_OF(clearValues));
+		presentRenderPassBeginInfo.pClearValues = clearValues;
+
+
+		vkCmdBeginRenderPass(cmdBuffer, &presentRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+		m_eventDispatcher->dispatch(UpdateEvent::Renderables{
+			.renderableType = UpdateEvent::Renderables::Type::GUI,
+			.commandBuffer = cmdBuffer,
+			.currentFrame = currentFrame
+		}, true);
+
+		vkCmdEndRenderPass(cmdBuffer);
 	}
-	swapchainImgToPresentBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT; // For the presentation render pass (read and write for GUI)
-
-
-	vkCmdPipelineBarrier(
-		cmdBuffer,
-		srcStage,
-		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-		0,
-		0, nullptr,
-		0, nullptr,
-		1, &swapchainImgToPresentBarrier
-	);
-
-
-	
-	// PRESENTATION RENDER PASS
-	VkRenderPassBeginInfo presentRenderPassBeginInfo{};
-	presentRenderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	presentRenderPassBeginInfo.renderPass = m_presentPipelineRenderPass;
-	presentRenderPassBeginInfo.framebuffer = m_swapchainFramebuffers[imageIndex];
-	presentRenderPassBeginInfo.renderArea.offset = { 0, 0 };
-	presentRenderPassBeginInfo.renderArea.extent = m_swapchainExtent;
-	presentRenderPassBeginInfo.clearValueCount = static_cast<uint32_t>(SIZE_OF(clearValues));
-	presentRenderPassBeginInfo.pClearValues = clearValues;
-
-
-	vkCmdBeginRenderPass(cmdBuffer, &presentRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-	m_eventDispatcher->dispatch(UpdateEvent::Renderables {
-		.renderableType = UpdateEvent::Renderables::Type::GUI,
-		.commandBuffer = cmdBuffer,
-		.currentFrame = currentFrame
-	}, true);
-
-	vkCmdEndRenderPass(cmdBuffer);
 
 
 	// Stop recording the command buffer
@@ -392,7 +402,7 @@ VkCommandPool VkCommandManager::CreateCommandPool(VkDevice device, uint32_t queu
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(m_commandPool) };
-	task.vkHandles = { device, commandPool };
+	task.vkHandles = { commandPool };
 	task.cleanupFunc = [device, commandPool]() { vkDestroyCommandPool(device, commandPool, nullptr); };
 
 	garbageCollector->createCleanupTask(task);
@@ -423,7 +433,7 @@ void VkCommandManager::allocCommandBuffers(VkCommandPool& commandPool, std::vect
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(m_commandBuffers) };
-	task.vkHandles = { m_logicalDevice, commandPool };
+	task.vkHandles = { commandPool };
 	task.cleanupFunc = [this, commandPool, commandBuffers]() { vkFreeCommandBuffers(m_logicalDevice, commandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data()); };
 
 	m_garbageCollector->createCleanupTask(task);

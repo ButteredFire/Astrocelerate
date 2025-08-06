@@ -166,7 +166,7 @@ void OffscreenPipeline::createPipelineLayout() {
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(m_pipelineLayout) };
-	task.vkHandles = { m_logicalDevice, m_pipelineLayout };
+	task.vkHandles = { m_pipelineLayout };
 	task.cleanupFunc = [&]() { vkDestroyPipelineLayout(m_logicalDevice, m_pipelineLayout, nullptr); };
 
 	m_sessionCleanupIDs.push_back(
@@ -277,7 +277,7 @@ void OffscreenPipeline::createRenderPass() {
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(m_renderPass) };
-	task.vkHandles = { m_logicalDevice, m_renderPass };
+	task.vkHandles = { m_renderPass };
 	task.cleanupFunc = [this]() { vkDestroyRenderPass(m_logicalDevice, m_renderPass, nullptr); };
 
 	m_sessionCleanupIDs.push_back(
@@ -428,7 +428,7 @@ VkDescriptorSetLayout OffscreenPipeline::createDescriptorSetLayout(uint32_t bind
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(descriptorSetLayout) };
-	task.vkHandles = { m_logicalDevice, descriptorSetLayout };
+	task.vkHandles = { descriptorSetLayout };
 	task.cleanupFunc = [this, descriptorSetLayout]() {
 		vkDestroyDescriptorSetLayout(m_logicalDevice, descriptorSetLayout, nullptr);
 	};
@@ -457,7 +457,7 @@ void OffscreenPipeline::createDescriptorSets(uint32_t descriptorSetCount, VkDesc
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(descriptorSets) };
-	task.vkHandles = { m_logicalDevice, descriptorPool };
+	task.vkHandles = { descriptorPool };
 	task.cleanupFunc = [this, descriptorSetCount, descriptorSets, descriptorPool]() {
 		vkFreeDescriptorSets(m_logicalDevice, descriptorPool, descriptorSetCount, descriptorSets);
 	};
@@ -519,7 +519,7 @@ void OffscreenPipeline::initShaderStage() {
 	CleanupTask cleanupTask{};
 	cleanupTask.caller = __FUNCTION__;
 	cleanupTask.objectNames = { VARIABLE_NAME(m_vertShaderModule), VARIABLE_NAME(m_fragShaderModule) };
-	cleanupTask.vkHandles = { m_logicalDevice, m_vertShaderModule, m_fragShaderModule };
+	cleanupTask.vkHandles = { m_vertShaderModule, m_fragShaderModule };
 	cleanupTask.cleanupFunc = [&]() {
 		vkDestroyShaderModule(m_logicalDevice, m_vertShaderModule, nullptr);
 		vkDestroyShaderModule(m_logicalDevice, m_fragShaderModule, nullptr);
@@ -719,7 +719,11 @@ void OffscreenPipeline::recreateOffscreenResources(uint32_t width, uint32_t heig
 	initOffscreenSampler();
 	initOffscreenFramebuffer(width, height);
 
-	m_eventDispatcher->dispatch(RecreationEvent::OffscreenResources{});
+	m_eventDispatcher->dispatch(RecreationEvent::OffscreenResources{
+		.imageViews = m_colorImgViews,
+		.samplers = m_colorImgSamplers,
+		.framebuffers = m_colorImgFramebuffers
+	});
 }
 
 
@@ -790,7 +794,7 @@ void OffscreenPipeline::initOffscreenSampler() {
 		CleanupTask task{};
 		task.caller = __FUNCTION__;
 		task.objectNames = { VARIABLE_NAME(m_colorImgSampler) };
-		task.vkHandles = { m_logicalDevice, sampler };
+		task.vkHandles = { sampler };
 
 		task.cleanupFunc = [this, sampler]() {
 			vkDestroySampler(m_logicalDevice, sampler, nullptr);

@@ -104,7 +104,7 @@ CleanupTask VkInstanceManager::createDebugMessenger(VkDebugUtilsMessengerEXT &db
     CleanupTask task{};
     task.caller = __FUNCTION__;
     task.objectNames = { VARIABLE_NAME(dbgMessenger) };
-    task.vkHandles = { instance, dbgMessenger };
+    task.vkHandles = { dbgMessenger };
     task.cleanupFunc = [instance, dbgMessenger]() { destroyDebugUtilsMessengerEXT(instance, dbgMessenger, nullptr); };
     task.cleanupConditions = { IN_DEBUG_MODE };
 
@@ -126,7 +126,7 @@ CleanupTask VkInstanceManager::createSurface(VkSurfaceKHR &surface, VkInstance i
     CleanupTask task{};
     task.caller = __FUNCTION__;
     task.objectNames = { VARIABLE_NAME(surface) };
-    task.vkHandles = { instance, surface };
+    task.vkHandles = { surface };
     task.cleanupFunc = [instance, surface]() { vkDestroySurfaceKHR(instance, surface, nullptr); };
 
     return task;

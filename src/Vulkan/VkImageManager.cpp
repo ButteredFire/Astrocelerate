@@ -55,22 +55,22 @@ CleanupID VkImageManager::CreateImage(VkImage& image, VmaAllocation& imgAllocati
 
 	VkResult imgCreateResult = vmaCreateImage(vmaAllocator, &imgCreateInfo, &imgAllocationCreateInfo, &image, &imgAllocation, nullptr);
 
-	CleanupTask imgTask{};
-	imgTask.caller = __FUNCTION__;
-	imgTask.objectNames = { VARIABLE_NAME(imgAllocation) };
-	imgTask.vkHandles = { vmaAllocator, imgAllocation };
-	imgTask.cleanupFunc = [vmaAllocator, image, imgAllocation]() {
-		vmaDestroyImage(vmaAllocator, image, imgAllocation);
-	};
-
-	uint32_t taskID = garbageCollector->createCleanupTask(imgTask);
-
 	if (imgCreateResult != VK_SUCCESS) {
-		if (imgCreateResult == VK_ERROR_OUT_OF_HOST_MEMORY) 
+		if (imgCreateResult == VK_ERROR_OUT_OF_HOST_MEMORY)
 			throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create image: Your machine has run out of host memory!\nThis could be caused by loading heavy simulations.\nPlease update your " + coreResources->getDeviceName() + " driver and re-run Astrocelerate.");
 
 		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create image!\nVulkan error code: " + TO_STR(imgCreateResult));
 	}
+
+	CleanupTask imgTask{};
+	imgTask.caller = __FUNCTION__;
+	imgTask.objectNames = { VARIABLE_NAME(imgAllocation) };
+	imgTask.vkHandles = { imgAllocation };
+	imgTask.cleanupFunc = [=]() {
+		vmaDestroyImage(vmaAllocator, image, imgAllocation);
+	};
+
+	uint32_t taskID = garbageCollector->createCleanupTask(imgTask);
 
 	return taskID;
 }
@@ -120,18 +120,17 @@ CleanupID VkImageManager::CreateImageView(VkImageView& imageView, VkImage& image
 	viewCreateInfo.subresourceRange.layerCount = layerCount;
 
 	VkResult result = vkCreateImageView(logicalDevice, &viewCreateInfo, nullptr, &imageView);
-	
+	LOG_ASSERT(result == VK_SUCCESS, "Failed to create image view!");
+
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(imageView) };
-	task.vkHandles = { logicalDevice, imageView };
-	task.cleanupFunc = [logicalDevice, imageView]() {
+	task.vkHandles = { imageView };
+	task.cleanupFunc = [=]() {
 		vkDestroyImageView(logicalDevice, imageView, nullptr);
 	};
 
 	uint32_t taskID = garbageCollector->createCleanupTask(task);
-
-	LOG_ASSERT(result == VK_SUCCESS, "Failed to create image view!");
 
 	return taskID;
 }
@@ -154,18 +153,17 @@ CleanupID VkImageManager::CreateFramebuffer(VkFramebuffer& framebuffer, VkRender
 	bufferCreateInfo.layers = 1;
 
 	VkResult result = vkCreateFramebuffer(coreResources->getLogicalDevice(), &bufferCreateInfo, nullptr, &framebuffer);
+	LOG_ASSERT(result == VK_SUCCESS, "Failed to create framebuffer!");
 	
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(framebuffer) };
-	task.vkHandles = { logicalDevice, framebuffer };
-	task.cleanupFunc = [logicalDevice, framebuffer]() {
+	task.vkHandles = { framebuffer };
+	task.cleanupFunc = [=]() {
 		vkDestroyFramebuffer(logicalDevice, framebuffer, nullptr);
 	};
 
 	uint32_t taskID = garbageCollector->createCleanupTask(task);
-
-	LOG_ASSERT(result == VK_SUCCESS, "Failed to create framebuffer!");
 	
 	return taskID;
 }

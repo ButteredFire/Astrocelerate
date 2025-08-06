@@ -394,7 +394,7 @@ VkSampler TextureManager::createTextureSampler(
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(textureSampler) };
-	task.vkHandles = { m_coreResources->getLogicalDevice(), textureSampler };
+	task.vkHandles = { textureSampler };
 	task.cleanupFunc = [this, textureSampler]() { vkDestroySampler(m_coreResources->getLogicalDevice(), textureSampler, nullptr); };
 	m_garbageCollector->createCleanupTask(task);
 

@@ -26,6 +26,8 @@ void OrbitalWorkspace::bindEvents() {
 				ImGui_ImplVulkan_RemoveTexture((VkDescriptorSet)m_viewportRenderTextureIDs[i]);
 			}
 
+			m_offscreenImageViews = event.imageViews;
+			m_offscreenSamplers = event.samplers;
 			initPerFrameTextures();
 		}
 	);
@@ -228,7 +230,6 @@ void OrbitalWorkspace::updatePerFrameTextures(uint32_t currentFrame) {
 
 void OrbitalWorkspace::renderViewportPanel() {
 	if (ImGui::Begin(GUI::GetPanelName(m_panelViewport), nullptr, m_windowFlags | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse)) {
-		ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
 
 		ImGuiUtils::PushStyleClearButton();
 		{
@@ -326,28 +327,51 @@ void OrbitalWorkspace::renderViewportPanel() {
 		ImGui::Separator();
 
 
-		if (m_sceneSampleReady) {
-			g_appContext.Input.isViewportHoveredOver = ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows) || m_inputBlockerIsOn;
-			g_appContext.Input.isViewportFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) || m_inputBlockerIsOn;
+		if (m_sceneSampleReady && ImGui::BeginChild("##ViewportSceneRegion")) {
+			static bool sceneRegionClicked = false;
+			g_appContext.Input.isViewportHoveredOver = ImGui::IsWindowHovered(ImGuiFocusedFlags_ChildWindows) || m_inputBlockerIsOn;
+			g_appContext.Input.isViewportFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows) || m_inputBlockerIsOn;
+			//g_appContext.Input.isViewportFocused = sceneRegionClicked || m_inputBlockerIsOn;
+
+			static ImVec2 viewportSceneRegion;
+			static ImVec2 lastViewportSceneRegion(0, 0);
+
+			viewportSceneRegion = ImGui::GetContentRegionAvail();
 
 			// Resizes the texture to its original aspect ratio before rendering
-			ImVec2 originalRenderSize = {
-				static_cast<float>(m_swapchainManager->getSwapChainExtent().width),
-				static_cast<float>(m_swapchainManager->getSwapChainExtent().height)
-			};
-			ImVec2 textureSize = ImGuiUtils::ResizeImagePreserveAspectRatio(originalRenderSize, viewportPanelSize);
+			//static VkExtent2D swapchainExtent = m_swapchainManager->getSwapChainExtent();
+			//ImVec2 originalRenderSize = {
+			//	static_cast<float>(swapchainExtent.width),
+			//	static_cast<float>(swapchainExtent.height)
+			//};
+			//ImVec2 textureSize = ImGuiUtils::ResizeImagePreserveAspectRatio(originalRenderSize, viewportSceneRegion);
+			//ImVec2 textureSize = viewportSceneRegion;
 
 
 			// Padding to center the texture
-			ImVec2 offset{};
-			offset.x = (viewportPanelSize.x - textureSize.x) * 0.5f;
-			offset.y = (viewportPanelSize.y - textureSize.y) * 0.5f;
+			//ImVec2 offset{};
+			//offset.x = (viewportSceneRegion.x - textureSize.x) * 0.5f;
+			//offset.y = (viewportSceneRegion.y - textureSize.y) * 0.5f;
 
-			ImVec2 cursorPos = ImGui::GetCursorPos();
-			ImGui::SetCursorPos({ cursorPos.x + offset.x, cursorPos.y + offset.y });
 
-			ImGui::Image(m_viewportRenderTextureIDs[m_currentFrame], textureSize);
-			ImGuiUtils::CursorOnHover();
+			if (!ImGuiUtils::CompImVec2(viewportSceneRegion, lastViewportSceneRegion)) {
+				m_eventDispatcher->dispatch(UpdateEvent::ViewportSize{
+					.sceneDimensions = glm::vec2(viewportSceneRegion.x, viewportSceneRegion.y)
+					}, true);
+
+				lastViewportSceneRegion = viewportSceneRegion;
+			}
+
+			//ImVec2 cursorPos = ImGui::GetCursorPos();
+			//ImGui::SetCursorPos({ cursorPos.x + offset.x, cursorPos.y + offset.y });
+
+
+			ImGui::Image(m_viewportRenderTextureIDs[m_currentFrame], viewportSceneRegion);
+			if (ImGui::IsItemClicked())
+				sceneRegionClicked = true;
+
+
+			ImGui::EndChild();
 		}
 
 		ImGui::End();

@@ -161,7 +161,7 @@ void Engine::initEngine() {
 
 
     // Synchronization manager
-    m_syncManager = std::make_shared<VkSyncManager>(m_logicalDevice);
+    m_syncManager = std::make_shared<VkSyncManager>(m_coreResourcesManager.get(), m_swapchainManager.get());
     ServiceLocator::RegisterService(m_syncManager);
 
 

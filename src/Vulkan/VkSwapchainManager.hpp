@@ -64,7 +64,7 @@ public:
 
 
 	/* Recreates the swap-chain. */
-	void recreateSwapchain(uint32_t imageIndex);
+	void recreateSwapchain(uint32_t imageIndex, std::vector<VkFence> &inFlightFences);
 
 
 	/* Queries the properties of a GPU's swap-chain.
@@ -78,7 +78,8 @@ public:
 private:
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 	std::shared_ptr<GarbageCollector> m_garbageCollector;
-	std::vector<uint32_t> m_cleanupTaskIDs; // Stores cleanup task IDs (used exclusively in the swap-chain recreation process)
+	std::vector<CleanupID> m_cleanupTaskIDs; // Stores cleanup task IDs (used exclusively in the swap-chain recreation process)
+	CleanupID m_swapchainCleanupID{};	// The swapchain cleanup task ID. This is to explicitly remove this ID from the destruction list in `recreateSwapchain` because, by setting VkSwapchainCreateInfoKHR::oldSwapchain to the old swapchain handle, it is implicitly destroyed by being "consumed" by the new swapchain, and thus any vkDestroySwapchain call on the old swapchain would mean destroying the new one instead.
 
 	GLFWwindow *m_window;
 
@@ -105,7 +106,7 @@ private:
 	void bindEvents();
 
 	/* Creates a swap-chain. */
-	void createSwapChain();
+	void createSwapChain(VkSwapchainKHR oldSwapchain = VK_NULL_HANDLE);
 
 
 	/* Creates an array of image views, each element corresponding to a VkImage object in the passed-in vector.

@@ -24,7 +24,7 @@ class ThreadManager;
 #define VARIABLE_NAME(V) std::string((#V))
 #define BOOLALPHA(COND) ((COND) ? "true" : "false")
 #define BOOLALPHACAP(COND) ((COND) ? "True" : "False")
-#define PLURAL(NUM, SUFFIX_SINGULAR, SUFFIX_PLURAL) (((NUM) == 1) ? (SUFFIX_SINGULAR) : (SUFFIX_PLURAL))
+#define PLURAL(NUM, SUFFIX_SINGULAR, SUFFIX_PLURAL) std::string(((NUM) == 1) ? (SUFFIX_SINGULAR) : (SUFFIX_PLURAL))
 
 // Usage: LOG_ASSERT(condition, message [, severity])
 #define LOG_ASSERT(cond, msg, ...) \

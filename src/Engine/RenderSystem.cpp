@@ -26,7 +26,6 @@ void RenderSystem::bindEvents() {
 			m_globalVertexBuffer = event.globalVertexBuffer;
 			m_globalIndexBuffer = event.globalIndexBuffer;
 			m_perFrameDescriptorSets = event.perFrameDescriptorSets;
-			std::cout << "marked one whatdahelll\n";
 		}
 	);
 
@@ -80,7 +79,6 @@ void RenderSystem::waitForResources(const EventDispatcher::SubscriberIndex &self
 
 		m_eventDispatcher->waitForEventCallbacks(selfIndex, eventFlags);
 
-		std::cout << "scene is ready\n";
 		m_sceneReady = true;
 	}).detach();
 }

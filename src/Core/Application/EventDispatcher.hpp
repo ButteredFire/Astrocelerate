@@ -60,6 +60,23 @@ public:
 	}
 
 
+	/* Gets the index of a subscriber.
+		@tparam Subscriber: The subscriber type.
+
+		@return The corresponding subscriber index.
+	*/
+	template<typename Subscriber>
+	inline SubscriberIndex getSubscriberIndex() {
+		std::lock_guard<std::mutex> lock(m_subscribersMutex);
+		
+		SubscriberIndex subscriberTypeIndex = std::type_index(typeid(Subscriber));
+		auto it = m_subscribers.find(subscriberTypeIndex);
+		LOG_ASSERT(it != m_subscribers.end(), "Cannot get index of subscriber " + enquote(subscriberTypeIndex.name()) + ": Subscriber is not registered!");
+
+		return it->second;
+	}
+
+
 	/* Subscribes to an event type.
 		@tparam EventType: The event type.
 		@param handler: The event handler function.
@@ -241,6 +258,9 @@ private:
 
 
 		for (auto &callback : callbacks) {
+			if (!suppressLogs)
+				Log::Print(Log::T_VERBOSE, __FUNCTION__, "[Subscriber " + enquote(callback.callbackOrigin.name()) + ", event " + enquote(eventTypeIndex.name()) + "] Firing callback...");
+
 			callback.callback(event);
 			m_eventsSubscribedTo[callback.callbackOrigin].set(ctz(eventFlag));
 		}

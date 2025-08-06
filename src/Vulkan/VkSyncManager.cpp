@@ -4,8 +4,10 @@
 #include "VkSyncManager.hpp"
 
 
-VkSyncManager::VkSyncManager(VkDevice logicalDevice) :
-	m_logicalDevice(logicalDevice) {
+VkSyncManager::VkSyncManager(VkCoreResourcesManager *coreResources, VkSwapchainManager *swapchainMgr) :
+	m_coreResources(coreResources),
+	m_swapchainManager(swapchainMgr),
+	m_logicalDevice(coreResources->getLogicalDevice()) {
 
 	m_garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
 
@@ -19,7 +21,9 @@ VkSyncManager::~VkSyncManager() {};
 
 
 void VkSyncManager::init() {
-	createPerFrameSyncPrimitives();
+	createPerFrameSemaphores();
+	createPerFrameFences();
+	createPerImageSemaphores();
 }
 
 
@@ -50,7 +54,37 @@ void VkSyncManager::WaitForSingleUseFence(VkDevice logicalDevice, VkFence& fence
 }
 
 
-void VkSyncManager::createPerFrameSyncPrimitives() {
+void VkSyncManager::createPerImageSemaphores() {
+	m_renderFinishedSemaphoreCleanupIDs.clear();
+
+	size_t swapchainImgCount = m_swapchainManager->getImages().size();
+	m_renderFinishedSemaphores.resize(swapchainImgCount);
+
+
+	VkSemaphoreCreateInfo semaphoreCreateInfo{};
+	semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+
+	for (size_t i = 0; i < swapchainImgCount; i++) {
+		VkResult renderSemaphoreCreateResult = vkCreateSemaphore(m_logicalDevice, &semaphoreCreateInfo, nullptr, &m_renderFinishedSemaphores[i]);
+		LOG_ASSERT(renderSemaphoreCreateResult == VK_SUCCESS, "Failed to create semaphores for frame " + std::to_string(i) + "!");
+
+		CleanupTask syncObjTask{};
+		syncObjTask.caller = __FUNCTION__;
+		syncObjTask.objectNames = { VARIABLE_NAME(m_renderFinishedSemaphore) };
+		syncObjTask.vkHandles = { m_renderFinishedSemaphores[i] };
+		syncObjTask.cleanupFunc = [this, semaphores = m_renderFinishedSemaphores, i]() {
+			vkDestroySemaphore(m_logicalDevice, semaphores[i], nullptr);
+			};
+
+		m_renderFinishedSemaphoreCleanupIDs.push_back(
+			m_garbageCollector->createCleanupTask(syncObjTask)
+		);
+	}
+}
+
+
+void VkSyncManager::createPerFrameSemaphores() {
 	/* A note on synchronization:
 	* - Since the GPU executes commands in parallel, and since each step in the frame-rendering process depends on the previous step (and the completion thereof), we must explicitly define an order of operations to prevent these steps from being executed concurrently (which results in unintended/undefined behavior). To that effect, we may use various synchronization primitives:
 	*
@@ -77,12 +111,33 @@ void VkSyncManager::createPerFrameSyncPrimitives() {
 		* Fences must be reset manually to put them back into the unsignaled state. This is because fences are used to control the execution of the host, and so the host gets to decide when to reset the fence. Contrast this to semaphores which are used to order work on the GPU without the host being involved.
 	*/
 	m_imageReadySemaphores.resize(SimulationConsts::MAX_FRAMES_IN_FLIGHT);
-	m_renderFinishedSemaphores.resize(SimulationConsts::MAX_FRAMES_IN_FLIGHT);
-	m_inFlightFences.resize(SimulationConsts::MAX_FRAMES_IN_FLIGHT);
 
 
 	VkSemaphoreCreateInfo semaphoreCreateInfo{};
 	semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+	
+
+	for (size_t i = 0; i < SimulationConsts::MAX_FRAMES_IN_FLIGHT; i++) {
+		VkResult imageSemaphoreCreateResult = vkCreateSemaphore(m_logicalDevice, &semaphoreCreateInfo, nullptr, &m_imageReadySemaphores[i]);
+		LOG_ASSERT(imageSemaphoreCreateResult == VK_SUCCESS, "Failed to create semaphores for frame " + std::to_string(i) + "!");
+
+		CleanupTask syncObjTask{};
+		syncObjTask.caller = __FUNCTION__;
+		syncObjTask.objectNames = { VARIABLE_NAME(m_imageReadySemaphores) };
+		syncObjTask.vkHandles = { m_imageReadySemaphores[i] };
+		syncObjTask.cleanupFunc = [this, i]() {
+			vkDestroySemaphore(m_logicalDevice, m_imageReadySemaphores[i], nullptr);
+		};
+
+		m_garbageCollector->createCleanupTask(syncObjTask);
+	}
+}
+
+
+void VkSyncManager::createPerFrameFences() {
+	m_inFlightFences.resize(SimulationConsts::MAX_FRAMES_IN_FLIGHT);
+
 
 	VkFenceCreateInfo fenceCreateInfo{};
 	fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
@@ -91,34 +146,19 @@ void VkSyncManager::createPerFrameSyncPrimitives() {
 	// We need to do this, because if the fence is created unsignaled (default), when we call drawFrame() in the Renderer for the first time, `vkWaitForFences` will wait for the fence to be signaled, only to wait indefinitely because the fence can only be signaled after a frame has finished rendering, and we are calling drawFrames() for the first time so there is no frame initially.
 	fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
+
 	for (size_t i = 0; i < SimulationConsts::MAX_FRAMES_IN_FLIGHT; i++) {
-		VkResult imageSemaphoreCreateResult = vkCreateSemaphore(m_logicalDevice, &semaphoreCreateInfo, nullptr, &m_imageReadySemaphores[i]);
-		VkResult renderSemaphoreCreateResult = vkCreateSemaphore(m_logicalDevice, &semaphoreCreateInfo, nullptr, &m_renderFinishedSemaphores[i]);
 		VkResult inFlightFenceCreateResult = vkCreateFence(m_logicalDevice, &fenceCreateInfo, nullptr, &m_inFlightFences[i]);
+		LOG_ASSERT(inFlightFenceCreateResult == VK_SUCCESS, "Failed to create in-flight fence for frame " + std::to_string(i) + "!");
 
+		CleanupTask syncObjTask{};
+		syncObjTask.caller = __FUNCTION__;
+		syncObjTask.objectNames = { VARIABLE_NAME(m_inFlightFences) };
+		syncObjTask.vkHandles = { m_inFlightFences[i] };
+		syncObjTask.cleanupFunc = [this, i]() {
+			vkDestroyFence(m_logicalDevice, m_inFlightFences[i], nullptr);
+		};
 
-		// Cleanup
-		{
-			CleanupTask syncObjTask{};
-			syncObjTask.caller = __FUNCTION__;
-			syncObjTask.objectNames = { VARIABLE_NAME(m_imageReadySemaphore), VARIABLE_NAME(m_renderFinishedSemaphore), VARIABLE_NAME(m_inFlightFence) };
-			syncObjTask.vkHandles = { m_logicalDevice };
-			syncObjTask.cleanupFunc = [this, i]() {
-				vkDestroySemaphore(m_logicalDevice, m_imageReadySemaphores[i], nullptr);
-				vkDestroySemaphore(m_logicalDevice, m_renderFinishedSemaphores[i], nullptr);
-				vkDestroyFence(m_logicalDevice, m_inFlightFences[i], nullptr);
-			};
-
-			m_garbageCollector->createCleanupTask(syncObjTask);
-		}
-		
-		
-		if (imageSemaphoreCreateResult != VK_SUCCESS || renderSemaphoreCreateResult != VK_SUCCESS) {
-			throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create semaphores for a frame!");
-		}
-
-		if (inFlightFenceCreateResult != VK_SUCCESS) {
-			throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create in-flight fence for a frame!");
-		}
+		m_garbageCollector->createCleanupTask(syncObjTask);
 	}
 }

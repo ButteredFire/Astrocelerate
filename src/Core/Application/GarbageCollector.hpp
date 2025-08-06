@@ -7,6 +7,7 @@
 #include <vector>
 #include <deque>
 #include <variant>
+#include <iomanip> // std::hex
 #include <functional>
 
 #include <Core/Application/LoggingManager.hpp>
@@ -135,12 +136,5 @@ private:
 	/* Constructs a string of object names involved in a cleanup task.
 		@return The string in question.
 	*/
-	inline std::string getObjectNamesString(CleanupTask& task) {
-		std::string objectNamesStr = (task.caller + " -> " + task.objectNames[0]);
-		for (size_t i = 1; i < task.objectNames.size(); i++) {
-			objectNamesStr += ", " + task.objectNames[i];
-		}
-
-		return objectNamesStr;
-	}
+	std::string getObjectNamesString(CleanupTask &task);
 };

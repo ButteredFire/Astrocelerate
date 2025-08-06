@@ -81,7 +81,7 @@ public:
 		CleanupTask task{};
 		task.caller = __FUNCTION__;
 		task.objectNames = { VARIABLE_NAME(graphicsPipeline) };
-		task.vkHandles = { logicalDevice, graphicsPipeline };
+		task.vkHandles = { graphicsPipeline };
 		task.cleanupFunc = [logicalDevice, graphicsPipeline]() { vkDestroyPipeline(logicalDevice, graphicsPipeline, nullptr); };
 
 		m_garbageCollector->createCleanupTask(task);

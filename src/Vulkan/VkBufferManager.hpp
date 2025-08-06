@@ -111,6 +111,9 @@ private:
     std::vector<CleanupID> m_bufferCleanupIDs;
     std::vector<CleanupID> m_bufferMemCleanupIDs;
 
+        // Viewport data
+    glm::vec2 m_uiViewportSceneRegion{};
+
 
     void bindEvents();
 

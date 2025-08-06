@@ -14,6 +14,7 @@ Renderer::Renderer(VkCoreResourcesManager *coreResources, VkSwapchainManager *sw
 
     m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
     m_globalRegistry = ServiceLocator::GetService<Registry>(__FUNCTION__);
+    m_garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
 
     bindEvents();
 
@@ -44,13 +45,22 @@ void Renderer::bindEvents() {
             }
         }
     );
+
+
+    m_eventDispatcher->subscribe<RecreationEvent::Swapchain>(selfIndex, 
+        [this](const RecreationEvent::Swapchain &event) {
+            m_swapchainDeferredCleanupIDs = event.deferredDestructionList;
+        }
+    );
 }
 
 
 void Renderer::init() {
     m_imageReadySemaphores = m_syncManager->getImageReadySemaphores();
-    m_renderFinishedSemaphores = m_syncManager->getRenderFinishedSemaphores();
     m_inFlightFences = m_syncManager->getInFlightFences();
+
+    m_renderFinishedSemaphores = m_syncManager->getRenderFinishedSemaphores();
+    m_renderFinishedSemaphoreCleanupIDs = m_syncManager->getRenderFinishedSemaphoreCleanupIDs();
 
     m_graphicsCommandBuffers = m_commandManager->getGraphicsCommandBuffers();
 }
@@ -77,6 +87,8 @@ void Renderer::preRenderUpdate(uint32_t currentFrame, glm::dvec3 &renderOrigin) 
 
 
 void Renderer::drawFrame(glm::dvec3& renderOrigin) {
+    static VkQueue lastQueue = VK_NULL_HANDLE;
+
     /* How a frame is drawn:
         1. Wait for the previous frame to finish rendering (i.e., waiting for its fence)
         2. After waiting, acquire a new image from the swap-chain for rendering
@@ -95,12 +107,40 @@ void Renderer::drawFrame(glm::dvec3& renderOrigin) {
     LOG_ASSERT(waitResult == VK_SUCCESS, "Failed to wait for in-flight fence!");
 
 
+    
+    if (!m_swapchainDeferredCleanupIDs.empty()) {
+        vkQueueWaitIdle(lastQueue);
+
+        // Destroy old swapchain resources
+        for (const auto &taskID : m_swapchainDeferredCleanupIDs)
+            m_garbageCollector->executeCleanupTask(taskID);
+        m_swapchainDeferredCleanupIDs.clear();
+
+        // Destroy old per-image signal semaphores
+        for (const auto &taskID : m_renderFinishedSemaphoreCleanupIDs)
+            m_garbageCollector->executeCleanupTask(taskID);
+        m_renderFinishedSemaphoreCleanupIDs.clear();
+
+        // Create new such semaphores
+        m_syncManager->createPerImageSemaphores();
+        m_renderFinishedSemaphores = m_syncManager->getRenderFinishedSemaphores();
+        m_renderFinishedSemaphoreCleanupIDs = m_syncManager->getRenderFinishedSemaphoreCleanupIDs();
+    }
+
+
+
+    // After waiting, reset in-flight fence to unsignaled
+    VkResult resetFenceResult = vkResetFences(m_coreResources->getLogicalDevice(), 1, &m_inFlightFences[m_currentFrame]);
+    LOG_ASSERT(resetFenceResult == VK_SUCCESS, "Failed to reset fence!");
+
+
+
     // Acquires an image from the swap-chain
     uint32_t imageIndex;
     VkResult imgAcquisitionResult = vkAcquireNextImageKHR(m_coreResources->getLogicalDevice(), m_swapchainManager->getSwapChain(), UINT64_MAX, m_imageReadySemaphores[m_currentFrame], VK_NULL_HANDLE, &imageIndex);
     if (imgAcquisitionResult != VK_SUCCESS) {
         if (imgAcquisitionResult == VK_ERROR_OUT_OF_DATE_KHR || imgAcquisitionResult == VK_SUBOPTIMAL_KHR) {
-            m_swapchainManager->recreateSwapchain(m_currentFrame);
+            m_swapchainManager->recreateSwapchain(m_currentFrame, m_inFlightFences);
             m_uiRenderer->refreshImGui();
             return;
         }
@@ -109,12 +149,6 @@ void Renderer::drawFrame(glm::dvec3& renderOrigin) {
             throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to acquire an image from the swap-chain!\nThe current image index in this frame is: " + std::to_string(imageIndex));
         }
     }
-
-
-
-        // After waiting, reset in-flight fence to unsignaled
-    VkResult resetFenceResult = vkResetFences(m_coreResources->getLogicalDevice(), 1, &m_inFlightFences[m_currentFrame]);
-    LOG_ASSERT(resetFenceResult == VK_SUCCESS, "Failed to reset fence!");
 
 
 
@@ -160,7 +194,10 @@ void Renderer::drawFrame(glm::dvec3& renderOrigin) {
     submitInfo.signalSemaphoreCount = SIZE_OF(signalSemaphores);
     submitInfo.pSignalSemaphores = signalSemaphores;
 
+
     VkQueue graphicsQueue = m_coreResources->getQueueFamilyIndices().graphicsFamily.deviceQueue;
+    lastQueue = graphicsQueue;
+
     VkResult submitResult = vkQueueSubmit(graphicsQueue, 1, &submitInfo, m_inFlightFences[m_currentFrame]);
     LOG_ASSERT(submitResult == VK_SUCCESS, "Failed to submit draw command buffer!");
 
@@ -190,7 +227,7 @@ void Renderer::drawFrame(glm::dvec3& renderOrigin) {
     VkResult presentResult = vkQueuePresentKHR(graphicsQueue, &presentationInfo);
     if (presentResult != VK_SUCCESS) {
         if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR) {
-            m_swapchainManager->recreateSwapchain(imageIndex);
+            m_swapchainManager->recreateSwapchain(imageIndex, m_inFlightFences);
             m_uiRenderer->refreshImGui();
             return;
         }

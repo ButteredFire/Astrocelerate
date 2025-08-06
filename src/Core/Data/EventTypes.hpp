@@ -7,6 +7,7 @@
 
 #include <External/GLM.hpp>
 
+#include <Core/Application/GarbageCollector.hpp>
 #include <Core/Data/Geometry.hpp>
 #include <Core/Data/Application.hpp>
 
@@ -36,12 +37,13 @@ enum EventFlag {
 	EVENT_FLAG_UPDATE_REGISTRY_RESET_BIT				= 1 << 17,
 	EVENT_FLAG_UPDATE_SCENE_LOAD_PROGRESS_BIT			= 1 << 18,
 	EVENT_FLAG_UPDATE_SCENE_LOAD_COMPLETE_BIT			= 1 << 19,
+	EVENT_FLAG_UPDATE_VIEWPORT_SIZE_BIT					= 1 << 20,
 
-	EVENT_FLAG_REQUEST_INIT_SESSION_BIT					= 1 << 20,
-	EVENT_FLAG_REQUEST_PROCESS_SECONDARY_COMMAND_BUFFERS_BIT = 1 << 21,
-	EVENT_FLAG_REQUEST_INIT_SCENE_RESOURCES_BIT			= 1 << 22
+	EVENT_FLAG_REQUEST_INIT_SESSION_BIT					= 1 << 21,
+	EVENT_FLAG_REQUEST_PROCESS_SECONDARY_COMMAND_BUFFERS_BIT = 1 << 22,
+	EVENT_FLAG_REQUEST_INIT_SCENE_RESOURCES_BIT			= 1 << 23
 };
-constexpr size_t EVENT_FLAG_COUNT = 22 + 1; // Highest bit position + 1
+constexpr size_t EVENT_FLAG_COUNT = 23 + 1; // Highest bit position + 1
 
 
 namespace InitEvent {
@@ -134,12 +136,17 @@ namespace RecreationEvent {
 
 		uint32_t imageIndex;
 		std::vector<VkImageLayout> imageLayouts;
+		std::vector<CleanupID> deferredDestructionList;
 	};
 
 
 	/* Used AFTER offscreen render targets have been recreated. */
 	struct OffscreenResources {
 		const EventFlag eventFlag = EVENT_FLAG_RECREATION_OFFSCREEN_RESOURCES_BIT;
+
+		std::vector<VkImageView> imageViews;
+		std::vector<VkSampler> samplers;
+		std::vector<VkFramebuffer> framebuffers;
 	};
 }
 
@@ -239,6 +246,14 @@ namespace UpdateEvent {
 
 		bool loadSuccessful;
 		std::string finalMessage;
+	};
+
+
+	/* Used when the GUI viewport's available region to render the scene onto has changed in size. */
+	struct ViewportSize {
+		const EventFlag eventFlag = EVENT_FLAG_UPDATE_VIEWPORT_SIZE_BIT;
+
+		glm::vec2 sceneDimensions;
 	};
 }
 

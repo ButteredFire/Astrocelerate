@@ -40,7 +40,6 @@ void VkSwapchainManager::bindEvents() {
 
 
 void VkSwapchainManager::init() {
-    /* WARNING: The init() method is also called by recreateSwapchain */
     // Initializes swap-chain
     createSwapChain();
 
@@ -49,10 +48,13 @@ void VkSwapchainManager::init() {
 }
 
 
-void VkSwapchainManager::recreateSwapchain(uint32_t imageIndex) {
+void VkSwapchainManager::recreateSwapchain(uint32_t imageIndex, std::vector<VkFence> &inFlightFences) {
     m_eventDispatcher->dispatch(UpdateEvent::ApplicationStatus{
         .appState = Application::State::RECREATING_SWAPCHAIN    
     });
+
+    // Wait for the host to be idle, and all frames to be processed
+    vkWaitForFences(m_logicalDevice, static_cast<uint32_t>(inFlightFences.size()), inFlightFences.data(), VK_TRUE, UINT64_MAX);
 
     {
         // If the window is minimized (i.e., (width, height) = (0, 0), pause the window until it is in the foreground again
@@ -63,25 +65,34 @@ void VkSwapchainManager::recreateSwapchain(uint32_t imageIndex) {
             glfwWaitEvents();
         }
 
-        // Recreates swap-chain
-            // Waits for the host to be idle
-        vkDeviceWaitIdle(m_logicalDevice);
-
-        // Cleans up outdated swap-chain objects
-        for (const auto &taskID : m_cleanupTaskIDs) {
-            m_garbageCollector->executeCleanupTask(taskID);
-        }
+        // Recreate swap-chain
+            // We cannot clean up outdated swap-chain objects immediately, as we cannot know when the presentation engine has finished with the current swap-chain resources, including the semaphores it's waiting on.
+            // To solve this, we can defer destruction until we are absolutely sure the resources are no longer in use.
+        
+        //for (const auto &taskID : m_cleanupTaskIDs) {
+        //    m_garbageCollector->executeCleanupTask(taskID);
+        //}
+        std::vector<CleanupID> deferredDestructionList(m_cleanupTaskIDs.begin(), m_cleanupTaskIDs.end());
         m_cleanupTaskIDs.clear();
 
-        // Re-initialization
-        init();
+        // Explicitly remove the old swapchain cleanup ID from the destruction list in `recreateSwapchain`.
+        // This is necessary because, by setting VkSwapchainCreateInfoKHR::oldSwapchain to the old swapchain handle, it is implicitly destroyed by being "consumed" by the new swapchain, and thus any vkDestroySwapchain call on the old swapchain would mean destroying the new one instead.
+        auto newEnd = std::remove(deferredDestructionList.begin(), deferredDestructionList.end(), m_swapchainCleanupID);
+        deferredDestructionList.erase(newEnd, deferredDestructionList.end());
+
+
+            // Re-initialization
+        VkSwapchainKHR oldSwapchain = m_swapChain;
+        createSwapChain(oldSwapchain);
+        createImageViews();
         createFrameBuffers();
 
         m_imageLayouts[imageIndex] = VK_IMAGE_LAYOUT_UNDEFINED;
 
         m_eventDispatcher->dispatch(RecreationEvent::Swapchain{
             .imageIndex = imageIndex,
-            .imageLayouts = m_imageLayouts
+            .imageLayouts = m_imageLayouts,
+            .deferredDestructionList = deferredDestructionList
         });
     }
 
@@ -91,7 +102,7 @@ void VkSwapchainManager::recreateSwapchain(uint32_t imageIndex) {
 }
 
 
-void VkSwapchainManager::createSwapChain() {
+void VkSwapchainManager::createSwapChain(VkSwapchainKHR oldSwapchain) {
     SwapChainProperties swapChainProperties = GetSwapChainProperties(m_physicalDevice, m_surface);
 
     m_swapChainExtent = getBestSwapExtent(swapChainProperties.surfaceCapabilities);
@@ -159,8 +170,8 @@ void VkSwapchainManager::createSwapChain() {
     // In this case, we will ignore the alpha channel.
     swapChainCreateInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 
-    // References the old swap-chain (which is null for now)
-    swapChainCreateInfo.oldSwapchain = VK_NULL_HANDLE;
+    // References the old swap-chain
+    swapChainCreateInfo.oldSwapchain = oldSwapchain;
 
     // Creates a VkSwapchainKHR object
     VkResult result = vkCreateSwapchainKHR(m_logicalDevice, &swapChainCreateInfo, nullptr, &m_swapChain);
@@ -171,11 +182,10 @@ void VkSwapchainManager::createSwapChain() {
     task.caller = __FUNCTION__;
     task.objectNames = { VARIABLE_NAME(m_swapChain) };
     task.vkHandles = { m_swapChain };
-    task.cleanupFunc = [&]() { vkDestroySwapchainKHR(m_logicalDevice, m_swapChain, nullptr); };
+    task.cleanupFunc = [=]() { vkDestroySwapchainKHR(m_logicalDevice, m_swapChain, nullptr); };
 
-    m_cleanupTaskIDs.push_back(
-        m_garbageCollector->createCleanupTask(task)
-    );
+    m_swapchainCleanupID = m_garbageCollector->createCleanupTask(task);
+    m_cleanupTaskIDs.push_back(m_swapchainCleanupID);
 
 
     // Fills swapChainImages with a set of VkImage objects provided after swap-chain creation
