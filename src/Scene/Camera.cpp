@@ -1,60 +1,80 @@
 #include "Camera.hpp"
 #include <Core/Engine/InputManager.hpp> // Breaks cyclic dependency
+#include <Engine/Components/TelemetryComponents.hpp>
 
 
 Camera::Camera(Entity self, GLFWwindow* window, glm::dvec3 position, glm::quat orientation):
 	m_camEntity(self),
 	m_attachedEntityID(m_camEntity.id),
 	m_window(window),
-	m_position(position),
-	m_orientation(orientation),
+	m_defaultPosition(position),
+	m_defaultOrientation(orientation),
 	m_inFreeFlyMode(true) {
 
 	m_registry = ServiceLocator::GetService<Registry>(__FUNCTION__);
 
+	reset();
 	update();
 
 	Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
 
 
-void Camera::update() {
+void Camera::reset() {
+	m_position = m_defaultPosition;
+	m_orientation = m_defaultOrientation;
+
+	m_inFreeFlyMode = false;
+	m_attachedEntityID = m_camEntity.id;
+	m_orbitRadius = 2.0f;
+}
+
+
+void Camera::update(double physicsUpdateTimeDiff) {
 	/* In a +Z-up coordinate system:
 		* +Z is Up
 		* -Y is Front: The negative Y-axis points forward (the direction the camera looks by default).
 	*/
+	static const glm::vec3 forward = glm::vec3(0.0, -1.0, 0.0);
 
 
 	// Update camera's position if currently attached to an entity
 	if (m_attachedEntityID != m_camEntity.id) {
 		PhysicsComponent::ReferenceFrame &entityRefFrame = m_registry->getComponent<PhysicsComponent::ReferenceFrame>(m_attachedEntityID);
+		glm::dvec3 entityPosition = SpaceUtils::ToSimulationSpace(entityRefFrame._computedGlobalPosition);
 
-		glm::dvec3 entityPosition = entityRefFrame.globalTransform.position;
-		glm::dvec3 camOffsetPos = entityPosition + glm::dvec3(m_attachmentOffset);
-		
 
-		// Compute camera position based on orbit angles and radius
-		glm::dvec3 orbitalPos{};
-		double horizontalDistance = m_orbitRadius * std::cos(m_orbitPitch);
+		// Interpolate entity positions between now and the time of the last physics update.
+		// Explanation: While physics updates happen at a fixed time step (e.g., 60 Hz), rendering is uncapped. This can result in jittery movements of entities that are especially noticeable in atttached/orbital mode. To fix this, we must interpolate the entity positions between the two time points for smoothness.
+		double alpha = physicsUpdateTimeDiff / SimulationConsts::TIME_STEP;
 
-		orbitalPos.x = camOffsetPos.x + horizontalDistance * std::sin(m_orbitYaw);   // X-coordinate
-		orbitalPos.y = camOffsetPos.y + horizontalDistance * std::cos(m_orbitYaw);   // Y-coordinate
-		orbitalPos.z = camOffsetPos.z + m_orbitRadius * std::sin(m_orbitPitch);     // Z-coordinate (up/down)
+		//glm::dvec3 interpolatedEntityPosition = glm::mix(
+		//	SpaceUtils::ToSimulationSpace(entityRefFrame.previousPosition),
+		//	entityPosition,
+		//	alpha
+		//);
 
-		m_position = orbitalPos;
+
+
+		// Rotate the orbit radius (offset from entity) vector using the camera's orientation
+		glm::vec3 scaledOrbitRadius = SpaceUtils::ToSimulationSpace(glm::dvec3(0.0, static_cast<double>(m_orbitRadius), 0.0));	// Offset from entity's origin
+		glm::dvec3 rotatedOffset = m_orientation * scaledOrbitRadius;
+
+		m_position = entityPosition + rotatedOffset;
 
 
 		// Calculate camera orientation to look at the target point
-		glm::vec3 lookDirection = glm::normalize(camOffsetPos - m_position);
-		m_orientation = glm::quatLookAt(lookDirection, m_worldUp); // NOTE: Always use m_worldUp for the "up" vector when looking at a target
+		glm::dvec3 directionToEntity = entityPosition - m_position;
+		glm::vec3 lookDirection = glm::normalize(directionToEntity);
 
-		// Derive camera transform from the newly calculated orientation
+
+		// Derive camera transforms
 		m_front = lookDirection;
 		m_localUp = m_orientation * m_worldUp;
 		m_right = glm::normalize(glm::cross(m_front, m_localUp));
 	}
 	else {
-		m_front = m_orientation * glm::vec3(0.0, -1.0, 0.0);
+		m_front = m_orientation * forward;
 		m_localUp = m_orientation * m_worldUp;
 		m_right = glm::normalize(glm::cross(m_front, m_localUp));
 	}
@@ -63,8 +83,8 @@ void Camera::update() {
 
 
 glm::mat4 Camera::getRenderSpaceViewMatrix() const {
-	glm::vec3 scaledPosition = SpaceUtils::ToRenderSpace_Position(m_position);
-	return glm::lookAt(scaledPosition, scaledPosition + m_front, m_localUp);
+	glm::vec3 descaledPosition = SpaceUtils::ToRenderSpace_Position(m_position);
+	return glm::lookAt(descaledPosition, descaledPosition + m_front, m_localUp);
 }
 
 
@@ -151,11 +171,19 @@ void Camera::processMouseInput(float deltaX, float deltaY) {
 	}
 	else {
 		// Attached/Orbital mode
-		m_orbitYaw += glm::radians(deltaX * mouseSensitivity);
-		m_orbitPitch += glm::radians(deltaY * mouseSensitivity);
+		float angleX = glm::radians(deltaX * mouseSensitivity);
+		float angleY = glm::radians(deltaY * mouseSensitivity);
+		
+		glm::quat yawQuat = glm::angleAxis(-angleX, m_worldUp);
+		glm::quat pitchQuat = glm::angleAxis(-angleY, m_right);
 
-		// Clamp orbit pitch to prevent flipping or going too far
-		m_orbitPitch = glm::clamp(m_orbitPitch, glm::radians(-70.0f), glm::radians(70.0f));
+
+		//m_orbitYaw += glm::radians(deltaX * mouseSensitivity);
+		//m_orbitPitch += glm::radians(deltaY * mouseSensitivity);
+		m_orientation = glm::normalize(pitchQuat * yawQuat * m_orientation);
+		//
+		//// Clamp orbit pitch to prevent flipping or going too far
+		//m_orbitPitch = glm::clamp(m_orbitPitch, glm::radians(-70.0f), glm::radians(70.0f));
 	}
 
 	update();
@@ -194,7 +222,7 @@ void Camera::processMouseScroll(float deltaY) {
 	}
 	else {
 		// Attached/Orbital mode
-		static const float minDistance = 1.0f;
+		static const float minDistance = 0.5f;
 		static const float maxDistance = 50.0f;
 
 		m_orbitRadius -= deltaY * mouseSensitivity;

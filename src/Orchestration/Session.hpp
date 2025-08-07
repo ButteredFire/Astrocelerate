@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include <chrono>
+
 #include <Core/Application/LoggingManager.hpp>
 #include <Core/Application/EventDispatcher.hpp>
 #include <Core/Engine/ServiceLocator.hpp>

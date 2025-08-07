@@ -5,6 +5,8 @@
 
 #include "ECSCore.hpp"
 
+#include <Engine/Components/PhysicsComponents.hpp>
+
 
 class EntityManager {
 public:
@@ -260,14 +262,22 @@ public:
 		entityManager(entityManager),
 		componentManager(componentManager) {
 
-		m_matchingEntities = entityManager.getAllEntityIDs();
-		m_entityComponentMasks = entityManager.getAllComponentMasks();
-
 		m_requiredMask = buildComponentMask<Components...>();
-		updateMatchingEntities(m_matchingEntities);
+
+		init();
 	};
 
 	~InternalView() = default;
+
+
+	/* Refreshes the view to query new data. */
+	inline void refresh() {
+		init();
+	}
+
+
+	/* Gets the entities that are included in the view. */
+	inline std::vector<EntityID> getMatchingEntities() { return m_matchingEntities; }
 
 
 	/* Ignores a variable number of components.
@@ -339,6 +349,14 @@ private:
 	std::vector<ComponentMask> m_entityComponentMasks;
 
 	ComponentMask m_requiredMask, m_ignoredMask;
+
+
+	inline void init() {
+		m_matchingEntities = entityManager.getAllEntityIDs();
+		m_entityComponentMasks = entityManager.getAllComponentMasks();
+
+		updateMatchingEntities(m_matchingEntities);
+	}
 
 
 	/* Updates the list of entities according to filters (e.g., required/ignored masks).
@@ -465,7 +483,7 @@ public:
 
 
 	template<typename... Components>
-	auto getView() {
+	inline auto getView() {
 		constexpr size_t argCount = sizeof...(Components);
 		if (argCount == 0) {
 			throw Log::RuntimeException(__FUNCTION__, __LINE__, "Cannot get view: No components are passed into view!");
@@ -485,11 +503,33 @@ public:
 		return InternalView<Components...>(entityManager, componentManager);
 	}
 
+
+	/* Gets the entity of the render space. */
+	inline Entity getRenderSpaceEntity() const { return m_renderSpace; }
+
 private:
 	EntityManager entityManager;
 	ComponentManager componentManager;
 
+	Entity m_renderSpace;
+
+
 	inline void init() {
+		// Null placeholder entity
 		Entity nullEntity = createEntity("null");
+	
+	
+		// Global reference frame
+		m_renderSpace = createEntity("Scene");
+
+		PhysicsComponent::ReferenceFrame globalRefFrame{};
+		globalRefFrame.parentID = std::nullopt;
+		globalRefFrame.scale = 1.0;
+		globalRefFrame.visualScale = 1.0;
+		globalRefFrame.localTransform.position = glm::dvec3(0.0);
+		globalRefFrame.localTransform.rotation = glm::dquat(1.0, 0.0, 0.0, 0.0);
+
+		initComponentArray<PhysicsComponent::ReferenceFrame>();
+		addComponent(m_renderSpace.id, globalRefFrame);
 	}
 };

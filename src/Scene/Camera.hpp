@@ -6,8 +6,9 @@
 #include <External/GLFWVulkan.hpp>
 #include <External/GLM.hpp>
 
-#include <Core/Data/Constants.h>
 #include <Core/Application/LoggingManager.hpp>
+#include <Core/Application/EventDispatcher.hpp>
+#include <Core/Data/Constants.h>
 #include <Core/Engine/ECS.hpp>
 
 #include <Core/Data/Input.hpp>
@@ -56,10 +57,17 @@ public:
 private:
 	GLFWwindow* m_window;
 	std::shared_ptr<Registry> m_registry;
+	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 
+
+	// Camera orientation
 	const glm::vec3 m_worldUp = SimulationConsts::UP_AXIS;
 	glm::dvec3 m_position;
 	glm::quat m_orientation;
+	
+		// Defaults
+	glm::dvec3 m_defaultPosition;
+	glm::quat m_defaultOrientation;
 
 	float m_pitch = 0.0f;  // Used for clamping mouse pitch
 
@@ -75,16 +83,18 @@ private:
 	bool m_inFreeFlyMode;
 	glm::vec3 m_freeFlyPosition;								// The camera's saved position in free-fly mode (to switch back to later)
 	glm::quat m_freeFlyOrientation;
-	float m_freeFlyPitch = 0.0f;
 
-	float m_orbitRadius = 5.0f;									// Distance from the entity's center
-	float m_orbitYaw = 0.0f;									// Current horizontal angle around the entity (radians)
-	float m_orbitPitch = glm::radians(20.0f);					// Current vertical angle around the entity (radians)
-	glm::vec3 m_attachmentOffset = glm::vec3(0.0, 2.0, 0.0);	// Offset from entity's origin
+	float m_orbitRadius;	// Distance between camera and entity (in render space)
+	glm::vec3 m_orbitedEntityLastPosition;		// The last position of the entity being orbited (to perform linear interpolation)
 
 
-	void update();
+	void reset();
 
+
+	/* Updates the camera per frame.
+		@param physicsUpdateTimeDiff (Default: 0): The difference between the current time and the time of the last physics update (for linear interpolation of entity positions between the two time points).
+	*/
+	void update(double physicsUpdateTimeDiff = 0);
 
 	/* Processes keyboard input.
 		@param direction: The direction the camera will go in.

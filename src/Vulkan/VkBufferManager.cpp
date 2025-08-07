@@ -593,6 +593,11 @@ void VkBufferManager::updateObjectUBOs(uint32_t currentImage, const glm::dvec3& 
 		else
 			renderPosition = SpaceUtils::ToRenderSpace_Position(refFrame.globalTransform.position - scaledRenderOrigin);
 
+			// Update the entity's global position data after scaling to account for parent's visual scale
+		refFrame._computedGlobalPosition = renderPosition;
+		m_registry->updateComponent(entity, refFrame);
+
+
 		// Scale in render space
 		double renderScale = SpaceUtils::GetRenderableScale(SpaceUtils::ToRenderSpace_Scale(refFrame.scale)) * refFrame.visualScale;
 

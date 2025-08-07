@@ -28,7 +28,6 @@ namespace PhysicsComponent {
 	/* Inertial frame of reference. */
 	struct ReferenceFrame {
 		std::optional<EntityID> parentID;				// The parent reference frame's entity ID.
-		std::string _parentID_str;						// [INTERNAL] ReferenceFrame::parentID in YAML files can either be a reference to another entity or null.
 
 		Physics::FrameType frameType;					// TODO: Implement reference frame types
 
@@ -36,6 +35,9 @@ namespace PhysicsComponent {
 		CoreComponent::Transform globalTransform;		// Absolute transform in simulation space (meters).
 		double scale = 1.0;								// The entity's physical scale (radius).
 		double visualScale = 1.0;						// The entity's mesh size in render space (can be used to exaggerate size).
+		
+		std::string _parentID_str;						// [INTERNAL] ReferenceFrame::parentID in YAML files can either be a reference to another entity or null.
+		glm::dvec3 _computedGlobalPosition;				// [INTERNAL] The entity's global position that has been scaled to account for its parent's visual scale (see VkBufferManager::updateObjectUBOs). This is primarily used for camera attachment. 
 	};
 
 

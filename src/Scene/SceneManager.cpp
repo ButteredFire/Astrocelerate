@@ -22,17 +22,7 @@ void SceneManager::bindEvents() {
 
 
 void SceneManager::init() {
-	// Initialize global reference frame
-	m_renderSpace = m_registry->createEntity("Scene");
-
-	PhysicsComponent::ReferenceFrame globalRefFrame{};
-	globalRefFrame.parentID = std::nullopt;
-	globalRefFrame.scale = 1.0;
-	globalRefFrame.visualScale = 1.0;
-	globalRefFrame.localTransform.position = glm::dvec3(0.0);
-	globalRefFrame.localTransform.rotation = glm::dquat(1.0, 0.0, 0.0, 0.0);
-
-	m_registry->addComponent(m_renderSpace.id, globalRefFrame);
+    m_renderSpace = m_registry->getRenderSpaceEntity();
 }
 
 

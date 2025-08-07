@@ -1,0 +1,64 @@
+Entities:
+  - Name: Planet
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: null
+          scale: 6378000.0
+          visualScale: 10.0
+          localTransform:
+            position: [0.0, 0.0, 0.0]
+            rotation: [0.0, 0.0, 0.0]
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [0.0, 0.0, 0.0]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 5.972e+24
+      - Type: PhysicsComponent::ShapeParameters
+        Data:
+          equatRadius: 6378137.0
+          flattening: 0.0033528197
+          gravParam: 3.986004418e+14
+          rotVelocity: [0.0, 0.0, 7.2921159e-5]
+          j2: 0.00108263
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/TestModels/Sphere/Sphere.gltf"
+      - Type: TelemetryComponent::RenderTransform
+        Data: {} # This is just an empty component, used to tag which entities appear on the telemetry dashboard
+
+
+  - Name: Generic CubeSat
+    Components:
+      - Type: PhysicsComponent::ReferenceFrame
+        Data:
+          parentID: ref.Planet # Syntax: ref.[EntityName]. In this case, the parser will try to look for Planet's entity ID.
+          scale: 100.0
+          visualScale: 1.0
+          localTransform:
+            position: [0.0, 8378000.0, 0.0] # earthRadius + 2e6 -> Satellite is orbiting 2378 km above the Planet
+            rotation: [0.0, 0.0, -90.0]
+      - Type: PhysicsComponent::RigidBody
+        Data:
+          velocity: [-6897.61118658, 0.0, 0.0] # ~6897.6 is the satellite's LEO orbital speed (refer to localTransform.position)
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 20.0
+      - Type: PhysicsComponent::OrbitingBody
+        Data:
+          centralMass: ref.Planet # Reference to the Planet entity's mass
+      - Type: SpacecraftComponent::Spacecraft
+        Data:
+          dragCoefficient: 2.2
+          referenceArea: 20.0
+          reflectivityCoefficient: 1.0
+      - Type: SpacecraftComponent::Thruster
+        Data:
+          thrustMagnitude: 0.5
+          specificImpulse: 200.0
+          currentFuelMass: 1070.0
+          maxFuelMass: 1070.0
+      - Type: RenderComponent::MeshRenderable
+        Data:
+          meshPath: "assets/Models/TestModels/Cube/Cube.gltf"
+      - Type: TelemetryComponent::RenderTransform
+        Data: {}

@@ -289,15 +289,11 @@ void Engine::updateOrbitalSetup() {
 
 
 void Engine::updateOrbitalWorkspace() {
-    //if (m_coreResourcesManager->getAppState() == Application::State::RECREATING_SWAPCHAIN)
-    //    return;
-
     // Process key input events
     m_eventDispatcher->dispatch(UpdateEvent::Input{
         .deltaTime = Time::GetDeltaTime()
-        }, true);
+    }, true);
     
-    // Update rendering
     m_currentSession->update();
 
     glm::dvec3 floatingOrigin = m_inputManager->getCamera()->getGlobalTransform().position;

@@ -290,33 +290,76 @@ void OrbitalWorkspace::renderViewportPanel() {
 
 			ImGui::BeginGroup();
 			{
-				//static bool inFreeFly = true;
-				//if (ImGui::Button("Camera") && 0) {	// TODO: Implement camera switching
-				//	if (inFreeFly) camera->attachToEntity(3);
-				//	else camera->detachFromEntity();
-				//
-				//	inFreeFly = !inFreeFly;
-				//}
+				// All entities with reference frames are camera-attachable
+				static auto view = m_registry->getView<PhysicsComponent::ReferenceFrame>();
+				static std::vector<std::pair<std::string, EntityID>> m_entityList;
+				static std::pair<std::string, EntityID> m_selectedEntity, m_prevSelectedEntity;
+				static bool prevSceneStatChanged = m_sceneSampleReady;
+			
+
+				if (m_sceneSampleReady && !prevSceneStatChanged) {
+					// Do only once on scene load: construct/refresh the view and update entity names list
+					view.refresh();
+					m_entityList.clear();
+
+						// Push camera as first option
+					Entity camEntity = camera->getEntity();
+					m_entityList.push_back({
+						"Free-fly",
+						camEntity.id
+					});
+					m_selectedEntity = m_prevSelectedEntity = m_entityList.back();
+
+						// Populate with other options
+					for (auto &entityID : view.getMatchingEntities()) {
+						if (entityID == m_registry->getRenderSpaceEntity().id)
+							// DO NOT include the render space entity
+							continue;
+
+						m_entityList.push_back({
+							m_registry->getEntity(entityID).name,
+							entityID
+						});
+					}
+
+
+					prevSceneStatChanged = true;
+				}
+				else if (prevSceneStatChanged && !m_sceneSampleReady)
+					// Else if another scene is being loaded
+					prevSceneStatChanged = false;
+
+
 
 				ImGui::Text("Camera:");
 
 				ImGui::SameLine();
-				ImGui::SetNextItemWidth(150.0f);
+				ImGui::SetNextItemWidth(200.0f);
 
-				ImGuiUtils::PushStyleDisabled();
+				if (!m_sceneSampleReady) ImGuiUtils::PushStyleDisabled();
 				{
-					if (ImGui::BeginCombo("##CameraSwitchCombo", "Free-fly", ImGuiComboFlags_NoArrowButton)) {
-						// TODO: Implement camera switching
+					if (ImGui::BeginCombo("##CameraSwitchCombo", m_selectedEntity.first.c_str(), ImGuiComboFlags_NoArrowButton)) {
+						for (const auto &entityPair : m_entityList) {
+							bool isSelected = (m_selectedEntity == entityPair);
+							if (ImGui::Selectable(entityPair.first.c_str(), isSelected))
+								m_selectedEntity = entityPair;
+
+							if (isSelected)
+								ImGui::SetItemDefaultFocus();
+						}
+
+
 						ImGui::EndCombo();
 					}
 					ImGuiUtils::CursorOnHover();
 				}
-				ImGuiUtils::PopStyleDisabled();
+				if (!m_sceneSampleReady) ImGuiUtils::PopStyleDisabled();
 
-				ImGuiUtils::CursorOnHover();
-				ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 0, 0, 255));
-					ImGuiUtils::TextTooltip(ImGuiHoveredFlags_AllowWhenDisabled, "Camera-switching is currently unstable, so it has been disabled.");
-				ImGui::PopStyleColor();
+
+				if (m_prevSelectedEntity != m_selectedEntity) {
+					m_prevSelectedEntity = m_selectedEntity;
+					camera->attachToEntity(m_selectedEntity.second);
+				}
 			}
 			ImGui::EndGroup();
 
@@ -331,29 +374,14 @@ void OrbitalWorkspace::renderViewportPanel() {
 			static bool sceneRegionClicked = false;
 			g_appContext.Input.isViewportHoveredOver = ImGui::IsWindowHovered(ImGuiFocusedFlags_ChildWindows) || m_inputBlockerIsOn;
 			g_appContext.Input.isViewportFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows) || m_inputBlockerIsOn;
-			//g_appContext.Input.isViewportFocused = sceneRegionClicked || m_inputBlockerIsOn;
 
 			static ImVec2 viewportSceneRegion;
 			static ImVec2 lastViewportSceneRegion(0, 0);
 
 			viewportSceneRegion = ImGui::GetContentRegionAvail();
 
-			// Resizes the texture to its original aspect ratio before rendering
-			//static VkExtent2D swapchainExtent = m_swapchainManager->getSwapChainExtent();
-			//ImVec2 originalRenderSize = {
-			//	static_cast<float>(swapchainExtent.width),
-			//	static_cast<float>(swapchainExtent.height)
-			//};
-			//ImVec2 textureSize = ImGuiUtils::ResizeImagePreserveAspectRatio(originalRenderSize, viewportSceneRegion);
-			//ImVec2 textureSize = viewportSceneRegion;
 
-
-			// Padding to center the texture
-			//ImVec2 offset{};
-			//offset.x = (viewportSceneRegion.x - textureSize.x) * 0.5f;
-			//offset.y = (viewportSceneRegion.y - textureSize.y) * 0.5f;
-
-
+			// If viewport size changes, dispatch an update event
 			if (!ImGuiUtils::CompImVec2(viewportSceneRegion, lastViewportSceneRegion)) {
 				m_eventDispatcher->dispatch(UpdateEvent::ViewportSize{
 					.sceneDimensions = glm::vec2(viewportSceneRegion.x, viewportSceneRegion.y)
@@ -361,9 +389,6 @@ void OrbitalWorkspace::renderViewportPanel() {
 
 				lastViewportSceneRegion = viewportSceneRegion;
 			}
-
-			//ImVec2 cursorPos = ImGui::GetCursorPos();
-			//ImGui::SetCursorPos({ cursorPos.x + offset.x, cursorPos.y + offset.y });
 
 
 			ImGui::Image(m_viewportRenderTextureIDs[m_currentFrame], viewportSceneRegion);
@@ -1085,6 +1110,8 @@ void OrbitalWorkspace::renderCodeEditor() {
 		m_codeEditor.SetPalette(CodeEditor::GetLightPalette());
 		break;
 	}
+
+	m_codeEditor.SetShowWhitespaces(false);
 
 
 	std::stringstream ss;

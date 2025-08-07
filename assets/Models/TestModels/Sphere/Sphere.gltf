@@ -21,7 +21,7 @@
 	"materials":[
 		{
 			"doubleSided":true,
-			"name":"Material",
+			"name":"PlaceholderTexture",
 			"pbrMetallicRoughness":{
 				"baseColorTexture":{
 					"index":0
@@ -64,15 +64,15 @@
 		{
 			"bufferView":0,
 			"componentType":5126,
-			"count":66047,
+			"count":8064,
 			"max":[
-				1,
+				0.9999998807907104,
 				1,
 				1
 			],
 			"min":[
-				-1,
-				-1,
+				-0.9999997019767761,
+				-0.9999997615814209,
 				-1
 			],
 			"type":"VEC3"
@@ -80,45 +80,45 @@
 		{
 			"bufferView":1,
 			"componentType":5126,
-			"count":66047,
+			"count":8064,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":2,
 			"componentType":5126,
-			"count":66047,
+			"count":8064,
 			"type":"VEC2"
 		},
 		{
 			"bufferView":3,
-			"componentType":5125,
-			"count":391680,
+			"componentType":5123,
+			"count":11904,
 			"type":"SCALAR"
 		}
 	],
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":792564,
+			"byteLength":96768,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":792564,
-			"byteOffset":792564,
+			"byteLength":96768,
+			"byteOffset":96768,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":528376,
-			"byteOffset":1585128,
+			"byteLength":64512,
+			"byteOffset":193536,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":1566720,
-			"byteOffset":2113504,
+			"byteLength":23808,
+			"byteOffset":258048,
 			"target":34963
 		}
 	],
@@ -130,7 +130,7 @@
 	],
 	"buffers":[
 		{
-			"byteLength":3680224,
+			"byteLength":281856,
 			"uri":"Sphere.bin"
 		}
 	]

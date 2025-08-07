@@ -115,6 +115,7 @@ private:
 	std::shared_ptr<ReferenceFrameSystem> m_refFrameSystem;
 	std::shared_ptr<Session> m_currentSession;
 
+
 	void bindEvents();
 
 	void initComponents();

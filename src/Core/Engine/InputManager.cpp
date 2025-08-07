@@ -33,8 +33,21 @@ void InputManager::bindEvents() {
 
 	m_eventDispatcher->subscribe<UpdateEvent::Input>(selfIndex,
 		[this](const UpdateEvent::Input& event) {
-			this->m_camera->update();
 			this->processKeyboardInput(event.deltaTime);
+
+			this->m_camera->update();
+		}
+	);
+
+
+	m_eventDispatcher->subscribe<UpdateEvent::SessionStatus>(selfIndex,
+		[this](const UpdateEvent::SessionStatus &event) {
+			using enum UpdateEvent::SessionStatus::Status;
+
+			switch (event.sessionStatus) {
+			case PREPARE_FOR_RESET:
+				this->m_camera->reset();
+			}
 		}
 	);
 }

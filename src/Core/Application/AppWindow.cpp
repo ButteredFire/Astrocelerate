@@ -46,24 +46,24 @@ void Window::initGLFWBindings(CallbackContext* context) {
 
 
 void Window::KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-	CallbackContext* context = static_cast<CallbackContext*>(glfwGetWindowUserPointer(window));
+	static CallbackContext* context = static_cast<CallbackContext*>(glfwGetWindowUserPointer(window));
     context->inputManager->glfwDeferKeyInput(key, scancode, action, mods);
 }
 
 
 void Window::MouseCallback(GLFWwindow* window, double posX, double posY) {
-    CallbackContext* context = static_cast<CallbackContext*>(glfwGetWindowUserPointer(window));
+    static CallbackContext *context = static_cast<CallbackContext *>(glfwGetWindowUserPointer(window));
     context->inputManager->processMouseMovement(posX, posY);
 }
 
 
 void Window::MouseBtnCallback(GLFWwindow* window, int button, int action, int mods) {
-    CallbackContext* context = static_cast<CallbackContext*>(glfwGetWindowUserPointer(window));
+    static CallbackContext* context = static_cast<CallbackContext*>(glfwGetWindowUserPointer(window));
     context->inputManager->processMouseClicks(window, button, action, mods);
 }
 
 
 void Window::ScrollCallback(GLFWwindow* window, double deltaX, double deltaY) {
-    CallbackContext* context = static_cast<CallbackContext*>(glfwGetWindowUserPointer(window));
+    static CallbackContext* context = static_cast<CallbackContext*>(glfwGetWindowUserPointer(window));
     context->inputManager->processMouseScroll(deltaX, deltaY);
 }

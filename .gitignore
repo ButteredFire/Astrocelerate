@@ -371,4 +371,3 @@ vcpkg_installed/
 *.vcxproj
 *.filters
 *.user
-samples/_debug.yaml

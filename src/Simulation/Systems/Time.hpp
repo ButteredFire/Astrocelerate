@@ -18,6 +18,9 @@ public:
 
 	inline static double GetDeltaTime() { return m_deltaTime; }
 
+	/* Gets the current time. */
+	inline static std::chrono::time_point<high_resolution_clock> GetTime() { return high_resolution_clock::now(); }
+
 	inline static float GetTimeScale() { return m_timeScale; }
 	inline static void SetTimeScale(float newTimeScale) { m_timeScale = newTimeScale; }
 
