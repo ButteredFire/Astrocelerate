@@ -5,6 +5,7 @@
     <img src="assets/App/AstrocelerateLogo.png" alt="Logo" width="80%">
     <p>Bản quyền © 2024-2025 <a href="https://www.linkedin.com/in/minhduong-thechosenone/">Dương Duy Nhật Minh</a>, kinh doanh dưới tên <b>Hàng không Vũ trụ Oriviet</b>.</p>
     </br>
+    <p>Tham gia cộng đồng Astrocelerate trên <a href="https://www.reddit.com/r/astrocelerate/">Reddit</a>!</p>
 </div>
 
 
