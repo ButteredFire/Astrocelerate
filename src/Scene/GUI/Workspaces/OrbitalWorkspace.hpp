@@ -93,7 +93,8 @@ private:
 	std::vector<VkSampler> m_offscreenSamplers;
 	std::vector<ImTextureID> m_viewportRenderTextureIDs;
 	ImVec2 m_lastViewportPanelSize = { 0.0f, 0.0f };
-	bool m_sceneSampleReady = false;
+	bool m_sceneSampleInitialized = false;		// Mirrors SessionStatus::Status::INITIALIZED
+	bool m_sceneSampleReady = false;			// Mirrors SessionStatus::Status::POST_INITIALIZATION
 
 	// Other
 	uint32_t m_currentFrame = 0;

@@ -223,9 +223,11 @@ void Camera::processMouseScroll(float deltaY) {
 	else {
 		// Attached/Orbital mode
 		static const float minDistance = 0.5f;
-		static const float maxDistance = 50.0f;
+		static const float maxDistance = 300.0f;
 
-		m_orbitRadius -= deltaY * mouseSensitivity;
+		const float expZoom = m_orbitRadius * 1.5f;	// Exponential zoom multiplier
+
+		m_orbitRadius -= (deltaY * expZoom) * mouseSensitivity;
 		m_orbitRadius = glm::clamp(m_orbitRadius, minDistance, maxDistance);
 	}
 }

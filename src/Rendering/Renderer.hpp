@@ -72,6 +72,8 @@ private:
 
 	// Session data
 	bool m_sessionReady = false;
+	bool m_pauseUpdateLoop = false;
+
 
 	void bindEvents();
 

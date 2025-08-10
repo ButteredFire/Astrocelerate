@@ -35,7 +35,7 @@ class ThreadManager;
     } while (0)
 
 namespace Log {
-	inline std::mutex _printMutex;
+	inline std::recursive_mutex _printMutex;
 	inline std::ofstream _logFile;
 	inline std::string _logFilePath;
 

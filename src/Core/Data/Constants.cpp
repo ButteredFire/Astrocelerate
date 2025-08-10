@@ -29,3 +29,10 @@ namespace FontConsts {
 		.REGULAR_MONO		= FilePathUtils::JoinPaths(ROOT_DIR, "assets/Fonts/NotoSans/NotoSansMono-Regular.ttf")
 	};
 }
+
+
+namespace SimulationConsts {
+	// How many frames should be processed concurrently
+	
+	int MAX_FRAMES_IN_FLIGHT = 3;
+}

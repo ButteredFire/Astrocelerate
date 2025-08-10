@@ -47,12 +47,17 @@ void OrbitalWorkspace::bindEvents() {
 
 			switch (event.sessionStatus) {
 			case PREPARE_FOR_RESET:
+				m_sceneSampleInitialized = false;
 				m_sceneSampleReady = false;
 				break;
 
 			case INITIALIZED:
-				m_sceneSampleReady = true;
+				m_sceneSampleInitialized = true;
 				initPerFrameTextures();
+				break;
+
+			case POST_INITIALIZATION:
+				m_sceneSampleReady = true;
 				break;
 			}
 		}
@@ -70,7 +75,7 @@ void OrbitalWorkspace::bindEvents() {
 void OrbitalWorkspace::init() {
 	initStaticTextures();
 
-	if (m_sceneSampleReady)
+	if (m_sceneSampleInitialized)
 		initPerFrameTextures();
 
 	initPanels();
@@ -131,7 +136,7 @@ void OrbitalWorkspace::update(uint32_t currentFrame) {
 
 
 	// The input blocker serves to capture all input and prevent interaction with other widgets when using the viewport.
-	if (m_inputManager->isViewportInputAllowed() && m_sceneSampleReady) {
+	if (m_inputManager->isViewportInputAllowed() && m_sceneSampleInitialized) {
 		m_inputBlockerIsOn = true;
 		ImGui::SetNextWindowPos(ImVec2(0, 0));
 		ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
@@ -294,10 +299,10 @@ void OrbitalWorkspace::renderViewportPanel() {
 				static auto view = m_registry->getView<PhysicsComponent::ReferenceFrame>();
 				static std::vector<std::pair<std::string, EntityID>> m_entityList;
 				static std::pair<std::string, EntityID> m_selectedEntity, m_prevSelectedEntity;
-				static bool prevSceneStatChanged = m_sceneSampleReady;
+				static bool prevSceneStatChanged = m_sceneSampleInitialized;
 			
 
-				if (m_sceneSampleReady && !prevSceneStatChanged) {
+				if (m_sceneSampleInitialized && !prevSceneStatChanged) {
 					// Do only once on scene load: construct/refresh the view and update entity names list
 					view.refresh();
 					m_entityList.clear();
@@ -325,7 +330,7 @@ void OrbitalWorkspace::renderViewportPanel() {
 
 					prevSceneStatChanged = true;
 				}
-				else if (prevSceneStatChanged && !m_sceneSampleReady)
+				else if (prevSceneStatChanged && !m_sceneSampleInitialized)
 					// Else if another scene is being loaded
 					prevSceneStatChanged = false;
 
@@ -336,7 +341,7 @@ void OrbitalWorkspace::renderViewportPanel() {
 				ImGui::SameLine();
 				ImGui::SetNextItemWidth(200.0f);
 
-				if (!m_sceneSampleReady) ImGuiUtils::PushStyleDisabled();
+				if (!m_sceneSampleInitialized) ImGuiUtils::PushStyleDisabled();
 				{
 					if (ImGui::BeginCombo("##CameraSwitchCombo", m_selectedEntity.first.c_str(), ImGuiComboFlags_NoArrowButton)) {
 						for (const auto &entityPair : m_entityList) {
@@ -353,7 +358,7 @@ void OrbitalWorkspace::renderViewportPanel() {
 					}
 					ImGuiUtils::CursorOnHover();
 				}
-				if (!m_sceneSampleReady) ImGuiUtils::PopStyleDisabled();
+				if (!m_sceneSampleInitialized) ImGuiUtils::PopStyleDisabled();
 
 
 				if (m_prevSelectedEntity != m_selectedEntity) {
@@ -370,7 +375,7 @@ void OrbitalWorkspace::renderViewportPanel() {
 		ImGui::Separator();
 
 
-		if (m_sceneSampleReady && ImGui::BeginChild("##ViewportSceneRegion")) {
+		if (m_sceneSampleInitialized && ImGui::BeginChild("##ViewportSceneRegion")) {
 			static bool sceneRegionClicked = false;
 			g_appContext.Input.isViewportHoveredOver = ImGui::IsWindowHovered(ImGuiFocusedFlags_ChildWindows) || m_inputBlockerIsOn;
 			g_appContext.Input.isViewportFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows) || m_inputBlockerIsOn;
@@ -408,6 +413,12 @@ void OrbitalWorkspace::renderTelemetryPanel() {
 	static const ImVec2 separatorPadding(10.0f, 10.0f);
 
 	if (ImGui::Begin(GUI::GetPanelName(m_panelTelemetry), nullptr, m_windowFlags)) {
+		if (!m_sceneSampleReady) {
+			ImGui::End();
+			return;
+		}
+		
+		
 		auto view = m_registry->getView<PhysicsComponent::RigidBody, PhysicsComponent::ReferenceFrame, TelemetryComponent::RenderTransform>();
 		size_t entityCount = 0;
 
@@ -965,7 +976,7 @@ void OrbitalWorkspace::renderSceneResourceTree() {
 				ImGui::Indent();
 				{
 					// TODO: Make coordinate systems entities
-					renderTreeNode(m_ResourceType::COORDINATE_SYSTEMS, INVALID_ENTITY, ImGuiUtils::IconString(ICON_FA_VECTOR_SQUARE, "Earth-Fixed Inertial"));
+					renderTreeNode(m_ResourceType::COORDINATE_SYSTEMS, INVALID_ENTITY, ImGuiUtils::IconString(ICON_FA_VECTOR_SQUARE, "Earth-Centered Inertial"));
 				}
 				ImGui::Unindent();
 	
@@ -1046,7 +1057,7 @@ void OrbitalWorkspace::renderSceneResourceDetails() {
 				ImGui::Text("Mean equatorial radius: r ≈ %.5f m", shape.equatRadius);
 				ImGui::Text("Gravitational parameter: μ ≈ %.5g m³/s⁻²", shape.gravParam);
 				ImGui::Text("Rotational velocity (scalar): ω ≈ %.5g rad/s", glm::length(shape.rotVelocity));
-				ImGui::Text("J2 oblateness coefficient: ω ≈ %.5g", shape.j2);
+				ImGui::Text("J2 oblateness coefficient: %.5g", shape.j2);
 			}
 			ImGui::Unindent();
 		}

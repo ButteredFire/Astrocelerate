@@ -3,6 +3,7 @@
 #pragma once
 
 #include <atomic>
+#include <thread>
 
 #include <Core/Application/EventDispatcher.hpp>
 #include <Core/Data/Math.hpp>
@@ -53,6 +54,13 @@ private:
 	GeometryLoader m_geometryLoader;
 	Geometry::GeometryData *m_geomData = nullptr;
 	uint32_t m_meshCount{};
+
+	struct m_WorkerData {
+		float entityProcessPercentage;
+		std::string entityName;
+		std::thread worker;
+	};
+	std::vector<m_WorkerData> m_geomLoadWorkers;
 
 
 	void bindEvents();

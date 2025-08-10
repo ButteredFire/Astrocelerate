@@ -35,10 +35,11 @@ void VkCommandManager::bindEvents() {
 
 			switch (event.sessionStatus) {
 			case PREPARE_FOR_RESET:
+				vkDeviceWaitIdle(m_logicalDevice);
 				m_sceneReady = false;
 				break;
 
-			case INITIALIZED:
+			case POST_INITIALIZATION:
 				vkDeviceWaitIdle(m_logicalDevice);
 				m_sceneReady = true;
 				break;
@@ -59,6 +60,7 @@ void VkCommandManager::bindEvents() {
 			m_offscreenRenderPass = event.renderPass;
 			m_offscreenPipeline = event.pipeline;
 
+			m_offscreenImages = event.offscreenImages;
 			m_offscreenFrameBuffers = event.offscreenFrameBuffers;
 		}
 	);
@@ -131,30 +133,36 @@ void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, 
 	LOG_ASSERT(beginCmdBufferResult == VK_SUCCESS, "Failed to start recording command buffer!");
 
 
-	VkClearValue clearValue{};  // NOTE: we must specify this since the color attachment's load operation is VK_ATTACHMENT_LOAD_OP_CLEAR
-	clearValue.color = { 0.0f, 0.0f, 0.0f, 1.0f }; // (0, 0, 0, 1) -> Black
-	clearValue.depthStencil = VkClearDepthStencilValue(); // Null for now (if depth stencil is implemented, you must also specify the color attachment load and store operations before specifying the clear value here)
+	// NOTE: we must specify this since the color attachment's load operation is VK_ATTACHMENT_LOAD_OP_CLEAR
+	static VkClearValue clearValue{
+		.color = { 0.0f, 0.0f, 0.0f, 1.0f },			// (0, 0, 0, 1) -> Black
+		//.depthStencil		// Null for now (if depth stencil is implemented, you must also specify the color attachment load and store operations before specifying the clear value here)
+	};
 
-	VkClearValue depthStencilClearValue{};
-	depthStencilClearValue.depthStencil.depth = 0.0f;
-	depthStencilClearValue.depthStencil.stencil = 0;
+	static VkClearValue depthStencilClearValue{
+		.color = { 0.0f, 0.0f, 0.0f, 1.0f },
+		//.depthStencil
+	};
 
-	VkClearValue clearValues[] = {
+	static VkClearValue clearValues[] = {
 		clearValue,
 		depthStencilClearValue
 	};
 
 
 
-	bool offscreenLoadConditions = (m_sceneReady && m_coreResources->getAppState() != Application::State::RECREATING_SWAPCHAIN);
-	if (offscreenLoadConditions) {
+	// OFFSCREEN RENDER PASS
+	static std::function<void(VkCommandBuffer&, uint32_t, uint32_t)> writeOffscreenCommands = [this](VkCommandBuffer &cmdBuffer, uint32_t imageIndex, uint32_t currentFrame) {
+		if (m_coreResources->getAppState() == Application::State::RECREATING_SWAPCHAIN)
+			return;
+
 		// Record all secondary command buffers
 		if (!m_secondaryCmdBufs.empty()) {
 			vkCmdExecuteCommands(cmdBuffer, static_cast<uint32_t>(m_secondaryCmdBufs.size()), m_secondaryCmdBufs.data());
 			m_secondaryCmdBufs.clear();
 		}
 
-		// OFFSCREEN RENDER PASS
+		
 		VkRenderPassBeginInfo offscreenRenderPassBeginInfo{};
 		offscreenRenderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		offscreenRenderPassBeginInfo.renderPass = m_offscreenRenderPass;
@@ -196,55 +204,48 @@ void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, 
 			.renderableType = UpdateEvent::Renderables::Type::MESHES,
 			.commandBuffer = cmdBuffer,
 			.currentFrame = currentFrame
-		}, true);
+			}, true);
 
 
 		vkCmdEndRenderPass(cmdBuffer);
-	}
+	};
 
 
 
-	if (m_coreResources->getAppState() != Application::State::RECREATING_SWAPCHAIN) {
+	// PRESENTATION RENDER PASS
+	static std::function<void(VkCommandBuffer&, uint32_t, uint32_t)> writePresentCommands = [this](VkCommandBuffer &cmdBuffer, uint32_t imageIndex, uint32_t currentFrame) {
+		if (m_coreResources->getAppState() == Application::State::RECREATING_SWAPCHAIN)
+			return;
+
 		// Transitions swapchain image to the layout COLOR_ATTACHMENT_OPTIMAL before the presentation render pass
-	// This is because the image layout is UNDEFINED for the first swapchain image, and PRESENT_SRC_KHR for subsequent ones.
+		// This is because the image layout is UNDEFINED for the first swapchain image, and PRESENT_SRC_KHR for subsequent ones.
 		VkImageMemoryBarrier swapchainImgToPresentBarrier{};
 		swapchainImgToPresentBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		swapchainImgToPresentBarrier.srcAccessMask = 0;
+		swapchainImgToPresentBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		swapchainImgToPresentBarrier.oldLayout = m_swapchainImgLayouts[imageIndex];
 		swapchainImgToPresentBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-		//swapchainImgToPresentBarrier.oldLayout = g_vkContext.SwapChain.imageLayouts[imageIndex];
-		//swapchainImgToPresentBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
 		swapchainImgToPresentBarrier.image = m_swapchainImages[imageIndex];
 		swapchainImgToPresentBarrier.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 		swapchainImgToPresentBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 		swapchainImgToPresentBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
-		VkAccessFlags srcAccessMask;
-		VkPipelineStageFlags srcStage;
+		
+		VkPipelineStageFlags srcStageMask{};
 
-
-		if (offscreenLoadConditions) {
-			// If the offscreen pass ran, the image is now VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-			swapchainImgToPresentBarrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-			srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT; // Access from the completed offscreen pass
-			srcStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		if (swapchainImgToPresentBarrier.oldLayout == VK_IMAGE_LAYOUT_UNDEFINED) {
+			swapchainImgToPresentBarrier.srcAccessMask = 0;
+			srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 		}
-		else {
-			// If the offscreen pass was skipped, the image is still in its acquired state
-			swapchainImgToPresentBarrier.oldLayout = m_swapchainImgLayouts[imageIndex];
-			if (swapchainImgToPresentBarrier.oldLayout == VK_IMAGE_LAYOUT_UNDEFINED) {
-				srcAccessMask = 0;
-				srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-			}
-			else { // VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
-				srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-				srcStage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT; // No prior writes this frame, so we will wait at bottom.
-			}
+		else if (swapchainImgToPresentBarrier.oldLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR) {
+			swapchainImgToPresentBarrier.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+			srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT; // No prior writes this frame, so we will wait at bottom.
 		}
-		swapchainImgToPresentBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT; // For the presentation render pass (read and write for GUI)
 
 
 		vkCmdPipelineBarrier(
 			cmdBuffer,
-			srcStage,
+			srcStageMask,
 			VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
 			0,
 			0, nullptr,
@@ -253,8 +254,6 @@ void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, 
 		);
 
 
-
-		// PRESENTATION RENDER PASS
 		VkRenderPassBeginInfo presentRenderPassBeginInfo{};
 		presentRenderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		presentRenderPassBeginInfo.renderPass = m_presentPipelineRenderPass;
@@ -271,10 +270,16 @@ void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, 
 			.renderableType = UpdateEvent::Renderables::Type::GUI,
 			.commandBuffer = cmdBuffer,
 			.currentFrame = currentFrame
-		}, true);
+			}, true);
 
 		vkCmdEndRenderPass(cmdBuffer);
-	}
+	};
+
+
+	if (m_sceneReady)
+		writeOffscreenCommands(cmdBuffer, imageIndex, currentFrame);
+
+	writePresentCommands(cmdBuffer, imageIndex, currentFrame);
 
 
 	// Stop recording the command buffer

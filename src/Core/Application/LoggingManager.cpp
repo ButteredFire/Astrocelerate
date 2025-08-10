@@ -3,16 +3,7 @@
 
 
 namespace LogSpacing {
-#if defined(_WIN32)
-	const int THREAD_INFO_MAX_WIDTH_OS = 28;
-#elif defined(__linux__)
-	const int THREAD_INFO_MAX_WIDTH_OS = 30;
-#elif defined(__APPLE__)
 	const int THREAD_INFO_MAX_WIDTH_OS = 40;
-#else
-	const int THREAD_INFO_MAX_WIDTH_OS = 50;
-#endif
-
 	const int DISPLAY_TYPE_WIDTH = 9;
 	const int CALLER_WIDTH = 40;
 }
@@ -26,20 +17,19 @@ namespace Log {
 	void LogThreadInfo(std::string &output) {
 		std::thread::id currentThread = std::this_thread::get_id();
 		std::stringstream ss;
-		ss << "[";
+		ss << "[THREAD " << currentThread << ", ";
 		if (currentThread == ThreadManager::GetMainThreadID())
 			ss << "MAIN]";
 		else
 			ss << "WORKER]";
-
-		ss << "[THREAD " << ThreadManager::ThreadIDToString(currentThread) << "] ";
+			//ss << ThreadManager::GetThreadNameFromID(currentThread) << "]";
 
 		output = ss.str();
 	}
 
 
 	void Print(MsgType type, const char *caller, const std::string &message, bool newline) {
-		std::lock_guard<std::mutex> lock(_printMutex);
+		std::lock_guard<std::recursive_mutex> lock(_printMutex);
 
 		// Get message type
 		std::string displayType = "Unknown message type";
@@ -117,7 +107,10 @@ namespace Log {
 	RuntimeException::RuntimeException(const std::string &functionName, const int errLine, const std::string &message, MsgType severity) : m_funcName(functionName), m_errLine(errLine), m_exceptionMessage(message), m_msgType(severity) {
 
 		std::thread::id currentThread = std::this_thread::get_id();
-		std::string threadName = " " + STD_STR((currentThread == ThreadManager::GetMainThreadID()) ? "(Main)" : "(Worker)");
+		std::string threadName = " " + STD_STR(
+			(currentThread == ThreadManager::GetMainThreadID()) ? "(Main)" :
+			("(Worker " + enquote(ThreadManager::GetThreadNameFromID(currentThread)) + ")")
+		);
 		m_threadInfo = ThreadManager::ThreadIDToString(currentThread) + threadName;
 
 		std::string displayType = "Unknown message type";

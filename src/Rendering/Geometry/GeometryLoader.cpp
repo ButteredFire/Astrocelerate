@@ -12,42 +12,49 @@ GeometryLoader::GeometryLoader() {
 
 
 void GeometryLoader::bindEvents() {
+	static EventDispatcher::SubscriberIndex selfIndex = m_eventDispatcher->registerSubscriber<GeometryLoader>();
 
+	m_eventDispatcher->subscribe<UpdateEvent::SessionStatus>(selfIndex,
+		[this](const UpdateEvent::SessionStatus &event) {
+			using enum UpdateEvent::SessionStatus::Status;
+
+			switch (event.sessionStatus) {
+			case PREPARE_FOR_INIT:
+				m_meshes.clear();
+				m_leftEndpoint = -1;	// Cancels out the +1 addition above
+				m_rightEndpoint = -1;	// Accounts for 0-indexed mesh-offset range
+				break;
+			}
+		}
+	);
 }
 
 
 Math::Interval<uint32_t> GeometryLoader::loadGeometryFromFile(const std::string& path) {
+	std::lock_guard<std::mutex> lock(m_meshLoadMutex);
+
 	// Parse geometry data
 	AssimpParser parser;
 	Geometry::MeshData meshData = parser.parse(path);
-
 	m_meshes.push_back(meshData);
 
 
 	// Calculate range
-	static uint32_t leftEndpoint = 0;
-	static uint32_t rightEndpoint = 0;
-	static bool initialLoad = true;
-
-	leftEndpoint = rightEndpoint + 1;
-	rightEndpoint += meshData.childMeshOffsets.size();
-
-	if (initialLoad) {
-		initialLoad = false;
-		leftEndpoint--;		// Cancels out the +1 addition above
-		rightEndpoint--;	// Accounts for 0-indexed mesh-offset range
-	}
-
+	m_leftEndpoint = m_rightEndpoint + 1;
+	m_rightEndpoint += meshData.childMeshOffsets.size();
 
 	return Math::Interval<uint32_t>{
 		.intervalType = Math::T_INTERVAL_CLOSED,
-		.left = leftEndpoint,
-		.right = rightEndpoint
+		.left = static_cast<uint32_t>(m_leftEndpoint),
+		.right = static_cast<uint32_t>(m_rightEndpoint)
 	};
 }
 
 
 Geometry::GeometryData* GeometryLoader::bakeGeometry() {
+	std::lock_guard<std::mutex> lock(m_meshLoadMutex);
+
+
 	// First pass: Gets total counts for memory pre-allocation
 	size_t cumulativeVertexCount = 0;
 	size_t cumulativeIndexCount = 0;

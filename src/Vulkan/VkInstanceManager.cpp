@@ -91,8 +91,6 @@ CleanupTask VkInstanceManager::createVulkanInstance(VkInstance &instance) {
 
 
 CleanupTask VkInstanceManager::createDebugMessenger(VkDebugUtilsMessengerEXT &dbgMessenger, VkInstance instance) {
-    if (!IN_DEBUG_MODE) return CleanupTask{};
-
     VkDebugUtilsMessengerCreateInfoEXT createInfo;
     populateDebugMessengerCreateInfo(createInfo);
 

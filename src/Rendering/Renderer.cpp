@@ -40,6 +40,14 @@ void Renderer::bindEvents() {
                 break;
 
             case INITIALIZED:
+                m_pauseUpdateLoop = true;
+                break;
+
+
+            case POST_INITIALIZATION:
+                vkWaitForFences(m_coreResources->getLogicalDevice(), static_cast<uint32_t>(m_inFlightFences.size()), m_inFlightFences.data(), VK_TRUE, UINT64_MAX);
+                vkDeviceWaitIdle(m_coreResources->getLogicalDevice());
+                m_pauseUpdateLoop = false;
                 m_sessionReady = true;
                 break;
             }
@@ -87,6 +95,10 @@ void Renderer::preRenderUpdate(uint32_t currentFrame, glm::dvec3 &renderOrigin) 
 
 
 void Renderer::drawFrame(glm::dvec3& renderOrigin) {
+    if (m_pauseUpdateLoop)
+        return;
+
+
     static VkQueue lastQueue = VK_NULL_HANDLE;
 
     /* How a frame is drawn:
@@ -106,9 +118,9 @@ void Renderer::drawFrame(glm::dvec3& renderOrigin) {
     VkResult waitResult = vkWaitForFences(m_coreResources->getLogicalDevice(), 1, &m_inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
     LOG_ASSERT(waitResult == VK_SUCCESS, "Failed to wait for in-flight fence!");
 
-
     
     if (!m_swapchainDeferredCleanupIDs.empty()) {
+        // If the swapchain has been resized (i.e., the destruction list of its resources is not empty), process the destruction list and renew per-image semaphores.
         vkQueueWaitIdle(lastQueue);
 
         // Destroy old swapchain resources
@@ -128,6 +140,9 @@ void Renderer::drawFrame(glm::dvec3& renderOrigin) {
     }
 
 
+        // Perform any updates prior to command buffer recording
+    preRenderUpdate(m_currentFrame, renderOrigin);
+
 
     // After waiting, reset in-flight fence to unsignaled
     VkResult resetFenceResult = vkResetFences(m_coreResources->getLogicalDevice(), 1, &m_inFlightFences[m_currentFrame]);
@@ -135,7 +150,7 @@ void Renderer::drawFrame(glm::dvec3& renderOrigin) {
 
 
 
-    // Acquires an image from the swap-chain
+    // Acquire an image from the swap-chain
     uint32_t imageIndex;
     VkResult imgAcquisitionResult = vkAcquireNextImageKHR(m_coreResources->getLogicalDevice(), m_swapchainManager->getSwapChain(), UINT64_MAX, m_imageReadySemaphores[m_currentFrame], VK_NULL_HANDLE, &imageIndex);
     if (imgAcquisitionResult != VK_SUCCESS) {
@@ -156,9 +171,6 @@ void Renderer::drawFrame(glm::dvec3& renderOrigin) {
         // Resets the command buffer first to ensure it is able to be recorded
     VkResult cmdBufResetResult = vkResetCommandBuffer(m_graphicsCommandBuffers[m_currentFrame], 0);
     LOG_ASSERT(cmdBufResetResult == VK_SUCCESS, "Failed to reset command buffer!");
-
-        // Perform any updates prior to command buffer recording
-    preRenderUpdate(m_currentFrame, renderOrigin);
     
         // Records commands
     m_commandManager->recordRenderingCommandBuffer(m_graphicsCommandBuffers[m_currentFrame], imageIndex, m_currentFrame);

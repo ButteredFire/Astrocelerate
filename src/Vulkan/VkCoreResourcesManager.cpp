@@ -12,8 +12,10 @@ VkCoreResourcesManager::VkCoreResourcesManager(GLFWwindow *window, VkInstanceMan
     task = instanceManager->createVulkanInstance(m_instance);
     gc->createCleanupTask(task);
 
-    task = instanceManager->createDebugMessenger(m_dbgMessenger, m_instance);
-    gc->createCleanupTask(task);
+    if (IN_DEBUG_MODE) {
+        task = instanceManager->createDebugMessenger(m_dbgMessenger, m_instance);
+        gc->createCleanupTask(task);
+    }
 
     task = instanceManager->createSurface(m_surface, m_instance, window);
     gc->createCleanupTask(task);

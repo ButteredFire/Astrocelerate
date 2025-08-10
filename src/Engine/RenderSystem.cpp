@@ -74,7 +74,7 @@ void RenderSystem::bindEvents() {
 
 
 void RenderSystem::waitForResources(const EventDispatcher::SubscriberIndex &selfIndex) {
-	std::thread([this, selfIndex]() {
+	ThreadManager::CreateThread("WAIT_RENDER_RESOURCES", [this, selfIndex]() {
 		EventFlags eventFlags = EVENT_FLAG_INIT_BUFFER_MANAGER_BIT;
 
 		m_eventDispatcher->waitForEventCallbacks(selfIndex, eventFlags);

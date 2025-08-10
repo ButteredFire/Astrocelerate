@@ -105,7 +105,7 @@ void VkBufferManager::bindEvents() {
 
 void VkBufferManager::checkForInit(const EventDispatcher::SubscriberIndex &selfIndex) {
 	// Continually checks when all required event callbacks have been invoked to dispatch the buffer manager initialization event
-	std::thread([this, selfIndex]() {
+	ThreadManager::CreateThread("WAIT_BUFFER_MGR_DISPATCH", [this, selfIndex]() {
 		EventFlags eventFlags = EVENT_FLAG_INIT_GEOMETRY_BIT | EVENT_FLAG_INIT_OFFSCREEN_PIPELINE_BIT;
 
 		m_eventDispatcher->waitForEventCallbacks(selfIndex, eventFlags);

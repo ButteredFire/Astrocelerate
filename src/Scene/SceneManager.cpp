@@ -27,6 +27,8 @@ void SceneManager::init() {
 
 
 void SceneManager::loadSceneFromFile(const std::string &filePath) {
+    m_geomLoadWorkers.clear();
+
 	const std::string fileName = FilePathUtils::GetFileName(filePath);
 
 
@@ -220,16 +222,36 @@ void SceneManager::loadSceneFromFile(const std::string &filePath) {
                     if (componentNode["Data"]["meshPath"]) {
                         std::string meshPath = componentNode["Data"]["meshPath"].as<std::string>();
 
+
                         m_eventDispatcher->dispatch(UpdateEvent::SceneLoadProgress{
                             .progress = 0.1f + (entityProcessingProgress * 0.75f),
                             .message = "[" + std::string(entityName) + "] Loading geometry..."
-                        });
+                            });
 
                         std::string fullPath = FilePathUtils::JoinPaths(ROOT_DIR, meshPath);
                         Math::Interval<uint32_t> meshRange = m_geometryLoader.loadGeometryFromFile(fullPath);
 
                         meshRenderable.meshRange = meshRange;
                         m_registry->addComponent(newEntity.id, meshRenderable);
+
+                        // TODO: Concurrently process meshes
+                        //m_geomLoadWorkers.push_back(
+                        //    m_WorkerData{
+                        //        .entityProcessPercentage = entityProcessingProgress,
+                        //        .entityName = entityName,
+                        //
+                        //        .worker = ThreadManager::CreateThread("GEOMETRY_LOAD",
+                        //            [this, meshPath, meshRenderable, newEntity]() {
+                        //                RenderComponent::MeshRenderable renderableCopy = meshRenderable; // meshRenderable is const for some reason
+                        //
+                        //                std::string fullPath = FilePathUtils::JoinPaths(ROOT_DIR, meshPath);
+                        //                renderableCopy.meshRange = m_geometryLoader.loadGeometryFromFile(fullPath);
+                        //
+                        //                m_registry->addComponent(newEntity.id, renderableCopy);
+                        //            }
+                        //        )
+                        //    }
+                        //);
                     }
                     else {
                         Log::Print(Log::T_ERROR, __FUNCTION__, info(entityName, componentType) + "Model path is not provided!");
@@ -244,6 +266,17 @@ void SceneManager::loadSceneFromFile(const std::string &filePath) {
                 }
             }
         }
+
+
+        // TODO: Concurrently process meshes
+        //for (auto &workerData : m_geomLoadWorkers) {
+        //    m_eventDispatcher->dispatch(UpdateEvent::SceneLoadProgress{
+        //        .progress = 0.1f + (workerData.entityProcessPercentage * 0.75f),
+        //        .message = "[" + std::string(workerData.entityName) + "] Loading geometry..."
+        //    });
+        //
+        //    workerData.worker.join();
+        //}
 
 
         // ----- Finalize geometry baking -----

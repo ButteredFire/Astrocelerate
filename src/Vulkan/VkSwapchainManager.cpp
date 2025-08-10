@@ -45,6 +45,8 @@ void VkSwapchainManager::init() {
 
     // Parses data for each image
     createImageViews();
+
+    SimulationConsts::MAX_FRAMES_IN_FLIGHT = m_images.size();
 }
 
 

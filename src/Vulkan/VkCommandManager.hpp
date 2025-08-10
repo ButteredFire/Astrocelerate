@@ -161,6 +161,7 @@ private:
 		// Offscreen pipeline data
 	VkRenderPass m_offscreenRenderPass;
 	VkPipeline m_offscreenPipeline;
+	std::vector<VkImage> m_offscreenImages;
 	std::vector<VkFramebuffer> m_offscreenFrameBuffers;
 
 

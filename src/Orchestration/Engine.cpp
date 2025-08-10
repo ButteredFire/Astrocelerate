@@ -7,9 +7,9 @@
 Engine::Engine(GLFWwindow *w):
     m_window(w) {
 
-    initCoreServices();
-
     ThreadManager::SetMainThreadID(std::this_thread::get_id());
+
+    initCoreServices();
 
     bindEvents();
 

@@ -3,8 +3,10 @@
 
 #pragma once
 
-#include <iostream>
+#include <mutex>
+#include <atomic>
 #include <vector>
+#include <iostream>
 
 #include <Core/Application/LoggingManager.hpp>
 #include <Core/Application/EventDispatcher.hpp>
@@ -30,7 +32,9 @@ public:
 	Math::Interval<uint32_t> loadGeometryFromFile(const std::string& path);
 
 
-	/* Preprocesses loaded geometry data. 
+	/* Preprocesses loaded geometry data.
+		NOTE: This function internally depends on the data generated from GeometryLoader::loadGeometryFromFile.
+	
 		@return A pointer to the geometry data.
 	*/
 	Geometry::GeometryData* bakeGeometry();
@@ -39,7 +43,14 @@ private:
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 	std::shared_ptr<GarbageCollector> m_garbageCollector;
 
+
 	std::vector<Geometry::MeshData> m_meshes;
+	std::mutex m_meshLoadMutex;
+
+	std::atomic<int32_t> m_leftEndpoint = 0;
+	std::atomic<int32_t> m_rightEndpoint = 0;
+	bool m_isInitialLoad = false;
+
 
 	std::vector<CleanupID> m_sessionCleanupIDs;
 

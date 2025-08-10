@@ -42,6 +42,16 @@ void Session::bindEvents() {
 	);
 
 
+	m_eventDispatcher->subscribe<InitEvent::BufferManager>(selfIndex, 
+		[this](const InitEvent::BufferManager &event) {
+			// Signal all managers that the newly initialized resources, PLUS any dynamic resources created during the INITIALIZED stage, are safe to use
+			m_eventDispatcher->dispatch(UpdateEvent::SessionStatus{
+				.sessionStatus = UpdateEvent::SessionStatus::Status::POST_INITIALIZATION
+			});
+		}
+	);
+
+
 	m_eventDispatcher->subscribe<UpdateEvent::SessionStatus>(selfIndex,
 		[this](const UpdateEvent::SessionStatus &event) {
 			using enum UpdateEvent::SessionStatus::Status;
@@ -135,7 +145,7 @@ void Session::loadSceneFromFile(const std::string &filePath) {
 
 	// Load scene from file
 		// Detach scene loading from the main thread
-	std::thread([this, filePath]() {
+	ThreadManager::CreateThread("SCENE_INIT", [this, filePath]() {
 		try {
 			m_sceneManager->loadSceneFromFile(filePath);
 			m_eventDispatcher->dispatch(RequestEvent::InitSceneResources{});

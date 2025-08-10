@@ -123,6 +123,7 @@ void OffscreenPipeline::init() {
 		.pbrDescriptorSet = m_pbrDescriptorSet,
 		.texArrayDescriptorSet = m_texArrayDescriptorSet,
 
+		.offscreenImages = m_colorImages,
 		.offscreenImageViews = m_colorImgViews,
 		.offscreenImageSamplers = m_colorImgSamplers,
 		.offscreenFrameBuffers = m_colorImgFramebuffers

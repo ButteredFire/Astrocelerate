@@ -14,6 +14,7 @@
 #include <functional>
 #include <unordered_map>
 #include <unordered_set>
+#include <condition_variable>
 
 #include <Core/Application/LoggingManager.hpp>
 #include <Core/Data/EventTypes.hpp>
@@ -161,8 +162,10 @@ public:
 		else {
 			// If there is a main thread and the current thread is not it, this must be a worker thread.
 			// In this case, the event will be queued for processing in the main thread later.
-			Log::Print(Log::T_INFO, __FUNCTION__, "Queueing event " + enquote(typeid(EventType).name()) + " dispatched in Worker Thread " + ThreadManager::ThreadIDToString(std::this_thread::get_id()) + "...");
+			std::thread::id threadID = std::this_thread::get_id();
+			Log::Print(Log::T_INFO, __FUNCTION__, "Queueing event " + enquote(typeid(EventType).name()) + " dispatched in Worker Thread " + ThreadManager::ThreadIDToString(threadID) + " (" + ThreadManager::GetThreadNameFromID(threadID) + ")...");
 			
+
 			std::lock_guard<std::mutex> lock(m_eventQueueMutex);
 			m_eventQueue.push(QueuedEvent{
 				.type = eventTypeIndex,
@@ -178,6 +181,7 @@ public:
 					this->internalDispatch(eventTypeIndex, eventFlag, &eventCopy, suppressLogs);
 				}
 			});
+			m_eventQueueCondition.notify_one();
 		}
 	}
 
@@ -187,21 +191,17 @@ public:
 		if (std::this_thread::get_id() != ThreadManager::GetMainThreadID())
 			return;
 
-		std::vector<QueuedEvent> pendingEvents;
-		{
-			std::lock_guard<std::mutex> lock(m_eventQueueMutex);
+		std::unique_lock<std::mutex> lock(m_eventQueueMutex);
 
-			while (!m_eventQueue.empty()) {
-				pendingEvents.push_back(m_eventQueue.front());
-				m_eventQueue.pop();
-			}
+		m_eventQueueCondition.wait_for(lock, std::chrono::milliseconds(10));
+
+		if (!m_eventQueue.empty())
+			Log::Print(Log::T_INFO, __FUNCTION__, "Processing " + TO_STR(m_eventQueue.size()) + " queued " + PLURAL(m_eventQueue.size(), "event", "events") + "...");
+
+		while (!m_eventQueue.empty()) {
+			m_eventQueue.front().callback(nullptr);
+			m_eventQueue.pop();
 		}
-
-		if (!pendingEvents.empty())
-			Log::Print(Log::T_INFO, __FUNCTION__, "Processing " + TO_STR(pendingEvents.size()) + " queued " + PLURAL(pendingEvents.size(), "event", "events") + "...");
-
-		for (auto &event : pendingEvents)
-			event.callback(nullptr);
 	}
 	
 private:
@@ -230,6 +230,7 @@ private:
 
 	std::queue<QueuedEvent> m_eventQueue;
 	std::mutex m_eventQueueMutex;
+	std::condition_variable m_eventQueueCondition;	// Condition variable to signal when new (deferred) events are available.
 
 
 	/* Internal event dispatching logic.

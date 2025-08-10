@@ -59,6 +59,7 @@ namespace InitEvent {
 		VkDescriptorSet pbrDescriptorSet;
 		VkDescriptorSet texArrayDescriptorSet;
 
+		std::vector<VkImage> offscreenImages;
 		std::vector<VkImageView> offscreenImageViews;
 		std::vector<VkSampler> offscreenImageSamplers;
 		std::vector<VkFramebuffer> offscreenFrameBuffers;
@@ -190,8 +191,9 @@ namespace UpdateEvent {
 		enum class Status {
 			PREPARE_FOR_RESET,		// Session is preparing to be reset. This allows for any manager using per-session resources to immediately stop accessing them
 			RESET,					// Session has been reset. This allows for per-session managers to destroy all outdated resources in preparation for new ones.
-			PREPARE_FOR_INIT,		// Session is preparing to be initialized. This allows for per-session managers to also prepare.
-			INITIALIZED				// Session is initialized. At this stage, scenes and per-scene resources are safe to use.
+			PREPARE_FOR_INIT,		// Session is preparing to be initialized. This allows for per-session managers to also prepare (e.g., by allowing certain processes to be run).
+			INITIALIZED,			// Session is initialized. At this stage, scenes and per-scene resources are safe to be used for creating dynamic resources that may depend on them.
+			POST_INITIALIZATION		// Session is online. At this stage, all default per-scene resources, as well as dynamic ones created during the INITIALIZED stage, are ready for access.
 		};
 		const EventFlag eventFlag = EVENT_FLAG_UPDATE_SESSION_STATUS_BIT;
 

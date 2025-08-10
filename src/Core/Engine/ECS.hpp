@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include <mutex>
+
 #include "ECSCore.hpp"
 
 #include <Engine/Components/PhysicsComponents.hpp>
@@ -407,33 +409,40 @@ public:
 
 
 	inline Entity createEntity(const std::string& name = "Unknown entity") {
+		std::lock_guard<std::recursive_mutex> lock(m_registryMutex);
 		return entityManager.createEntity(name);
 	}
 
 
 	inline Entity getEntity(EntityID entityID) {
+		std::lock_guard<std::recursive_mutex> lock(m_registryMutex);
 		return entityManager.getAllEntities()[entityID];
 	}
 
 
 	inline bool hasEntity(EntityID entityID) {
+		std::lock_guard<std::recursive_mutex> lock(m_registryMutex);
 		return entityManager.getAllEntities().count(entityID);
 	}
 
 
 	inline void destroyEntity(Entity& entity) {
+		std::lock_guard<std::recursive_mutex> lock(m_registryMutex);
 		entityManager.destroyEntity(entity);
 	}
 
 
 	template<typename Component>
 	inline void initComponentArray() {
+		std::lock_guard<std::recursive_mutex> lock(m_registryMutex);
 		componentManager.initComponentArray<Component>();
 	}
 
 
 	template<typename Component>
 	inline void addComponent(EntityID entityID, Component component) {
+		std::lock_guard<std::recursive_mutex> lock(m_registryMutex);
+
 		componentManager.addComponent<Component>(entityID, component);
 
 		ComponentMask mask = entityManager.getComponentMask(entityID);
@@ -445,12 +454,14 @@ public:
 
 	template<typename Component>
 	inline void removeComponent(EntityID entityID) {
+		std::lock_guard<std::recursive_mutex> lock(m_registryMutex);
 		componentManager.removeComponent(entityID);
 	}
 
 
 	template<typename Component>
 	inline void updateComponent(EntityID entityID, Component component) {
+		std::lock_guard<std::recursive_mutex> lock(m_registryMutex);
 		componentManager.updateComponent(entityID, component);
 	}
 
@@ -472,6 +483,8 @@ public:
 
 
 	inline void clear() {
+		std::lock_guard<std::recursive_mutex> lock(m_registryMutex);
+
 		// NOTE: Assigning a new object automatically destroys the old class instance and constructs/moves the new one
 		entityManager.reset();
 		componentManager = ComponentManager();
@@ -510,6 +523,8 @@ public:
 private:
 	EntityManager entityManager;
 	ComponentManager componentManager;
+
+	std::recursive_mutex m_registryMutex;
 
 	Entity m_renderSpace;
 
