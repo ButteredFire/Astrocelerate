@@ -49,7 +49,14 @@ private:
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 	std::shared_ptr<Registry> m_registry;
 
+
+	std::string m_fileName;
+	Application::YAMLFileConfig m_fileConfig;
+	Application::SimulationConfig m_simulationConfig;
+
+
 	Entity m_renderSpace{};
+
 
 	GeometryLoader m_geometryLoader;
 	Geometry::GeometryData *m_geomData = nullptr;
@@ -64,4 +71,12 @@ private:
 
 
 	void bindEvents();
+
+
+	/* Processes file and simulation configurations. */
+	void processMetadata(Application::YAMLFileConfig *fileConfig, Application::SimulationConfig *simConfig, const YAML::Node &rootNode);
+
+
+	/* Processes the simulation initial states. */
+	void processScene(const YAML::Node &rootNode);
 };

@@ -32,6 +32,7 @@ set(SOURCE_FILES
 	"src/Scene/GUI/CodeEditor.cpp"
 	"src/Scene/GUI/UIPanelManager.cpp"
 	"src/Scene/GUI/Workspaces/OrbitalWorkspace.cpp"
+	"src/Simulation/CoordinateSystems/ECIFrame.cpp"
 	"src/Simulation/Systems/ReferenceFrameSystem.cpp"
 	"src/Utils/Vulkan/VkDescriptorUtils.cpp"
 	"src/Vulkan/VkBufferManager.cpp"

@@ -3,8 +3,7 @@
 #include <Engine/Components/TelemetryComponents.hpp>
 
 
-Camera::Camera(Entity self, GLFWwindow* window, glm::dvec3 position, glm::quat orientation):
-	m_camEntity(self),
+Camera::Camera(GLFWwindow* window, glm::dvec3 position, glm::quat orientation):
 	m_attachedEntityID(m_camEntity.id),
 	m_window(window),
 	m_defaultPosition(position),
@@ -21,6 +20,8 @@ Camera::Camera(Entity self, GLFWwindow* window, glm::dvec3 position, glm::quat o
 
 
 void Camera::reset() {
+	m_camEntity = m_registry->createEntity("Camera");
+
 	m_position = m_defaultPosition;
 	m_orientation = m_defaultOrientation;
 
@@ -40,27 +41,48 @@ void Camera::update(double physicsUpdateTimeDiff) {
 
 	// Update camera's position if currently attached to an entity
 	if (m_attachedEntityID != m_camEntity.id) {
-		PhysicsComponent::ReferenceFrame &entityRefFrame = m_registry->getComponent<PhysicsComponent::ReferenceFrame>(m_attachedEntityID);
-		glm::dvec3 entityPosition = SpaceUtils::ToSimulationSpace(entityRefFrame._computedGlobalPosition);
+		CoreComponent::Transform &entityTransform = m_registry->getComponent<CoreComponent::Transform>(m_attachedEntityID);
+		RenderComponent::MeshRenderable &entityRenderable = m_registry->getComponent<RenderComponent::MeshRenderable>(m_attachedEntityID);
+
+		const glm::dvec3 &entityPosition = entityTransform.position;
+		const double minCameraZoom = SpaceUtils::ToSimulationSpace(
+			SpaceUtils::GetRenderableScale(SpaceUtils::ToRenderSpace_Scale(entityTransform.scale)) * entityRenderable.visualScale
+		);	  // Added to orbit radius to prevent zooming inside entity
 
 
 		// Interpolate entity positions between now and the time of the last physics update.
 		// Explanation: While physics updates happen at a fixed time step (e.g., 60 Hz), rendering is uncapped. This can result in jittery movements of entities that are especially noticeable in atttached/orbital mode. To fix this, we must interpolate the entity positions between the two time points for smoothness.
-		double alpha = physicsUpdateTimeDiff / SimulationConsts::TIME_STEP;
+		if (!m_orbitedEntityLastPosition.count(m_attachedEntityID))
+			m_orbitedEntityLastPosition[m_attachedEntityID] = entityPosition;
 
-		//glm::dvec3 interpolatedEntityPosition = glm::mix(
-		//	SpaceUtils::ToSimulationSpace(entityRefFrame.previousPosition),
-		//	entityPosition,
-		//	alpha
-		//);
+		glm::dvec3 interpolatedEntityPosition;
+
+		if (Time::GetTimeScale() > 0.0) {
+			// Prevents division by zero
+			// IMPORTANT: Consider checking time step to check if it's zero in the future, if dynamic time steps are to be implemented
+			double alpha = physicsUpdateTimeDiff / (SimulationConsts::TIME_STEP * Time::GetTimeScale());
+			alpha = glm::clamp(alpha, 0.0, 1.0);
+
+			interpolatedEntityPosition = glm::mix(
+				m_orbitedEntityLastPosition[m_attachedEntityID].value(),
+				entityPosition,
+				alpha
+			);
+
+			m_orbitedEntityLastPosition[m_attachedEntityID] = entityPosition;
+		}
+		else
+			interpolatedEntityPosition = entityPosition;
 
 
 
 		// Rotate the orbit radius (offset from entity) vector using the camera's orientation
 		glm::vec3 scaledOrbitRadius = SpaceUtils::ToSimulationSpace(glm::dvec3(0.0, static_cast<double>(m_orbitRadius), 0.0));	// Offset from entity's origin
+		scaledOrbitRadius.y += minCameraZoom;
+
 		glm::dvec3 rotatedOffset = m_orientation * scaledOrbitRadius;
 
-		m_position = entityPosition + rotatedOffset;
+		m_position = interpolatedEntityPosition + rotatedOffset;
 
 
 		// Calculate camera orientation to look at the target point

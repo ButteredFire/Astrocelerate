@@ -14,6 +14,7 @@
 #include <Core/Data/Input.hpp>
 
 #include <Engine/Components/CoreComponents.hpp>
+#include <Engine/Components/RenderComponents.hpp>
 #include <Engine/Components/PhysicsComponents.hpp>
 
 #include <Utils/SpaceUtils.hpp>
@@ -25,7 +26,7 @@ class InputManager;
 
 class Camera {
 public:
-	Camera(Entity self, GLFWwindow* window, glm::dvec3 position, glm::quat orientation);
+	Camera(GLFWwindow* window, glm::dvec3 position, glm::quat orientation);
 	~Camera() = default;
 
 	friend class InputManager;
@@ -85,7 +86,7 @@ private:
 	glm::quat m_freeFlyOrientation;
 
 	float m_orbitRadius;	// Distance between camera and entity (in render space)
-	glm::vec3 m_orbitedEntityLastPosition;		// The last position of the entity being orbited (to perform linear interpolation)
+	std::unordered_map<EntityID, std::optional<glm::dvec3>> m_orbitedEntityLastPosition;		// The last positions of the entities being orbited (to perform linear interpolation)
 
 
 	void reset();

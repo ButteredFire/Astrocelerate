@@ -98,31 +98,35 @@ void Session::update() {
 	if (!m_sessionInitialized)
 		return;
 
-	static double accumulator = 0.0;
-	static float timeScale = 0;
-
-	if (!m_initialRefFrameUpdate) {
-		m_initialRefFrameUpdate = true;
-		m_refFrameSystem->updateAllFrames();
+	if (!m_initialPhysicsUpdate) {
+		m_initialPhysicsUpdate = true;
+		m_physicsSystem->update(Time::GetDeltaTime());
 	}
 
 
-	timeScale = Time::GetTimeScale();
-
+	// Update physics
+	float timeScale = Time::GetTimeScale();
 	Time::UpdateDeltaTime();
 	double deltaTime = Time::GetDeltaTime();
+
+	double accumulator = 0.0;
 	accumulator += deltaTime * timeScale;
 
-	// Update physics
 		// TODO: Implement adaptive timestepping instead of a constant TIME_STEP
 	while (accumulator >= SimulationConsts::TIME_STEP) {
 		const double scaledDeltaTime = SimulationConsts::TIME_STEP * timeScale;
 
 		m_physicsSystem->update(scaledDeltaTime);
-		m_refFrameSystem->updateAllFrames();
 
 		accumulator -= scaledDeltaTime;
 	}
+
+
+	// Process key input events
+	m_eventDispatcher->dispatch(UpdateEvent::Input{
+		.deltaTime = Time::GetDeltaTime(),
+		.timeSinceLastPhysicsUpdate = accumulator
+	}, true);
 }
 
 
@@ -160,8 +164,8 @@ void Session::loadSceneFromFile(const std::string &filePath) {
 				.finalMessage = "Scene initialization complete."
 			});
 
-			// Update reference frame system once in update loop
-			m_initialRefFrameUpdate = false;
+			// Update physics once in update loop
+			m_initialPhysicsUpdate = false;
 		}
 		catch (const std::exception &e) {
 			// Catch any exceptions during the worker thread's CPU-bound execution.

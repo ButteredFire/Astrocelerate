@@ -115,12 +115,9 @@ void Engine::initCoreManagers() {
 
     // Camera
     //glm::dvec3 cameraPosition = glm::vec3(8e8, (PhysicsConsts::AU + 10e8), 1e7);
-    m_globalRegistry = ServiceLocator::GetService<Registry>(__FUNCTION__);
-    Entity cameraEntity = m_globalRegistry->createEntity("Camera");
     glm::dvec3 cameraPosition = glm::vec3(0.0, 1.3e8, 0.0);
 
     m_camera = std::make_shared<Camera>(
-        cameraEntity,
         m_window,
         cameraPosition,
         glm::quat(1, 0.0, 0.0, 0.0)
@@ -200,6 +197,7 @@ void Engine::initEngine() {
 void Engine::initComponents() {
     /* Core */
     m_registry->initComponentArray<CoreComponent::Transform>();
+    m_registry->initComponentArray<CoreComponent::Identifiers>();
 
     /* Meshes & Models */
     m_registry->initComponentArray<ModelComponent::Mesh>();
@@ -214,6 +212,7 @@ void Engine::initComponents() {
     m_registry->initComponentArray<PhysicsComponent::OrbitingBody>();
     m_registry->initComponentArray<PhysicsComponent::ReferenceFrame>();
     m_registry->initComponentArray<PhysicsComponent::ShapeParameters>();
+    m_registry->initComponentArray<PhysicsComponent::CoordinateSystem>();
 
     /* Spacecraft */
     m_registry->initComponentArray<SpacecraftComponent::Spacecraft>();
@@ -289,11 +288,6 @@ void Engine::updateOrbitalSetup() {
 
 
 void Engine::updateOrbitalWorkspace() {
-    // Process key input events
-    m_eventDispatcher->dispatch(UpdateEvent::Input{
-        .deltaTime = Time::GetDeltaTime()
-    }, true);
-    
     m_currentSession->update();
 
     glm::dvec3 floatingOrigin = m_inputManager->getCamera()->getGlobalTransform().position;

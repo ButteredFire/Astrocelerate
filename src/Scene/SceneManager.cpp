@@ -29,243 +29,44 @@ void SceneManager::init() {
 void SceneManager::loadSceneFromFile(const std::string &filePath) {
     m_geomLoadWorkers.clear();
 
-	const std::string fileName = FilePathUtils::GetFileName(filePath);
-
-
-#define logMissingComponent(componentName) Log::Print(Log::T_WARNING, __FUNCTION__, "In simulation file " + fileName + ": Essential component " + enquote((componentName)) + " is missing!")
-#define info(entityName, componentType) "Entity " + enquote((entityName)) + ", component " + enquote((componentType)) + ": "
+    m_fileName = FilePathUtils::GetFileName(filePath);
 
 
     // Worker thread progress tracking
     m_eventDispatcher->dispatch(UpdateEvent::SceneLoadProgress{
         .progress = 0.0f,
-        .message = "Preparing scene load from simulation file " + enquote(fileName) + "..."
+        .message = "Preparing scene load from simulation file " + enquote(m_fileName) + "..."
     });
 
-    std::map<std::string, EntityID> entityNameToID; // Map entity names to their runtime IDs
-    std::map<std::string, double> entityNameToMass; // Map entity names to their masses
+	Log::Print(Log::T_INFO, __FUNCTION__, "Selected simulation file: " + enquote(m_fileName) + ". Loading scene...");
 
-	Log::Print(Log::T_INFO, __FUNCTION__, "Selected simulation file: " + enquote(fileName) + ". Loading scene...");
 
 	try {
-        YAML::Node scene = YAML::LoadFile(filePath);
-
+        YAML::Node rootNode = YAML::LoadFile(filePath);
+        
+        // ----- PROCESS FILE & SIMULATION CONFIGURATIONS -----
         m_eventDispatcher->dispatch(UpdateEvent::SceneLoadProgress{
             .progress = 0.1f,
-            .message = "Acquiring scene data..."
+            .message = "Processing scene metadata..."
         });
 
-        size_t processedEntities = 0;
-        size_t totalEntities = 0;
-        if (scene["Entities"])
-            totalEntities = scene["Entities"].size();
+        processMetadata(&m_fileConfig, &m_simulationConfig, rootNode);
 
-
-        // ----- Query each entity -----
-        for (const auto &entityNode : scene["Entities"]) {
-            std::string entityName = entityNode["Name"].as<std::string>();
-            Entity newEntity = m_registry->createEntity(entityName);
-
-            if (entityNameToID.count(entityName) > 0) {
-                Log::Print(Log::T_ERROR, __FUNCTION__, "Found duplicate " + enquote(entityName) + " entities! Please ensure entity names are unique.");
-                throw;
-            }
-
-            entityNameToID[entityName] = newEntity.id;
-
-
-            processedEntities++;
-            float entityProcessingProgress = static_cast<float>(processedEntities) / totalEntities;
-            m_eventDispatcher->dispatch(UpdateEvent::SceneLoadProgress{
-                .progress = 0.1f + (entityProcessingProgress * 0.75f),
-                .message = "[" + std::string(entityName) + "] Parsing components..."
-            });
-
-
-            // ----- Scene Data Deserialization -----
-            for (const auto &componentNode : entityNode["Components"]) {
-                std::string componentType = componentNode["Type"].as<std::string>();
-
-
-                // ----- PHYSICS -----
-                if (componentType == YAMLKey::Physics_ReferenceFrame) {
-                    PhysicsComponent::ReferenceFrame refFrame{};
-
-                    if (!YAMLUtils::GetComponentData(componentNode, refFrame)) {
-                        logMissingComponent(componentType);
-                        continue;
-                    }
-
-                    bool validID = false;
-					if (componentNode["Data"]["parentID"]) {
-						std::string parentName = componentNode["Data"]["parentID"].as<std::string>();
-
-						if (parentName.starts_with(YAMLKey::Ref)) {
-							// The reference frame references an entity name as their parent
-                            if (parentName.size() <= YAMLKey::Ref.size()) {
-                                Log::Print(Log::T_ERROR, __FUNCTION__, info(entityName, componentType) + "Reference value for parentID cannot be empty!");
-                                continue;
-                            }
-                            
-
-							parentName = YAMLUtils::GetReferenceSubstring(parentName);
-							if (entityNameToID.count(parentName) && m_registry->hasEntity(entityNameToID[parentName])); {
-								validID = true;
-								refFrame.parentID = entityNameToID[parentName];
-							}
-						}
-						else {
-							// The reference frame is null
-							validID = true;
-							refFrame.parentID = m_renderSpace.id;
-						}
-					}
-
-                    if (!validID) {
-                        Log::Print(Log::T_WARNING, __FUNCTION__, info(entityName, componentType) + "Cannot find parent. Defaulting to render space as the parent!");
-                        refFrame.parentID = m_renderSpace.id;
-                    }
-
-
-                    m_registry->addComponent(newEntity.id, refFrame);
-                }
-
-
-                else if (componentType == YAMLKey::Physics_RigidBody) {
-                    PhysicsComponent::RigidBody rigidBody{};
-
-                    if (!YAMLUtils::GetComponentData(componentNode, rigidBody))
-                        logMissingComponent(componentType);
-
-                    m_registry->addComponent(newEntity.id, rigidBody);
-                    entityNameToMass[entityName] = rigidBody.mass;  // Store mass for later lookups
-                }
-
-
-                else if (componentType == YAMLKey::Physics_ShapeParameters) {
-                    PhysicsComponent::ShapeParameters shapeParams{};
-
-                    if (componentNode["Data"]) { // Check if 'Data' node exists
-                        shapeParams = componentNode["Data"].as<PhysicsComponent::ShapeParameters>();
-                        m_registry->addComponent(newEntity.id, shapeParams);
-                    }
-                    else {
-                        logMissingComponent(componentType);
-                    }
-                }
-
-
-                else if (componentType == YAMLKey::Physics_OrbitingBody) {
-                    PhysicsComponent::OrbitingBody orbitingBody;
-
-                    if (!YAMLUtils::GetComponentData(componentNode, orbitingBody))
-                        logMissingComponent(componentType);
-
-                    bool refIsValid = false;
-                    if (componentNode["Data"]["centralMass"]) {
-                        std::string centralMassRef = componentNode["Data"]["centralMass"].as<std::string>();
-
-						if (centralMassRef.starts_with(YAMLKey::Ref)) {
-                            if (centralMassRef.size() <= YAMLKey::Ref.size()) {
-                                Log::Print(Log::T_ERROR, __FUNCTION__, info(entityName, componentType) + "Reference value for centralMass cannot be empty!");
-                                continue;
-                            }
-
-							centralMassRef = YAMLUtils::GetReferenceSubstring(centralMassRef);
-                            if (entityNameToMass.count(centralMassRef)) {
-                                refIsValid = true;
-                                orbitingBody.centralMass = entityNameToMass[centralMassRef];
-                            }
-                            else {
-                                Log::Print(Log::T_ERROR, __FUNCTION__, info(entityName, componentType) + "Unable to resolve reference " + enquote(centralMassRef) + "! Reference must be a valid entity name.");
-                                continue;
-                            }
-						}
-                    }
-
-                    if (!refIsValid) {
-                        Log::Print(Log::T_ERROR, __FUNCTION__, info(entityName, componentType) + "Central mass reference value is not provided!");
-                        continue;
-                    }
-
-                    m_registry->addComponent(newEntity.id, orbitingBody);
-                }
+        m_eventDispatcher->dispatch(ConfigEvent::SimulationFileParsed{
+           .fileConfig = m_fileConfig,
+           .simulationConfig = m_simulationConfig
+        });
 
 
 
-                // ----- SPACECRAFT -----
-                else if (componentType == YAMLKey::Spacecraft_Spacecraft) {
-                    SpacecraftComponent::Spacecraft spacecraft{};
+        // ----- PROCESS SCENE -----
+        m_eventDispatcher->dispatch(UpdateEvent::SceneLoadProgress{
+            .progress = 0.1f,
+            .message = "Processing scene..."
+        });
 
-                    YAMLUtils::GetComponentData(componentNode, spacecraft);
-                    m_registry->addComponent(newEntity.id, spacecraft);
-                }
+        processScene(rootNode);
 
-
-
-                else if (componentType == YAMLKey::Spacecraft_Thruster) {
-                    SpacecraftComponent::Thruster thruster{};
-
-                    YAMLUtils::GetComponentData(componentNode, thruster);
-                    m_registry->addComponent(newEntity.id, thruster);
-                }
-
-
-
-                // ----- RENDERING -----
-                else if (componentType == YAMLKey::Render_MeshRenderable) {
-                    RenderComponent::MeshRenderable meshRenderable{};
-
-                    if (!YAMLUtils::GetComponentData(componentNode, meshRenderable))
-                        logMissingComponent(componentType);
-
-                    if (componentNode["Data"]["meshPath"]) {
-                        std::string meshPath = componentNode["Data"]["meshPath"].as<std::string>();
-
-
-                        m_eventDispatcher->dispatch(UpdateEvent::SceneLoadProgress{
-                            .progress = 0.1f + (entityProcessingProgress * 0.75f),
-                            .message = "[" + std::string(entityName) + "] Loading geometry..."
-                            });
-
-                        std::string fullPath = FilePathUtils::JoinPaths(ROOT_DIR, meshPath);
-                        Math::Interval<uint32_t> meshRange = m_geometryLoader.loadGeometryFromFile(fullPath);
-
-                        meshRenderable.meshRange = meshRange;
-                        m_registry->addComponent(newEntity.id, meshRenderable);
-
-                        // TODO: Concurrently process meshes
-                        //m_geomLoadWorkers.push_back(
-                        //    m_WorkerData{
-                        //        .entityProcessPercentage = entityProcessingProgress,
-                        //        .entityName = entityName,
-                        //
-                        //        .worker = ThreadManager::CreateThread("GEOMETRY_LOAD",
-                        //            [this, meshPath, meshRenderable, newEntity]() {
-                        //                RenderComponent::MeshRenderable renderableCopy = meshRenderable; // meshRenderable is const for some reason
-                        //
-                        //                std::string fullPath = FilePathUtils::JoinPaths(ROOT_DIR, meshPath);
-                        //                renderableCopy.meshRange = m_geometryLoader.loadGeometryFromFile(fullPath);
-                        //
-                        //                m_registry->addComponent(newEntity.id, renderableCopy);
-                        //            }
-                        //        )
-                        //    }
-                        //);
-                    }
-                    else {
-                        Log::Print(Log::T_ERROR, __FUNCTION__, info(entityName, componentType) + "Model path is not provided!");
-                        continue;
-                    }
-                }
-
-
-                else if (componentType == YAMLKey::Telemetry_RenderTransform) {
-                    // This component has no data, just add it as a tag
-                    m_registry->addComponent(newEntity.id, TelemetryComponent::RenderTransform{});
-                }
-            }
-        }
 
 
         // TODO: Concurrently process meshes
@@ -300,25 +101,257 @@ void SceneManager::loadSceneFromFile(const std::string &filePath) {
 	}
 
 	catch (const YAML::BadFile &e) {
-		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to read data from simulation file " + enquote(fileName) + ": " + e.what());
+		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to read data from simulation file " + enquote(m_fileName) + ": " + e.what());
 
         // Re-throw the original exception to the outer try-catch block (i.e., the Session try-catch block, for it to reset its status)
         throw;
 	}
 	catch (const YAML::ParserException &e) {
-		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to parse data from simulation file " + enquote(fileName) + ": " + e.what());
+		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to parse data from simulation file " + enquote(m_fileName) + ": " + e.what());
         throw;
 	}
 	catch (const std::exception &e) {
-		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to load scene from simulation file " + enquote(fileName) + ": " + e.what());
+		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to load scene from simulation file " + enquote(m_fileName) + ": " + e.what());
         throw;
 	}
 
 
-	Log::Print(Log::T_SUCCESS, __FUNCTION__, "Successfully loaded scene from simulation file " + enquote(fileName) + ".");
+	Log::Print(Log::T_SUCCESS, __FUNCTION__, "Successfully loaded scene from simulation file " + enquote(m_fileName) + ".");
 }
 
 
 void SceneManager::saveSceneToFile(const std::string &filePath) {
 
+}
+
+
+void SceneManager::processMetadata(Application::YAMLFileConfig *fileConfig, Application::SimulationConfig *simConfig, const YAML::Node &rootNode) {
+    const auto fileCfgRoot = rootNode[YAMLFileConfig::ROOT];
+    const auto simCfgRoot = rootNode[YAMLSimConfig::ROOT];
+
+    // File configuration
+    if (fileCfgRoot) {
+        fileConfig->fileName = m_fileName;
+
+        if (!YAMLUtils::TryGetEntryData(&fileConfig->version, YAMLFileConfig::Version, fileCfgRoot))
+            Log::Print(Log::T_WARNING, __FUNCTION__, "File configuration does not include simulation version! This simulation may be incompatible.");
+
+        YAMLUtils::TryGetEntryData(&fileConfig->description, YAMLFileConfig::Description, fileCfgRoot);
+    }
+
+    else {
+        throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to process metadata: File configuration does not exist!");
+        throw;
+    }
+
+
+    // Simulation configuration
+    if (simCfgRoot) {
+        // SPICE kernels
+        const auto kernelsNode = simCfgRoot[YAMLSimConfig::Kernels];
+        if (!kernelsNode)
+            Log::Print(Log::T_ERROR, __FUNCTION__, "Simulation configuration does not contain SPICE kernel paths!");
+
+        else {
+            const size_t kernelCount = kernelsNode.size();
+            simConfig->kernelPaths.resize(kernelCount);
+
+            for (size_t i = 0; i < kernelCount; i++) {
+                YAMLUtils::TryGetEntryData(&simConfig->kernelPaths[i], YAMLSimConfig::Kernel_Path, kernelsNode[i]);
+            }
+        }
+
+
+        // Coordinate system
+        const auto coordSysNode = simCfgRoot[YAMLSimConfig::CoordSys];
+        if (!coordSysNode)
+            Log::Print(Log::T_ERROR, __FUNCTION__, "Simulation configuration does not contain information on the coordinate system!");
+
+        else {
+            std::string frameStr;
+            if (YAMLUtils::TryGetEntryData(&frameStr, YAMLSimConfig::CoordSys_Frame, coordSysNode)) {
+                simConfig->frame = CoordSys::FrameStrToEnumMap.at(frameStr);
+                simConfig->frameType = CoordSys::FrameToTypeMap.at(simConfig->frame);
+            }
+
+            std::string epochStr;
+            if (YAMLUtils::TryGetEntryData(&epochStr, YAMLSimConfig::CoordSys_Epoch, coordSysNode)) {
+                simConfig->epoch = CoordSys::EpochStrToEnumMap.at(epochStr);
+                YAMLUtils::TryGetEntryData(&simConfig->epochFormat, YAMLSimConfig::CoordSys_EpochFormat, coordSysNode);
+            }
+        }
+    }
+
+    else {
+        throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to process metadata: Simulation configuration does not exist!");
+        throw;
+    }
+
+
+    // Create entities
+    Entity coordSystem = m_registry->createEntity(CoordSys::FrameEnumToDisplayStrMap.at(simConfig->frame));
+    m_registry->addComponent(coordSystem.id, PhysicsComponent::CoordinateSystem{
+        .simulationConfig = *simConfig
+    });
+}
+
+
+void SceneManager::processScene(const YAML::Node &rootNode) {
+
+#define logMissingComponent(componentName) Log::Print(Log::T_WARNING, __FUNCTION__, "In simulation file " + m_fileName + ": Essential component " + enquote((componentName)) + " is missing!")
+#define info(entityName, componentType) "Entity " + enquote((entityName)) + ", component " + enquote((componentType)) + ": "
+
+
+    const auto sceneRoot = rootNode[YAMLScene::ROOT];
+
+    if (!sceneRoot) {
+        throw Log::RuntimeException(__FUNCTION__, __LINE__, "Scene is empty!");
+        throw;
+    }
+
+    size_t processedEntities = 0;
+    size_t totalEntities = sceneRoot.size();
+
+    std::map<std::string, EntityID> entityNameToID; // Map entity names to their runtime IDs
+
+
+
+    // ----- PROCESS ALL ENTITIES IN THE SCENE -----
+    for (const auto &entityNode : sceneRoot) {
+        std::string entityName = entityNode[YAMLScene::Entity].as<std::string>();
+        Entity newEntity = m_registry->createEntity(entityName);
+
+        if (entityNameToID.count(entityName) > 0) {
+            Log::Print(Log::T_ERROR, __FUNCTION__, "Found duplicate " + enquote(entityName) + " entities! Please ensure entity names are unique.");
+            throw;
+        }
+
+        entityNameToID[entityName] = newEntity.id;
+
+        m_registry->addComponent(newEntity.id, TelemetryComponent::RenderTransform{});  // Automatically add to telemetry dashboard (if applicable)
+
+
+        processedEntities++;
+        float entityProcessingProgress = static_cast<float>(processedEntities) / totalEntities;
+        m_eventDispatcher->dispatch(UpdateEvent::SceneLoadProgress{
+            .progress = 0.1f + (entityProcessingProgress * 0.75f),
+            .message = "[" + std::string(entityName) + "] Parsing components..."
+        });
+
+
+
+        // ----- PROCESS ALL COMPONENTS FOR EACH ENTITY -----
+        for (const auto &componentNode : entityNode[YAMLScene::Entity_Components]) {
+            std::string componentType = componentNode[YAMLScene::Entity_Components_Type].as<std::string>();
+
+            // ----- CORE/PHYSICS -----
+            if (componentType == YAMLScene::Core_Identifiers) {
+                CoreComponent::Identifiers identifiers{};
+
+                if (!YAMLUtils::GetComponentData(&identifiers, componentNode))
+                    logMissingComponent(componentType);
+
+                m_registry->addComponent(newEntity.id, identifiers);
+            }
+
+
+            if (componentType == YAMLScene::Core_Transform) {
+                CoreComponent::Transform transform{};
+
+                if (!YAMLUtils::GetComponentData(&transform, componentNode))
+                    logMissingComponent(componentType);
+
+                m_registry->addComponent(newEntity.id, transform);
+            }
+
+
+            else if (componentType == YAMLScene::Physics_RigidBody) {
+                PhysicsComponent::RigidBody rigidBody{};
+
+                if (!YAMLUtils::GetComponentData(&rigidBody, componentNode))
+                    logMissingComponent(componentType);
+
+                m_registry->addComponent(newEntity.id, rigidBody);
+            }
+
+
+            else if (componentType == YAMLScene::Physics_ShapeParameters) {
+                PhysicsComponent::ShapeParameters shapeParams{};
+
+                if (!YAMLUtils::GetComponentData(&shapeParams, componentNode))
+                    logMissingComponent(componentType);
+
+                m_registry->addComponent(newEntity.id, shapeParams);
+            }
+
+
+
+            // ----- SPACECRAFT -----
+            else if (componentType == YAMLScene::Spacecraft_Spacecraft) {
+                SpacecraftComponent::Spacecraft spacecraft{};
+
+                YAMLUtils::GetComponentData(&spacecraft, componentNode);
+                m_registry->addComponent(newEntity.id, spacecraft);
+            }
+
+
+
+            else if (componentType == YAMLScene::Spacecraft_Thruster) {
+                SpacecraftComponent::Thruster thruster{};
+
+                YAMLUtils::GetComponentData(&thruster, componentNode);
+                m_registry->addComponent(newEntity.id, thruster);
+            }
+
+
+
+            // ----- RENDERING -----
+            else if (componentType == YAMLScene::Render_MeshRenderable) {
+                RenderComponent::MeshRenderable meshRenderable{};
+
+                if (!YAMLUtils::GetComponentData(&meshRenderable, componentNode))
+                    logMissingComponent(componentType);
+
+                const auto &renderableNode = componentNode[YAMLScene::Entity_Components_Type_Data];
+                if (renderableNode["meshPath"]) {
+                    std::string meshPath = renderableNode["meshPath"].as<std::string>();
+
+
+                    m_eventDispatcher->dispatch(UpdateEvent::SceneLoadProgress{
+                        .progress = 0.1f + (entityProcessingProgress * 0.75f),
+                        .message = "[" + std::string(entityName) + "] Loading geometry..."
+                    });
+
+                    std::string fullPath = FilePathUtils::JoinPaths(ROOT_DIR, meshPath);
+                    Math::Interval<uint32_t> meshRange = m_geometryLoader.loadGeometryFromFile(fullPath);
+
+                    meshRenderable.meshRange = meshRange;
+                    m_registry->addComponent(newEntity.id, meshRenderable);
+
+                    // TODO: Concurrently process meshes
+                    //m_geomLoadWorkers.push_back(
+                    //    m_WorkerData{
+                    //        .entityProcessPercentage = entityProcessingProgress,
+                    //        .entityName = entityName,
+                    //
+                    //        .worker = ThreadManager::CreateThread("GEOMETRY_LOAD",
+                    //            [this, meshPath, meshRenderable, newEntity]() {
+                    //                RenderComponent::MeshRenderable renderableCopy = meshRenderable; // meshRenderable is const for some reason
+                    //
+                    //                std::string fullPath = FilePathUtils::JoinPaths(ROOT_DIR, meshPath);
+                    //                renderableCopy.meshRange = m_geometryLoader.loadGeometryFromFile(fullPath);
+                    //
+                    //                m_registry->addComponent(newEntity.id, renderableCopy);
+                    //            }
+                    //        )
+                    //    }
+                    //);
+                }
+                else {
+                    Log::Print(Log::T_ERROR, __FUNCTION__, info(entityName, componentType) + "Model path is not provided!");
+                    continue;
+                }
+            }
+        }
+    }
 }

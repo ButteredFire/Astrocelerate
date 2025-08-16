@@ -73,18 +73,18 @@ Các nguyên tắc này có thể thay đổi theo thời gian, khi Astrocelerat
 - Kiến trúc dựa trên ECS tùy chỉnh với bộ nhớ tập hợp thưa thớt (cho phép mô phỏng hiệu suất cao và luồng dữ liệu hiệu quả giữa GUI và phần phụ trợ)
 - Dữ liệu đo xa trực tiếp, bảng điều khiển, v.v.; cài đặt mô phỏng có thể điều chỉnh
 - Kết xuất ngoài màn hình (cho phép chế độ xem tùy chỉnh, xử lý hậu kỳ, v.v.)
+- Khả năng mô phỏng N-vật thể
+- Bộ nạp mô hình nâng cao hơn, với các texture được ánh xạ tốt hơn, chính xác hơn và độ chân thực hình ảnh cao hơn
+- Bộ giải (solvers), hệ tọa độ (coordinate systems), kỷ nguyên (epochs)
 
 ## Sắp có
 - Bộ tích hợp số có thể hoán đổi (Symplectic Euler, RK4)
 - Bộ đệm dữ liệu trong ECS để tăng hiệu suất hơn nữa
 - Compute shaders và việc chuyển các quy trình song song sang GPU
 - Chia tỷ lệ động để chuyển đổi liền mạch (ví dụ: từ địa hình sang hành tinh)
-- Khả năng mô phỏng N-vật thể
 - Một loạt các phương pháp tích hợp số đa dạng hơn (Verlet, Quy tắc Simpson, tích phân Gauss)
-- Bộ giải, hệ tọa độ, kỷ nguyên
 - Kịch bản C++ để cho phép người dùng tạo mô phỏng
 - Tuần tự hóa GUI và dữ liệu mô phỏng, với khả năng xuất cơ bản
-- Bộ nạp mô hình nâng cao hơn, với các texture được ánh xạ tốt hơn, chính xác hơn và độ chân thực hình ảnh cao hơn
 
 
 # Cài đặt
@@ -94,12 +94,14 @@ Các nguyên tắc này có thể thay đổi theo thời gian, khi Astrocelerat
 
 ## Phần mềm thiết yếu
 - Vulkan SDK (Vulkan 1.2+)
+- CSPICE Toolkit N0067
 - Vcpkg dependency manager
 - CMake 3.30+
 - Python 3.9+
 - C++20
 
 ## Cài đặt lần đầu
+- Mở `CMakePresets.json` và cài đặt các biến môi trường cho cả cấu hình Debug và Release (VD: `SPICE_ROOT_DIR`).
 - Chạy `SetupDebug.*` để thiết lập cấu hình Debug hoặc `SetupRelease.*` để thiết lập cấu hình Release, tùy theo hệ điều hành của bạn.
 - Ngoài ra, bạn có thể chạy thủ công `GenerateDirectories.bat` để đảm bảo danh sách file mã nguồn được cập nhật, sau đó chạy `scripts/Bootstrap.py` và làm theo hướng dẫn trên màn hình.
 
@@ -112,6 +114,9 @@ Astrocelerate thực hiện commit đầu tiên vào ngày 28 tháng 11 năm 202
 
 ## Kho ảnh
 Các ảnh chụp màn hình sau đây ghi lại quá trình phát triển của Astrocelerate.
+
+### 16/08/2025
+<img width="1919" height="1031" alt="2025-08-16" src="https://github.com/user-attachments/assets/d0979618-2afa-4734-81da-76b5b4051492" />
 
 ### 10/07/2025
 ![2025-07-10](https://github.com/user-attachments/assets/f86a19d1-0204-4aa8-9122-41ffcf0d268c)

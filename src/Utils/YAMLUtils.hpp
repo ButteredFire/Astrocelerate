@@ -8,28 +8,38 @@
 
 
 namespace YAMLUtils {
-    /* Populates an ECS component with data from a component node.
-        @param componentNode: The YAML Node that contains the data.
-        @param data: A reference to the ECS component.
+    /* Attempts to populate a struct/primitive with data from a YAML file.
+        @param data: A pointer to the target struct/primitive.
+        @param entryKey: The key name for the entry.
+        @param node: The YAML Node that contains the data.
 
         @return True if the operation is successful, False otherwise.
     */
     template<typename T>
-    inline bool GetComponentData(const YAML::Node &componentNode, T &data) {
-        if (componentNode["Data"]) {
-            data = componentNode["Data"].as<T>();
+    inline bool TryGetEntryData(T *data, const std::string &entryKey, const YAML::Node &node) {
+        if (node[entryKey]) {
+            *data = node[entryKey].as<T>();
             return true;
         }
         return false;
     }
 
 
-    /* Extracts the entity name from a reference string (ref.EntityName).
-        @param refStr: The reference string.
+    /* Populates an ECS component with data from a component node.
     
-        @return The entity name.
+        This is a utility function for YAMLUtils::TryGetEntryData.
+        
+        @param data: A pointer to the ECS component.
+        @param componentNode: The YAML Node that contains the data.
+
+        @return True if the operation is successful, False otherwise.
     */
-    inline std::string GetReferenceSubstring(const std::string &refStr) {
-        return refStr.substr(YAMLKey::Ref.size(), (refStr.size() - YAMLKey::Ref.size()));
+    template<typename T>
+    inline bool GetComponentData(T *data, const YAML::Node &componentNode) {
+        if (componentNode[YAMLScene::Entity_Components_Type_Data]) {
+            *data = componentNode[YAMLScene::Entity_Components_Type_Data].as<T>();
+            return true;
+        }
+        return false;
     }
 }

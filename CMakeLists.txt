@@ -68,6 +68,7 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 # Add dependencies
 include(FetchContent)
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/scripts")    # Appends the `scripts` directory to the CMake Module Path, making all .cmake files in `scripts` discoverable by `include` and `find_package`.
 
     # Add generated file lists
     include("scripts/HeaderDirs.cmake")
@@ -84,6 +85,13 @@ add_custom_command(TARGET Astrocelerate PRE_BUILD
             "${CMAKE_CURRENT_SOURCE_DIR}/samples"
             "${CMAKE_CURRENT_BINARY_DIR}/samples"
     COMMENT "Copying samples to build directory for development run"
+)
+
+add_custom_command(TARGET Astrocelerate PRE_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_CURRENT_SOURCE_DIR}/kernels"
+            "${CMAKE_CURRENT_BINARY_DIR}/kernels"
+    COMMENT "Copying SPICE kernels to build directory for development run"
 )
 
 add_custom_command(TARGET Astrocelerate PRE_BUILD
@@ -130,51 +138,6 @@ target_compile_options(Astrocelerate PRIVATE
 
 
 # Functions
-    # Handles connectivity detection
-    function(hasInternetConnection isOnline)
-        set(TEST_URL "https://www.google.com/robots.txt")
-        set(TEMP_FILE "${CMAKE_BINARY_DIR}/internet_test.txt")
-
-        file(DOWNLOAD
-            ${TEST_URL}
-            ${TEMP_FILE}
-            TIMEOUT 5
-            STATUS downloadStatus
-        )
-
-        list(GET downloadStatus 0 statusCode)
-
-        if(statusCode EQUAL 0)
-            set(${isOnline} TRUE PARENT_SCOPE)
-        else()
-            set(${isOnline} FALSE PARENT_SCOPE)
-        endif()
-
-        file(REMOVE ${TEMP_FILE})
-    endfunction()
-
-
-    # Handles dependency fetching
-    function(FetchDependency depName gitRepo gitTag offlineDir)
-        if (IS_ONLINE)
-            message(STATUS "Fetching ${depName} from online repository: ${gitRepo}")
-            FetchContent_Declare(
-                ${depName}
-                GIT_REPOSITORY ${gitRepo}
-                GIT_TAG ${gitTag}
-            )
-
-            FetchContent_MakeAvailable(${depName})
-        else()
-            message(STATUS "Using offline source for ${depName}: ${offlineDir}")
-            FetchContent_Declare(
-                ${depName}
-                SOURCE_DIR ${offlineDir}
-            )
-        endif()
-    endfunction()
-
-
     # Handles shader compilation
     function(CompileShaders)
         # Set shader directories
@@ -224,34 +187,6 @@ target_compile_options(Astrocelerate PRIVATE
 
     # Handles library DLL discovery and installation
     function(InstallRuntimeDLLs)
-        #set(VCPKG_EXECUTABLE "${VCPKG_ROOT}/vcpkg.exe")
-        #
-        #if (NOT EXISTS "${VCPKG_EXECUTABLE}")
-        #    message(FATAL_ERROR "vcpkg.exe not found at \"${VCPKG_EXECUTABLE}\". Please ensure VCPKG_ROOT is correctly set and vcpkg is bootstrapped.")
-        #endif()
-        #
-        #set(VCPKG_EXPORT_DIR "${CMAKE_BINARY_DIR}/vcpkg_exported_deps")
-        #
-        ## Custom target to run vcpkg export
-        #add_custom_command(
-        #    OUTPUT ${CMAKE_SOURCE_DIR}
-        #    COMMAND ${VCPKG_ROOT}/vcpkg.exe export
-        #            --zip
-        #            --output-dir=${VCPKG_EXPORT_DIR}
-        #            --triplet=${VCPKG_TARGET_TRIPLET}
-        #            --x-all-installed
-        #    COMMENT "Exporting vcpkg dependencies to ${VCPKG_EXPORT_DIR}"
-        #    VERBATIM
-        #)
-        #
-        #add_custom_target(
-        #    VCPKG_EXPORT_DEPS
-        #    DEPENDS "${VCPKG_EXPORT_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/bin"
-        #)
-        #
-        #add_dependencies(Astrocelerate VCPKG_EXPORT_DEPS)
-
-
         # Recursively install all DLLs from the vcpkg exported bin directory
         file(GLOB VCPKG_EXPORTED_DLLS "${CMAKE_CURRENT_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/bin/*.dll")
 
@@ -266,13 +201,17 @@ target_compile_options(Astrocelerate PRIVATE
 
 
 # Find packages
-find_package(Vulkan REQUIRED)    # Vulkan SDK
+    # Vulkan SDK
+find_package(Vulkan REQUIRED)
     # Locate glslc.exe
-        find_program(Vulkan_GLSLC_EXECUTABLE NAMES glslc HINTS ${Vulkan_INCLUDE_DIRS}/../bin)
-        if (NOT Vulkan_GLSLC_EXECUTABLE)
-            message(FATAL_ERROR "glslc.exe not found! Ensure Vulkan SDK is installed and added to PATH.")
-        endif()
-        message(STATUS "Vulkan glslc.exe executable is in directory \"${Vulkan_GLSLC_EXECUTABLE}\"")
+    find_program(Vulkan_GLSLC_EXECUTABLE NAMES glslc HINTS ${Vulkan_INCLUDE_DIRS}/../bin)
+    if (NOT Vulkan_GLSLC_EXECUTABLE)
+        message(FATAL_ERROR "glslc.exe not found! Ensure Vulkan SDK is installed and added to PATH.")
+    endif()
+    message(STATUS "Vulkan glslc.exe executable is in directory \"${Vulkan_GLSLC_EXECUTABLE}\"")
+
+    # SPICE Toolkit
+find_package(SPICE REQUIRED)
 
 find_package(glfw3 CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
@@ -324,12 +263,13 @@ add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/external/boxer")
 
 
 # Link libraries
-target_link_libraries(Astrocelerate PRIVATE ${PKG_LIBS} ${FETCHCONTENT_LIBS} ${EXTERNAL_LIBS})
+target_link_libraries(Astrocelerate PRIVATE ${SPICE_LIBRARIES} ${PKG_LIBS} ${FETCHCONTENT_LIBS} ${EXTERNAL_LIBS})
 
 
 # Include library directories
 target_include_directories(Astrocelerate PRIVATE 
     ${HEADER_DIRS}
+    ${SPICE_INCLUDE_DIRS}
     ${FETCHCONTENT_LIBS_TARGET_INCLUDE_DIRS}
 )
 

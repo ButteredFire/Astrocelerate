@@ -7,6 +7,7 @@
 
 #include "CoreComponents.hpp"
 #include <Core/Data/Physics.hpp>
+#include <Core/Data/Application.hpp>
 
 
 namespace PhysicsComponent {
@@ -48,5 +49,11 @@ namespace PhysicsComponent {
 		double gravParam;						// Gravitational parameter (m^3 / s^(-2))
 		glm::dvec3 rotVelocity;					// Angular/Rotational velocity (rad/s)
 		double j2;								// J2 oblateness coefficient
+	};
+
+
+	/* Properties of coordinate systems. */
+	struct CoordinateSystem {
+		Application::SimulationConfig simulationConfig;
 	};
 }

@@ -145,6 +145,29 @@ namespace YAML {
 }
 
 
+// ----- CoreComponent::Identifiers -----
+namespace YAML {
+    template<>
+    struct convert<CoreComponent::Identifiers> {
+        static Node encode(const CoreComponent::Identifiers &rhs) {
+            Node node;
+
+            node["spiceID"] = rhs.spiceID;
+
+            return node;
+        }
+
+        static bool decode(const Node &node, CoreComponent::Identifiers &rhs) {
+            if (!node.IsMap()) return false;
+
+            rhs.spiceID = node["spiceID"].as<std::string>();
+
+            return true;
+        }
+    };
+}
+
+
 // ----- CoreComponent::Transform -----
 namespace YAML {
     template<>
@@ -154,6 +177,7 @@ namespace YAML {
 
             node["position"] = rhs.position;
             node["rotation"] = SpaceUtils::QuatToEulerAngles(rhs.rotation);
+            node["scale"] = rhs.scale;
 
             return node;
         }
@@ -163,6 +187,7 @@ namespace YAML {
 
             rhs.position = node["position"].as<glm::dvec3>();
             rhs.rotation = SpaceUtils::EulerAnglesToQuat(node["rotation"].as<glm::dvec3>());
+            rhs.scale = node["scale"].as<double>();
 
             return true;
         }
@@ -296,6 +321,7 @@ namespace YAML {
             Node node;
 
             node["meshPath"] = rhs.meshPath;
+            node["visualScale"] = rhs.visualScale;
 
             return node;
         }
@@ -304,6 +330,7 @@ namespace YAML {
             if (!node.IsMap()) return false;
 
             rhs.meshPath = node["meshPath"].as<std::string>();
+            rhs.visualScale = node["visualScale"].as<double>();
 
             return true;
         }

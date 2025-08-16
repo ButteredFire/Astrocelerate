@@ -6,7 +6,7 @@
 #include <External/GLFWVulkan.hpp>
 
 #include <Core/Application/LoggingManager.hpp>
-#include <Core/Application/EventDispatcher.hpp>X
+#include <Core/Application/EventDispatcher.hpp>
 #include <Core/Application/GarbageCollector.hpp>
 #include <Core/Data/Device.hpp>
 #include <Core/Data/Application.hpp>

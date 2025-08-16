@@ -69,18 +69,18 @@ These principles are subject to change over time, as Astrocelerate (and I) becom
 - Custom ECS-based architecture with sparse-set storage (allows for performant simulation and efficient data flow between the GUI and backend)
 - Live telemetry data, console, etc.; Tweakable simulation settings
 - Offscreen rendering (allows for custom viewports, post-processing, etc.)
+- N-body simulation capabilities
+- A more advanced model loader, with better, correctly mapped textures and visual fidelity
+- Solvers, coordinate systems, epochs
 
 ## Near-future plans
 - Swappable numerical integrators (Symplectic Euler, RK4)
 - Data-caching in ECS for even more performance
 - Compute shaders and the offloading of parallelizable processes to the GPU
 - Dynamic scaling for seamless transitions (e.g., from terrain to planet)
-- N-body simulation capabilities
 - A more diverse range of numerical integration methods (Verlet, Simpson's Rule, Gaussian quadrature)
-- Solvers, coordinate systems, epochs
 - C++ scripting to allow for user-created simulations
 - Serialization of GUI and simulation data, with basic exporting capabilities
-- A more advanced model loader, with better, correctly mapped textures and visual fidelity
 
 
 # Installation
@@ -89,12 +89,14 @@ These principles are subject to change over time, as Astrocelerate (and I) becom
 
 ## Prerequisites
 - Vulkan SDK (Vulkan 1.2+)
+- CSPICE Toolkit N0067
 - Vcpkg dependency manager
 - CMake 3.30+
 - Python 3.9+
 - C++20
 
 ## Bootstrapping
+- Open `CMakePresets.json` and configure environment variables for both Debug and Release builds (like `SPICE_ROOT_DIR`) to their appropriate paths.
 - Run `SetupDebug.*` to set up a Debug configuration, or `SetupRelease.*` to set up a Release configuration, according to your operating system.
 - Alternatively, you can manually run `GenerateDirectories.bat` to ensure file discovery is up-to-date, then run `scripts/Bootstrap.py` and follow on-screen instructions.
 
@@ -106,6 +108,9 @@ Astrocelerate made its first commit on November 28th, 2024. As of July 10th, 202
 
 ## Screenshots
 The following screenshots document the development of Astrocelerate.
+
+### 16/08/2025
+<img width="1919" height="1031" alt="2025-08-16" src="https://github.com/user-attachments/assets/d0979618-2afa-4734-81da-76b5b4051492" />
 
 ### 25/07/2025
 <img width="1919" height="1031" alt="2025-07-25" src="https://github.com/user-attachments/assets/fb586a14-5ddc-4442-a18a-12a35fca709e" />

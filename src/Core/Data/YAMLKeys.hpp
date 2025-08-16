@@ -6,17 +6,43 @@
 #include <string_view>	// std::string_view is efficient as it avoids string copying.
 
 
-namespace YAMLKey {
-    // Entries (keys)
-    static constexpr std::string_view Physics_ReferenceFrame        = "PhysicsComponent::ReferenceFrame";
-    static constexpr std::string_view Physics_RigidBody             = "PhysicsComponent::RigidBody";
-    static constexpr std::string_view Physics_ShapeParameters       = "PhysicsComponent::ShapeParameters";
-    static constexpr std::string_view Physics_OrbitingBody          = "PhysicsComponent::OrbitingBody";
-    static constexpr std::string_view Spacecraft_Spacecraft         = "SpacecraftComponent::Spacecraft";
-    static constexpr std::string_view Spacecraft_Thruster           = "SpacecraftComponent::Thruster";
-    static constexpr std::string_view Render_MeshRenderable         = "RenderComponent::MeshRenderable";
-    static constexpr std::string_view Telemetry_RenderTransform     = "TelemetryComponent::RenderTransform";
+#define _YAMLStrType const std::string
 
-    // Special values
-    static constexpr std::string_view Ref       = "ref.";
+// File configuration keys
+namespace YAMLFileConfig {
+    _YAMLStrType ROOT           = "FileConfig";
+    _YAMLStrType Version        = "Version";
+    _YAMLStrType Description    = "Description";
+}
+
+
+// Simulation configuration keys
+namespace YAMLSimConfig {
+    _YAMLStrType ROOT                   = "SimulationConfig";
+    _YAMLStrType Kernels                = "Kernels";
+    _YAMLStrType Kernel_Path            = "Path";
+    _YAMLStrType CoordSys               = "CoordinateSystem";
+    _YAMLStrType CoordSys_Frame         = "Frame";
+    _YAMLStrType CoordSys_Epoch         = "Epoch";
+    _YAMLStrType CoordSys_EpochFormat  = "EpochFormat";
+}
+
+
+// Scene keys and values
+namespace YAMLScene {
+    // Keys
+    _YAMLStrType ROOT                                   = "Scene";
+    _YAMLStrType Entity                                 = "Entity";
+    _YAMLStrType Entity_Components                      = "Components";
+    _YAMLStrType Entity_Components_Type                 = "Type";
+    _YAMLStrType Entity_Components_Type_Data            = "Data";
+
+    // Values
+    _YAMLStrType Core_Identifiers               = "Core::Identifiers";
+    _YAMLStrType Core_Transform                 = "Core::Transform";
+    _YAMLStrType Physics_RigidBody              = "Physics::RigidBody";
+    _YAMLStrType Physics_ShapeParameters        = "Physics::ShapeParameters";
+    _YAMLStrType Spacecraft_Spacecraft          = "Spacecraft::Spacecraft";
+    _YAMLStrType Spacecraft_Thruster            = "Spacecraft::Thruster";
+    _YAMLStrType Render_MeshRenderable          = "Render::MeshRenderable";
 }

@@ -299,27 +299,19 @@ public:
 	class Iterator {
 		public:
 			Iterator(InternalView* view, size_t index) :
-				view(view), index(index) {}
+				m_view(view), m_index(index) {}
 		
 		
-			// Dereferencing
-			// This is necessary for compatibility with native range-based loops and structured bindings.
+			// Dereferencing (used internally in range-based loops and structured bindings)
 			auto operator*() {
-				EntityID entityID = view->m_matchingEntities[index];
-		
-				return std::tuple<EntityID, Components...>(
-					entityID,
-					view->componentManager.getComponentArray<Components>()->getComponent(entityID)...
-				);
+				return m_view->m_matchingTuples[m_index];
 			}
-		
-		
+
 			// Prefix increment
 			Iterator& operator++() {
-				index++;
+				m_index++;
 				return *this;
 			}
-		
 		
 			// Suffix increment
 			Iterator operator++(int) {
@@ -328,19 +320,25 @@ public:
 				return tmp;
 			}
 		
-		
 			bool operator!=(const Iterator& other) const {
-				return index != other.index;
+				return m_index != other.m_index;
 			}
 		
 		private:
-			InternalView* view;
-			size_t index;
+			InternalView* m_view;
+			size_t m_index;
 	};
 		
 		
 	Iterator begin() { return Iterator(this, 0); }
 	Iterator end()   { return Iterator(this, m_matchingEntities.size()); }
+
+	// Accessing via index
+	auto operator[](size_t idx) {
+		LOG_ASSERT((idx >= 0 && idx < m_matchingTuples.size()), "Cannot retrieve entity data at index " + TO_STR(idx) + ": Index is out of bounds!");
+
+		return m_matchingTuples[idx];
+	}
 
 
 private:
@@ -348,8 +346,9 @@ private:
 	ComponentManager& componentManager;
 
 	std::vector<EntityID> m_matchingEntities;
-	std::vector<ComponentMask> m_entityComponentMasks;
+	std::vector<std::tuple<EntityID, Components...>> m_matchingTuples;
 
+	std::vector<ComponentMask> m_entityComponentMasks;
 	ComponentMask m_requiredMask, m_ignoredMask;
 
 
@@ -365,11 +364,11 @@ private:
 		@param sourceEntities: The source vector of entities used as data for updating matching entities from.
 	*/
 	inline void updateMatchingEntities(std::vector<EntityID>& sourceEntities) {
+		// Repopulate matching entities
 		std::vector<EntityID> temp;
 		temp.reserve(sourceEntities.size());
 
-
-		for (size_t i = 0; i < sourceEntities.size(); i++) {
+		for (size_t i = 0; i < sourceEntities.size(); i++)
 			if (
 				((m_entityComponentMasks[i] & m_requiredMask) == m_requiredMask) &&	// Entity mask must match the required mask
 				((m_entityComponentMasks[i] & m_ignoredMask).none())				// Entity mask must NOT match the ignored mask
@@ -377,10 +376,20 @@ private:
 	
 				temp.push_back(sourceEntities[i]);
 			}
-
-		}
 	
 		m_matchingEntities.swap(temp);
+
+
+		// Regenerate their tuples
+		std::vector<std::tuple<EntityID, Components...>> tempTuples;
+		tempTuples.reserve(m_matchingEntities.size());
+
+		for (size_t i = 0; i < m_matchingEntities.size(); i++)
+			tempTuples.push_back(
+				constructTuple(i)
+			);
+
+		m_matchingTuples.swap(tempTuples);
 	}
 
 
@@ -394,6 +403,23 @@ private:
 		ComponentMask mask{};
 		(mask.set(ComponentTypeID::get<SpecifiedComponents>()), ...);
 		return mask;
+	}
+
+
+	/* Constructs a tuple of the specified components for a specific matching entity.
+		NOTE: This function assumes that `m_matchingEntities` has already been populated.
+
+		@param idx: The index into `m_matchingEntities`.
+
+		@return A corresponding tuple.
+	*/
+	auto constructTuple(size_t idx) {
+		EntityID entityID = m_matchingEntities[idx];
+
+		return std::tuple<EntityID, Components...>(
+			entityID,
+			componentManager.getComponentArray<Components>()->getComponent(entityID)...
+		);
 	}
 };
 

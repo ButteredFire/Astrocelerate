@@ -566,9 +566,9 @@ void VkBufferManager::updateObjectUBOs(uint32_t currentImage, const glm::dvec3& 
 		- Duong Duy Nhat Minh, Founder, 16/06/2025
 	*/
 
-	auto view = m_registry->getView<PhysicsComponent::RigidBody, RenderComponent::MeshRenderable, PhysicsComponent::ReferenceFrame, TelemetryComponent::RenderTransform>();
+	auto view = m_registry->getView<CoreComponent::Transform, PhysicsComponent::RigidBody, RenderComponent::MeshRenderable, TelemetryComponent::RenderTransform>();
 
-	for (auto&& [entity, rigidBody, meshRenderable, refFrame, renderT] : view) {
+	for (auto&& [entity, transform, rigidBody, meshRenderable, renderT] : view) {
 		Buffer::ObjectUBO ubo{};
 
 		const glm::mat4 identityMat = glm::mat4(1.0f);
@@ -582,7 +582,6 @@ void VkBufferManager::updateObjectUBOs(uint32_t currentImage, const glm::dvec3& 
 			- Add the entity's new local position to its parent's global position.
 
 			If not: Directly use the entity's global position.
-		*/
 		if (refFrame.parentID.value() != m_renderSpace.id) {	// WARNING: I don't know where m_renderSpace comes from! Might need to get it from SceneManager!
 			const PhysicsComponent::ReferenceFrame& parentRefFrame = m_registry->getComponent<PhysicsComponent::ReferenceFrame>(refFrame.parentID.value());
 		
@@ -591,15 +590,16 @@ void VkBufferManager::updateObjectUBOs(uint32_t currentImage, const glm::dvec3& 
 			renderPosition = SpaceUtils::ToRenderSpace_Position(scaledGlobalPosition - scaledRenderOrigin);
 		}
 		else
-			renderPosition = SpaceUtils::ToRenderSpace_Position(refFrame.globalTransform.position - scaledRenderOrigin);
+		*/
+		renderPosition = SpaceUtils::ToRenderSpace_Position(transform.position - scaledRenderOrigin);
 
 			// Update the entity's global position data after scaling to account for parent's visual scale
-		refFrame._computedGlobalPosition = renderPosition;
-		m_registry->updateComponent(entity, refFrame);
+		//refFrame._computedGlobalPosition = renderPosition;
+		//m_registry->updateComponent(entity, refFrame);
 
 
 		// Scale in render space
-		double renderScale = SpaceUtils::GetRenderableScale(SpaceUtils::ToRenderSpace_Scale(refFrame.scale)) * refFrame.visualScale;
+		double renderScale = SpaceUtils::GetRenderableScale(SpaceUtils::ToRenderSpace_Scale(transform.scale)) * meshRenderable.visualScale;
 
 		/* NOTE:
 			Model matrices are constructed according to the Scale -> Rotate -> Translate (S-R-T) order.
@@ -611,7 +611,7 @@ void VkBufferManager::updateObjectUBOs(uint32_t currentImage, const glm::dvec3& 
 		*/
 		glm::mat4 modelMatrix =
 			glm::translate(identityMat, glm::vec3(renderPosition))
-			* glm::mat4(glm::toMat4(refFrame.globalTransform.rotation))
+			* glm::mat4(glm::toMat4(transform.rotation))
 			* glm::scale(identityMat, glm::vec3(static_cast<float>(renderScale)));
 
 
@@ -620,7 +620,7 @@ void VkBufferManager::updateObjectUBOs(uint32_t currentImage, const glm::dvec3& 
 
 		// Write to telemetry dashboard
 		renderT.position = renderPosition;
-		renderT.rotation = refFrame.globalTransform.rotation;
+		renderT.rotation = transform.rotation;
 		renderT.visualScale = renderScale;
 		m_registry->updateComponent(entity, renderT);
 

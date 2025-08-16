@@ -13,8 +13,8 @@ InputManager::InputManager() {
 		{GLFW_KEY_S,					CameraMovement::BACKWARD},
 		{GLFW_KEY_A,					CameraMovement::LEFT},
 		{GLFW_KEY_D,					CameraMovement::RIGHT},
-		{GLFW_KEY_SPACE,				CameraMovement::UP},
-		{GLFW_KEY_LEFT_SHIFT,			CameraMovement::DOWN}
+		{GLFW_KEY_E,					CameraMovement::UP},
+		{GLFW_KEY_Q,					CameraMovement::DOWN}
 	};
 
 	bindEvents();
@@ -35,7 +35,7 @@ void InputManager::bindEvents() {
 		[this](const UpdateEvent::Input& event) {
 			this->processKeyboardInput(event.deltaTime);
 
-			this->m_camera->update();
+			this->m_camera->update(event.timeSinceLastPhysicsUpdate);
 		}
 	);
 
@@ -45,7 +45,7 @@ void InputManager::bindEvents() {
 			using enum UpdateEvent::SessionStatus::Status;
 
 			switch (event.sessionStatus) {
-			case PREPARE_FOR_RESET:
+			case PREPARE_FOR_INIT:
 				this->m_camera->reset();
 			}
 		}

@@ -41,9 +41,11 @@ enum EventFlag {
 
 	EVENT_FLAG_REQUEST_INIT_SESSION_BIT					= 1 << 21,
 	EVENT_FLAG_REQUEST_PROCESS_SECONDARY_COMMAND_BUFFERS_BIT = 1 << 22,
-	EVENT_FLAG_REQUEST_INIT_SCENE_RESOURCES_BIT			= 1 << 23
+	EVENT_FLAG_REQUEST_INIT_SCENE_RESOURCES_BIT			= 1 << 23,
+
+	EVENT_FLAG_CONFIG_SIMULATION_FILE_PARSED			= 1 << 24
 };
-constexpr size_t EVENT_FLAG_COUNT = 23 + 1; // Highest bit position + 1
+constexpr size_t EVENT_FLAG_COUNT = 24 + 1; // Highest bit position + 1
 
 
 namespace InitEvent {
@@ -167,7 +169,8 @@ namespace UpdateEvent {
 	struct Input {
 		const EventFlag eventFlag = EVENT_FLAG_UPDATE_INPUT_BIT;
 
-		double deltaTime;
+		double deltaTime = 0.0;
+		double timeSinceLastPhysicsUpdate = 0.0;
 	};
 
 
@@ -280,5 +283,17 @@ namespace RequestEvent {
 	/* Used when the scene processing is complete, and its Vulkan resources (e.g., offscreen pipeline) need to be initialized. */
 	struct InitSceneResources {
 		const EventFlag eventFlag = EVENT_FLAG_REQUEST_INIT_SCENE_RESOURCES_BIT;
+	};
+}
+
+
+
+namespace ConfigEvent {
+	/* Used when a simulation file has been successfully read. */
+	struct SimulationFileParsed {
+		const EventFlag eventFlag = EVENT_FLAG_CONFIG_SIMULATION_FILE_PARSED;
+
+		Application::YAMLFileConfig fileConfig;
+		Application::SimulationConfig simulationConfig;
 	};
 }

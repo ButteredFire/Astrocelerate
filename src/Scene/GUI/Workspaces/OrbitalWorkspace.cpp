@@ -241,14 +241,15 @@ void OrbitalWorkspace::renderViewportPanel() {
 			ImGui::AlignTextToFramePadding();
 
 
-			ImGui::TextDisabled("Controls\t");
+			ImGuiUtils::BoldText("Controls\t");
 			if (ImGui::BeginItemTooltip())
 			{
 				ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
-				ImGui::Text("[Left-click]    Enter viewport");
-				ImGui::Text("[ESC]           Exit out of viewport");
-				ImGui::Text("[W,A,S,D]       Control camera");
-				ImGui::Text("[Scroll]        Control camera zoom");
+				ImGui::TextUnformatted("[Left-click]    Enter viewport");
+				ImGui::TextUnformatted("[ESC]           Exit viewport");
+				ImGui::TextUnformatted("[W,A,S,D]       Camera movement");
+				ImGui::TextUnformatted("[Q, E]          Camera up, down");
+				ImGui::TextUnformatted("[Scroll]        Camera zoom");
 				ImGui::PopTextWrapPos();
 				ImGui::EndTooltip();
 			}
@@ -296,7 +297,7 @@ void OrbitalWorkspace::renderViewportPanel() {
 			ImGui::BeginGroup();
 			{
 				// All entities with reference frames are camera-attachable
-				static auto view = m_registry->getView<PhysicsComponent::ReferenceFrame>();
+				static auto view = m_registry->getView<CoreComponent::Transform>();
 				static std::vector<std::pair<std::string, EntityID>> m_entityList;
 				static std::pair<std::string, EntityID> m_selectedEntity, m_prevSelectedEntity;
 				static bool prevSceneStatChanged = m_sceneSampleInitialized;
@@ -419,10 +420,10 @@ void OrbitalWorkspace::renderTelemetryPanel() {
 		}
 		
 		
-		auto view = m_registry->getView<PhysicsComponent::RigidBody, PhysicsComponent::ReferenceFrame, TelemetryComponent::RenderTransform>();
+		auto view = m_registry->getView<CoreComponent::Transform, PhysicsComponent::RigidBody, TelemetryComponent::RenderTransform>();
 		size_t entityCount = 0;
 
-		for (const auto &[entity, rigidBody, refFrame, renderT] : view) {
+		for (const auto &[entity, transform, rigidBody, renderT] : view) {
 			// As the content is dynamically generated, we need each iteration to have its ImGui ID to prevent conflicts.
 			// Since entity IDs are always unique, we can use them as ImGui IDs.
 			ImGui::PushID(static_cast<int>(entity));
@@ -473,58 +474,16 @@ void OrbitalWorkspace::renderTelemetryPanel() {
 
 
 			// --- Reference Frame Debug Info ---
-			if (ImGui::CollapsingHeader("Reference Frame Data")) {
-				// Parent ID
-				if (refFrame.parentID.has_value()) {
-					ImGuiUtils::BoldText("Parent: %s (ID: %d)", m_registry->getEntity(refFrame.parentID.value()).name.c_str(), refFrame.parentID.value());
-				}
-				else {
-					ImGuiUtils::BoldText("Parent: None");
-				}
-
-				ImGuiUtils::BoldText("\tScaling (simulation)");
-				ImGui::Text("\t\tPhysical radius: %.10f m", refFrame.scale);
-
-				ImGuiUtils::BoldText("\tScaling (render)");
-				ImGui::Text("\t\tVisual scale: %.10f units", renderT.visualScale);
-
-				// Local Transform
-				ImGuiUtils::BoldText("Local Transform");
-
+			if (ImGui::CollapsingHeader("Transform Data")) {
 				ImGuiUtils::ComponentField(
 					{
-						{"X", refFrame.localTransform.position.x},
-						{"Y", refFrame.localTransform.position.y},
-						{"Z", refFrame.localTransform.position.z}
-					},
-					"%.2f", "\tPosition"
-				);
-				ImGui::Text("\tMagnitude: ||vec|| ≈ %.2f m", glm::length(refFrame.localTransform.position));
-
-
-				glm::dvec3 localRotationEuler = SpaceUtils::QuatToEulerAngles(refFrame.localTransform.rotation);
-				ImGuiUtils::ComponentField(
-					{
-						{"X", localRotationEuler.x},
-						{"Y", localRotationEuler.y},
-						{"Z", localRotationEuler.z}
-					},
-					"%.2f", "\tRotation"
-				);
-
-				// Global Transform
-				ImGuiUtils::BoldText("Global Transform");
-
-
-				ImGuiUtils::ComponentField(
-					{
-						{"X", refFrame.globalTransform.position.x},
-						{"Y", refFrame.globalTransform.position.y},
-						{"Z", refFrame.globalTransform.position.z}
+						{"X", transform.position.x},
+						{"Y", transform.position.y},
+						{"Z", transform.position.z}
 					},
 					"%.2f", "\tPosition (simulation)"
 				);
-				ImGui::Text("\tMagnitude: ||vec|| ≈ %.2f m", glm::length(refFrame.globalTransform.position));
+				ImGui::Text("\tMagnitude: ||vec|| ≈ %.2f m", glm::length(transform.position));
 
 
 				ImGuiUtils::ComponentField(
@@ -538,7 +497,7 @@ void OrbitalWorkspace::renderTelemetryPanel() {
 				ImGui::Text("\tMagnitude: ||vec|| ≈ %.2f units", glm::length(renderT.position));
 
 
-				glm::dvec3 globalRotationEuler = SpaceUtils::QuatToEulerAngles(refFrame.globalTransform.rotation);
+				glm::dvec3 globalRotationEuler = SpaceUtils::QuatToEulerAngles(transform.rotation);
 				ImGuiUtils::ComponentField(
 					{
 						{"X", globalRotationEuler.x},
@@ -973,13 +932,16 @@ void OrbitalWorkspace::renderSceneResourceTree() {
 
 			// Coordinate systems
 			if (ImGui::TreeNodeEx(ImGuiUtils::IconString(ICON_FA_FOLDER, "Coordinate systems").c_str(), treeFlags)) {
+				auto view = m_registry->getView<PhysicsComponent::CoordinateSystem>();
+
 				ImGui::Indent();
 				{
-					// TODO: Make coordinate systems entities
-					renderTreeNode(m_ResourceType::COORDINATE_SYSTEMS, INVALID_ENTITY, ImGuiUtils::IconString(ICON_FA_VECTOR_SQUARE, "Earth-Centered Inertial"));
+					for (const auto &[entity, coordSystem] : view) {
+						renderTreeNode(m_ResourceType::COORDINATE_SYSTEMS, entity, ImGuiUtils::IconString(ICON_FA_VECTOR_SQUARE, m_registry->getEntity(entity).name));
+					}
 				}
 				ImGui::Unindent();
-	
+
 				ImGui::TreePop();
 			}
 			ImGuiUtils::CursorOnHover();
@@ -1087,7 +1049,24 @@ void OrbitalWorkspace::renderSceneResourceDetails() {
 
 		// ----- COORDINATE SYSTEMS -----
 		else if (m_currentSceneResourceType == COORDINATE_SYSTEMS) {
-			ImGui::Text("Current information on this coordinate system is not currently available.");
+			const PhysicsComponent::CoordinateSystem &coordSystem = m_registry->getComponent<PhysicsComponent::CoordinateSystem>(currentEntity);
+
+			ImGui::SeparatorText(STD_STR(m_registry->getEntity(currentEntity).name + " Configuration").c_str());
+			ImGui::Indent();
+			{
+				ImGui::Text("Type: %s", CoordSys::FrameTypeToDisplayStrMap.at(coordSystem.simulationConfig.frameType).c_str());
+				ImGui::Text("Epoch: %s", CoordSys::EpochToSPICEMap.at(coordSystem.simulationConfig.epoch).c_str());
+				ImGui::Text("Epoch format: %s", coordSystem.simulationConfig.epochFormat.c_str());
+			}
+			ImGui::Unindent();
+
+			ImGui::SeparatorText("SPICE Kernels Loaded");
+			ImGui::Indent();
+			{
+				for (const auto &kernel : coordSystem.simulationConfig.kernelPaths)
+					ImGui::Text(kernel.c_str());
+			}
+			ImGui::Unindent();
 		}
 
 		ImGui::End();

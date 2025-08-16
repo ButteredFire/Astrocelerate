@@ -1,2 +1,3 @@
-"Chandra" by Brian Kumanchik, NASA/JPL-Caltech
-Source: https://nasa3d.arc.nasa.gov/detail/jpl-chandra
+version https://git-lfs.github.com/spec/v1
+oid sha256:40f4c5800c467b28f2f41d52ccbfff9f6ed6b9eb05f5e5dfdd1933c6f3205b5d
+size 102

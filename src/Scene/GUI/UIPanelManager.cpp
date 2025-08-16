@@ -483,14 +483,30 @@ void UIPanelManager::renderAboutPanel() {
 				//ImGui::Image(m_companyLogoTexProps.textureID, ImGuiUtils::ResizeImagePreserveAspectRatio(m_companyLogoTexProps.size, viewportSize));
 			}
 
-			ImGuiUtils::BoldText("%s (version %s)", APP_NAME, APP_VERSION);
-			ImGui::TextWrapped("Copyright © 2024-2025 %s, D.B.A. Oriviet Aerospace. All Rights Reserved.", AUTHOR_DIACRITIC);
+			ImGui::PushFont(g_fontContext.NotoSans.bold);
+			{
+				ImGuiUtils::AlignedText(ImGuiUtils::TEXT_ALIGN_MIDDLE, "%s (version %s)", APP_NAME, APP_VERSION);
+				ImGuiUtils::AlignedText(ImGuiUtils::TEXT_ALIGN_MIDDLE, "Copyright © 2024-2025 %s, D.B.A. Oriviet Aerospace.", AUTHOR_DIACRITIC);
+			}
+			ImGui::PopFont();
+
 
 			ImGuiUtils::Padding();
+
+
+			ImGui::TextWrapped(STD_STR("Astrocelerate was released under Apache License, Version 2.0 (the " + enquote("License") + "). You may obtain a copy of the License").c_str());
+			ImGui::SameLine();
+			ImGui::TextLinkOpenURL("here.", "http://www.apache.org/licenses/LICENSE-2.0");
+
+
+			ImGuiUtils::Padding();
+
 
 			ImGui::TextWrapped("Astrocelerate is Vietnam's first high-performance orbital mechanics and spaceflight simulation engine, designed from the ground up to serve as a sovereign alternative to foreign aerospace software.");
 
+
 			ImGuiUtils::Padding();
+
 
 			ImGui::SeparatorText("Attribution");
 			{
@@ -514,9 +530,7 @@ void UIPanelManager::renderAboutPanel() {
 				ImGui::TextWrapped("Simulation Assets:");
 				ImGui::Indent();
 				{
-					ImGui::TextLinkOpenURL("Earth 3D Model", "https://science.nasa.gov/resource/earth-3d-model/");
-					ImGui::SameLine();
-					ImGui::TextWrapped("by NASA Visualization Technology Applications and Development (VTAD)");
+					ImGui::TextWrapped("Planet textures (Earth, Moon, etc.) by NASA Visualization Technology Applications and Development (VTAD) and NASA Visualization Studio");
 
 					ImGui::TextLinkOpenURL("Chandra X-Ray Observatory Model", "https://nasa3d.arc.nasa.gov/detail/jpl-chandra");
 					ImGui::SameLine();
@@ -594,14 +608,17 @@ void UIPanelManager::renderSceneLoadModal(const std::string &fileName) {
 
 			
 			if (m_currentLoadProgress >= 1.0f) {
-				static const float btnWidth = 70.0f;
-				ImGuiUtils::BottomButtonPadding(btnWidth, 1);
+				//static const float btnWidth = 70.0f;
+				//ImGuiUtils::BottomButtonPadding(btnWidth, 1);
+				//
+				//if (ImGui::Button("OK", ImVec2(btnWidth, 0.0f))) {
+				//	ImGui::CloseCurrentPopup();
+				//	m_showLoadingModal = false;
+				//}
+				//ImGuiUtils::CursorOnHover();
 
-				if (ImGui::Button("OK", ImVec2(btnWidth, 0.0f))) {
-					ImGui::CloseCurrentPopup();
-					m_showLoadingModal = false;
-				}
-				ImGuiUtils::CursorOnHover();
+				ImGui::CloseCurrentPopup();
+				m_showLoadingModal = false;
 			}
 
 

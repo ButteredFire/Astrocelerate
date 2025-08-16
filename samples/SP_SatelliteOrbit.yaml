@@ -1,21 +1,40 @@
-Entities:
-  - Name: Earth
+FileConfig:
+  Version: 0
+  Description: "N-body simulation of satellite in low-Earth orbit (J2000 ECI)"
+
+
+SimulationConfig:
+  Kernels:
+    - Path: "kernels/naif0012.tls"
+    - Path: "kernels/de440.bsp"
+    - Path: "kernels/pck00010.tpc"
+
+  CoordinateSystem:
+    Frame: ECI
+    Epoch: J2000
+    EpochFormat: "2025-08-12 00:00:00 UTC"
+
+
+Scene:
+  - Entity: Earth
     Components:
-      - Type: PhysicsComponent::ReferenceFrame
+      - Type: Core::Identifiers
         Data:
-          parentID: null
-          scale: 6378000.0
-          visualScale: 10.0
-          localTransform:
-            position: [0.0, 0.0, 0.0]
-            rotation: [0.0, 0.0, 0.0]
-      - Type: PhysicsComponent::RigidBody
+          spiceID: "EARTH"
+
+      - Type: Core::Transform
+        Data:
+          position: [0.0, 0.0, 0.0]
+          rotation: [0.0, 0.0, 0.0]
+          scale: 6378137.0
+
+      - Type: Physics::RigidBody
         Data:
           velocity: [0.0, 0.0, 0.0]
           acceleration: [0.0, 0.0, 0.0]
           mass: 5.972e+24
-          
-      - Type: PhysicsComponent::ShapeParameters
+
+      - Type: Physics::ShapeParameters
         Data:
           equatRadius: 6378137.0
           flattening: 0.0033528197
@@ -23,51 +42,72 @@ Entities:
           rotVelocity: [0.0, 0.0, 7.2921159e-5]
           j2: 0.00108263
 
-      - Type: RenderComponent::MeshRenderable
+      - Type: Render::MeshRenderable
         Data:
           meshPath: "assets/Models/CelestialBodies/Earth/Earth.gltf"
-
-      - Type: TelemetryComponent::RenderTransform
-        Data: {} # This is just an empty component, used to tag which entities appear on the telemetry dashboard
-
-
-  - Name: Chandra X-ray Observatory
-    Components:
-      - Type: PhysicsComponent::ReferenceFrame
-        Data:
-          parentID: ref.Earth # Syntax: ref.[EntityName]. In this case, the parser will try to look for Earth's entity ID.
-          scale: 100.0
           visualScale: 1.0
-          localTransform:
-            position: [0.0, 8378000.0, 0.0] # earthRadius + 2e6 -> Satellite is orbiting 2378 km above the Earth
-            rotation: [0.0, 0.0, -90.0]
 
-      - Type: PhysicsComponent::RigidBody
+
+  - Entity: Moon
+    Components:
+      - Type: Core::Identifiers
         Data:
-          velocity: [-6897.61118658, 0.0, 0.0] # ~6897.6 is the satellite's LEO orbital speed (refer to localTransform.position)
+          spiceID: "MOON"
+
+      - Type: Core::Transform
+        Data:
+          position: [0.0, 0.0, 0.0]
+          rotation: [0.0, 0.0, 0.0]
+          scale: 1.74e6
+
+      - Type: Physics::RigidBody
+        Data:
+          velocity: [0.0, 0.0, 0.0]
+          acceleration: [0.0, 0.0, 0.0]
+          mass: 7.34767309e22
+
+      - Type: Physics::ShapeParameters
+        Data:
+          equatRadius: 1378.1e3
+          flattening: 0.0012
+          gravParam: 4.902800118e12
+          rotVelocity: [0.0, 0.0, 2.6654e-6]
+          j2: 202.7e-6
+
+      - Type: Render::MeshRenderable
+        Data:
+          meshPath: "assets/Models/CelestialBodies/Moon/Moon.gltf"
+          visualScale: 1.0
+
+
+  - Entity: Chandra X-ray Observatory
+    Components:
+      - Type: Core::Transform
+        Data:
+          position: [-6378000.0, 2000000.0, 0.0]
+          rotation: [0.0, 0.0, -90.0]
+          scale: 7.0
+
+      - Type: Physics::RigidBody
+        Data:
+          velocity: [2310.2, 7367.6, 0.0]
           acceleration: [0.0, 0.0, 0.0]
           mass: 20.0
 
-      - Type: PhysicsComponent::OrbitingBody
-        Data:
-          centralMass: ref.Earth # Reference to the Earth entity's mass
-
-      - Type: SpacecraftComponent::Spacecraft
+      - Type: Spacecraft::Spacecraft
         Data:
           dragCoefficient: 2.2
           referenceArea: 20.0
           reflectivityCoefficient: 1.0
 
-      - Type: SpacecraftComponent::Thruster
+      - Type: Spacecraft::Thruster
         Data:
           thrustMagnitude: 0.5
           specificImpulse: 200.0
           currentFuelMass: 1070.0
           maxFuelMass: 1070.0
 
-      - Type: RenderComponent::MeshRenderable
+      - Type: Render::MeshRenderable
         Data:
           meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf"
-
-      - Type: TelemetryComponent::RenderTransform
-        Data: {}
+          visualScale: 0.1

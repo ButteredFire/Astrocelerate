@@ -13,7 +13,7 @@
                 "CMAKE_TOOLCHAIN_FILE": "C:/vcpkg/scripts/buildsystems/vcpkg.cmake"
             },
             "environment": {
-                // Add environment variables here
+                "SPICE_ROOT_DIR": "D:/CSPICE"
             }
         },
         {
@@ -27,7 +27,9 @@
                 "CMAKE_BUILD_TYPE": "RelWithDebInfo",
                 "CMAKE_TOOLCHAIN_FILE": "C:/vcpkg/scripts/buildsystems/vcpkg.cmake"
             },
-            "environment": {}
+            "environment": {
+                "SPICE_ROOT_DIR": "D:/CSPICE"
+            }
         }
     ],
     "buildPresets": [

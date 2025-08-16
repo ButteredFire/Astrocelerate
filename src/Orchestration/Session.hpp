@@ -45,7 +45,7 @@ private:
 
 
 	bool m_sessionInitialized = false;
-	bool m_initialRefFrameUpdate = false;
+	bool m_initialPhysicsUpdate = false;
 
 
 	void bindEvents();

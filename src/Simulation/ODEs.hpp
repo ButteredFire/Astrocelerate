@@ -1,4 +1,4 @@
-﻿/* ODEs.hpp - Defines ordinary differential equations.
+/* ODEs.hpp - Defines ordinary differential equations.
 */
 
 #pragma once
@@ -20,7 +20,7 @@ namespace ODE {
 			double distance = glm::length(relativePosition);
 
 			// A small threshold to prevent numerical issues
-			if (distance < 1e-12) {
+			if (distance < std::numeric_limits<float>::epsilon()) {
 				return State{
 					.position = currentVelocity,
 					.velocity = glm::dvec3(0.0, 0.0, 0.0) // Acceleration is zero at the center
@@ -45,6 +45,38 @@ namespace ODE {
 			return State{
 				.position = currentVelocity,		// dr/dt = v(t)
 				.velocity = acceleration			// dv/dt = a(t)
+			};
+		}
+	};
+
+
+	struct NewtonianNBody {
+		InternalView<CoreComponent::Transform, PhysicsComponent::RigidBody> *view;
+		EntityID entityID;
+
+
+		State operator()(const State &state, double t) {
+			using namespace PhysicsConsts;
+
+			glm::dvec3 totalAcceleration(0.0);
+
+
+			// Compute all forces acting on this body
+			for (const auto &[otherEntityID, otherTransform, otherRigidBody] : *view) {
+				if (otherEntityID == entityID)
+					continue;
+
+				glm::dvec3 relativePos = state.position - otherTransform.position;
+				double distance = glm::length(relativePos);
+
+				// Prevent division by zero (i.e., distance = 0 either intentionally or due to floating-point imprecision)
+				if (distance >= std::numeric_limits<float>::epsilon())
+					totalAcceleration += -G * (otherRigidBody.mass * relativePos) / (distance * distance * distance);
+			}
+
+			return State{
+				.position = state.velocity,			// dr/dt = v(t)
+				.velocity = totalAcceleration		// dv/dt = a(t)
 			};
 		}
 	};

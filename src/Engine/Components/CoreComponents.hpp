@@ -14,5 +14,11 @@ namespace CoreComponent {
 	struct Transform {
 		glm::dvec3 position;						// World or local position.
 		glm::dquat rotation = glm::dquat();			// Orientation as a quaternion (Default: Identity (1, 0, 0, 0)).
+		double scale;								// Physical scale/radius (m).
+	};
+
+
+	struct Identifiers {
+		std::string spiceID;
 	};
 }
