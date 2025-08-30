@@ -7,8 +7,6 @@
 
 #include "ECSCore.hpp"
 
-#include <Engine/Components/PhysicsComponents.hpp>
-
 
 class EntityManager {
 public:
@@ -272,7 +270,7 @@ public:
 	~InternalView() = default;
 
 
-	/* Refreshes the view to query new data. */
+	/* Refreshes the view to get new data. */
 	inline void refresh() {
 		init();
 	}
@@ -435,39 +433,39 @@ public:
 
 
 	inline Entity createEntity(const std::string& name = "Unknown entity") {
-		std::lock_guard<std::recursive_mutex> lock(m_registryMutex);
+		std::lock_guard<std::mutex> lock(m_entityMutex);
 		return entityManager.createEntity(name);
 	}
 
 
 	inline Entity getEntity(EntityID entityID) {
-		std::lock_guard<std::recursive_mutex> lock(m_registryMutex);
+		std::lock_guard<std::mutex> lock(m_entityMutex);
 		return entityManager.getAllEntities()[entityID];
 	}
 
 
 	inline bool hasEntity(EntityID entityID) {
-		std::lock_guard<std::recursive_mutex> lock(m_registryMutex);
+		std::lock_guard<std::mutex> lock(m_entityMutex);
 		return entityManager.getAllEntities().count(entityID);
 	}
 
 
 	inline void destroyEntity(Entity& entity) {
-		std::lock_guard<std::recursive_mutex> lock(m_registryMutex);
+		std::lock_guard<std::mutex> lock(m_entityMutex);
 		entityManager.destroyEntity(entity);
 	}
 
 
 	template<typename Component>
 	inline void initComponentArray() {
-		std::lock_guard<std::recursive_mutex> lock(m_registryMutex);
+		std::lock_guard<std::mutex> lock(m_componentMutex);
 		componentManager.initComponentArray<Component>();
 	}
 
 
 	template<typename Component>
 	inline void addComponent(EntityID entityID, Component component) {
-		std::lock_guard<std::recursive_mutex> lock(m_registryMutex);
+		std::lock_guard<std::mutex> lock(m_componentMutex);
 
 		componentManager.addComponent<Component>(entityID, component);
 
@@ -480,14 +478,14 @@ public:
 
 	template<typename Component>
 	inline void removeComponent(EntityID entityID) {
-		std::lock_guard<std::recursive_mutex> lock(m_registryMutex);
+		std::lock_guard<std::mutex> lock(m_componentMutex);
 		componentManager.removeComponent(entityID);
 	}
 
 
 	template<typename Component>
 	inline void updateComponent(EntityID entityID, Component component) {
-		std::lock_guard<std::recursive_mutex> lock(m_registryMutex);
+		std::lock_guard<std::mutex> lock(m_componentMutex);
 		componentManager.updateComponent(entityID, component);
 	}
 
@@ -509,8 +507,6 @@ public:
 
 
 	inline void clear() {
-		std::lock_guard<std::recursive_mutex> lock(m_registryMutex);
-
 		// NOTE: Assigning a new object automatically destroys the old class instance and constructs/moves the new one
 		entityManager.reset();
 		componentManager = ComponentManager();
@@ -523,6 +519,8 @@ public:
 
 	template<typename... Components>
 	inline auto getView() {
+		std::lock_guard<std::mutex> lock(m_viewMutex);
+
 		constexpr size_t argCount = sizeof...(Components);
 		if (argCount == 0) {
 			throw Log::RuntimeException(__FUNCTION__, __LINE__, "Cannot get view: No components are passed into view!");
@@ -550,7 +548,9 @@ private:
 	EntityManager entityManager;
 	ComponentManager componentManager;
 
-	std::recursive_mutex m_registryMutex;
+	std::mutex m_entityMutex;
+	std::mutex m_componentMutex;
+	std::mutex m_viewMutex;
 
 	Entity m_renderSpace;
 
@@ -562,15 +562,5 @@ private:
 	
 		// Global reference frame
 		m_renderSpace = createEntity("Scene");
-
-		PhysicsComponent::ReferenceFrame globalRefFrame{};
-		globalRefFrame.parentID = std::nullopt;
-		globalRefFrame.scale = 1.0;
-		globalRefFrame.visualScale = 1.0;
-		globalRefFrame.localTransform.position = glm::dvec3(0.0);
-		globalRefFrame.localTransform.rotation = glm::dquat(1.0, 0.0, 0.0, 0.0);
-
-		initComponentArray<PhysicsComponent::ReferenceFrame>();
-		addComponent(m_renderSpace.id, globalRefFrame);
 	}
 };

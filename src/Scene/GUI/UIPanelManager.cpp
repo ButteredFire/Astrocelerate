@@ -47,6 +47,14 @@ void UIPanelManager::bindEvents() {
 			m_loadErrorMessage = event.finalMessage;
 		}
 	);
+
+
+	m_eventDispatcher->subscribe<ConfigEvent::SimulationFileParsed>(selfIndex,
+		[this](const ConfigEvent::SimulationFileParsed &event) {
+			m_fileConfig = event.fileConfig;
+			m_simulationConfig = event.simulationConfig;
+		}
+	);
 }
 
 
@@ -73,11 +81,11 @@ void UIPanelManager::initStaticTextures() {
 	m_appLogoTexProps.textureID = TextureUtils::GenerateImGuiTextureID(texture.imageLayout, texture.imageView, texture.sampler);
 
 	// Oriviet Aerospace logo
-	logoPath = FilePathUtils::JoinPaths(ROOT_DIR, "assets/App", "OrivietAerospaceLogo-Mono.png");
-	texture = textureManager->createIndependentTexture(logoPath, VK_FORMAT_R8G8B8A8_SRGB);
-
-	m_companyLogoTexProps.size = ImVec2(texture.size.x, texture.size.y);
-	m_companyLogoTexProps.textureID = TextureUtils::GenerateImGuiTextureID(texture.imageLayout, texture.imageView, texture.sampler);
+	//logoPath = FilePathUtils::JoinPaths(ROOT_DIR, "assets/App", "OrivietAerospaceLogo-Mono.png");
+	//texture = textureManager->createIndependentTexture(logoPath, VK_FORMAT_R8G8B8A8_SRGB);
+	//
+	//m_companyLogoTexProps.size = ImVec2(texture.size.x, texture.size.y);
+	//m_companyLogoTexProps.textureID = TextureUtils::GenerateImGuiTextureID(texture.imageLayout, texture.imageView, texture.sampler);
 }
 
 
@@ -161,13 +169,16 @@ void UIPanelManager::renderMenuBar() {
 			}
 			ImGuiUtils::CursorOnHover();
 
+
 			// Save
 			if (ImGui::MenuItem("Save", "Ctrl+S")) {
 				// TODO: Handle Save
 			}
 			ImGuiUtils::CursorOnHover();
 
+
 			ImGui::Separator();
+
 
 			// Preferences
 			{
@@ -182,14 +193,18 @@ void UIPanelManager::renderMenuBar() {
 
 			ImGui::Separator();
 
+
 			// Exit
 			if (ImGui::MenuItem("Exit")) {
-				// TODO: Handle Exit
+				throw Log::EngineExitException();
 			}
 			ImGuiUtils::CursorOnHover();
 
 			ImGui::EndMenu();
 		}
+		ImGuiUtils::CursorOnHover();
+
+
 
 		if (ImGui::BeginMenu("View")) {
 			using namespace GUI;
@@ -205,6 +220,7 @@ void UIPanelManager::renderMenuBar() {
 				ImGui::Separator();
 			}
 
+
 			// All other panels
 			for (auto& [panelID, _] : m_workspacePanelCallbacks) {
 				// Only render workspace-specific, persistent panels
@@ -219,6 +235,9 @@ void UIPanelManager::renderMenuBar() {
 
 			ImGui::EndMenu();
 		}
+		ImGuiUtils::CursorOnHover();
+
+
 
 		if (ImGui::BeginMenu("Help")) {
 			using namespace GUI;
@@ -234,17 +253,22 @@ void UIPanelManager::renderMenuBar() {
 
 			ImGui::EndMenu();
 		}
+		ImGuiUtils::CursorOnHover();
+
+
 
 		// Plugins
 		if (ImGui::BeginMenu("Plugins")) {
-			ImGui::MenuItem("Weather Prediction");
-			ImGuiUtils::CursorOnHover();
-			ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 0, 0, 255));
-				ImGuiUtils::TextTooltip(ImGuiHoveredFlags_None, "This plugin is not currently supported.");
-			ImGui::PopStyleColor();
-
+			//ImGui::MenuItem("Weather Prediction");
+			//ImGuiUtils::CursorOnHover();
+			//ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 0, 0, 255));
+			//	ImGuiUtils::TextTooltip(ImGuiHoveredFlags_None, "This plugin is not currently supported.");
+			//ImGui::PopStyleColor();
+			
 			ImGui::EndMenu();
 		}
+		ImGuiUtils::CursorOnHover();
+
 
 		ImGui::TextLinkOpenURL("Give Feedback", "https://forms.gle/xpaqY4BoVRsGLhbC9/");
 
@@ -558,7 +582,7 @@ void UIPanelManager::renderAboutPanel() {
 
 
 void UIPanelManager::renderSceneLoadModal(const std::string &fileName) {
-	ImGui::SetNextWindowSize(ImVec2(500.0f, 200.0f));
+	ImGui::SetNextWindowSize(ImVec2(500.0f, 0.0f));
 	ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 
 	ImGui::PushStyleColor(ImGuiCol_ModalWindowDimBg, ColorUtils::sRGBToLinear(0.0f, 0.0f, 0.0f, 0.80f));
@@ -571,54 +595,59 @@ void UIPanelManager::renderSceneLoadModal(const std::string &fileName) {
 			if (!m_loadErrorOccurred) {
 				ImGui::PushFont(g_fontContext.NotoSans.bold);
 				{
-					ImGuiUtils::AlignedText(ImGuiUtils::TEXT_ALIGN_MIDDLE, "Processing %s", enquote(fileName).c_str());
+					ImGuiUtils::AlignedText(ImGuiUtils::TEXT_ALIGN_MIDDLE, "Processing %s", fileName.c_str());
 					ImGuiUtils::Padding();
 					ImGuiUtils::AlignedText(ImGuiUtils::TEXT_ALIGN_MIDDLE, m_currentLoadMessage.c_str());
 				}
 				ImGui::PopFont();
 
+
 				ImGuiUtils::Padding();
+
 
 				char overlay[32];
 				sprintf(overlay, "%.1f%%", m_currentLoadProgress * 100);
 				ImGui::ProgressBar(m_currentLoadProgress, ImVec2(-1.0f, 0.0f), overlay);  // -1 for full width, 0 for default height
 
+
 				ImGuiUtils::Padding();
 
-				// Display an "OK" button only when loading is complete and successful
-				//if (m_currentLoadProgress >= 1.0f) {
-				//	
-				//}
+
+				ImGui::PushFont(g_fontContext.NotoSans.italic);
+					ImGuiUtils::AlignedText(ImGuiUtils::TEXT_ALIGN_MIDDLE, enquote("%s").c_str(), m_fileConfig.description.c_str());
+				ImGui::PopFont();
+
+
+				if (m_currentLoadProgress >= 1.0f) {
+					ImGui::CloseCurrentPopup();
+					m_showLoadingModal = false;
+				}
 			}
 
 			else {
 				// Display error message and an "OK" button to close
 				ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 0, 0, 255));
+				ImGui::PushFont(g_fontContext.NotoSans.bold);
 				{
-					ImGui::Text("Error during loading!");
-					ImGui::TextWrapped("%s", m_loadErrorMessage.c_str());
+					ImGuiUtils::AlignedText(ImGuiUtils::TEXT_ALIGN_MIDDLE, "Failed to load %s", fileName.c_str());
+					ImGuiUtils::Padding();
+					ImGuiUtils::AlignedText(ImGuiUtils::TEXT_ALIGN_MIDDLE, m_currentLoadMessage.c_str());
 				}
 				ImGui::PopStyleColor();
+				ImGui::PopFont();
 
-				//if (ImGui::Button("OK")) {
-				//	ImGui::CloseCurrentPopup();
-				//	m_showLoadingModal = false;
-				//}
-			}
 
-			
-			if (m_currentLoadProgress >= 1.0f) {
-				//static const float btnWidth = 70.0f;
-				//ImGuiUtils::BottomButtonPadding(btnWidth, 1);
-				//
-				//if (ImGui::Button("OK", ImVec2(btnWidth, 0.0f))) {
-				//	ImGui::CloseCurrentPopup();
-				//	m_showLoadingModal = false;
-				//}
-				//ImGuiUtils::CursorOnHover();
+				ImGuiUtils::Padding();
 
-				ImGui::CloseCurrentPopup();
-				m_showLoadingModal = false;
+
+				static const float btnWidth = 70.0f;
+				ImGuiUtils::BottomButtonPadding(btnWidth, 1);
+				
+				if (ImGui::Button("OK", ImVec2(btnWidth, 0.0f))) {
+					ImGui::CloseCurrentPopup();
+					m_showLoadingModal = false;
+				}
+				ImGuiUtils::CursorOnHover();
 			}
 
 
@@ -656,7 +685,7 @@ void UIPanelManager::renderWelcomePanel() {
 		ImGuiUtils::Padding();
 
 		ImGui::Text("To get started, please open a simulation script by going to File > Open.");
-		ImGui::Text("Two sample scripts have been provided. Feel free to play around with them!");
+		ImGui::Text("A few sample scripts have been provided. Feel free to play around with them!");
 
 		ImGuiUtils::Padding();
 
@@ -677,6 +706,9 @@ void UIPanelManager::renderWelcomePanel() {
 		ImGui::TextWrapped("We deeply value your feedback. To submit one, please fill in");
 		ImGui::SameLine();
 		ImGui::TextLinkOpenURL("this form.", "https://forms.gle/xpaqY4BoVRsGLhbC9/");
+		ImGui::TextWrapped("Alternatively, you can directly give feedback via");
+		ImGui::SameLine();
+		ImGui::TextLinkOpenURL("GitHub Discussions.", "https://github.com/ButteredFire/Astrocelerate/discussions/");
 
 		ImGuiUtils::Padding();
 

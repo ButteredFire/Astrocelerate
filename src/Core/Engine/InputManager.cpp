@@ -53,6 +53,11 @@ void InputManager::bindEvents() {
 }
 
 
+void InputManager::processInBackground() {
+	unfocusViewport();
+}
+
+
 bool InputManager::isViewportInputAllowed() {
 	return isViewportFocused() && m_cursorLocked;
 }
@@ -80,10 +85,8 @@ void InputManager::processKeyboardInput(double dt) {
 	using namespace Input;
 
 	// Unlocks the cursor when the viewport loses focus (this solves desynchronization between g_appContext.Input.isViewportFocused and m_cursorLocked)
-	if (m_pressedKeys.contains(GLFW_KEY_ESCAPE) || isViewportUnfocused()) {
-		m_cursorLocked = false;
-		glfwSetInputMode(m_camera->m_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-	}
+	if (m_pressedKeys.contains(GLFW_KEY_ESCAPE) || isViewportUnfocused())
+		unfocusViewport();
 
 	for (const int key : m_pressedKeys) {
 		if (isViewportInputAllowed()) {
@@ -132,4 +135,10 @@ void InputManager::processMouseMovement(double dposX, double dposY) {
 void InputManager::processMouseScroll(double deltaX, double deltaY) {
 	if (isViewportInputAllowed())
 		m_camera->processMouseScroll(static_cast<float>(deltaY));
+}
+
+
+void InputManager::unfocusViewport() {
+	m_cursorLocked = false;
+	glfwSetInputMode(m_camera->m_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 }

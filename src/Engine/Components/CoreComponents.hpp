@@ -18,7 +18,19 @@ namespace CoreComponent {
 	};
 
 
+	/* Identifiers to identify an entity. This is essential for systems like SPICE. */
 	struct Identifiers {
-		std::string spiceID;
+		enum class EntityType {
+			UNKNOWN,
+
+			STAR,
+			PLANET,
+			MOON,
+			SPACECRAFT,
+			ASTEROID
+		};
+
+		EntityType entityType;					// The type of entity.
+		std::optional<std::string> spiceID;		// The entity's SPICE ID. This can be optional for custom-defined entities.
 	};
 }

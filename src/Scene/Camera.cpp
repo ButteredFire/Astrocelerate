@@ -25,9 +25,41 @@ void Camera::reset() {
 	m_position = m_defaultPosition;
 	m_orientation = m_defaultOrientation;
 
-	m_inFreeFlyMode = false;
+	m_inFreeFlyMode = true;
+	m_revertPosition = false;
 	m_attachedEntityID = m_camEntity.id;
 	m_orbitRadius = 2.0f;
+}
+
+
+void Camera::resetCameraQuatRoll(const glm::vec3 &forwardVector) {
+	// TODO: Fix logic
+	// Projects the camera forward vector onto the horizontal (X-Y) plane.
+	glm::vec3 horizontalForward = glm::normalize(glm::vec3(forwardVector.x, forwardVector.y, 0.0f));
+
+	// If the horizontal forward vector is near zero (e.g., looking straight up or down),
+	// use the original forward vector to prevent a singularity.
+	if (glm::length(horizontalForward) < 0.0001f) {
+		m_orientation = glm::quatLookAt(forwardVector, m_worldUp);
+	}
+	else {
+		// Reconstruct the quaternion without roll
+		m_orientation = glm::quatLookAt(horizontalForward, m_worldUp);
+	}
+
+	/*
+	glm::vec3 cameraForwardVector = m_orientation * forwardVector;
+
+	// Projects the camera forward vector onto the horizontal (X-Y) plane (because our up axis is Z).
+	// This zeros out the Z-component, which effectively removes roll.
+	glm::vec3 horizontalForward = glm::normalize(glm::vec3(cameraForwardVector.x, cameraForwardVector.y, 0.0f));
+
+	if (glm::length(horizontalForward) < 0.0001f)
+		// If the horizontal forward vector is (0, 0, 0), use a default orientation
+		m_orientation = glm::quatLookAt(forwardVector, m_worldUp);
+	else
+		m_orientation = glm::quatLookAt(horizontalForward, m_worldUp);
+	*/
 }
 
 
@@ -40,11 +72,12 @@ void Camera::update(double physicsUpdateTimeDiff) {
 
 
 	// Update camera's position if currently attached to an entity
-	if (m_attachedEntityID != m_camEntity.id) {
+	if (!m_inFreeFlyMode) {
 		CoreComponent::Transform &entityTransform = m_registry->getComponent<CoreComponent::Transform>(m_attachedEntityID);
 		RenderComponent::MeshRenderable &entityRenderable = m_registry->getComponent<RenderComponent::MeshRenderable>(m_attachedEntityID);
 
-		const glm::dvec3 &entityPosition = entityTransform.position;
+		m_orbitedEntityPosition = entityTransform.position;
+
 		const double minCameraZoom = SpaceUtils::ToSimulationSpace(
 			SpaceUtils::GetRenderableScale(SpaceUtils::ToRenderSpace_Scale(entityTransform.scale)) * entityRenderable.visualScale
 		);	  // Added to orbit radius to prevent zooming inside entity
@@ -53,7 +86,7 @@ void Camera::update(double physicsUpdateTimeDiff) {
 		// Interpolate entity positions between now and the time of the last physics update.
 		// Explanation: While physics updates happen at a fixed time step (e.g., 60 Hz), rendering is uncapped. This can result in jittery movements of entities that are especially noticeable in atttached/orbital mode. To fix this, we must interpolate the entity positions between the two time points for smoothness.
 		if (!m_orbitedEntityLastPosition.count(m_attachedEntityID))
-			m_orbitedEntityLastPosition[m_attachedEntityID] = entityPosition;
+			m_orbitedEntityLastPosition[m_attachedEntityID] = m_orbitedEntityPosition;
 
 		glm::dvec3 interpolatedEntityPosition;
 
@@ -65,14 +98,14 @@ void Camera::update(double physicsUpdateTimeDiff) {
 
 			interpolatedEntityPosition = glm::mix(
 				m_orbitedEntityLastPosition[m_attachedEntityID].value(),
-				entityPosition,
+				m_orbitedEntityPosition,
 				alpha
 			);
 
-			m_orbitedEntityLastPosition[m_attachedEntityID] = entityPosition;
+			m_orbitedEntityLastPosition[m_attachedEntityID] = m_orbitedEntityPosition;
 		}
 		else
-			interpolatedEntityPosition = entityPosition;
+			interpolatedEntityPosition = m_orbitedEntityPosition;
 
 
 
@@ -86,7 +119,7 @@ void Camera::update(double physicsUpdateTimeDiff) {
 
 
 		// Calculate camera orientation to look at the target point
-		glm::dvec3 directionToEntity = entityPosition - m_position;
+		glm::dvec3 directionToEntity = m_orbitedEntityPosition - m_position;
 		glm::vec3 lookDirection = glm::normalize(directionToEntity);
 
 
@@ -96,6 +129,8 @@ void Camera::update(double physicsUpdateTimeDiff) {
 		m_right = glm::normalize(glm::cross(m_front, m_localUp));
 	}
 	else {
+		m_orbitedEntityPosition = m_position;
+
 		m_front = m_orientation * forward;
 		m_localUp = m_orientation * m_worldUp;
 		m_right = glm::normalize(glm::cross(m_front, m_localUp));
@@ -105,38 +140,55 @@ void Camera::update(double physicsUpdateTimeDiff) {
 
 
 glm::mat4 Camera::getRenderSpaceViewMatrix() const {
-	glm::vec3 descaledPosition = SpaceUtils::ToRenderSpace_Position(m_position);
-	return glm::lookAt(descaledPosition, descaledPosition + m_front, m_localUp);
+	glm::vec3 descaledPosition = SpaceUtils::ToRenderSpace_Position(m_position - m_orbitedEntityPosition);
+	glm::vec3 descaledFront = glm::normalize(SpaceUtils::ToRenderSpace_Position(m_front));
+	return glm::lookAt(descaledPosition, descaledPosition + descaledFront, m_localUp);
 }
 
 
-CoreComponent::Transform Camera::getGlobalTransform() const {
+CoreComponent::Transform Camera::getRelativeTransform() const {
 	CoreComponent::Transform transform{};
-	transform.position = m_position;
+	transform.position = m_position - m_orbitedEntityPosition;
 	transform.rotation = m_orientation;
 	
 	return transform;
 }
 
 
+CoreComponent::Transform Camera::getAbsoluteTransform() const {
+	CoreComponent::Transform transform{};
+	transform.position = m_position;
+	transform.rotation = m_orientation;
+
+	return transform;
+}
+
+
 void Camera::attachToEntity(EntityID entityID) {
-	if (m_attachedEntityID == m_camEntity.id && entityID != m_camEntity.id) {
+	if (m_inFreeFlyMode && entityID != m_camEntity.id) {
 		m_freeFlyPosition = m_position;
 		m_freeFlyOrientation = m_orientation;
 
 		m_inFreeFlyMode = false;
 	}
+	else if (entityID == m_camEntity.id)
+		detachFromEntity();
 
 	m_attachedEntityID = entityID;
+
 	update(); // Forces an immediate update after changing attachment
 }
 
 
 void Camera::detachFromEntity() {
 	if (m_attachedEntityID != m_camEntity.id) {
+		if (m_revertPosition) {
+			// Revert the camera's back to its original state before entering orbital mode
+			m_position = m_freeFlyPosition;
+			m_orientation = m_freeFlyOrientation;
+		}
+
 		m_inFreeFlyMode = true;
-		m_position = m_freeFlyPosition;
-		m_orientation = m_freeFlyOrientation;
 	}
 
 	m_attachedEntityID = m_camEntity.id;
@@ -178,35 +230,17 @@ void Camera::processKeyboardInput(Input::CameraMovement direction, double dt) {
 
 
 void Camera::processMouseInput(float deltaX, float deltaY) {
-	if (m_attachedEntityID == m_camEntity.id) {
-		// Free-fly mode
-		float angleX = glm::radians(deltaX * mouseSensitivity);
-		float angleY = glm::radians(deltaY * mouseSensitivity);
+	float angleX = glm::radians(deltaX * mouseSensitivity);
+	float angleY = glm::radians(deltaY * mouseSensitivity);
 
-		clampPitch(angleY, 89.0f);
+	clampPitch(angleY, 90.0f);
 
-		glm::quat yawQuat = glm::angleAxis(-angleX, m_worldUp);
-		glm::quat pitchQuat = glm::angleAxis(-angleY, m_right);
+	glm::quat yawQuat = glm::angleAxis(-angleX, m_worldUp);
+	glm::quat pitchQuat = glm::angleAxis(-angleY, m_right);
 
-		// NOTE: Quaternion multiplication is not commutative
-		m_orientation = glm::normalize(pitchQuat * yawQuat * m_orientation);
-	}
-	else {
-		// Attached/Orbital mode
-		float angleX = glm::radians(deltaX * mouseSensitivity);
-		float angleY = glm::radians(deltaY * mouseSensitivity);
-		
-		glm::quat yawQuat = glm::angleAxis(-angleX, m_worldUp);
-		glm::quat pitchQuat = glm::angleAxis(-angleY, m_right);
+	// NOTE: Quaternion multiplication is not commutative
+	m_orientation = glm::normalize(pitchQuat * yawQuat * m_orientation);
 
-
-		//m_orbitYaw += glm::radians(deltaX * mouseSensitivity);
-		//m_orbitPitch += glm::radians(deltaY * mouseSensitivity);
-		m_orientation = glm::normalize(pitchQuat * yawQuat * m_orientation);
-		//
-		//// Clamp orbit pitch to prevent flipping or going too far
-		//m_orbitPitch = glm::clamp(m_orbitPitch, glm::radians(-70.0f), glm::radians(70.0f));
-	}
 
 	update();
 }
@@ -232,7 +266,7 @@ void Camera::clampPitch(float& angleY, const float pitchLimit) {
 
 
 void Camera::processMouseScroll(float deltaY) {
-	if (m_attachedEntityID == m_camEntity.id) {
+	if (m_inFreeFlyMode) {
 		// Free-fly mode
 		static const float maxFOV = zoom;  // Set initial zoom value as upper bound to disallow zooming from exceeding original FOV
 		
@@ -244,8 +278,8 @@ void Camera::processMouseScroll(float deltaY) {
 	}
 	else {
 		// Attached/Orbital mode
-		static const float minDistance = 0.5f;
-		static const float maxDistance = 300.0f;
+		static const float minDistance = 0.1f;
+		static const float maxDistance = 10000.0f;
 
 		const float expZoom = m_orbitRadius * 1.5f;	// Exponential zoom multiplier
 

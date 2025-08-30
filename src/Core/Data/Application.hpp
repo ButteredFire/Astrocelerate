@@ -30,7 +30,9 @@ namespace Application {
 		NULL_STATE,
 
 		IDLE,
-		RECREATING_SWAPCHAIN
+		RECREATING_SWAPCHAIN,
+
+		SHUTDOWN
 	};
 
 

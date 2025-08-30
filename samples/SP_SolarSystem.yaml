@@ -1,0 +1,35 @@
+FileConfig:
+    Version: 0
+    Description: "Solar System Simulation (J2000 Solar System Barycentric)"
+
+SimulationConfig:
+    Kernels:
+        # SPICE kernels for planetary Positions, orientations, and time
+        - Path: "kernels/naif0012.tls"  # Time kernel
+        - Path: "kernels/pck00010.tpc"  # Planetary orientation kernel
+        - Path: "kernels/earth_latest_high_prec.bpc" # Earth's high-precision orientation
+        # Ephemeris kernels
+        - Path: "kernels/de442.bsp"
+        - Path: "kernels/jup300.bsp"
+        - Path: "kernels/mar097.bsp"
+        - Path: "kernels/nep087.bsp"
+        - Path: "kernels/plu042.bsp"
+        - Path: "kernels/sat456.bsp"
+        - Path: "kernels/ura112.bsp"
+
+    CoordinateSystem:
+        Frame: SSB
+        Epoch: J2000
+        EpochFormat: "2000-01-01 00:00:00 UTC"
+
+Scene:
+    - Entity: Body::Sun
+    - Entity: Body::Mercury
+    - Entity: Body::Venus
+    - Entity: Body::Earth
+    - Entity: Body::Moon
+    - Entity: Body::Mars
+    - Entity: Body::Jupiter
+    - Entity: Body::Saturn
+    - Entity: Body::Uranus
+    - Entity: Body::Neptune

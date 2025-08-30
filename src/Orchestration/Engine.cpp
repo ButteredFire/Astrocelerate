@@ -20,6 +20,13 @@ Engine::Engine(GLFWwindow *w):
 
 
 Engine::~Engine() {
+    m_currentAppState = Application::State::SHUTDOWN;
+
+    m_eventDispatcher->dispatch(UpdateEvent::ApplicationStatus{
+      .appState = Application::State::SHUTDOWN  
+    });
+
+
     // Frees up all associated memory.
     glfwDestroyWindow(m_window);
     glfwTerminate();
@@ -180,13 +187,10 @@ void Engine::initEngine() {
     m_physicsSystem = std::make_shared<PhysicsSystem>();
     ServiceLocator::RegisterService(m_physicsSystem);
 
-    m_refFrameSystem = std::make_shared<ReferenceFrameSystem>();
-    ServiceLocator::RegisterService(m_refFrameSystem);
-
 
     
     // Create new session
-    m_currentSession = std::make_shared<Session>(m_coreResourcesManager.get(), m_sceneManager.get(), m_physicsSystem.get(), m_refFrameSystem.get());
+    m_currentSession = std::make_shared<Session>(m_coreResourcesManager.get(), m_sceneManager.get(), m_physicsSystem.get());
     ServiceLocator::RegisterService(m_currentSession);
 
 
@@ -205,18 +209,20 @@ void Engine::initComponents() {
 
     /* Rendering */
     m_registry->initComponentArray<RenderComponent::SceneData>();
+    m_registry->initComponentArray<RenderComponent::PointLight>();
     m_registry->initComponentArray<RenderComponent::MeshRenderable>();
 
     /* Physics */
     m_registry->initComponentArray<PhysicsComponent::RigidBody>();
+    m_registry->initComponentArray<PhysicsComponent::Propagator>();
     m_registry->initComponentArray<PhysicsComponent::OrbitingBody>();
-    m_registry->initComponentArray<PhysicsComponent::ReferenceFrame>();
+    m_registry->initComponentArray<PhysicsComponent::NutationAngles>();
     m_registry->initComponentArray<PhysicsComponent::ShapeParameters>();
     m_registry->initComponentArray<PhysicsComponent::CoordinateSystem>();
 
     /* Spacecraft */
-    m_registry->initComponentArray<SpacecraftComponent::Spacecraft>();
     m_registry->initComponentArray<SpacecraftComponent::Thruster>();
+    m_registry->initComponentArray<SpacecraftComponent::Spacecraft>();
 
     /* Telemetry */
     m_registry->initComponentArray<TelemetryComponent::RenderTransform>();
@@ -234,6 +240,17 @@ void Engine::run() {
     m_inputManager = ServiceLocator::GetService<InputManager>(__FUNCTION__);
     m_currentSession = ServiceLocator::GetService<Session>(__FUNCTION__);
     m_renderer = ServiceLocator::GetService<Renderer>(__FUNCTION__);
+
+    // TODO: Create and detach a dedicated physics update thread
+    //m_sessionThread = ThreadManager::CreateThread("PHYS_UPDATE", [this]() {
+    //        while (m_currentAppState != Application::State::SHUTDOWN)
+    //            while (m_currentAppStage == Application::Stage::WORKSPACE_ORBITAL)
+    //                m_currentSession->update();
+    //    }
+    //);
+    //
+    //m_sessionThread.detach();
+
 
     update();
 }
@@ -290,6 +307,13 @@ void Engine::updateOrbitalSetup() {
 void Engine::updateOrbitalWorkspace() {
     m_currentSession->update();
 
-    glm::dvec3 floatingOrigin = m_inputManager->getCamera()->getGlobalTransform().position;
+    glm::dvec3 floatingOrigin;
+    Camera *camera = m_inputManager->getCamera();
+    
+    if (camera->inFreeFlyMode())
+        floatingOrigin = camera->getAbsoluteTransform().position;
+    else
+        floatingOrigin = camera->getOrbitedEntityPosition();
+   
     m_renderer->update(floatingOrigin);
 }

@@ -42,6 +42,8 @@
 #include <unordered_set>
 #include <unordered_map>
 
+#include <Core/Data/YAMLKeys.hpp>
+
 #include <Scene/GUI/Appearance.hpp>
 
 #include <Utils/ImGuiUtils.hpp>
@@ -212,6 +214,7 @@ public:
 		{
 		}
 
+		static const LanguageDefinition &YAML();
 		static const LanguageDefinition &CPlusPlus();
 		static const LanguageDefinition &HLSL();
 		static const LanguageDefinition &GLSL();

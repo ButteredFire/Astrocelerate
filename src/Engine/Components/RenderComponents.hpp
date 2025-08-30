@@ -25,4 +25,11 @@ namespace RenderComponent {
         Math::Interval<uint32_t> meshRange;     // The mesh-offset range of THIS mesh (i.e., the index range of its child meshes in the mesh offsets array).
         double visualScale;                     // The mesh's visual size.
     };
+
+
+    struct PointLight {
+        glm::vec3 position;        // The point light's position in RENDER space.
+        glm::vec3 color;           // The point light's [0, 1]-range color.
+        float radiantFlux;         // The point light's physical radiant flux (W)
+    };
 }

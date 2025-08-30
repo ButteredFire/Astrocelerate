@@ -8,6 +8,7 @@
 #include <external/GLM.hpp>
 
 #include <Core/Application/LoggingManager.hpp>
+#include <Core/Data/YAMLKeys.hpp>
 
 #include <Engine/Components/RenderComponents.hpp>
 #include <Engine/Components/PhysicsComponents.hpp>
@@ -45,7 +46,7 @@ namespace YAML {
                 return true;
             }
             catch (const YAML::BadConversion &e) {
-                Log::Print(Log::T_WARNING, __FUNCTION__, "Bad conversion for std::optional: " + e.what());
+                Log::Print(Log::T_WARNING, __FUNCTION__, "Bad conversion for std::optional: " + std::string(e.what()));
                 rhs = std::nullopt;
                 return false;
             }
@@ -65,7 +66,7 @@ namespace YAML {
             node.push_back(rhs.y);
             node.push_back(rhs.z);
             node.SetStyle(EmitterStyle::Flow); // Optional: makes it a compact array [x, y, z]
-            
+
             return node;
         }
 
@@ -126,7 +127,7 @@ namespace YAML {
             node.push_back(rhs.y);
             node.push_back(rhs.z);
             node.SetStyle(EmitterStyle::Flow);
-            
+
             return node;
         }
 
@@ -152,7 +153,32 @@ namespace YAML {
         static Node encode(const CoreComponent::Identifiers &rhs) {
             Node node;
 
-            node["spiceID"] = rhs.spiceID;
+            using enum CoreComponent::Identifiers::EntityType;
+            switch (rhs.entityType) {
+            case STAR:
+                node[YAMLData::Core_Identifiers_EntityType] = "STAR";
+                break;
+            case PLANET:
+                node[YAMLData::Core_Identifiers_EntityType] = "PLANET";
+                break;
+            case MOON:
+                node[YAMLData::Core_Identifiers_EntityType] = "MOON";
+                break;
+            case SPACECRAFT:
+                node[YAMLData::Core_Identifiers_EntityType] = "SPACECRAFT";
+                break;
+            case ASTEROID:
+                node[YAMLData::Core_Identifiers_EntityType] = "ASTEROID";
+                break;
+
+            case UNKNOWN:
+            default:
+                node[YAMLData::Core_Identifiers_EntityType] = "UNKNOWN";
+                break;
+            }
+
+            if (node[YAMLData::Core_Identifiers_SpiceID])
+                node[YAMLData::Core_Identifiers_SpiceID] = rhs.spiceID;
 
             return node;
         }
@@ -160,7 +186,32 @@ namespace YAML {
         static bool decode(const Node &node, CoreComponent::Identifiers &rhs) {
             if (!node.IsMap()) return false;
 
-            rhs.spiceID = node["spiceID"].as<std::string>();
+            std::string entityType = node[YAMLData::Core_Identifiers_EntityType].as<std::string>();
+
+			if (entityType == "STAR") {
+				rhs.entityType = CoreComponent::Identifiers::EntityType::STAR;
+			}
+			else if (entityType == "PLANET") {
+				rhs.entityType = CoreComponent::Identifiers::EntityType::PLANET;
+			}
+			else if (entityType == "MOON") {
+				rhs.entityType = CoreComponent::Identifiers::EntityType::MOON;
+			}
+			else if (entityType == "SPACECRAFT") {
+				rhs.entityType = CoreComponent::Identifiers::EntityType::SPACECRAFT;
+			}
+			else if (entityType == "ASTEROID") {
+				rhs.entityType = CoreComponent::Identifiers::EntityType::ASTEROID;
+			}
+			else {
+                if (entityType != "UNKNOWN")
+                    Log::Print(Log::T_WARNING, __FUNCTION__, "Unknown entity type: " + entityType);
+
+				rhs.entityType = CoreComponent::Identifiers::EntityType::UNKNOWN;
+			}
+
+            if (node[YAMLData::Core_Identifiers_SpiceID])
+                rhs.spiceID = node[YAMLData::Core_Identifiers_SpiceID].as<std::optional<std::string>>();
 
             return true;
         }
@@ -175,9 +226,9 @@ namespace YAML {
         static Node encode(const CoreComponent::Transform &rhs) {
             Node node;
 
-            node["position"] = rhs.position;
-            node["rotation"] = SpaceUtils::QuatToEulerAngles(rhs.rotation);
-            node["scale"] = rhs.scale;
+            node[YAMLData::Core_Transform_Position] = rhs.position;
+            node[YAMLData::Core_Transform_Rotation] = SpaceUtils::QuatToEulerAngles(rhs.rotation);
+            node[YAMLData::Core_Transform_Scale] = rhs.scale;
 
             return node;
         }
@@ -185,47 +236,10 @@ namespace YAML {
         static bool decode(const Node &node, CoreComponent::Transform &rhs) {
             if (!node.IsMap()) return false;
 
-            rhs.position = node["position"].as<glm::dvec3>();
-            rhs.rotation = SpaceUtils::EulerAnglesToQuat(node["rotation"].as<glm::dvec3>());
-            rhs.scale = node["scale"].as<double>();
+            rhs.position = node[YAMLData::Core_Transform_Position].as<glm::dvec3>();
+            rhs.rotation = SpaceUtils::EulerAnglesToQuat(node[YAMLData::Core_Transform_Rotation].as<glm::dvec3>());
+            rhs.scale = node[YAMLData::Core_Transform_Scale].as<double>();
 
-            return true;
-        }
-    };
-}
-
-
-// ----- PhysicsComponent::ReferenceFrame -----
-namespace YAML {
-    template<>
-    struct convert<PhysicsComponent::ReferenceFrame> {
-        static Node encode(const PhysicsComponent::ReferenceFrame &rhs) {
-            Node node;
-
-            node["parentID"] = rhs._parentID_str;
-
-            node["localTransform"]["position"] = rhs.localTransform.position;
-            node["localTransform"]["rotation"] = SpaceUtils::QuatToEulerAngles(rhs.localTransform.rotation);
-
-            node["scale"] = rhs.scale;
-            node["visualScale"] = rhs.visualScale;
-            // if (rhs.visualScaleAffectsChildren) node["visualScaleAffectsChildren"] = rhs.visualScaleAffectsChildren;
-            
-            return node;
-        }
-
-        static bool decode(const Node &node, PhysicsComponent::ReferenceFrame &rhs) {
-            if (!node.IsMap()) return false;
-
-            rhs._parentID_str = node["parentID"].as<std::string>();
-            
-            rhs.localTransform.position = node["localTransform"]["position"].as<glm::dvec3>();
-            rhs.localTransform.rotation = SpaceUtils::EulerAnglesToQuat(node["localTransform"]["rotation"].as<glm::dvec3>());
-            
-            rhs.scale = node["scale"].as<double>();
-            rhs.visualScale = node["visualScale"].as<double>();
-            // if (node["visualScaleAffectsChildren"]) rhs.visualScaleAffectsChildren = node["visualScaleAffectsChildren"].as<bool>();
-            
             return true;
         }
     };
@@ -239,9 +253,9 @@ namespace YAML {
         static Node encode(const PhysicsComponent::RigidBody &rhs) {
             Node node;
 
-            node["velocity"] = rhs.velocity;
-            node["acceleration"] = rhs.acceleration;
-            node["mass"] = rhs.mass;
+            node[YAMLData::Physics_RigidBody_Velocity] = rhs.velocity;
+            node[YAMLData::Physics_RigidBody_Acceleration] = rhs.acceleration;
+            node[YAMLData::Physics_RigidBody_Mass] = rhs.mass;
 
             return node;
         }
@@ -249,9 +263,46 @@ namespace YAML {
         static bool decode(const Node &node, PhysicsComponent::RigidBody &rhs) {
             if (!node.IsMap()) return false;
 
-            rhs.velocity = node["velocity"].as<glm::dvec3>();
-            rhs.acceleration = node["acceleration"].as<glm::dvec3>();
-            rhs.mass = node["mass"].as<double>();
+            rhs.velocity = node[YAMLData::Physics_RigidBody_Velocity].as<glm::dvec3>();
+            rhs.acceleration = node[YAMLData::Physics_RigidBody_Acceleration].as<glm::dvec3>();
+            rhs.mass = node[YAMLData::Physics_RigidBody_Mass].as<double>();
+
+            return true;
+        }
+    };
+}
+
+
+// ----- PhysicsComponent::Propagator -----
+namespace YAML {
+    template<>
+    struct convert<PhysicsComponent::Propagator> {
+        static Node encode(const PhysicsComponent::Propagator &rhs) {
+            Node node;
+
+            using enum PhysicsComponent::Propagator::Type;
+            switch (rhs.propagatorType) {
+            case SGP4:
+                node[YAMLData::Physics_Propagator_PropagatorType] = "SGP4";
+                break;
+            }
+
+            node[YAMLData::Physics_Propagator_TLEPath] = rhs.tlePath;
+
+            return node;
+        }
+
+        static bool decode(const Node &node, PhysicsComponent::Propagator &rhs) {
+            if (!node.IsMap()) return false;
+
+            std::string propagatorType = node[YAMLData::Physics_Propagator_PropagatorType].as<std::string>();
+            if (propagatorType == "SGP4")
+                rhs.propagatorType = PhysicsComponent::Propagator::Type::SGP4;
+            else
+                throw Log::RuntimeException(__FUNCTION__, __LINE__, "Cannot deserialize data for component " + YAMLScene::Physics_Propagator + ": Cannot recognize propagator type " + enquote(propagatorType) + "!");
+
+
+            rhs.tlePath = node[YAMLData::Physics_Propagator_TLEPath].as<std::string>();
 
             return true;
         }
@@ -266,11 +317,11 @@ namespace YAML {
         static Node encode(const PhysicsComponent::ShapeParameters &rhs) {
             Node node;
 
-            node["equatRadius"] = rhs.equatRadius;
-            node["flattening"] = rhs.flattening;
-            node["gravParam"] = rhs.gravParam;
-            node["rotVelocity"] = rhs.rotVelocity;
-            node["j2"] = rhs.j2;
+            node[YAMLData::Physics_ShapeParameters_EquatRadius] = rhs.equatRadius;
+            node[YAMLData::Physics_ShapeParameters_Flattening] = rhs.flattening;
+            node[YAMLData::Physics_ShapeParameters_GravParam] = rhs.gravParam;
+            node[YAMLData::Physics_ShapeParameters_RotVelocity] = rhs.rotVelocity;
+            node[YAMLData::Physics_ShapeParameters_J2] = rhs.j2;
 
             return node;
         }
@@ -278,11 +329,11 @@ namespace YAML {
         static bool decode(const Node &node, PhysicsComponent::ShapeParameters &rhs) {
             if (!node.IsMap()) return false;
 
-            rhs.equatRadius = node["equatRadius"].as<double>();
-            rhs.flattening = node["flattening"].as<double>();
-            rhs.gravParam = node["gravParam"].as<double>();
-            rhs.rotVelocity = node["rotVelocity"].as<glm::dvec3>();
-            rhs.j2 = node["j2"].as<double>();
+            rhs.equatRadius = node[YAMLData::Physics_ShapeParameters_EquatRadius].as<double>();
+            rhs.flattening = node[YAMLData::Physics_ShapeParameters_Flattening].as<double>();
+            rhs.gravParam = node[YAMLData::Physics_ShapeParameters_GravParam].as<double>();
+            rhs.rotVelocity = node[YAMLData::Physics_ShapeParameters_RotVelocity].as<glm::dvec3>();
+            rhs.j2 = node[YAMLData::Physics_ShapeParameters_J2].as<double>();
 
             return true;
         }
@@ -297,7 +348,7 @@ namespace YAML {
         static Node encode(const PhysicsComponent::OrbitingBody &rhs) {
             Node node;
 
-            node["centralMass"] = rhs._centralMass_str;
+            node["CentralMass"] = rhs._centralMass_str; // This key was not in your YAMLData list
 
             return node;
         }
@@ -305,7 +356,7 @@ namespace YAML {
         static bool decode(const Node &node, PhysicsComponent::OrbitingBody &rhs) {
             if (!node.IsMap()) return false;
 
-            rhs._centralMass_str = node["centralMass"].as<std::string>();
+            rhs._centralMass_str = node["CentralMass"].as<std::string>(); // This key was not in your YAMLData list
 
             return true;
         }
@@ -320,8 +371,8 @@ namespace YAML {
         static Node encode(const RenderComponent::MeshRenderable &rhs) {
             Node node;
 
-            node["meshPath"] = rhs.meshPath;
-            node["visualScale"] = rhs.visualScale;
+            node[YAMLData::Render_MeshRenderable_MeshPath] = rhs.meshPath;
+            node[YAMLData::Render_MeshRenderable_VisualScale] = rhs.visualScale;
 
             return node;
         }
@@ -329,8 +380,8 @@ namespace YAML {
         static bool decode(const Node &node, RenderComponent::MeshRenderable &rhs) {
             if (!node.IsMap()) return false;
 
-            rhs.meshPath = node["meshPath"].as<std::string>();
-            rhs.visualScale = node["visualScale"].as<double>();
+            rhs.meshPath = node[YAMLData::Render_MeshRenderable_MeshPath].as<std::string>();
+            rhs.visualScale = node[YAMLData::Render_MeshRenderable_VisualScale].as<double>();
 
             return true;
         }
@@ -362,9 +413,9 @@ namespace YAML {
         static Node encode(const SpacecraftComponent::Spacecraft &rhs) {
             Node node;
 
-            node["dragCoefficient"]             = rhs.dragCoefficient;
-            node["referenceArea"]               = rhs.referenceArea;
-            node["reflectivityCoefficient"]     = rhs.reflectivityCoefficient;
+            node[YAMLData::Spacecraft_Spacecraft_DragCoefficient] = rhs.dragCoefficient;
+            node[YAMLData::Spacecraft_Spacecraft_ReferenceArea] = rhs.referenceArea;
+            node[YAMLData::Spacecraft_Spacecraft_ReflectivityCoefficient] = rhs.reflectivityCoefficient;
 
             return node;
         }
@@ -372,9 +423,9 @@ namespace YAML {
         static bool decode(const Node &node, SpacecraftComponent::Spacecraft &rhs) {
             if (!node.IsMap()) return false;
 
-            rhs.dragCoefficient                 = node["dragCoefficient"].as<double>();
-            rhs.referenceArea                   = node["referenceArea"].as<double>();
-            rhs.reflectivityCoefficient         = node["reflectivityCoefficient"].as<double>();
+            rhs.dragCoefficient = node[YAMLData::Spacecraft_Spacecraft_DragCoefficient].as<double>();
+            rhs.referenceArea = node[YAMLData::Spacecraft_Spacecraft_ReferenceArea].as<double>();
+            rhs.reflectivityCoefficient = node[YAMLData::Spacecraft_Spacecraft_ReflectivityCoefficient].as<double>();
 
             return true;
         }
@@ -390,10 +441,10 @@ namespace YAML {
         static Node encode(const SpacecraftComponent::Thruster &rhs) {
             Node node;
 
-            node["thrustMagnitude"] = rhs.thrustMagnitude;
-            node["specificImpulse"] = rhs.specificImpulse;
-            node["currentFuelMass"] = rhs.currentFuelMass;
-            node["maxFuelMass"]     = rhs.maxFuelMass;
+            node[YAMLData::Spacecraft_Thruster_ThrustMagnitude] = rhs.thrustMagnitude;
+            node[YAMLData::Spacecraft_Thruster_SpecificImpulse] = rhs.specificImpulse;
+            node[YAMLData::Spacecraft_Thruster_CurrentFuelMass] = rhs.currentFuelMass;
+            node[YAMLData::Spacecraft_Thruster_MaxFuelMass] = rhs.maxFuelMass;
 
             return node;
         }
@@ -401,10 +452,10 @@ namespace YAML {
         static bool decode(const Node &node, SpacecraftComponent::Thruster &rhs) {
             if (!node.IsMap()) return false;
 
-            rhs.thrustMagnitude     = node["thrustMagnitude"].as<double>();
-            rhs.specificImpulse     = node["specificImpulse"].as<double>();
-            rhs.currentFuelMass     = node["currentFuelMass"].as<double>();
-            rhs.maxFuelMass         = node["maxFuelMass"].as<double>();
+            rhs.thrustMagnitude = node[YAMLData::Spacecraft_Thruster_ThrustMagnitude].as<double>();
+            rhs.specificImpulse = node[YAMLData::Spacecraft_Thruster_SpecificImpulse].as<double>();
+            rhs.currentFuelMass = node[YAMLData::Spacecraft_Thruster_CurrentFuelMass].as<double>();
+            rhs.maxFuelMass = node[YAMLData::Spacecraft_Thruster_MaxFuelMass].as<double>();
 
             return true;
         }

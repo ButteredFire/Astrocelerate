@@ -41,6 +41,9 @@ void SceneManager::loadSceneFromFile(const std::string &filePath) {
 	Log::Print(Log::T_INFO, __FUNCTION__, "Selected simulation file: " + enquote(m_fileName) + ". Loading scene...");
 
 
+    std::string currentEntity;
+    std::string currentComponent;
+
 	try {
         YAML::Node rootNode = YAML::LoadFile(filePath);
         
@@ -50,12 +53,14 @@ void SceneManager::loadSceneFromFile(const std::string &filePath) {
             .message = "Processing scene metadata..."
         });
 
-        processMetadata(&m_fileConfig, &m_simulationConfig, rootNode);
+        Application::YAMLFileConfig fileConfig;
+        Application::SimulationConfig simulationConfig;
+        processMetadata(&fileConfig, &simulationConfig, rootNode);
 
         m_eventDispatcher->dispatch(ConfigEvent::SimulationFileParsed{
-           .fileConfig = m_fileConfig,
-           .simulationConfig = m_simulationConfig
-        });
+           .fileConfig = fileConfig,
+           .simulationConfig = simulationConfig
+        }, false, true);
 
 
 
@@ -65,7 +70,7 @@ void SceneManager::loadSceneFromFile(const std::string &filePath) {
             .message = "Processing scene..."
         });
 
-        processScene(rootNode);
+        processScene(rootNode, currentEntity, currentComponent);
 
 
 
@@ -101,17 +106,34 @@ void SceneManager::loadSceneFromFile(const std::string &filePath) {
 	}
 
 	catch (const YAML::BadFile &e) {
-		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to read data from simulation file " + enquote(m_fileName) + ": " + e.what());
+        std::string msg = e.what();
+        msg[0] = std::toupper(msg[0]);
+
+		throw Log::RuntimeException(__FUNCTION__, __LINE__, msg);
 
         // Re-throw the original exception to the outer try-catch block (i.e., the Session try-catch block, for it to reset its status)
         throw;
 	}
 	catch (const YAML::ParserException &e) {
-		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to parse data from simulation file " + enquote(m_fileName) + ": " + e.what());
+        std::string msg = e.what();
+        msg[0] = std::toupper(msg[0]);
+
+        std::string entityData;
+        if (currentEntity.length() > 0 && currentComponent.length() > 0)
+            entityData = "(Entity " + enquote(currentEntity) + ", Component " + currentComponent + ")\n";
+
+        throw Log::RuntimeException(__FUNCTION__, __LINE__, entityData + msg);
         throw;
 	}
 	catch (const std::exception &e) {
-		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to load scene from simulation file " + enquote(m_fileName) + ": " + e.what());
+        std::string msg = e.what();
+        msg[0] = std::toupper(msg[0]);
+
+        std::string entityData;
+        if (currentEntity.length() > 0 && currentComponent.length() > 0)
+            entityData = "(Entity " + enquote(currentEntity) + ", Component " + currentComponent + ")\n";
+
+        throw Log::RuntimeException(__FUNCTION__, __LINE__, entityData + msg);
         throw;
 	}
 
@@ -149,8 +171,10 @@ void SceneManager::processMetadata(Application::YAMLFileConfig *fileConfig, Appl
     if (simCfgRoot) {
         // SPICE kernels
         const auto kernelsNode = simCfgRoot[YAMLSimConfig::Kernels];
-        if (!kernelsNode)
-            Log::Print(Log::T_ERROR, __FUNCTION__, "Simulation configuration does not contain SPICE kernel paths!");
+        if (!kernelsNode) {
+            throw Log::RuntimeException(__FUNCTION__, __LINE__, "Simulation configuration does not contain SPICE kernel paths!");
+            throw;
+        }
 
         else {
             const size_t kernelCount = kernelsNode.size();
@@ -164,14 +188,16 @@ void SceneManager::processMetadata(Application::YAMLFileConfig *fileConfig, Appl
 
         // Coordinate system
         const auto coordSysNode = simCfgRoot[YAMLSimConfig::CoordSys];
-        if (!coordSysNode)
-            Log::Print(Log::T_ERROR, __FUNCTION__, "Simulation configuration does not contain information on the coordinate system!");
+        if (!coordSysNode) {
+            throw Log::RuntimeException(__FUNCTION__, __LINE__, "Simulation configuration does not contain information on the coordinate system!");
+            throw;
+        }
 
         else {
             std::string frameStr;
             if (YAMLUtils::TryGetEntryData(&frameStr, YAMLSimConfig::CoordSys_Frame, coordSysNode)) {
-                simConfig->frame = CoordSys::FrameStrToEnumMap.at(frameStr);
-                simConfig->frameType = CoordSys::FrameToTypeMap.at(simConfig->frame);
+                simConfig->frame = CoordSys::FrameYAMLToEnumMap.at(frameStr);
+                simConfig->frameType = CoordSys::FrameProperties.at(simConfig->frame).frameType;
             }
 
             std::string epochStr;
@@ -189,25 +215,32 @@ void SceneManager::processMetadata(Application::YAMLFileConfig *fileConfig, Appl
 
 
     // Create entities
-    Entity coordSystem = m_registry->createEntity(CoordSys::FrameEnumToDisplayStrMap.at(simConfig->frame));
+    Entity coordSystem = m_registry->createEntity(CoordSys::FrameProperties.at(simConfig->frame).displayName);
     m_registry->addComponent(coordSystem.id, PhysicsComponent::CoordinateSystem{
         .simulationConfig = *simConfig
     });
 }
 
 
-void SceneManager::processScene(const YAML::Node &rootNode) {
-
+void SceneManager::processScene(const YAML::Node &rootNode, std::string &currentEntity, std::string &currentComponent) {
+    // Logging & other utilities
 #define logMissingComponent(componentName) Log::Print(Log::T_WARNING, __FUNCTION__, "In simulation file " + m_fileName + ": Essential component " + enquote((componentName)) + " is missing!")
 #define info(entityName, componentType) "Entity " + enquote((entityName)) + ", component " + enquote((componentType)) + ": "
 
+    std::function<void(EntityID)> addPointLight = [this](EntityID entityID) {
+        static constexpr double SOLAR_LUMINOSITY = 3.828e26;
+
+        RenderComponent::PointLight pointLight{};
+        pointLight.color = glm::vec3(1.0f, 0.95f, 0.90f);
+        pointLight.radiantFlux = SOLAR_LUMINOSITY / std::pow(SimulationConsts::SIMULATION_SCALE, 2.3);
+
+        m_registry->addComponent(entityID, pointLight);
+    };
+
+
 
     const auto sceneRoot = rootNode[YAMLScene::ROOT];
-
-    if (!sceneRoot) {
-        throw Log::RuntimeException(__FUNCTION__, __LINE__, "Scene is empty!");
-        throw;
-    }
+    LOG_ASSERT(sceneRoot, "There is nothing to process!");
 
     size_t processedEntities = 0;
     size_t totalEntities = sceneRoot.size();
@@ -216,42 +249,132 @@ void SceneManager::processScene(const YAML::Node &rootNode) {
 
 
 
+    // Components that MUST be present in any entity: (std::string componentName, bool presentInEntity)
+    const std::unordered_set<std::string> coreComponents = {
+        YAMLScene::Core_Identifiers,
+        YAMLScene::Core_Transform,
+        YAMLScene::Physics_RigidBody,
+        YAMLScene::Render_MeshRenderable
+    };
+
+        // Core components that dynamically vary based on entity type
+    using enum CoreComponent::Identifiers::EntityType;
+    const std::unordered_map<CoreComponent::Identifiers::EntityType, std::vector<std::string>> coreEntityComponents = {
+        { PLANET, {YAMLScene::Physics_ShapeParameters} },
+        { SPACECRAFT, {YAMLScene::Spacecraft_Spacecraft} }
+    };
+
+        // Vector to keep track of current components an entity has
+    std::unordered_set<std::string> currentComponents{};
+
+
+
     // ----- PROCESS ALL ENTITIES IN THE SCENE -----
     for (const auto &entityNode : sceneRoot) {
+        // Create entity
         std::string entityName = entityNode[YAMLScene::Entity].as<std::string>();
-        Entity newEntity = m_registry->createEntity(entityName);
 
-        if (entityNameToID.count(entityName) > 0) {
-            Log::Print(Log::T_ERROR, __FUNCTION__, "Found duplicate " + enquote(entityName) + " entities! Please ensure entity names are unique.");
-            throw;
-        }
+            // Remove any special prefixes from the display name
+        std::string originalEntityName = entityName;
+        if (StringUtils::BeginsWith(entityName, YAMLScene::Body_Prefix))
+            entityName = entityName.substr(YAMLScene::Body_Prefix.length());
+        
+            // Register entity
+        Entity newEntity = m_registry->createEntity(entityName);
+        LOG_ASSERT(entityNameToID.count(entityName) == 0, "Found multiple " + enquote(entityName) + " entities! Please ensure entity names are unique.");
 
         entityNameToID[entityName] = newEntity.id;
+        currentEntity = entityName;
 
-        m_registry->addComponent(newEntity.id, TelemetryComponent::RenderTransform{});  // Automatically add to telemetry dashboard (if applicable)
+            // Automatically add to telemetry dashboard (if applicable)
+        m_registry->addComponent(newEntity.id, TelemetryComponent::RenderTransform{});
 
+        
 
+        // Update progress
         processedEntities++;
         float entityProcessingProgress = static_cast<float>(processedEntities) / totalEntities;
+
         m_eventDispatcher->dispatch(UpdateEvent::SceneLoadProgress{
             .progress = 0.1f + (entityProcessingProgress * 0.75f),
-            .message = "[" + std::string(entityName) + "] Parsing components..."
+            .message = "[" + std::string(entityName) + "] Processing components..."
         });
 
 
 
+        // If entity is a special entity, automatically create its components, and proceed to the next entity.
+            // ----- ENTITY IS A BUILT-IN CELESTIAL BODY -----
+        if (StringUtils::BeginsWith(originalEntityName, YAMLScene::Body_Prefix)) {
+            ICelestialBody *celestialBody = Body::GetCelestialBody(originalEntityName);
+
+            CoreComponent::Identifiers identifiers = celestialBody->getIdentifiers();
+
+            CoreComponent::Transform transform{};
+            transform.scale = celestialBody->getEquatRadius();
+
+            PhysicsComponent::RigidBody rigidBody{};
+            rigidBody.mass = celestialBody->getMass();
+
+            PhysicsComponent::ShapeParameters shapeParams{};
+            shapeParams.equatRadius = celestialBody->getEquatRadius();
+            shapeParams.flattening = celestialBody->getFlattening();
+            shapeParams.gravParam = celestialBody->getGravParam();
+            shapeParams.rotVelocity = celestialBody->getRotVelocity();
+            shapeParams.j2 = celestialBody->getJ2();
+
+            RenderComponent::MeshRenderable meshRenderable{};
+            meshRenderable.meshPath = celestialBody->getMeshPath();
+            meshRenderable.meshRange = m_geometryLoader.loadGeometryFromFile(meshRenderable.meshPath);
+            meshRenderable.visualScale = 1.0;
+
+
+            m_registry->addComponent(newEntity.id, identifiers);
+            m_registry->addComponent(newEntity.id, transform);
+            m_registry->addComponent(newEntity.id, rigidBody);
+            m_registry->addComponent(newEntity.id, shapeParams);
+            m_registry->addComponent(newEntity.id, meshRenderable);
+
+
+            // Special case: Entity is a star
+            if (identifiers.entityType == CoreComponent::Identifiers::EntityType::STAR)
+                addPointLight(newEntity.id);
+            
+            continue;
+        }
+
+
+
+        // Otherwise,
         // ----- PROCESS ALL COMPONENTS FOR EACH ENTITY -----
+        CoreComponent::Identifiers::EntityType entityType = UNKNOWN;
+        currentComponents.clear();
+
         for (const auto &componentNode : entityNode[YAMLScene::Entity_Components]) {
             std::string componentType = componentNode[YAMLScene::Entity_Components_Type].as<std::string>();
+
+            if (currentComponents.count(componentType)) {
+                // Duplicate components
+                throw Log::RuntimeException(__FUNCTION__, __LINE__, "Entity " + enquote(entityName) + " has duplicate " + componentType + "components!\nEach entity can have only one component for each component type.");
+                throw;
+            }
+
+            currentComponents.insert(componentType);
+            currentComponent = componentType;
+
 
             // ----- CORE/PHYSICS -----
             if (componentType == YAMLScene::Core_Identifiers) {
                 CoreComponent::Identifiers identifiers{};
 
-                if (!YAMLUtils::GetComponentData(&identifiers, componentNode))
-                    logMissingComponent(componentType);
+                YAMLUtils::GetComponentData(&identifiers, componentNode);
 
+                entityType = identifiers.entityType;
                 m_registry->addComponent(newEntity.id, identifiers);
+
+
+                // SPECIAL CASE: If the entity is a star, add a point light at its center of mass.
+                if (entityType == CoreComponent::Identifiers::EntityType::STAR)
+                    addPointLight(newEntity.id);
             }
 
 
@@ -272,6 +395,31 @@ void SceneManager::processScene(const YAML::Node &rootNode) {
                     logMissingComponent(componentType);
 
                 m_registry->addComponent(newEntity.id, rigidBody);
+            }
+
+
+            else if (componentType == YAMLScene::Physics_Propagator) {
+                PhysicsComponent::Propagator propagator{};
+
+                YAMLUtils::GetComponentData(&propagator, componentNode);
+
+                // Get the last 2 compact lines in the TLE (which I assume to always be the last 2 lines)
+                {
+                    propagator.tlePath = FilePathUtils::JoinPaths(ROOT_DIR, propagator.tlePath);
+                    std::vector<std::string> tleLines = FilePathUtils::GetFileLines(
+                        FilePathUtils::ReadFile(propagator.tlePath)
+                    );
+
+                    if (tleLines.size() < 2) {
+                        throw Log::RuntimeException(__FUNCTION__, __LINE__, "TLE file is invalid or contains too little data!");
+                        throw;
+                    }
+
+                    propagator.tleLine1 = tleLines[tleLines.size() - 2];
+                    propagator.tleLine2 = tleLines[tleLines.size() - 1];
+                }
+
+                m_registry->addComponent(newEntity.id, propagator);
             }
 
 
@@ -313,14 +461,14 @@ void SceneManager::processScene(const YAML::Node &rootNode) {
                     logMissingComponent(componentType);
 
                 const auto &renderableNode = componentNode[YAMLScene::Entity_Components_Type_Data];
-                if (renderableNode["meshPath"]) {
-                    std::string meshPath = renderableNode["meshPath"].as<std::string>();
+                if (renderableNode[YAMLData::Render_MeshRenderable_MeshPath]) {
+                    std::string meshPath = renderableNode[YAMLData::Render_MeshRenderable_MeshPath].as<std::string>();
 
 
-                    m_eventDispatcher->dispatch(UpdateEvent::SceneLoadProgress{
-                        .progress = 0.1f + (entityProcessingProgress * 0.75f),
-                        .message = "[" + std::string(entityName) + "] Loading geometry..."
-                    });
+                    //m_eventDispatcher->dispatch(UpdateEvent::SceneLoadProgress{
+                    //    .progress = 0.1f + (entityProcessingProgress * 0.75f),
+                    //    .message = "[" + std::string(entityName) + "] Loading geometry..."
+                    //});
 
                     std::string fullPath = FilePathUtils::JoinPaths(ROOT_DIR, meshPath);
                     Math::Interval<uint32_t> meshRange = m_geometryLoader.loadGeometryFromFile(fullPath);
@@ -353,5 +501,29 @@ void SceneManager::processScene(const YAML::Node &rootNode) {
                 }
             }
         }
+    
+        
+        // Check if all core components are present
+        std::stringstream stream;
+        size_t missingComponentCount = 0;
+
+        for (const auto &component : coreComponents)
+            if (!currentComponents.count(component)) {
+                stream << "\n-\t" << component;
+                missingComponentCount++;
+            }
+
+        for (const auto &[entity, components] : coreEntityComponents)
+            if (entityType == entity) {
+                for (const auto &component : components)
+                    if (!currentComponents.count(component)) {
+                        stream << "\n-\t" << component;
+                        missingComponentCount++;
+                    }
+
+                break;
+            }
+
+        LOG_ASSERT(missingComponentCount == 0, TO_STR(missingComponentCount) + " core " + PLURAL(missingComponentCount, "component", "components") + " are missing:" + stream.str());
     }
 }

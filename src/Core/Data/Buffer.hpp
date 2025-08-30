@@ -22,11 +22,11 @@ namespace Buffer {
 		alignas(16) glm::vec3 cameraPosition;
 		float _pad0 = 0.0f;
 
-		alignas(16) glm::vec3 lightDirection;
+		alignas(16) glm::vec3 lightPosition;
 		float _pad1 = 0.0f;
 
 		alignas(16) glm::vec3 lightColor;
-		float _pad2 = 0.0f;
+		float lightRadiantFlux;
 	};
 
 

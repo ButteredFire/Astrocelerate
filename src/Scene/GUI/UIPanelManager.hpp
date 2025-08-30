@@ -78,6 +78,9 @@ private:
 	bool m_loadErrorOccurred = false;
 	std::string m_loadErrorMessage = "";
 
+	Application::YAMLFileConfig m_fileConfig{};
+	Application::SimulationConfig m_simulationConfig{};
+
 
 	void bindEvents();
 

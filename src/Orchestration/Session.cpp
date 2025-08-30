@@ -1,11 +1,10 @@
 #include "Session.hpp"
 
 
-Session::Session(VkCoreResourcesManager *coreResources, SceneManager *sceneMgr, PhysicsSystem *physicsSystem, ReferenceFrameSystem *refFrameSystem) :
+Session::Session(VkCoreResourcesManager *coreResources, SceneManager *sceneMgr, PhysicsSystem *physicsSystem) :
 	m_coreResources(coreResources),
 	m_sceneManager(sceneMgr),
-	m_physicsSystem(physicsSystem),
-	m_refFrameSystem(refFrameSystem) {
+	m_physicsSystem(physicsSystem) {
 
 	m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
 	m_registry = ServiceLocator::GetService<Registry>(__FUNCTION__);
@@ -52,7 +51,7 @@ void Session::bindEvents() {
 	);
 
 
-	m_eventDispatcher->subscribe<UpdateEvent::SessionStatus>(selfIndex,
+	m_eventDispatcher->subscribe<UpdateEvent::SessionStatus>(selfIndex, 
 		[this](const UpdateEvent::SessionStatus &event) {
 			using enum UpdateEvent::SessionStatus::Status;
 
@@ -97,11 +96,6 @@ void Session::reset() {
 void Session::update() {
 	if (!m_sessionInitialized)
 		return;
-
-	if (!m_initialPhysicsUpdate) {
-		m_initialPhysicsUpdate = true;
-		m_physicsSystem->update(Time::GetDeltaTime());
-	}
 
 
 	// Update physics
@@ -163,9 +157,6 @@ void Session::loadSceneFromFile(const std::string &filePath) {
 				.loadSuccessful = true,
 				.finalMessage = "Scene initialization complete."
 			});
-
-			// Update physics once in update loop
-			m_initialPhysicsUpdate = false;
 		}
 		catch (const std::exception &e) {
 			// Catch any exceptions during the worker thread's CPU-bound execution.

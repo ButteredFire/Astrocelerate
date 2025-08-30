@@ -48,6 +48,10 @@ void Window::initGLFWBindings(CallbackContext* context) {
 void Window::KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
 	static CallbackContext* context = static_cast<CallbackContext*>(glfwGetWindowUserPointer(window));
     context->inputManager->glfwDeferKeyInput(key, scancode, action, mods);
+
+    if (!glfwGetWindowAttrib(window, GLFW_FOCUSED))
+        // If window is not focused, stop processing input when it's in the background
+        context->inputManager->processInBackground();
 }
 
 

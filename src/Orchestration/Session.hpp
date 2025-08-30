@@ -11,15 +11,13 @@
 
 #include <Engine/PhysicsSystem.hpp>
 
-#include <Simulation/Systems/ReferenceFrameSystem.hpp>
-
 #include <Scene/SceneManager.hpp>
 
 
 
 class Session {
 public:
-	Session(VkCoreResourcesManager *coreResources, SceneManager *sceneMgr, PhysicsSystem *physicsSystem, ReferenceFrameSystem *refFrameSystem);
+	Session(VkCoreResourcesManager *coreResources, SceneManager *sceneMgr, PhysicsSystem *physicsSystem);
 	~Session() = default;
 
 	/* Creates a new session. */
@@ -41,11 +39,8 @@ private:
 	VkCoreResourcesManager *m_coreResources;
 	SceneManager *m_sceneManager;
 	PhysicsSystem *m_physicsSystem;
-	ReferenceFrameSystem *m_refFrameSystem;
-
 
 	bool m_sessionInitialized = false;
-	bool m_initialPhysicsUpdate = false;
 
 
 	void bindEvents();

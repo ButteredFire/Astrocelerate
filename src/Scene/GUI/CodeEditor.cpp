@@ -697,8 +697,6 @@ ImU32 CodeEditor::GetGlyphColor(const Glyph &aGlyph) const
 
 void CodeEditor::HandleKeyboardInputs()
 {
-	// TODO: Handle keyboard inputs
-	/*
 	ImGuiIO &io = ImGui::GetIO();
 	auto shift = io.KeyShift;
 	auto ctrl = io.ConfigMacOSXBehaviors ? io.KeySuper : io.KeyCtrl;
@@ -713,56 +711,63 @@ void CodeEditor::HandleKeyboardInputs()
 		io.WantCaptureKeyboard = true;
 		io.WantTextInput = true;
 
-		if (!IsReadOnly() && ctrl && !shift && !alt && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Z)))
+		if (!IsReadOnly() && ctrl && !shift && !alt && ImGui::IsKeyPressed(ImGuiKey_Z))
 			Undo();
-		else if (!IsReadOnly() && !ctrl && !shift && alt && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Backspace)))
+		else if (!IsReadOnly() && !ctrl && !shift && alt && ImGui::IsKeyPressed(ImGuiKey_Backspace))
 			Undo();
-		else if (!IsReadOnly() && ctrl && !shift && !alt && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Y)))
+		else if (!IsReadOnly() && ctrl && !shift && !alt && ImGui::IsKeyPressed(ImGuiKey_Y))
 			Redo();
-		else if (!ctrl && !alt && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_UpArrow)))
+		else if (!ctrl && !alt && ImGui::IsKeyPressed(ImGuiKey_UpArrow))
 			MoveUp(1, shift);
-		else if (!ctrl && !alt && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_DownArrow)))
+		else if (!ctrl && !alt && ImGui::IsKeyPressed(ImGuiKey_DownArrow))
 			MoveDown(1, shift);
-		else if (!alt && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_LeftArrow)))
+		else if (!alt && ImGui::IsKeyPressed(ImGuiKey_LeftArrow))
 			MoveLeft(1, shift, ctrl);
-		else if (!alt && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_RightArrow)))
+		else if (!alt && ImGui::IsKeyPressed(ImGuiKey_RightArrow))
 			MoveRight(1, shift, ctrl);
-		else if (!alt && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_PageUp)))
+		else if (!alt && ImGui::IsKeyPressed(ImGuiKey_PageUp))
 			MoveUp(GetPageSize() - 4, shift);
-		else if (!alt && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_PageDown)))
+		else if (!alt && ImGui::IsKeyPressed(ImGuiKey_PageDown))
 			MoveDown(GetPageSize() - 4, shift);
-		else if (!alt && ctrl && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Home)))
+		else if (!alt && ctrl && ImGui::IsKeyPressed(ImGuiKey_Home))
 			MoveTop(shift);
-		else if (ctrl && !alt && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_End)))
+		else if (ctrl && !alt && ImGui::IsKeyPressed(ImGuiKey_End))
 			MoveBottom(shift);
-		else if (!ctrl && !alt && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Home)))
+		else if (!ctrl && !alt && ImGui::IsKeyPressed(ImGuiKey_Home))
 			MoveHome(shift);
-		else if (!ctrl && !alt && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_End)))
+		else if (!ctrl && !alt && ImGui::IsKeyPressed(ImGuiKey_End))
 			MoveEnd(shift);
-		else if (!IsReadOnly() && !ctrl && !shift && !alt && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Delete)))
+		else if (!IsReadOnly() && !ctrl && !shift && !alt && ImGui::IsKeyPressed(ImGuiKey_Delete))
 			Delete();
-		else if (!IsReadOnly() && !ctrl && !shift && !alt && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Backspace)))
+		else if (!IsReadOnly() && !ctrl && !shift && !alt && ImGui::IsKeyPressed(ImGuiKey_Backspace))
 			Backspace();
-		else if (!ctrl && !shift && !alt && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Insert)))
+		else if (!ctrl && !shift && !alt && ImGui::IsKeyPressed(ImGuiKey_Insert))
 			mOverwrite ^= true;
-		else if (ctrl && !shift && !alt && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Insert)))
+		else if (ctrl && !shift && !alt && ImGui::IsKeyPressed(ImGuiKey_Insert))
 			Copy();
-		else if (ctrl && !shift && !alt && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_C)))
+		else if (ctrl && !shift && !alt && ImGui::IsKeyPressed(ImGuiKey_C))
 			Copy();
-		else if (!IsReadOnly() && !ctrl && shift && !alt && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Insert)))
+		else if (!IsReadOnly() && !ctrl && shift && !alt && ImGui::IsKeyPressed(ImGuiKey_Insert))
 			Paste();
-		else if (!IsReadOnly() && ctrl && !shift && !alt && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_V)))
+		else if (!IsReadOnly() && ctrl && !shift && !alt && ImGui::IsKeyPressed(ImGuiKey_V))
 			Paste();
-		else if (ctrl && !shift && !alt && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_X)))
+		else if (ctrl && !shift && !alt && ImGui::IsKeyPressed(ImGuiKey_X))
 			Cut();
-		else if (!ctrl && shift && !alt && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Delete)))
+		else if (!ctrl && shift && !alt && ImGui::IsKeyPressed(ImGuiKey_Delete))
 			Cut();
-		else if (ctrl && !shift && !alt && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_A)))
+		else if (ctrl && !shift && !alt && ImGui::IsKeyPressed(ImGuiKey_A))
 			SelectAll();
-		else if (!IsReadOnly() && !ctrl && !shift && !alt && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Enter)))
+		else if (!IsReadOnly() && !ctrl && !shift && !alt && ImGui::IsKeyPressed(ImGuiKey_Enter))
 			EnterCharacter('\n', false);
-		else if (!IsReadOnly() && !ctrl && !alt && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Tab)))
-			EnterCharacter('\t', shift);
+		else if (!IsReadOnly() && !ctrl && !alt && ImGui::IsKeyPressed(ImGuiKey_Tab)) {
+			if (mLanguageDefinition.mName == "YAML") {
+				// YAML does not allow tabs for indentation
+				for (size_t _ = 0; _ < 4; _++)
+					EnterCharacter(' ', shift);
+			}
+			else
+				EnterCharacter('\t', shift);
+		}
 
 		if (!IsReadOnly() && !io.InputQueueCharacters.empty())
 		{
@@ -775,7 +780,6 @@ void CodeEditor::HandleKeyboardInputs()
 			io.InputQueueCharacters.resize(0);
 		}
 	}
-	*/
 }
 
 void CodeEditor::HandleMouseInputs()
@@ -1133,13 +1137,11 @@ void CodeEditor::Render(const char *aTitle, const ImVec2 &aSize, bool aBorder)
 		ImGui::BeginChild(aTitle, aSize, aBorder, ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_AlwaysHorizontalScrollbar | ImGuiWindowFlags_NoMove);
 
 	// TODO: Handle keyboard inputs
-	/*
 	if (mHandleKeyboardInputs)
 	{
 		HandleKeyboardInputs();
-		ImGui::PushAllowKeyboardFocus(true);
+		ImGui::SetKeyboardFocusHere();
 	}
-	*/
 
 	if (mHandleMouseInputs)
 		HandleMouseInputs();
@@ -1147,7 +1149,6 @@ void CodeEditor::Render(const char *aTitle, const ImVec2 &aSize, bool aBorder)
 	ColorizeInternal();
 	Render();
 
-	// TODO: Handle keyboard inputs
 	/*
 	if (mHandleKeyboardInputs)
 		ImGui::PopAllowKeyboardFocus();
@@ -2019,26 +2020,26 @@ const CodeEditor::Palette &CodeEditor::GetDarkPalette()
 
 	const static Palette p = { {
 			ImVec4ToImU32(DarkPalette::TEXT_LIGHT),                 // Default
-			ImVec4ToImU32(DarkPalette::ACCENT_BLUE_DARK),           // Keyword (using accent blue as a placeholder)
-			ImVec4ToImU32(DarkPalette::ACCENT_BLUE_DARK_HOVER),     // Number (using a lighter accent)
-			ImVec4ToImU32(DarkPalette::TEXT_MUTED),                 // String (using muted text)
+			ImVec4ToImU32(DarkPalette::CODE_EDITOR_KEYWORD),        // Keyword
+			ImVec4ToImU32(DarkPalette::CODE_EDITOR_NUMBER),			// Number
+			ImVec4ToImU32(DarkPalette::CODE_EDITOR_STRING),         // String
 			ImVec4ToImU32(DarkPalette::TEXT_MUTED),                 // Char literal (same as string for now)
 			ImVec4ToImU32(DarkPalette::TEXT_LIGHT),                 // Punctuation
 			ImVec4ToImU32(DarkPalette::ACCENT_BLUE_DARK),           // Preprocessor (using accent blue)
-			ImVec4ToImU32(DarkPalette::TEXT_LIGHT),                 // Identifier
+			ImVec4ToImU32(DarkPalette::CODE_EDITOR_IDENTIFIER),     // Identifier
 			ImVec4ToImU32(DarkPalette::ACCENT_BLUE_DARK_ACTIVE),    // Known identifier (using an even lighter accent)
 			ImVec4ToImU32(DarkPalette::ACCENT_BLUE_DARK_HOVER),     // Preproc identifier (using lighter accent)
-			ImVec4ToImU32(DarkPalette::DARK_GRAY_700),              // Comment (single line) - a darker gray
-			ImVec4ToImU32(DarkPalette::DARK_GRAY_700),              // Comment (multi line) - same as single line
-			ImVec4ToImU32(DarkPalette::DARK_GRAY_200),              // Background
+			ImVec4ToImU32(DarkPalette::DARK_GRAY_800),              // Comment (single line) - a darker gray
+			ImVec4ToImU32(DarkPalette::DARK_GRAY_800),              // Comment (multi line) - same as single line
+			ImVec4ToImU32(DarkPalette::DARK_GRAY_300),              // Background
 			ImVec4ToImU32(DarkPalette::TEXT_LIGHT),                 // Cursor
 			ImVec4ToImU32(DarkPalette::ACCENT_BLUE_DARK_ACTIVE),    // Selection (using an accent blue with some transparency)
-			ImVec4ToImU32(ImVec4(1.0f, 0.0f, 0.0f, 0.5f)),          // ErrorMarker (Red with 50% alpha)
-			ImVec4ToImU32(ImVec4(1.0f, 0.5f, 0.0f, 0.25f)),         // Breakpoint (Orange with 25% alpha)
-			ImVec4ToImU32(DarkPalette::DARK_GRAY_600),              // Line number
+			ImVec4ToImU32(DarkPalette::CODE_EDITOR_ERROR_MARKER),   // ErrorMarker (Red with 50% alpha)
+			ImVec4ToImU32(DarkPalette::CODE_EDITOR_BREAKPOINT),		// Breakpoint (Orange with 25% alpha)
+			ImVec4ToImU32(DarkPalette::DARK_GRAY_700),              // Line number
 			ImVec4ToImU32(DarkPalette::DARK_GRAY_400),              // Current line fill (using a slightly lighter gray with some transparency)
-			ImVec4ToImU32(DarkPalette::DARK_GRAY_300),              // Current line fill (inactive)
-			ImVec4ToImU32(DarkPalette::DARK_GRAY_700),              // Current line edge
+			ImVec4ToImU32(DarkPalette::DARK_GRAY_500),              // Current line fill (inactive)
+			ImVec4ToImU32(DarkPalette::DARK_GRAY_800),              // Current line edge
 	} };
 	return p;
 }
@@ -2050,13 +2051,13 @@ const CodeEditor::Palette &CodeEditor::GetLightPalette()
 
 	const static Palette p = { {
 		ImVec4ToImU32(LightPalette::TEXT_DARK),                 // Default (None)
-		ImVec4ToImU32(LightPalette::ACCENT_BLUE_LIGHT),         // Keyword
-		ImVec4ToImU32(LightPalette::ACCENT_BLUE_LIGHT_HOVER),   // Number
-		ImVec4ToImU32(LightPalette::TEXT_MUTED_LIGHT),          // String
+		ImVec4ToImU32(LightPalette::CODE_EDITOR_KEYWORD),       // Keyword
+		ImVec4ToImU32(LightPalette::CODE_EDITOR_NUMBER),		// Number
+		ImVec4ToImU32(LightPalette::CODE_EDITOR_STRING),        // String
 		ImVec4ToImU32(LightPalette::TEXT_MUTED_LIGHT),          // Char literal (same as string for now)
 		ImVec4ToImU32(LightPalette::TEXT_DARK),                 // Punctuation
 		ImVec4ToImU32(LightPalette::ACCENT_BLUE_LIGHT),         // Preprocessor
-		ImVec4ToImU32(LightPalette::TEXT_DARK),                 // Identifier
+		ImVec4ToImU32(LightPalette::CODE_EDITOR_IDENTIFIER),    // Identifier
 		ImVec4ToImU32(LightPalette::ACCENT_BLUE_LIGHT_ACTIVE),  // Known identifier
 		ImVec4ToImU32(LightPalette::ACCENT_BLUE_LIGHT_HOVER),   // Preproc identifier
 		ImVec4ToImU32(LightPalette::LIGHT_GRAY_800),            // Comment (single line) - a darker gray
@@ -2064,8 +2065,8 @@ const CodeEditor::Palette &CodeEditor::GetLightPalette()
 		ImVec4ToImU32(LightPalette::LIGHT_GRAY_300),            // Background
 		ImVec4ToImU32(LightPalette::TEXT_DARK),                 // Cursor
 		ImVec4ToImU32(LightPalette::ACCENT_BLUE_LIGHT_ACTIVE),  // Selection (using an accent blue with some transparency)
-		ImVec4ToImU32(ImVec4(1.0f, 0.0f, 0.0f, 0.627f)),        // ErrorMarker (Red with 62.7% alpha, A0 is 160/255)
-		ImVec4ToImU32(ImVec4(1.0f, 0.5f, 0.0f, 0.5f)),          // Breakpoint (Orange with 50% alpha, 80 is 128/255)
+		ImVec4ToImU32(LightPalette::CODE_EDITOR_ERROR_MARKER),  // ErrorMarker (Red with 62.7% alpha, A0 is 160/255)
+		ImVec4ToImU32(LightPalette::CODE_EDITOR_BREAKPOINT),    // Breakpoint (Orange with 50% alpha, 80 is 128/255)
 		ImVec4ToImU32(LightPalette::LIGHT_GRAY_700),            // Line number
 		ImVec4ToImU32(LightPalette::LIGHT_GRAY_400),            // Current line fill (using a slightly darker gray with some transparency)
 		ImVec4ToImU32(LightPalette::LIGHT_GRAY_500),            // Current line fill (inactive)
@@ -2749,6 +2750,125 @@ static bool TokenizeCStylePunctuation(const char *in_begin, const char *in_end, 
 
 	return false;
 }
+
+
+const CodeEditor::LanguageDefinition &CodeEditor::LanguageDefinition::YAML()
+{
+	static bool inited = false;
+	static LanguageDefinition langDef;
+	if (!inited)
+	{
+		static const std::string keywords[] = {
+			YAMLFileConfig::ROOT,
+			YAMLFileConfig::Version,
+			YAMLFileConfig::Description,
+			
+			YAMLSimConfig::ROOT,
+			YAMLSimConfig::Kernels,
+			YAMLSimConfig::Kernel_Path,
+			YAMLSimConfig::CoordSys,
+			YAMLSimConfig::CoordSys_Frame,
+			YAMLSimConfig::CoordSys_Epoch,
+			YAMLSimConfig::CoordSys_EpochFormat,
+			
+			YAMLScene::ROOT,
+			YAMLScene::Entity,
+			YAMLScene::Entity_Components,
+			YAMLScene::Entity_Components_Type,
+			YAMLScene::Entity_Components_Type_Data,
+		};
+		for (auto &k : keywords)
+			langDef.mKeywords.insert(k);
+
+
+		static const std::string identifiers[] = {
+			YAMLScene::Core_Identifiers,
+			YAMLScene::Core_Transform,
+			YAMLScene::Physics_RigidBody,
+			YAMLScene::Physics_ShapeParameters,
+			YAMLScene::Spacecraft_Spacecraft,
+			YAMLScene::Spacecraft_Thruster,
+			YAMLScene::Render_MeshRenderable,
+
+
+			YAMLData::Core_Identifiers_EntityType,
+			YAMLData::Core_Identifiers_SpiceID,
+
+			YAMLData::Core_Transform_Position,
+			YAMLData::Core_Transform_Rotation,
+			YAMLData::Core_Transform_Scale,
+
+			YAMLData::Physics_RigidBody_Velocity,
+			YAMLData::Physics_RigidBody_Acceleration,
+			YAMLData::Physics_RigidBody_Mass,
+
+			YAMLData::Physics_ShapeParameters_EquatRadius,
+			YAMLData::Physics_ShapeParameters_Flattening,
+			YAMLData::Physics_ShapeParameters_GravParam,
+			YAMLData::Physics_ShapeParameters_RotVelocity,
+			YAMLData::Physics_ShapeParameters_J2,
+
+			YAMLData::Spacecraft_Spacecraft_DragCoefficient,
+			YAMLData::Spacecraft_Spacecraft_ReferenceArea,
+			YAMLData::Spacecraft_Spacecraft_ReflectivityCoefficient,
+
+			YAMLData::Spacecraft_Thruster_ThrustMagnitude,
+			YAMLData::Spacecraft_Thruster_SpecificImpulse,
+			YAMLData::Spacecraft_Thruster_CurrentFuelMass,
+			YAMLData::Spacecraft_Thruster_MaxFuelMass,
+
+			YAMLData::Render_MeshRenderable_MeshPath,
+			YAMLData::Render_MeshRenderable_VisualScale
+		};
+		for (auto &k : identifiers)
+		{
+			Identifier id;
+			id.mDeclaration = "Built-in function";
+			langDef.mIdentifiers.insert(std::make_pair(k, id));
+		}
+
+
+		langDef.mTokenize = [](const char *in_begin, const char *in_end, const char *&out_begin, const char *&out_end, PaletteIndex &paletteIndex) -> bool
+			{
+				paletteIndex = PaletteIndex::Max;
+
+				while (in_begin < in_end && isascii(*in_begin) && isblank(*in_begin))
+					in_begin++;
+
+				if (in_begin == in_end)
+				{
+					out_begin = in_end;
+					out_end = in_end;
+					paletteIndex = PaletteIndex::Default;
+				}
+				else if (TokenizeCStyleString(in_begin, in_end, out_begin, out_end))
+					paletteIndex = PaletteIndex::String;
+				else if (TokenizeCStyleCharacterLiteral(in_begin, in_end, out_begin, out_end))
+					paletteIndex = PaletteIndex::CharLiteral;
+				else if (TokenizeCStyleIdentifier(in_begin, in_end, out_begin, out_end))
+					paletteIndex = PaletteIndex::Identifier;
+				else if (TokenizeCStyleNumber(in_begin, in_end, out_begin, out_end))
+					paletteIndex = PaletteIndex::Number;
+				else if (TokenizeCStylePunctuation(in_begin, in_end, out_begin, out_end))
+					paletteIndex = PaletteIndex::Punctuation;
+
+				return paletteIndex != PaletteIndex::Max;
+			};
+
+		langDef.mCommentStart = "/*";
+		langDef.mCommentEnd = "*/";
+		langDef.mSingleLineComment = "#";
+
+		langDef.mCaseSensitive = true;
+		langDef.mAutoIndentation = true;
+
+		langDef.mName = "YAML";
+
+		inited = true;
+	}
+	return langDef;
+}
+
 
 const CodeEditor::LanguageDefinition &CodeEditor::LanguageDefinition::CPlusPlus()
 {

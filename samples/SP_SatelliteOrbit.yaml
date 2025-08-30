@@ -1,113 +1,55 @@
 FileConfig:
-  Version: 0
-  Description: "N-body simulation of satellite in low-Earth orbit (J2000 ECI)"
-
+    Version: 0
+    Description: "N-body simulation of satellite in low-Earth orbit (J2000 ECI)"
 
 SimulationConfig:
-  Kernels:
-    - Path: "kernels/naif0012.tls"
-    - Path: "kernels/de440.bsp"
-    - Path: "kernels/pck00010.tpc"
-
-  CoordinateSystem:
-    Frame: ECI
-    Epoch: J2000
-    EpochFormat: "2025-08-12 00:00:00 UTC"
-
+    Kernels:
+        - Path: "kernels/naif0012.tls"  # Time kernel
+        - Path: "kernels/pck00010.tpc"  # Planetary orientation kernel
+        - Path: "kernels/de442.bsp"   # Planetary and lunar ephemeris
+    CoordinateSystem:
+        Frame: ECI
+        Epoch: J2000
+        EpochFormat: "2000-01-01 00:00:00 UTC"
 
 Scene:
-  - Entity: Earth
-    Components:
-      - Type: Core::Identifiers
-        Data:
-          spiceID: "EARTH"
-
-      - Type: Core::Transform
-        Data:
-          position: [0.0, 0.0, 0.0]
-          rotation: [0.0, 0.0, 0.0]
-          scale: 6378137.0
-
-      - Type: Physics::RigidBody
-        Data:
-          velocity: [0.0, 0.0, 0.0]
-          acceleration: [0.0, 0.0, 0.0]
-          mass: 5.972e+24
-
-      - Type: Physics::ShapeParameters
-        Data:
-          equatRadius: 6378137.0
-          flattening: 0.0033528197
-          gravParam: 3.986004418e+14
-          rotVelocity: [0.0, 0.0, 7.2921159e-5]
-          j2: 0.00108263
-
-      - Type: Render::MeshRenderable
-        Data:
-          meshPath: "assets/Models/CelestialBodies/Earth/Earth.gltf"
-          visualScale: 1.0
+    - Entity: Body::Sun
+    - Entity: Body::Earth
+    - Entity: Body::Moon
 
 
-  - Entity: Moon
-    Components:
-      - Type: Core::Identifiers
-        Data:
-          spiceID: "MOON"
+    - Entity: "Chandra X-ray Observatory"
+      Components:
+        - Type: Core::Identifiers
+          Data:
+              EntityType: SPACECRAFT
 
-      - Type: Core::Transform
-        Data:
-          position: [0.0, 0.0, 0.0]
-          rotation: [0.0, 0.0, 0.0]
-          scale: 1.74e6
+        - Type: Core::Transform  # Since Chandra has no SPICE ID, we must manually define its transform within the context of its coordinate system.
+          Data:
+              Position: [-6378000.0, 2000000.0, 0.0]
+              Rotation: [0.0, 0.0, 90.0]
+              Scale: 7.0
 
-      - Type: Physics::RigidBody
-        Data:
-          velocity: [0.0, 0.0, 0.0]
-          acceleration: [0.0, 0.0, 0.0]
-          mass: 7.34767309e22
+        - Type: Physics::RigidBody
+          Data:
+              Velocity: [2310.2, 7367.6, 0.0]
+              Acceleration: [0.0, 0.0, 0.0]
+              Mass: 20.0
 
-      - Type: Physics::ShapeParameters
-        Data:
-          equatRadius: 1378.1e3
-          flattening: 0.0012
-          gravParam: 4.902800118e12
-          rotVelocity: [0.0, 0.0, 2.6654e-6]
-          j2: 202.7e-6
+        - Type: Spacecraft::Spacecraft
+          Data:
+              DragCoefficient: 2.2
+              ReferenceArea: 20.0
+              ReflectivityCoefficient: 1.0
 
-      - Type: Render::MeshRenderable
-        Data:
-          meshPath: "assets/Models/CelestialBodies/Moon/Moon.gltf"
-          visualScale: 1.0
+        - Type: Spacecraft::Thruster
+          Data:
+              ThrustMagnitude: 0.5
+              SpecificImpulse: 200.0
+              CurrentFuelMass: 1070.0
+              MaxFuelMass: 1070.0
 
-
-  - Entity: Chandra X-ray Observatory
-    Components:
-      - Type: Core::Transform
-        Data:
-          position: [-6378000.0, 2000000.0, 0.0]
-          rotation: [0.0, 0.0, -90.0]
-          scale: 7.0
-
-      - Type: Physics::RigidBody
-        Data:
-          velocity: [2310.2, 7367.6, 0.0]
-          acceleration: [0.0, 0.0, 0.0]
-          mass: 20.0
-
-      - Type: Spacecraft::Spacecraft
-        Data:
-          dragCoefficient: 2.2
-          referenceArea: 20.0
-          reflectivityCoefficient: 1.0
-
-      - Type: Spacecraft::Thruster
-        Data:
-          thrustMagnitude: 0.5
-          specificImpulse: 200.0
-          currentFuelMass: 1070.0
-          maxFuelMass: 1070.0
-
-      - Type: Render::MeshRenderable
-        Data:
-          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf"
-          visualScale: 0.1
+        - Type: Render::MeshRenderable
+          Data:
+              MeshPath: "assets/Models/Satellites/Chandra/Chandra.gltf"
+              VisualScale: 1.0

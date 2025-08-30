@@ -166,8 +166,9 @@ private:
 
     /* Updates the global uniform buffer.
         @param currentImage: The index of the current frame.
+        @param renderOrigin: The render anchor frame for relative position computations.
     */
-    void updateGlobalUBO(uint32_t currentImage);
+    void updateGlobalUBO(uint32_t currentImage, const glm::dvec3 &renderOrigin);
 
 
     /* Updates per-object uniform buffers.

@@ -45,7 +45,8 @@ int main() {
 
         engine.run();
     }
-    catch (const Log::RuntimeException& e) {
+
+    catch (const Log::RuntimeException &e) {
         Log::Print(e.severity(), e.origin(), e.what());
         
         processCleanupStack();
@@ -67,6 +68,9 @@ int main() {
         Log::EndLogging();
         return EXIT_FAILURE;
     }
+
+    catch (const Log::EngineExitException &e) {}
+
 #ifdef NDEBUG
     catch (...) {
         boxer::show("Caught an unknown exception!\nThis should not happen. Please raise an issue at https://github.com/ButteredFire/Astrocelerate!", "Unknown Exception", boxer::Style::Error, boxer::Buttons::Quit);

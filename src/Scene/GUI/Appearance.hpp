@@ -44,6 +44,14 @@ namespace ImGuiTheme {
         inline const ImVec4 ACCENT_BLUE_DARK_ACTIVE     = ColorUtils::sRGBToLinear(0.30f, 0.45f, 0.60f, 1.0f); // Even lighter for active
 
         // Text Colors
+        inline const ImVec4 CODE_EDITOR_KEYWORD     = ColorUtils::sRGBToLinear(0.208f, 0.945f, 1.0f, 1.0f);     // Aqua
+        inline const ImVec4 CODE_EDITOR_NUMBER      = ColorUtils::sRGBToLinear(0.835f, 0.208f, 1.0f, 1.0f);     // Purple
+        inline const ImVec4 CODE_EDITOR_STRING      = ColorUtils::sRGBToLinear(1.0f, 1.0f, 0.0f, 1.0f);         // Yellow
+        inline const ImVec4 CODE_EDITOR_IDENTIFIER  = ColorUtils::sRGBToLinear(0.078f, 0.78f, 0.078f, 1.0f);    // Dark green
+        inline const ImVec4 CODE_EDITOR_BREAKPOINT  = ColorUtils::sRGBToLinear(1.0f, 0.5f, 0.0f, 0.25f);        // Red, 50% alpha
+        inline const ImVec4 CODE_EDITOR_ERROR_MARKER = ColorUtils::sRGBToLinear(1.0f, 0.0f, 0.0f, 0.5f);        // Orange, 25% alpha
+
+
         inline const ImVec4 TEXT_LIGHT = ColorUtils::sRGBToLinear(0.90f, 0.90f, 0.90f, 1.00f);
         inline const ImVec4 TEXT_MUTED = ColorUtils::sRGBToLinear(0.60f, 0.60f, 0.60f, 1.00f);
     }
@@ -66,6 +74,13 @@ namespace ImGuiTheme {
         inline const ImVec4 ACCENT_BLUE_LIGHT_ACTIVE    = ColorUtils::sRGBToLinear(0.40f, 0.60f, 0.80f, 1.0f); // Even lighter for active
 
         // Text Colors
+        inline const ImVec4 CODE_EDITOR_KEYWORD     = ColorUtils::sRGBToLinear(0.208f, 0.945f, 1.0f, 1.0f);     // Aqua
+        inline const ImVec4 CODE_EDITOR_NUMBER      = ColorUtils::sRGBToLinear(0.835f, 0.208f, 1.0f, 1.0f);     // Purple
+        inline const ImVec4 CODE_EDITOR_STRING      = ColorUtils::sRGBToLinear(1.0f, 1.0f, 0.0f, 1.0f);         // Yellow
+        inline const ImVec4 CODE_EDITOR_IDENTIFIER  = ColorUtils::sRGBToLinear(0.078f, 0.78f, 0.078f, 1.0f);    // Dark green
+        inline const ImVec4 CODE_EDITOR_BREAKPOINT  = ColorUtils::sRGBToLinear(1.0f, 0.5f, 0.0f, 0.25f);        // Red, 50% alpha
+        inline const ImVec4 CODE_EDITOR_ERROR_MARKER = ColorUtils::sRGBToLinear(1.0f, 0.0f, 0.0f, 0.5f);        // Orange, 25% alpha
+        
         inline const ImVec4 TEXT_DARK           = ColorUtils::sRGBToLinear(0.10f, 0.10f, 0.10f, 1.00f);
         inline const ImVec4 TEXT_MUTED_LIGHT    = ColorUtils::sRGBToLinear(0.50f, 0.50f, 0.50f, 1.00f);
     }

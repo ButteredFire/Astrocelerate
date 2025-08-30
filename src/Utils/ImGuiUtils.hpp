@@ -11,7 +11,7 @@
 #include <Core/Application/LoggingManager.hpp>
 #include <Core/Data/Contexts/AppContext.hpp>
 
-#include <Utils/SystemUtils.hpp>
+#include <Utils/StringUtils.hpp>
 
 
 // Arithmetic operators for ImVec2
@@ -277,7 +277,7 @@ namespace ImGuiUtils {
 
 		// Generates a random throwaway string to be used as the ID
 		// TODO: Implement a more robust ID generation method. This is currently very hacky, and there are still risks of ID conflicts, however small statistically.
-		std::string fieldID = SystemUtils::GenerateRandomString(100) + componentFormat;
+		std::string fieldID = StringUtils::RandomString(100) + componentFormat;
 		if (mainTextIsNotEmpty) fieldID += fmt;
 
 

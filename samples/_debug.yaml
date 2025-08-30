@@ -6,7 +6,7 @@ FileConfig:
 SimulationConfig:
   Kernels:
     - Path: "kernels/naif0012.tls"
-    - Path: "kernels/de440.bsp"
+    - Path: "kernels/de442.bsp"
     - Path: "kernels/pck00010.tpc"
 
   CoordinateSystem:
@@ -16,66 +16,72 @@ SimulationConfig:
 
 
 Scene:
-  - Entity: Earth
+  - Entity: "Earth" # _debug overrides the default Body::Earth entity definition to define a custom, more lightweight mesh
     Components:
       - Type: Core::Identifiers
         Data:
+          EntityType: PLANET
           spiceID: "EARTH"
 
       - Type: Core::Transform
         Data:
-          position: [0.0, 0.0, 0.0]
-          rotation: [0.0, 0.0, 0.0]
-          scale: 6378137.0
+          Position: [0.0, 0.0, 0.0]
+          Rotation: [0.0, 0.0, 0.0]
+          Scale: 6378137.0
 
       - Type: Physics::RigidBody
         Data:
-          velocity: [0.0, 0.0, 0.0]
-          acceleration: [0.0, 0.0, 0.0]
-          mass: 5.972e+24
+          Velocity: [0.0, 0.0, 0.0]
+          Acceleration: [0.0, 0.0, 0.0]
+          Mass: 5.972e+24
 
       - Type: Physics::ShapeParameters
         Data:
-          equatRadius: 6378137.0
-          flattening: 0.0033528197
-          gravParam: 3.986004418e+14
-          rotVelocity: [0.0, 0.0, 7.2921159e-5]
-          j2: 0.00108263
+          EquatRadius: 6378137.0
+          Flattening: 0.0033528197
+          GravParam: 3.986004418e+14
+          RotVelocity: [0.0, 0.0, 7.2921159e-5]
+          J2: 0.00108263
 
       - Type: Render::MeshRenderable
         Data:
-          meshPath: "assets/Models/TestModels/Sphere/Sphere.gltf"
-          visualScale: 1.0
+          MeshPath: "assets/Models/TestModels/Sphere/Sphere.gltf"
+          VisualScale: 1.0
 
 
-  - Entity: Chandra X-ray Observatory
+  - Entity: "Chandra X-ray Observatory"
+    Components:
+      - Type: Core::Identifiers
+        Data:
+          EntityType: SPACECRAFT
+
     Components:
       - Type: Core::Transform
         Data:
-          position: [-6378000.0, 2000000.0, 0.0]
-          rotation: [0.0, 0.0, -90.0]
-          scale: 7.0
+          Position: [-6378000.0, 2000000.0, 0.0]
+          Rotation: [0.0, 0.0, -90.0]
+          Scale: 7.0
 
       - Type: Physics::RigidBody
         Data:
-          velocity: [2310.2, 7367.6, 0.0]
-          acceleration: [0.0, 0.0, 0.0]
-          mass: 20.0
+          Velocity: [2310.2, 7367.6, 0.0]
+          Acceleration: [0.0, 0.0, 0.0]
+          Mass: 20.0
 
       - Type: Spacecraft::Spacecraft
         Data:
-          dragCoefficient: 2.2
-          referenceArea: 20.0
-          reflectivityCoefficient: 1.0
+          DragCoefficient: 2.2
+          ReferenceArea: 20.0
+          ReflectivityCoefficient: 1.0
 
       - Type: Spacecraft::Thruster
         Data:
-          thrustMagnitude: 0.5
-          specificImpulse: 200.0
-          currentFuelMass: 1070.0
-          maxFuelMass: 1070.0
+          ThrustMagnitude: 0.5
+          SpecificImpulse: 200.0
+          CurrentFuelMass: 1070.0
+          MaxFuelMass: 1070.0
 
       - Type: Render::MeshRenderable
         Data:
-          meshPath: "assets/Models/Satellites/Chandra/Chandra.gltf"
-          visualScale: 0.5
+          MeshPath: "assets/Models/Satellites/Chandra/Chandra.gltf"
+          VisualScale: 0.5

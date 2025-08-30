@@ -6,7 +6,7 @@ FileConfig:
 SimulationConfig:
   Kernels:
     - Path: "kernels/naif0012.tls"
-    - Path: "kernels/de440.bsp"
+    - Path: "kernels/de442.bsp"
     - Path: "kernels/pck00010.tpc"
 
   CoordinateSystem:
@@ -16,10 +16,11 @@ SimulationConfig:
 
 
 Scene:
-  - Entity: Earth
+  - Entity: "Earth"  # _debug overrides the default Body::Earth entity definition to define a custom, more lightweight mesh
     Components:
       - Type: Core::Identifiers
         Data:
+          EntityType: PLANET
           spiceID: "EARTH"
 
       - Type: Core::Transform

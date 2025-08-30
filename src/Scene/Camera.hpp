@@ -35,8 +35,16 @@ public:
 	glm::mat4 getRenderSpaceViewMatrix() const;
 
 
-	/* Gets the camera's transform in global simulation space. */
-	CoreComponent::Transform getGlobalTransform() const;
+	/* Gets the camera's relative transform in simulation space.
+		This transform is relative, meaning that it is relative to a floating origin.
+	*/
+	CoreComponent::Transform getRelativeTransform() const;
+
+
+	/* Gets the camera's absolute transform in simulation space.
+		This transform is absolute, meaning that the data represents the camera's true position in simulation space, without additional manipulations (e.g., subtraction by a floating origin).
+	*/
+	CoreComponent::Transform getAbsoluteTransform() const;
 
 
 	/* Fixes the camera to an entity (mesh) in the scene (or its own entity ID to enable free-fly mode).
@@ -47,8 +55,18 @@ public:
 	/* Detaches the camera from any entity and revert back to free-fly mode. */
 	void detachFromEntity();
 
+	/* Is the camera in free-fly mode (i.e., not orbiting an entity)? */
+	inline bool inFreeFlyMode() const { return m_inFreeFlyMode; }
+
 	/* Gets the camera entity. */
-	Entity getEntity() const { return m_camEntity; }
+	inline Entity getEntity() const { return m_camEntity; }
+
+	/* Gets the orbited entity's position. */
+	inline glm::dvec3 getOrbitedEntityPosition() const { return m_orbitedEntityPosition; }
+
+
+	/* Should the camera revert back to its original free-fly position (True), or not (False)? */
+	inline void revertPositionOnFreeFlySwitch(bool enabled) { m_revertPosition = enabled; }
 
 
 	float movementSpeed = 1e6f;				// Movement speed in simulation space (m/s)
@@ -82,14 +100,21 @@ private:
 	EntityID m_attachedEntityID{};
 
 	bool m_inFreeFlyMode;
-	glm::vec3 m_freeFlyPosition;								// The camera's saved position in free-fly mode (to switch back to later)
+	bool m_revertPosition;				// Should the camera revert back to its saved free-fly position?		
+	glm::vec3 m_freeFlyPosition;		// The camera's saved position in free-fly mode (to switch back to later)
 	glm::quat m_freeFlyOrientation;
 
 	float m_orbitRadius;	// Distance between camera and entity (in render space)
+
 	std::unordered_map<EntityID, std::optional<glm::dvec3>> m_orbitedEntityLastPosition;		// The last positions of the entities being orbited (to perform linear interpolation)
+	glm::dvec3 m_orbitedEntityPosition{};	// The position of the entity currently being orbited
 
 
 	void reset();
+
+
+	/* Resets the camera quaternion's roll. */
+	void resetCameraQuatRoll(const glm::vec3 &forwardVector);
 
 
 	/* Updates the camera per frame.

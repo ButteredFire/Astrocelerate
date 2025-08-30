@@ -8,8 +8,9 @@ layout(set = 0, binding = 0) uniform GlobalUBO {
     mat4 view;
     mat4 projection;
     vec3 cameraPosition;
-    vec3 lightDirection;
+    vec3 lightPosition;
     vec3 lightColor;
+    float radiantFlux;
 } globalUBO;
 
 // Samplers for PBR Textures
@@ -156,17 +157,28 @@ vec3 computePBRFragment() {
     }
 
 
+    // If the fragment is part of a light source like the Sun (i.e., if it has emissive properties), bypass PBR lighting calculations.
+    if (material.emissiveMapIndex != INVALID_INDEX) {
+        return emissive;
+    }
+
+
 
     // ----- PBR Lighting Calculation -----
     vec3 outgoingRadiance = vec3(0.0);
 
-    vec3 fragToLightDirection = normalize(-globalUBO.lightDirection);   // Light direction from fragment to light
-    vec3 halfwayVec = normalize(viewVec + fragToLightDirection);  // Halfway vector between view and light
+    vec3 fragToLight = globalUBO.lightPosition - fragPosition;     // Vector from fragment to light source
+    vec3 fragToLightDirection = normalize(fragToLight);                 // Light direction from fragment to light source
+    vec3 halfwayVec = normalize(viewVec + fragToLightDirection);        // Halfway vector between view and light
 
         // Compute light properties
-            // For simplicity, the light's color will be used directly as radiance for now
-    float lightIntensity = 5.0;
-    vec3 radiance = globalUBO.lightColor * lightIntensity;
+            // Irradiance (radiant flux density): F = radiantFlux / sphereSurfaceArea
+            // NOTE: The formula for irradiance already includes attenuation (1.0 / distance^2)
+    float distanceToLight = length(fragToLight);
+    float irradiance = globalUBO.radiantFlux / (4 * PI * (distanceToLight * distanceToLight));
+
+            // Radiance
+    vec3 radiance = globalUBO.lightColor * irradiance;
 
 
     float NDF = DistributionGGX(normal, halfwayVec, roughness);
@@ -188,13 +200,16 @@ vec3 computePBRFragment() {
 
         // Apply light contribution
     float NdotL = max(dot(normal, fragToLightDirection), 0.0);
-    outgoingRadiance += (kD * albedo / PI + specular) * radiance * NdotL; // Cook-Torrance BRDF + Diffuse
+            // Soften the terminator (i.e., the transition from a body's illuminated side to its dark side)
+    float softNdotL = pow(NdotL, 3);
+
+    outgoingRadiance += (kD * albedo / PI + specular) * radiance * softNdotL; // Cook-Torrance BRDF + Diffuse
 
 
     // --- Ambient Lighting (Simple Approximation) ---
     // TODO: Implement a fully functioning ambient lighting model
     // NOTE: In a full PBR setup, this would be IBL (irradiance map + prefiltered env map)
-    vec3 ambientColor = vec3(0.0000000); // TODO: This should be editable via globalUBO.ambientStrength
+    vec3 ambientColor = vec3(0.000001); // TODO: This should be editable via globalUBO.ambientStrength
     vec3 ambient = ambientColor * albedo * ao;
 
 

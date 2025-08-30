@@ -89,7 +89,7 @@ void VkBufferManager::bindEvents() {
 			if (!m_sceneInitReady)
 				return;
 
-			this->updateGlobalUBO(event.currentFrame);
+			this->updateGlobalUBO(event.currentFrame, event.renderOrigin);
 			this->updateObjectUBOs(event.currentFrame, event.renderOrigin);
 		}
 	);
@@ -520,7 +520,7 @@ void VkBufferManager::initMatParamsUniformBuffer() {
 }
 
 
-void VkBufferManager::updateGlobalUBO(uint32_t currentImage) {
+void VkBufferManager::updateGlobalUBO(uint32_t currentImage, const glm::dvec3 &renderOrigin) {
 	// If the scene dimensions are not available yet, do not update the global UBO
 	if (m_uiViewportSceneRegion.x == 0.0f && m_uiViewportSceneRegion.y == 0.0f)
 		return;
@@ -529,10 +529,18 @@ void VkBufferManager::updateGlobalUBO(uint32_t currentImage) {
 
 
 	// View
+	auto pointLightView = m_registry->getView<RenderComponent::PointLight>();
+
 	ubo.view = m_camera->getRenderSpaceViewMatrix();
-	ubo.cameraPosition = SpaceUtils::ToRenderSpace_Position(m_camera->getGlobalTransform().position); // TODO: Does the position need to be in simulation or render space?
-	ubo.lightDirection = glm::vec3(1.0f, 0.0f, 0.0f);
-	ubo.lightColor = glm::vec3(1.0f, 0.95f, 0.90f);
+	ubo.cameraPosition = SpaceUtils::ToRenderSpace_Position(m_camera->getRelativeTransform().position); // NOTE: The camera position needs to be in render space to match other entities (see updateObjectUBOs).
+
+	if (pointLightView.size() > 0) {
+		const auto &[entityWithPointLight, pointLight] = pointLightView[0];
+
+		ubo.lightPosition = glm::dvec3(pointLight.position) - SpaceUtils::ToRenderSpace_Position(renderOrigin);
+		ubo.lightColor = pointLight.color;
+		ubo.lightRadiantFlux = pointLight.radiantFlux;
+	}
 
 
 	// Perspective
@@ -572,7 +580,7 @@ void VkBufferManager::updateObjectUBOs(uint32_t currentImage, const glm::dvec3& 
 		Buffer::ObjectUBO ubo{};
 
 		const glm::mat4 identityMat = glm::mat4(1.0f);
-		glm::dvec3 scaledRenderOrigin = SpaceUtils::ToRenderSpace_Position(renderOrigin);
+		//glm::dvec3 scaledRenderOrigin = SpaceUtils::ToRenderSpace_Position(renderOrigin);
 
 		glm::dvec3 renderPosition;
 
@@ -591,7 +599,7 @@ void VkBufferManager::updateObjectUBOs(uint32_t currentImage, const glm::dvec3& 
 		}
 		else
 		*/
-		renderPosition = SpaceUtils::ToRenderSpace_Position(transform.position - scaledRenderOrigin);
+		renderPosition = SpaceUtils::ToRenderSpace_Position(transform.position - renderOrigin);
 
 			// Update the entity's global position data after scaling to account for parent's visual scale
 		//refFrame._computedGlobalPosition = renderPosition;

@@ -1,0 +1,61 @@
+FileConfig:
+    Version: 0
+    Description: "SGP4 Propagator test with the VNREDSat-1A satellite, using real TLE data (TEME -> J2000 ECI)"
+
+SimulationConfig:
+    Kernels:
+        - Path: "kernels/naif0012.tls"
+        - Path: "kernels/pck00010.tpc"
+        - Path: "kernels/de442.bsp"
+    CoordinateSystem:
+        Frame: ECI
+        Epoch: J2000
+        EpochFormat: "2025-08-30 00:00:00 UTC"
+
+Scene:
+    - Entity: Body::Sun
+    - Entity: Body::Earth
+    - Entity: Body::Moon
+
+
+    - Entity: "VNREDSat-1A"
+      Components:
+        - Type: Core::Identifiers
+          Data:
+              EntityType: SPACECRAFT
+
+        - Type: Core::Transform
+          Data:
+              Position: [0.0, 0.0, 0.0]
+              Rotation: [0.0, 0.0, 0.0]
+              Scale: 7.0
+
+        - Type: Physics::RigidBody
+          Data:
+              Velocity: [0.0, 0.0, 0.0]
+              Acceleration: [0.0, 0.0, 0.0]
+              Mass: 20.0
+
+        - Type: Physics::Propagator
+          Data:
+              Type: SGP4
+              TLEPath: "samples/SP_SGP4Test-VNREDSat-1A.tle"    # TLEs always use the TEME (True Equator, Mean Equinox) reference frame
+
+        # Spacecraft information is currently unavailable
+        - Type: Spacecraft::Spacecraft
+          Data:
+              DragCoefficient: 0.0
+              ReferenceArea: 0.0
+              ReflectivityCoefficient: 0.0
+
+        - Type: Spacecraft::Thruster
+          Data:
+              ThrustMagnitude: 0.0
+              SpecificImpulse: 0.0
+              CurrentFuelMass: 0.0
+              MaxFuelMass: 0.0
+
+        - Type: Render::MeshRenderable
+          Data:
+              MeshPath: "assets/Models/Satellites/Chandra/Chandra.gltf"
+              VisualScale: 1.0

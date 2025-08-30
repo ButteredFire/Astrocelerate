@@ -139,7 +139,7 @@ namespace FilePathUtils {
 		@param filePath: The path to the file to be read. If file path is relative, you must specify the working directory.
 		@param workingDirectory (optional): The path to the file. By default, it is set to the binary directory. It is optional, but must be specified if the provided file path is relative.
 
-		@return A byte array (vector of type char) containing the file's content.
+		@return A byte vector (vector of type char) containing the file's content.
 	*/
 	inline std::vector<char> ReadFile(const std::string& filePath, std::string workingDirectory = "") {
 		if (filePath.empty()) {
@@ -194,5 +194,23 @@ namespace FilePathUtils {
 
 
 		return buffer;
+	}
+
+
+	/* Gets the lines of a file as a vector of strings (lines).
+		@param fileContent: The content of the file as a vector of characters (a byte vector).
+		@return A vector of strings, each string being a line in the file.
+	*/
+	inline std::vector<std::string> GetFileLines(const std::vector<char> &fileContent) {
+		std::string contentStr(fileContent.begin(), fileContent.end());
+
+		std::stringstream ss(contentStr);
+		std::vector<std::string> lines;
+
+		std::string line;
+		while (std::getline(ss, line))
+			lines.push_back(line);
+
+		return lines;
 	}
 }

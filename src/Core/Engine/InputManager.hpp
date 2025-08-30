@@ -34,6 +34,10 @@ public:
 	void init();
 
 
+	/* Run this function when the window is not in focus. */
+	void processInBackground();
+
+
 	/* GLFW keyboard input: Defer input processing to update loop.
 		GLFW only invokes the key callback function when a key input event happens, not per-frame.
 		This means that directly manipulating the application in the callback function (i.e., updating movement in simulation space) is very jittery. Even if delta-time is used, such manipulation cannot synchronize with the update loop.
@@ -74,4 +78,6 @@ private:
 	bool m_cursorLocked = false;
 
 	void bindEvents();
+
+	void unfocusViewport();
 };

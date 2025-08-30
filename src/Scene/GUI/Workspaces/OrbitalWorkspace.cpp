@@ -162,9 +162,18 @@ void OrbitalWorkspace::preRenderUpdate(uint32_t currentFrame) {
 
 
 void OrbitalWorkspace::loadSimulationConfig(const std::string &configPath) {
+	// Reset per-session data
+	m_simulationIsPaused = true;
+	Time::SetTimeScale(0.0f);
+	m_lastTimeScale = 1.0f;
+
+	m_sceneResourceEntityData.clear();
+
+
 	// Close certain instanced panels
 	GUI::TogglePanel(m_panelMask, m_panelSceneResourceDetails, GUI::TOGGLE_OFF);
 	GUI::TogglePanel(m_panelMask, m_panelCodeEditor, GUI::TOGGLE_OFF);
+
 
 	// Load script
 	m_simulationConfigChanged = true;
@@ -261,26 +270,21 @@ void OrbitalWorkspace::renderViewportPanel() {
 			{
 				// Pause/Play button
 				static bool initialLoad = true;
-				static float lastTimeScale = 1.0f;
-				std::string sceneName;
+				std::string sceneName{};
 				if (!m_simulationConfigPath.empty())
 					sceneName += FilePathUtils::GetFileName(m_simulationConfigPath, false);
 
-				if (m_simulationIsPaused) {
-					if (initialLoad) {
-						Time::SetTimeScale(0.0f);
-						initialLoad = false;
-					}
 
+				if (m_simulationIsPaused) {
 					if (ImGui::Button(ImGuiUtils::IconString(ICON_FA_PLAY, sceneName).c_str())) {
-						Time::SetTimeScale(lastTimeScale);
+						Time::SetTimeScale(m_lastTimeScale);
 						m_simulationIsPaused = false;
 					}
 					ImGuiUtils::CursorOnHover();
 				}
 				else {
 					if (ImGui::Button(ImGuiUtils::IconString(ICON_FA_PAUSE, sceneName).c_str())) {
-						lastTimeScale = Time::GetTimeScale();
+						m_lastTimeScale = Time::GetTimeScale();
 						Time::SetTimeScale(0.0f);
 						m_simulationIsPaused = true;
 					}
@@ -420,10 +424,10 @@ void OrbitalWorkspace::renderTelemetryPanel() {
 		}
 		
 		
-		auto view = m_registry->getView<CoreComponent::Transform, PhysicsComponent::RigidBody, TelemetryComponent::RenderTransform>();
+		auto view = m_registry->getView<CoreComponent::Transform, PhysicsComponent::RigidBody>();
 		size_t entityCount = 0;
 
-		for (const auto &[entity, transform, rigidBody, renderT] : view) {
+		for (const auto &[entity, transform, rigidBody] : view) {
 			// As the content is dynamically generated, we need each iteration to have its ImGui ID to prevent conflicts.
 			// Since entity IDs are always unique, we can use them as ImGui IDs.
 			ImGui::PushID(static_cast<int>(entity));
@@ -481,20 +485,20 @@ void OrbitalWorkspace::renderTelemetryPanel() {
 						{"Y", transform.position.y},
 						{"Z", transform.position.z}
 					},
-					"%.2f", "\tPosition (simulation)"
+					"%.2f", "\tPosition"
 				);
 				ImGui::Text("\tMagnitude: ||vec|| ≈ %.2f m", glm::length(transform.position));
 
 
-				ImGuiUtils::ComponentField(
-					{
-						{"X", renderT.position.x},
-						{"Y", renderT.position.y},
-						{"Z", renderT.position.z}
-					},
-					"%.2f", "\tPosition (render)"
-				);
-				ImGui::Text("\tMagnitude: ||vec|| ≈ %.2f units", glm::length(renderT.position));
+				//ImGuiUtils::ComponentField(
+				//	{
+				//		{"X", renderT.position.x},
+				//		{"Y", renderT.position.y},
+				//		{"Z", renderT.position.z}
+				//	},
+				//	"%.2f", "\tPosition (render)"
+				//);
+				//ImGui::Text("\tMagnitude: ||vec|| ≈ %.2f units", glm::length(renderT.position));
 
 
 				glm::dvec3 globalRotationEuler = SpaceUtils::QuatToEulerAngles(transform.rotation);
@@ -522,7 +526,7 @@ void OrbitalWorkspace::renderTelemetryPanel() {
 
 
 		static Camera *camera = m_inputManager->getCamera();
-		CoreComponent::Transform cameraTransform = camera->getGlobalTransform();
+		CoreComponent::Transform cameraTransform = camera->getAbsoluteTransform();
 		glm::vec3 scaledCameraPosition = SpaceUtils::ToRenderSpace_Position(cameraTransform.position);
 
 		ImGui::SeparatorText("Camera");
@@ -623,11 +627,13 @@ void OrbitalWorkspace::renderSimulationControlPanel() {
 
 		// Slider to change time scale
 		{
+			ImGui::SeparatorText("Simulation");
+
 			static const char *sliderLabel = "Time Scale:";
 			static const char *sliderID = "##TimeScaleSliderFloat";
 			static float timeScale = (Time::GetTimeScale() <= 0.0f) ? 1.0f : Time::GetTimeScale();
 			static const float MIN_VAL = 1.0f, MAX_VAL = 1000.0f;
-			static const float RECOMMENDED_SCALE_VAL_THRESHOLD = 100.0f;
+			static const float RECOMMENDED_SCALE_VAL_THRESHOLD = 200.0f;
 			if (m_simulationIsPaused) {
 				// Disable time-scale changing and grey out elements if the simulation is paused
 				ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
@@ -651,8 +657,8 @@ void OrbitalWorkspace::renderSimulationControlPanel() {
 
 			if (timeScale > RECOMMENDED_SCALE_VAL_THRESHOLD) {
 				ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 255, 0, 255));
-				ImGui::TextWrapped(ImGuiUtils::IconString(ICON_FA_TRIANGLE_EXCLAMATION, "Warning: Higher time scales may cause inaccuracies in the simulation.").c_str());
-				ImGui::PopStyleColor(); // Don't forget to pop the style color!
+					ImGuiUtils::AlignedText(ImGuiUtils::TEXT_ALIGN_MIDDLE, ImGuiUtils::IconString(ICON_FA_TRIANGLE_EXCLAMATION, "High time scales may cause numerical and visual instability.").c_str());
+				ImGui::PopStyleColor();
 			}
 		}
 
@@ -660,22 +666,39 @@ void OrbitalWorkspace::renderSimulationControlPanel() {
 
 		// Camera settings
 		{
+			ImGui::SeparatorText("Camera");
+
 			static Camera *camera = m_inputManager->getCamera();
-			static float speedMagnitude = 8.0f;
 
-			static bool initialCameraLoad = true;
-			if (initialCameraLoad) {
-				camera->movementSpeed = std::powf(10.0f, speedMagnitude);
-				initialCameraLoad = false;
-			}
+			// Speed magnitude
+			{
+				static float speedMagnitude = 8.0f;
 
-			ImGui::Text("Camera Speed Magnitude:");
-			ImGui::SameLine();
-			ImGui::SetNextItemWidth(ImGuiUtils::GetAvailableWidth());
-			if (ImGui::DragFloat("##CameraSpeedDragFloat", &speedMagnitude, 1.0f, 1.0f, 12.0f, "1e+%.0f", ImGuiSliderFlags_AlwaysClamp)) {
-				camera->movementSpeed = std::powf(10.0f, speedMagnitude);
+				static bool initialCameraLoad = true;
+				if (initialCameraLoad) {
+					camera->movementSpeed = std::powf(10.0f, speedMagnitude);
+					initialCameraLoad = false;
+				}
+
+				ImGui::Text("Speed (Magnitude):");
+				ImGui::SameLine();
+				ImGui::SetNextItemWidth(ImGuiUtils::GetAvailableWidth());
+				if (ImGui::DragFloat("##CameraSpeedDragFloat", &speedMagnitude, 0.25f, 1.0f, 12.0f, "1e+%.0f", ImGuiSliderFlags_AlwaysClamp)) {
+					camera->movementSpeed = std::powf(10.0f, speedMagnitude);
+				}
+				ImGuiUtils::CursorOnHover();
 			}
-			ImGuiUtils::CursorOnHover();
+		
+			
+			// Revert position checkbox
+			{
+				static bool revertPosition = false;
+
+				if (ImGui::Checkbox("Revert to last Free-fly position on switching back", &revertPosition)) {
+					camera->revertPositionOnFreeFlySwitch(revertPosition);
+				}
+
+			}
 		}
 
 
@@ -843,8 +866,7 @@ void OrbitalWorkspace::renderSceneResourceTree() {
 				GUI::TogglePanel(m_panelMask, m_panelCodeEditor, GUI::TOGGLE_ON);
 
 			else {
-				m_currentSceneResourceType = resourceType;
-				m_currentSceneResourceEntityID = entityID;
+				m_sceneResourceEntityData.insert({ entityID, resourceType });
 				GUI::TogglePanel(m_panelMask, m_panelSceneResourceDetails, GUI::TOGGLE_ON);
 			}
 		}
@@ -856,14 +878,16 @@ void OrbitalWorkspace::renderSceneResourceTree() {
 
 		ImGuiUtils::PushStyleClearButton();
 		{
+			auto view = m_registry->getView<CoreComponent::Identifiers>();
+			using enum CoreComponent::Identifiers::EntityType;
+
 			// Spacecraft
 			if (ImGui::TreeNodeEx(ImGuiUtils::IconString(ICON_FA_FOLDER, "Spacecraft & Satellites").c_str(), treeFlags)) {
-				auto view = m_registry->getView<SpacecraftComponent::Spacecraft>();
-
 				ImGui::Indent();
 				{
-					for (const auto &[entity, sc] : view) {
-						renderTreeNode(m_ResourceType::SPACECRAFT, entity, ImGuiUtils::IconString(ICON_FA_SATELLITE, m_registry->getEntity(entity).name));
+					for (const auto &[entity, id] : view) {
+						if (id.entityType == SPACECRAFT)
+							renderTreeNode(m_ResourceType::SPACECRAFT, entity, ImGuiUtils::IconString(ICON_FA_SATELLITE, m_registry->getEntity(entity).name));
 					}
 				}
 				ImGui::Unindent();
@@ -875,12 +899,33 @@ void OrbitalWorkspace::renderSceneResourceTree() {
 
 			// Celestial bodies
 			if (ImGui::TreeNodeEx(ImGuiUtils::IconString(ICON_FA_FOLDER, "Celestial bodies").c_str(), treeFlags)) {
-				auto view = m_registry->getView<PhysicsComponent::ShapeParameters>();
-
 				ImGui::Indent();
 				{
-					for (const auto &[entity, bodies] : view) {
-						renderTreeNode(m_ResourceType::CELESTIAL_BODIES, entity, ImGuiUtils::IconString(ICON_FA_CIRCLE, m_registry->getEntity(entity).name));
+					for (const auto &[entity, id] : view) {
+						using enum CoreComponent::Identifiers::EntityType;
+						static const std::unordered_set<CoreComponent::Identifiers::EntityType> celestialBodyTypes = {
+							STAR, PLANET, MOON, ASTEROID
+						};
+						
+						if (celestialBodyTypes.count(id.entityType)) {
+							const char *icon = ICON_FA_CIRCLE;
+
+							switch (id.entityType) {
+							case STAR:
+								icon = ICON_FA_STAR;
+								break;
+
+							case MOON:
+								icon = ICON_FA_MOON;
+								break;
+
+							case ASTEROID:
+								icon = ICON_FA_METEOR;
+								break;
+							}
+
+							renderTreeNode(m_ResourceType::CELESTIAL_BODIES, entity, ImGuiUtils::IconString(icon, m_registry->getEntity(entity).name));
+						}
 					}
 				}
 				ImGui::Unindent();
@@ -894,7 +939,20 @@ void OrbitalWorkspace::renderSceneResourceTree() {
 			if (ImGui::TreeNodeEx(ImGuiUtils::IconString(ICON_FA_FOLDER, "Propagators").c_str(), treeFlags)) {
 				ImGui::Indent();
 				{
+					auto view = m_registry->getView<PhysicsComponent::Propagator>();
 
+					for (const auto &[entity, propagator] : view) {
+						std::string propagatorName = "Unknown";
+
+						using enum PhysicsComponent::Propagator::Type;
+						switch (propagator.propagatorType) {
+						case SGP4:
+							propagatorName = "SGP4";
+							break;
+						}
+
+						renderTreeNode(m_ResourceType::PROPAGATORS, entity, ImGuiUtils::IconString(ICON_FA_HEXAGON_NODES, propagatorName));
+					}
 				}
 				ImGui::Unindent();
 
@@ -955,121 +1013,179 @@ void OrbitalWorkspace::renderSceneResourceTree() {
 
 
 void OrbitalWorkspace::renderSceneResourceDetails() {
+	// Containers to track certain data of entity detail panels pending to be rendered
+	static std::unordered_map<EntityID, m_ResourceType> entityResourceTypes{};	// Map of entity resource types
+	static std::unordered_map<EntityID, bool> entityPanelBools{};				// Map of booleans to track the open state of entity panels
+
+	static int windowCount = 0; // Number of open windows
+	windowCount = 0; // Resets count each frame
+
+
+
 	using enum m_ResourceType;
+	for (const auto &[entityID, resourceType] : m_sceneResourceEntityData) {
+		if (entityPanelBools.count(entityID) == 0)
+			entityPanelBools[entityID] = true;
 
-	EntityID currentEntity = m_currentSceneResourceEntityID;
 
-	std::stringstream ss;	// Panel name
+		if (entityPanelBools[entityID]) {
+			// Offset window position
+			const float offsetFromFirstWindow = 30.0f * windowCount;
+			
+			ImVec2 pos = ImGui::GetWindowPos();
+			pos.x += offsetFromFirstWindow;
+			pos.y += offsetFromFirstWindow;
 
-	if (currentEntity != INVALID_ENTITY)
-		ss << m_registry->getEntity(m_currentSceneResourceEntityID).name;
-	else {
-		// Currently, the only exception is the scripts. In such a case, we should open a text editor.
-	}
-	ss << " " << GUI::GetPanelName(m_panelSceneResourceDetails) << "###SceneResourceDetailsPanel"; 	// We must use a persistent ID to avoid ImGui treating instances with different titles as separate panels.
+			ImGui::SetNextWindowPos(pos, ImGuiCond_FirstUseEver);
+			windowCount++;
 
-	static bool panelOpen = GUI::IsPanelOpen(m_panelMask, m_panelSceneResourceDetails);
-	if (ImGui::Begin(C_STR(ss.str()), &panelOpen, ImGuiWindowFlags_NoDecoration)) {	// ImGuiWindowFlags_NoCollapse
+
+			// Only allow max window size to be content size
+			ImGui::SetNextWindowSizeConstraints(ImVec2(0, 0), ImVec2(FLT_MAX, FLT_MAX));
+
+
+			// Create panel name (which will act as the panel ID)
+			std::stringstream ss;
+			if (entityID != INVALID_ENTITY)
+				ss << m_registry->getEntity(entityID).name;
+
+			ss << " | " << GUI::GetPanelName(m_panelSceneResourceDetails);
+
 		
-		// ----- SPACECRAFT -----
-		if (m_currentSceneResourceType == SPACECRAFT) {
-			SpacecraftComponent::Spacecraft sc = m_registry->getComponent<SpacecraftComponent::Spacecraft>(currentEntity);
+			if (ImGui::Begin(C_STR(ss.str()), &entityPanelBools[entityID], ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings)) {
 
-			ImGui::SeparatorText("Spacecraft Configuration");
-			ImGui::Indent();
-			{
-				ImGui::SeparatorText("Perturbation");
+				// ----- SPACECRAFT -----
+				if (resourceType == SPACECRAFT) {
+					SpacecraftComponent::Spacecraft sc = m_registry->getComponent<SpacecraftComponent::Spacecraft>(entityID);
 
-				ImGui::Indent();
-				{
-					ImGui::Text("Drag coefficient: cₓ ≈ %.5g", sc.dragCoefficient);
-					ImGui::Text("Reference area (for drag/SRP): A ≈ %.5g m²", sc.referenceArea);
-					ImGui::Text("Reflectivity coefficient: Γ ≈ %.5g", sc.reflectivityCoefficient);
+					ImGui::SeparatorText("Spacecraft Configuration");
+					ImGui::Indent();
+					{
+						ImGui::SeparatorText("Perturbation");
+
+						ImGui::Indent();
+						{
+							ImGui::Text("Drag coefficient: cₓ ≈ %.5g", sc.dragCoefficient);
+							ImGui::Text("Reference area (for drag/SRP): A ≈ %.5g m²", sc.referenceArea);
+							ImGui::Text("Reflectivity coefficient: Γ ≈ %.5g", sc.reflectivityCoefficient);
+						}
+						ImGui::Unindent();
+					}
+					ImGui::Unindent();
+
+
+					if (m_registry->hasComponent<SpacecraftComponent::Thruster>(entityID)) {
+						ImGuiUtils::Padding();
+
+						SpacecraftComponent::Thruster thruster = m_registry->getComponent<SpacecraftComponent::Thruster>(entityID);
+
+						ImGui::SeparatorText("Thruster Configuration");
+						ImGui::Indent();
+						{
+							ImGui::Text("Thrust magnitude: T ≈ %.5g N", thruster.thrustMagnitude);
+							ImGui::Text("Specific impulse: Iₛₚ ≈ %.5g s", thruster.specificImpulse);
+							ImGui::Text("Current fuel mass: %.0f kg", thruster.currentFuelMass);
+							ImGui::Text("Max. fuel mass: %.0f kg", thruster.maxFuelMass);
+						}
+						ImGui::Unindent();
+					}
 				}
-				ImGui::Unindent();
-			}
-			ImGui::Unindent();
 
 
-			if (m_registry->hasComponent<SpacecraftComponent::Thruster>(currentEntity)) {
-				SpacecraftComponent::Thruster thruster = m_registry->getComponent<SpacecraftComponent::Thruster>(currentEntity);
 
-				ImGui::SeparatorText("Thruster Configuration");
-				ImGui::Indent();
-				{
-					ImGui::Text("Thrust magnitude: T ≈ %.5g N", thruster.thrustMagnitude);
-					ImGui::Text("Specific impulse: Iₛₚ ≈ %.5g s", thruster.specificImpulse);
-					ImGui::Text("Current fuel mass: %.0f kg", thruster.currentFuelMass);
-					ImGui::Text("Max. fuel mass: %.0f kg", thruster.maxFuelMass);
+				// ----- CELESTIAL BODIES -----
+				else if (resourceType == CELESTIAL_BODIES) {
+					if (m_registry->hasComponent<PhysicsComponent::ShapeParameters>(entityID)) {
+						PhysicsComponent::ShapeParameters shape = m_registry->getComponent<PhysicsComponent::ShapeParameters>(entityID);
+
+						ImGui::SeparatorText("Shape Configuration");
+						ImGui::Indent();
+						{
+							ImGui::Text("Flattening: e ≈ %.5f", shape.flattening);
+							ImGui::Text("Mean equatorial radius: r ≈ %.5f m", shape.equatRadius);
+							ImGui::Text("Gravitational parameter: μ ≈ %.5g m³/s⁻²", shape.gravParam);
+							ImGui::Text("Rotational velocity (scalar): ω ≈ %.5g rad/s", glm::length(shape.rotVelocity));
+							ImGui::Text("J2 oblateness coefficient: %.5g", shape.j2);
+						}
+						ImGui::Unindent();
+
+						ImGuiUtils::Padding();
+					}
+
+
+					CoreComponent::Identifiers identifiers = m_registry->getComponent<CoreComponent::Identifiers>(entityID);
+					ImGui::SeparatorText("Miscellaneous");
+					ImGui::Indent();
+					{
+						if (identifiers.spiceID.has_value())
+							ImGui::Text("SPICE Identifier: %s", identifiers.spiceID.value().c_str());
+					}
+					ImGui::Unindent();
 				}
-				ImGui::Unindent();
+
+
+
+				// ----- PROPAGATORS -----
+				else if (resourceType == PROPAGATORS) {
+					ImGui::Text("Current information on this propagator is not currently available.");
+				}
+
+
+
+				// ----- SOLVERS -----
+				else if (resourceType == SOLVERS) {
+					ImGui::Text("Current information on this solver is not currently available.");
+				}
+
+
+
+				// ----- SCRIPTS -----
+				//else if (resourceType == SCRIPTS) {
+				//	ImGui::Text("Current information on this script is not currently available.");
+				//}
+
+
+
+				// ----- COORDINATE SYSTEMS -----
+				else if (resourceType == COORDINATE_SYSTEMS) {
+					const PhysicsComponent::CoordinateSystem &coordSystem = m_registry->getComponent<PhysicsComponent::CoordinateSystem>(entityID);
+
+					ImGui::SeparatorText(STD_STR(m_registry->getEntity(entityID).name + " Configuration").c_str());
+					ImGui::Indent();
+					{
+						ImGui::Text("Coordinate System: %s (%s)",
+							CoordSys::FrameProperties.at(coordSystem.simulationConfig.frame).displayName.c_str(),
+							CoordSys::FrameTypeToDisplayStrMap.at(coordSystem.simulationConfig.frameType).c_str()
+						);
+						ImGui::Text("Epoch: %s", CoordSys::EpochToSPICEMap.at(coordSystem.simulationConfig.epoch).c_str());
+						ImGui::Text("Epoch format: %s", coordSystem.simulationConfig.epochFormat.c_str());
+					}
+					ImGui::Unindent();
+
+
+					ImGuiUtils::Padding();
+
+
+					ImGui::SeparatorText("SPICE Kernels Loaded");
+					ImGui::Indent();
+					{
+						for (const auto &kernel : coordSystem.simulationConfig.kernelPaths)
+							ImGui::Text(kernel.c_str());
+					}
+					ImGui::Unindent();
+				}
+
+				ImGui::End();
 			}
 		}
+		
 
-
-
-		// ----- CELESTIAL BODIES -----
-		else if (m_currentSceneResourceType == CELESTIAL_BODIES) {
-			PhysicsComponent::ShapeParameters shape = m_registry->getComponent<PhysicsComponent::ShapeParameters>(currentEntity);
-
-			ImGui::SeparatorText("Shape Configuration");
-			ImGui::Indent();
-			{
-				ImGui::Text("Flattening: e ≈ %.5f", shape.flattening);
-				ImGui::Text("Mean equatorial radius: r ≈ %.5f m", shape.equatRadius);
-				ImGui::Text("Gravitational parameter: μ ≈ %.5g m³/s⁻²", shape.gravParam);
-				ImGui::Text("Rotational velocity (scalar): ω ≈ %.5g rad/s", glm::length(shape.rotVelocity));
-				ImGui::Text("J2 oblateness coefficient: %.5g", shape.j2);
-			}
-			ImGui::Unindent();
+		// If the entity panel is closed, remove it from being tracked.
+		if (!entityPanelBools[entityID]) {
+			entityPanelBools.erase(entityID);
+			entityResourceTypes.erase(entityID);
+			m_sceneResourceEntityData.erase({ entityID, resourceType });
 		}
-
-
-
-		// ----- PROPAGATORS -----
-		else if (m_currentSceneResourceType == PROPAGATORS) {
-			ImGui::Text("Current information on this propagator is not currently available.");
-		}
-
-
-
-		// ----- SOLVERS -----
-		else if (m_currentSceneResourceType == SOLVERS) {
-			ImGui::Text("Current information on this solver is not currently available.");
-		}
-
-
-
-		// ----- SCRIPTS -----
-		//else if (m_currentSceneResourceType == SCRIPTS) {
-		//	ImGui::Text("Current information on this script is not currently available.");
-		//}
-
-
-
-		// ----- COORDINATE SYSTEMS -----
-		else if (m_currentSceneResourceType == COORDINATE_SYSTEMS) {
-			const PhysicsComponent::CoordinateSystem &coordSystem = m_registry->getComponent<PhysicsComponent::CoordinateSystem>(currentEntity);
-
-			ImGui::SeparatorText(STD_STR(m_registry->getEntity(currentEntity).name + " Configuration").c_str());
-			ImGui::Indent();
-			{
-				ImGui::Text("Type: %s", CoordSys::FrameTypeToDisplayStrMap.at(coordSystem.simulationConfig.frameType).c_str());
-				ImGui::Text("Epoch: %s", CoordSys::EpochToSPICEMap.at(coordSystem.simulationConfig.epoch).c_str());
-				ImGui::Text("Epoch format: %s", coordSystem.simulationConfig.epochFormat.c_str());
-			}
-			ImGui::Unindent();
-
-			ImGui::SeparatorText("SPICE Kernels Loaded");
-			ImGui::Indent();
-			{
-				for (const auto &kernel : coordSystem.simulationConfig.kernelPaths)
-					ImGui::Text(kernel.c_str());
-			}
-			ImGui::Unindent();
-		}
-
-		ImGui::End();
 	}
 }
 
@@ -1101,6 +1217,7 @@ void OrbitalWorkspace::renderCodeEditor() {
 		break;
 	}
 
+	m_codeEditor.SetLanguageDefinition(CodeEditor::LanguageDefinition::YAML());
 	m_codeEditor.SetShowWhitespaces(false);
 
 
@@ -1109,11 +1226,13 @@ void OrbitalWorkspace::renderCodeEditor() {
 		ss << FilePathUtils::GetFileName(m_simulationConfigPath);
 	else
 		ss << "New Script";
-	ss << GUI::GetPanelName(m_panelCodeEditor);
+	ss << " (Read-only)" << GUI::GetPanelName(m_panelCodeEditor);
 
 
-	static bool panelOpen = GUI::IsPanelOpen(m_panelMask, m_panelCodeEditor);
-	if (ImGui::Begin(C_STR(ss.str()), &panelOpen, ImGuiWindowFlags_NoCollapse)) {
+	bool panelOpen = GUI::IsPanelOpen(m_panelMask, m_panelCodeEditor);
+	ImGuiWindowFlags documentEditedFlag = (m_codeEditor.IsTextChanged()) ? ImGuiWindowFlags_UnsavedDocument : ImGuiWindowFlags_None;
+
+	if (ImGui::Begin(C_STR(ss.str()), &panelOpen, ImGuiWindowFlags_NoCollapse | documentEditedFlag)) {
 
 		ImGui::AlignTextToFramePadding();
 
@@ -1124,13 +1243,8 @@ void OrbitalWorkspace::renderCodeEditor() {
 			// Editing actions
 			ImGui::BeginGroup();
 			{
-				if (ImGui::Button(ICON_FA_EXCLAMATION)) {}
-				ImGuiUtils::TextTooltip(0, "Script editing and reloading is currently disabled due to instability.");
-				ImGui::SameLine();
-
-
 				if (ImGui::Button(ICON_FA_ARROW_ROTATE_LEFT)) {
-
+					m_codeEditor.Undo();
 				}
 				ImGuiUtils::CursorOnHover();
 				ImGuiUtils::TextTooltip(0, "Undo");
@@ -1138,7 +1252,7 @@ void OrbitalWorkspace::renderCodeEditor() {
 				ImGui::SameLine();
 
 				if (ImGui::Button(ICON_FA_ARROW_ROTATE_RIGHT)) {
-
+					m_codeEditor.Redo();
 				}
 				ImGuiUtils::CursorOnHover();
 				ImGuiUtils::TextTooltip(0, "Redo");
@@ -1146,7 +1260,7 @@ void OrbitalWorkspace::renderCodeEditor() {
 				ImGui::SameLine();
 
 				if (ImGui::Button(ICON_FA_SCISSORS)) {
-
+					m_codeEditor.Cut();
 				}
 				ImGuiUtils::CursorOnHover();
 				ImGuiUtils::TextTooltip(0, "Cut");
@@ -1154,7 +1268,7 @@ void OrbitalWorkspace::renderCodeEditor() {
 				ImGui::SameLine();
 
 				if (ImGui::Button(ICON_FA_COPY)) {
-
+					m_codeEditor.Copy();
 				}
 				ImGuiUtils::CursorOnHover();
 				ImGuiUtils::TextTooltip(0, "Copy");
@@ -1162,7 +1276,7 @@ void OrbitalWorkspace::renderCodeEditor() {
 				ImGui::SameLine();
 
 				if (ImGui::Button(ICON_FA_CLIPBOARD)) {
-
+					m_codeEditor.Paste();
 				}
 				ImGuiUtils::CursorOnHover();
 				ImGuiUtils::TextTooltip(0, "Paste");
@@ -1177,10 +1291,10 @@ void OrbitalWorkspace::renderCodeEditor() {
 			ImGui::BeginGroup();
 			{
 				if (ImGui::Button(ICON_FA_MAGNIFYING_GLASS)) {
-
+					
 				}
 				ImGuiUtils::CursorOnHover();
-				ImGuiUtils::TextTooltip(0, "Find & Replace");
+				ImGuiUtils::TextTooltip(0, "Find & Replace (currently unavailable)");
 
 			}
 			ImGui::EndGroup();
@@ -1193,7 +1307,7 @@ void OrbitalWorkspace::renderCodeEditor() {
 			ImGui::BeginGroup();
 			{
 				if (ImGui::Button(ICON_FA_INDENT)) {
-
+					
 				}
 				ImGuiUtils::CursorOnHover();
 				ImGuiUtils::TextTooltip(0, "Indent");
@@ -1242,4 +1356,7 @@ void OrbitalWorkspace::renderCodeEditor() {
 
 		ImGui::End();
 	}
+
+	if (!panelOpen)
+		GUI::TogglePanel(m_panelMask, m_panelCodeEditor, GUI::TOGGLE_OFF);
 }

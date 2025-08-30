@@ -146,17 +146,19 @@ public:
 	/* Dispatches an event.
 		@tparam EventType: The event type.
 		@param event: The event to be dispatched.
-		@param suppressLogs: Whether to suppress any output logs (True), or not (False).
+		@param suppressLogs (Default: False): Whether to suppress any output logs (True), or not (False).
+		@param noWorkerEventQueue (Default: False): Whether to defer the event to the main thread if this function is called from a worker thread (True), or prevent queueing and dispatch event directly (False).
 	*/
 	template<typename EventType>
-	inline void dispatch(const EventType& event, bool suppressLogs = false) {
+	inline void dispatch(const EventType& event, bool suppressLogs = false, bool noWorkerEventQueue = false) {
 		EventIndex eventTypeIndex = EventIndex(typeid(EventType));
 		std::thread::id mainThreadID = ThreadManager::GetMainThreadID();
 
 		EventFlag eventFlag = event.eventFlag;
 
-		if (std::this_thread::get_id() == mainThreadID || mainThreadID == std::thread::id()) {
-			// if (the current thread is the main thread || no main thread is set), dispatch the event directly.
+		if (std::this_thread::get_id() == mainThreadID || mainThreadID == std::thread::id() || noWorkerEventQueue) {
+			// if (the current thread is the main thread || no main thread is set || override event queueing if in worker thread),
+			// dispatch the event directly.
 			internalDispatch(eventTypeIndex, eventFlag, &event, suppressLogs);
 		}
 		else {

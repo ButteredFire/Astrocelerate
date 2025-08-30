@@ -9,6 +9,8 @@
 #include <Core/Data/Physics.hpp>
 #include <Core/Data/Application.hpp>
 
+#include <Simulation/Propagators/SGP4/TLE.hpp>
+
 
 namespace PhysicsComponent {
 	/* Rigid-body */
@@ -26,22 +28,6 @@ namespace PhysicsComponent {
 	};
 
 
-	/* Inertial frame of reference. */
-	struct ReferenceFrame {
-		std::optional<EntityID> parentID;				// The parent reference frame's entity ID.
-
-		Physics::FrameType frameType;					// TODO: Implement reference frame types
-
-		CoreComponent::Transform localTransform;		// Transform relative to parent (meters, inertial frame).
-		CoreComponent::Transform globalTransform;		// Absolute transform in simulation space (meters).
-		double scale = 1.0;								// The entity's physical scale (radius).
-		double visualScale = 1.0;						// The entity's mesh size in render space (can be used to exaggerate size).
-		
-		std::string _parentID_str;						// [INTERNAL] ReferenceFrame::parentID in YAML files can either be a reference to another entity or null.
-		glm::dvec3 _computedGlobalPosition;				// [INTERNAL] The entity's global position that has been scaled to account for its parent's visual scale (see VkBufferManager::updateObjectUBOs). This is primarily used for camera attachment. 
-	};
-
-
 	/* Properties of ellipsoid celestial bodies. */
 	struct ShapeParameters {
 		double equatRadius;						// Mean equatorial radius (m)
@@ -52,8 +38,31 @@ namespace PhysicsComponent {
 	};
 
 
+	struct NutationAngles {
+		double deltaPsi;				// Nutation in longitude (radians). This is the change in the celestial longitude of a body caused by nutation.
+		double deltaEpsilon;			// Nutation in obliquity (radians). This is the change in the obliquity of the ecliptic (the tilt of a body's axis) caused by nutation.
+		double meanEpsilon;				// Mean obliquity of the ecliptic (radians). This represents the average tilt of a body's axis.
+		double epsilon;					// True obliquity of the ecliptic (radians). This is the instantaneous tilt of a body's axis.
+		double eqEquinoxes;				// Equation of the equinoxes (radians). This value accounts for the difference between the true and mean sidereal time.
+		double greenwichSiderealTime;	// Greenwich sidereal time (radians). This angle defines the rotational orientation of a body at a given moment.
+	};
+
+
 	/* Properties of coordinate systems. */
 	struct CoordinateSystem {
 		Application::SimulationConfig simulationConfig;
+	};
+
+
+	struct Propagator {
+		enum class Type {
+			SGP4
+		};
+
+		Type propagatorType;			// The type of propagator used.
+		std::string tlePath;			// The path to the TLE file.
+
+		std::string tleLine1;			// First TLE line detailing orbital elements for propagation. This is dynamically populated from the TLE file.
+		std::string tleLine2;			// Second TLE line detailing orbital elements for propagation. This is dynamically populated from the TLE file.
 	};
 }

@@ -4,6 +4,7 @@
 #pragma once
 
 #include <iostream>
+#include <unordered_set>
 
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
@@ -32,6 +33,15 @@
 #include <Scene/GUI/CodeEditor.hpp>
 #include <Scene/GUI/Workspaces/IWorkspace.hpp>
 
+
+// Custom hash function for pairs
+struct PairHash {
+	template <typename T1, typename T2>
+	std::size_t operator()(const std::pair<T1, T2> &p) const {
+		// A common way to combine hashes, though more sophisticated methods exist
+		return std::hash<T1>()(p.first) ^ (std::hash<T2>()(p.second) << 1);
+	}
+};
 
 
 class OrbitalWorkspace : public IWorkspace {
@@ -93,6 +103,7 @@ private:
 	std::vector<VkSampler> m_offscreenSamplers;
 	std::vector<ImTextureID> m_viewportRenderTextureIDs;
 	ImVec2 m_lastViewportPanelSize = { 0.0f, 0.0f };
+	float m_lastTimeScale = 0.0f;
 	bool m_sceneSampleInitialized = false;		// Mirrors SessionStatus::Status::INITIALIZED
 	bool m_sceneSampleReady = false;			// Mirrors SessionStatus::Status::POST_INITIALIZATION
 
@@ -110,6 +121,7 @@ private:
 		SCRIPTS,
 		COORDINATE_SYSTEMS
 	};
+	std::unordered_set<std::pair<EntityID, m_ResourceType>, PairHash> m_sceneResourceEntityData{};
 	m_ResourceType m_currentSceneResourceType;
 	EntityID m_currentSceneResourceEntityID;
 

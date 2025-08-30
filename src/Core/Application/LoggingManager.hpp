@@ -211,7 +211,7 @@ namespace Log {
 	}
 	
 
-	/* Custom RTE exception class that allows for origin specification. */
+	/* Runtime exception for most errors. */
 	class RuntimeException : public std::exception {
 	public:
 		RuntimeException(const std::string &functionName, const int errLine, const std::string &message, MsgType severity = T_ERROR);
@@ -257,5 +257,12 @@ namespace Log {
 		std::string m_threadInfo;
 		std::string m_exceptionMessage;
 		MsgType m_msgType;
+	};
+
+
+	/* Engine exit exception. Throw this to gracefully exit the program (without errors). */
+	class EngineExitException : public std::exception {
+	public:
+		EngineExitException() {};
 	};
 }

@@ -80,45 +80,13 @@ add_executable(Astrocelerate ${SOURCE_FILES})
 
 
 # Copy resources from source to binary directory (for development builds)
-add_custom_command(TARGET Astrocelerate PRE_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "${CMAKE_CURRENT_SOURCE_DIR}/samples"
-            "${CMAKE_CURRENT_BINARY_DIR}/samples"
-    COMMENT "Copying samples to build directory for development run"
-)
+file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/samples" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
 
-add_custom_command(TARGET Astrocelerate PRE_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "${CMAKE_CURRENT_SOURCE_DIR}/kernels"
-            "${CMAKE_CURRENT_BINARY_DIR}/kernels"
-    COMMENT "Copying SPICE kernels to build directory for development run"
-)
+file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/kernels" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
 
-add_custom_command(TARGET Astrocelerate PRE_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "${CMAKE_CURRENT_SOURCE_DIR}/assets"
-            "${CMAKE_CURRENT_BINARY_DIR}/assets"
-    COMMENT "Copying assets to build directory for development run"
-)
+file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/assets" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
 
-add_custom_command(TARGET Astrocelerate PRE_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "${CMAKE_CURRENT_SOURCE_DIR}/configs"
-            "${CMAKE_CURRENT_BINARY_DIR}/configs"
-    COMMENT "Copying configs to build directory for development run"
-)
-
-add_custom_command(TARGET Astrocelerate PRE_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "${CMAKE_CURRENT_SOURCE_DIR}/samples"
-            "${CMAKE_CURRENT_BINARY_DIR}/samples"
-    COMMENT "Copying samples to build directory for development run"
-)
-
-add_custom_command(TARGET Astrocelerate PRE_BUILD
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/logs
-    COMMENT "Creating logs folder to store log files"
-)
+file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/configs" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
 
 
 # Set the output directory for the executable in the development build

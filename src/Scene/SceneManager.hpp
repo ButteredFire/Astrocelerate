@@ -7,6 +7,7 @@
 
 #include <Core/Application/EventDispatcher.hpp>
 #include <Core/Data/Math.hpp>
+#include <Core/Data/Bodies.hpp>
 #include <Core/Data/Constants.h>
 #include <Core/Data/Geometry.hpp>
 #include <Core/Engine/ECS.hpp>
@@ -19,6 +20,7 @@
 #include <Engine/Components/SpacecraftComponents.hpp>
 
 #include <Utils/YAMLUtils.hpp>
+#include <Utils/StringUtils.hpp>
 #include <Utils/FilePathUtils.hpp>
 
 
@@ -51,8 +53,6 @@ private:
 
 
 	std::string m_fileName;
-	Application::YAMLFileConfig m_fileConfig;
-	Application::SimulationConfig m_simulationConfig;
 
 
 	Entity m_renderSpace{};
@@ -77,6 +77,8 @@ private:
 	void processMetadata(Application::YAMLFileConfig *fileConfig, Application::SimulationConfig *simConfig, const YAML::Node &rootNode);
 
 
-	/* Processes the simulation initial states. */
-	void processScene(const YAML::Node &rootNode);
+	/* Processes the simulation initial states.
+		@params currentEntity, currentComponent: The current entity/component being processed. If, during this function's execution, a YAML-CPP exception is thrown, the caller will know precisely where in which component belonging to which entity the error occurred.
+	*/
+	void processScene(const YAML::Node &rootNode, std::string &currentEntity, std::string &currentComponent);
 };

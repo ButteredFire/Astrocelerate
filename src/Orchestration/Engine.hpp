@@ -46,7 +46,6 @@
 #include <Orchestration/Session.hpp>
 
 #include <Simulation/Systems/Time.hpp>
-#include <Simulation/Systems/ReferenceFrameSystem.hpp>
 
 #include <Scene/SceneManager.hpp>
 #include <Scene/GUI/UIPanelManager.hpp>
@@ -71,6 +70,7 @@ private:
 	GLFWwindow *m_window;
 
 	Application::Stage m_currentAppStage = Application::Stage::WORKSPACE_ORBITAL;
+	Application::State m_currentAppState = Application::State::IDLE;
 
 	std::shared_ptr<VkInstanceManager> m_instanceManager;
 	std::shared_ptr<VkDeviceManager> m_deviceManager;
@@ -112,8 +112,10 @@ private:
 	std::shared_ptr<Renderer> m_renderer;
 	std::shared_ptr<RenderSystem> m_renderSystem;
 	std::shared_ptr<PhysicsSystem> m_physicsSystem;
-	std::shared_ptr<ReferenceFrameSystem> m_refFrameSystem;
 	std::shared_ptr<Session> m_currentSession;
+
+
+	std::thread m_sessionThread;
 
 
 	void bindEvents();
