@@ -71,6 +71,11 @@ bool InputManager::isViewportUnfocused() {
 }
 
 
+bool InputManager::isCameraOrbiting() {
+	return !m_camera->inFreeFlyMode();
+}
+
+
 void InputManager::glfwDeferKeyInput(int key, int scancode, int action, int mods) {
 	if (action == GLFW_PRESS) {
 		m_pressedKeys.insert(key);
@@ -97,9 +102,43 @@ void InputManager::processKeyboardInput(double dt) {
 }
 
 void InputManager::processMouseClicks(GLFWwindow* window, int button, int action, int mods) {
+	// Create a hand cursor and schedule it for destruction
+	static std::function<GLFWcursor *()> createHandCursor = [this]() {
+		std::shared_ptr<GarbageCollector> gc = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
+		GLFWcursor *handCursor = glfwCreateStandardCursor(GLFW_HAND_CURSOR);
+		
+		CleanupTask task{};
+		task.caller = __FUNCTION__;
+		task.objectNames = { VARIABLE_NAME(handCursor) };
+		task.cleanupFunc = [handCursor]() { glfwDestroyCursor(handCursor); };
+		gc->createCleanupTask(task);
+
+		return handCursor;
+	};
+	static GLFWcursor *handCursor = createHandCursor();
+	
+
 	if (button == GLFW_MOUSE_BUTTON_LEFT && isViewportFocused()) {
-		m_cursorLocked = true;
-		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+		// If camera is orbiting something, only temporarily lock the cursor and (TODO) change its icon
+		if (isCameraOrbiting()) {
+			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+
+			if (action == GLFW_PRESS) {
+				m_cursorLocked = true;
+				//glfwSetCursor(window, handCursor);
+			}
+			else if (action == GLFW_RELEASE) {
+				m_cursorLocked = false;
+				//glfwSetCursor(window, NULL);
+			}
+		}
+
+
+		// If camera is not orbiting (i.e., in free-fly mode), lock and hide the cursor until the Escape key is pressed
+		else {
+			m_cursorLocked = true;
+			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+		}
 	}
 }
 

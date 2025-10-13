@@ -24,10 +24,10 @@ void PhysicsSystem::bindEvents() {
 
 			switch (event.sessionStatus) {
 			case INITIALIZED:
+				m_simulationTime = 0.0;
+
 				this->homogenizeCoordinateSystems();
 				this->update(Time::GetDeltaTime());
-
-				m_simulationTime = 0.0;
 
 				break;
 			}
@@ -66,15 +66,16 @@ void PhysicsSystem::configureCoordSys(CoordSys::FrameType frameType, CoordSys::F
 
 void PhysicsSystem::update(const double dt) {
 	double currentET = m_coordSystem->getEpochET() + m_simulationTime;
+	m_simulationTime += dt;
 	
 	updateSPICEBodies(currentET);
+	//propagateBodies(currentET);
 	updateGeneralBodies(dt, currentET);
 
-	m_simulationTime += dt;
 }
 
 
-void PhysicsSystem::updateSPICEBodies(const double currentET) {
+void PhysicsSystem::updateSPICEBodies(const double et) {
 	auto view = m_registry->getView<CoreComponent::Transform, PhysicsComponent::RigidBody>();
 
 
@@ -86,7 +87,7 @@ void PhysicsSystem::updateSPICEBodies(const double currentET) {
 			const std::string &spiceID = identifiers.spiceID.value();
 
 			// Update position and velocity
-			const std::array<double, 6> stateVec = m_coordSystem->getBodyState(spiceID, currentET);
+			const std::array<double, 6> stateVec = m_coordSystem->getBodyState(spiceID, et);
 
 			transform.position = glm::dvec3(
 				stateVec[0], stateVec[1], stateVec[2]
@@ -99,7 +100,7 @@ void PhysicsSystem::updateSPICEBodies(const double currentET) {
 
 			// Update rotation
 			const std::string frameName = "IAU_" + spiceID;
-			const glm::mat3 rotMatrix = m_coordSystem->getRotationMatrix(frameName, currentET);
+			const glm::mat3 rotMatrix = m_coordSystem->getRotationMatrix(frameName, et);
 
 			transform.rotation = glm::dquat(rotMatrix);
 
@@ -123,7 +124,7 @@ void PhysicsSystem::updateSPICEBodies(const double currentET) {
 }
 
 
-void PhysicsSystem::updateGeneralBodies(const double dt, const double currentET) {
+void PhysicsSystem::updateGeneralBodies(const double dt, const double et) {
 	using namespace PhysicsConsts;
 	
 	auto view = m_registry->getView<CoreComponent::Transform, PhysicsComponent::RigidBody>();
@@ -133,11 +134,15 @@ void PhysicsSystem::updateGeneralBodies(const double dt, const double currentET)
 	for (size_t i = 0; i < view.size(); i++) {
 		auto [targetEntityID, targetTransform, targetRigidBody] = view[i];
 
-		// If the target entity uses SPICE or a propagator, its state vector has already been computed. We must, therefore, skip them.
 		{
+			// If the target entity uses SPICE, its state vector has already been computed. We must, therefore, skip them.
 			CoreComponent::Identifiers targetIDs = m_registry->getComponent<CoreComponent::Identifiers>(targetEntityID);
 			if (targetIDs.spiceID.has_value())
 				continue;
+		
+			// TODO: If the target has a propagator, its state vector has already been computed.
+			//if (m_registry->hasComponent<PhysicsComponent::Propagator>(targetEntityID))
+			//	continue;
 		}
 
 		// Prepare initial states and ODE
@@ -151,7 +156,7 @@ void PhysicsSystem::updateGeneralBodies(const double dt, const double currentET)
 
 
 		// Integrate!
-		RK4Integrator<Physics::State, ODE::NewtonianNBody>::Integrate(state, currentET, dt, ode);
+		RK4Integrator<Physics::State, ODE::NewtonianNBody>::Integrate(state, et, dt, ode);
 
 
 		// Update components
@@ -166,22 +171,17 @@ void PhysicsSystem::updateGeneralBodies(const double dt, const double currentET)
 }
 
 
-void PhysicsSystem::homogenizeCoordinateSystems() {
-	double currentET = m_coordSystem->getEpochET();
+void PhysicsSystem::propagateBodies(const double et) {
+	const double secondsSinceEpoch = et - m_coordSystem->getEpochET();
+	const double minutesSinceEpoch = secondsSinceEpoch / 60.0;
 
-
-	// Convert TLE state vectors (TEME coordinate system)
+	std::cout << secondsSinceEpoch << " seconds since epoch; " << minutesSinceEpoch << " minutes since epoch\n";
 
 	auto view = m_registry->getView<PhysicsComponent::Propagator, CoreComponent::Transform, PhysicsComponent::RigidBody>();
 
 	for (auto &&[entityID, propagator, transform, rigidBody] : view) {
-		// Get state vector from TLE
-		TLE tle(propagator.tleLine1, propagator.tleLine2);
-
-		double minutesSinceEpoch = m_simulationTime / 60.0;
 		double position[3], velocity[3];
-
-		tle.getRV(minutesSinceEpoch, position, velocity);
+		propagator.tle.getRV(minutesSinceEpoch, position, velocity);
 
 		std::array<double, 6> stateVec = {
 			position[0], position[1], position[2],
@@ -189,14 +189,17 @@ void PhysicsSystem::homogenizeCoordinateSystems() {
 		};
 
 
+		//std::cout << "Epoch: " << et << " (ET), " << currentJD << "(JED), " << minutesSinceEpoch << " minutes since epoch\n";
+		//std::cout << "State vector (in km and km/s): r = {" << stateVec[0] << ", " << stateVec[1] << ", " << stateVec[2] << "}, v = {" << stateVec[3] << ", " << stateVec[4] << ", " << stateVec[5] << "}\n\n";
+
+		// Transform the state vector from TEME to this system's frame
+		stateVec = m_coordSystem->TEMEToThisFrame(stateVec, et);
+
+
 		// Convert propagator output from km and km/s to m and m/s respectively
 		if (propagator.propagatorType == PhysicsComponent::Propagator::Type::SGP4)
 			for (size_t i = 0; i < stateVec.size(); i++)
 				stateVec[i] *= 1e3;
-
-
-		// Transform the state vector from TEME to this system's frame
-		stateVec = m_coordSystem->TEMEToThisFrame(stateVec, currentET);
 
 
 		// Write new data to the components
@@ -208,6 +211,52 @@ void PhysicsSystem::homogenizeCoordinateSystems() {
 			stateVec[3], stateVec[4], stateVec[5]
 		);
 
+		m_registry->updateComponent(entityID, transform);
+		m_registry->updateComponent(entityID, rigidBody);
+	}
+}
+
+
+void PhysicsSystem::homogenizeCoordinateSystems() {
+	// Convert TLE state vectors (TEME coordinate system)
+
+	auto view = m_registry->getView<PhysicsComponent::Propagator, CoreComponent::Transform, PhysicsComponent::RigidBody>();
+
+	for (auto &&[entityID, propagator, transform, rigidBody] : view) {
+		// Get state vector from TLE
+		propagator.tle.parseLines(propagator.tleLine1, propagator.tleLine2);
+
+		double minutesSinceEpoch = 0.0;		// SGP4 (and TLEs) require a relative time value (i.e., minutesSinceEpoch) and not absolute (i.e., epoch + minutesSinceEpoch).
+		double position[3], velocity[3];
+
+		propagator.tle.getRV(minutesSinceEpoch, position, velocity);
+
+		std::array<double, 6> stateVec = {
+			position[0], position[1], position[2],
+			velocity[0], velocity[1], velocity[2]
+		};
+
+
+		// Transform the state vector from TEME to this system's frame
+		stateVec = m_coordSystem->TEMEToThisFrame(stateVec, m_coordSystem->getEpochET());
+
+
+		// Convert propagator output from km and km/s to m and m/s respectively
+		if (propagator.propagatorType == PhysicsComponent::Propagator::Type::SGP4)
+			for (size_t i = 0; i < stateVec.size(); i++)
+				stateVec[i] *= 1e3;
+
+
+		// Write new data to the components
+		transform.position = glm::dvec3(
+			stateVec[0], stateVec[1], stateVec[2]
+		);
+
+		rigidBody.velocity = glm::dvec3(
+			stateVec[3], stateVec[4], stateVec[5]
+		);
+
+		m_registry->updateComponent(entityID, propagator);
 		m_registry->updateComponent(entityID, transform);
 		m_registry->updateComponent(entityID, rigidBody);
 	}

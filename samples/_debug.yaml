@@ -83,5 +83,5 @@ Scene:
 
       - Type: Render::MeshRenderable
         Data:
-          MeshPath: "assets/Models/Satellites/Chandra/Chandra.gltf"
+          MeshPath: "assets/Models/TestModels/Cube/Cube.gltf"
           VisualScale: 0.5

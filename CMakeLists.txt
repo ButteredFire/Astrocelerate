@@ -10,7 +10,7 @@ project(Astrocelerate)
     add_compile_definitions(APP_NAME="${APP_NAME}")
 
     set(APP_VERSION_MAJOR 0)
-    set(APP_VERSION_MINOR 1)
+    set(APP_VERSION_MINOR 2)
     set(APP_VERSION_PATCH 0)
     set(APP_VERSION_IDENTIFIERS "alpha")
     set(APP_VERSION_FULL "${APP_VERSION_MAJOR}.${APP_VERSION_MINOR}.${APP_VERSION_PATCH}-${APP_VERSION_IDENTIFIERS}")
@@ -75,8 +75,22 @@ list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/scripts")    # Appends the 
     include("scripts/SourceFiles.cmake")
     include("scripts/HeaderFiles.cmake")
 
+
 # Add source files to the project's executable
 add_executable(Astrocelerate ${SOURCE_FILES})
+
+
+# Hide the console window
+set(HIDE_CONSOLE TRUE)
+if (HIDE_CONSOLE)
+    if(WIN32)
+        target_link_options(
+            Astrocelerate PRIVATE 
+            -mwindows
+            /SUBSYSTEM:WINDOWS
+        )   
+    endif()
+endif()
 
 
 # Copy resources from source to binary directory (for development builds)
@@ -261,6 +275,11 @@ install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/samples/"
         DESTINATION samples
 )
 
+    # SPICE kernels
+install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/kernels/"
+        DESTINATION kernels
+)
+
     # Application assets
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/assets/"
         DESTINATION assets
@@ -280,7 +299,7 @@ install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/configs/"
     set(CPACK_PACKAGE_VERSION_MAJOR "${APP_VERSION_MAJOR}")
     set(CPACK_PACKAGE_VERSION_MINOR "${APP_VERSION_MINOR}")
     set(CPACK_PACKAGE_VERSION_PATCH "${APP_VERSION_PATCH}")
-    set(CPACK_PACKAGE_VENDOR "${AUTHOR} (D.B.A. ${APP_VENDOR})")
+    set(CPACK_PACKAGE_VENDOR "${APP_VENDOR}")
     #set(CPACK_PACKAGE_CONTACT "email@example.com")
 
     set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Astrocelerate is Vietnam's first independent orbital mechanics and spaceflight simulation engine, designed from the ground up to serve as a sovereign alternative to foreign aerospace software.")
@@ -303,18 +322,18 @@ install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/configs/"
     
         set(CPACK_GENERATOR "WIX")
         set(CPACK_WIX_VERSION 4)
-        set(CPACK_WIX_EXTENSIONS "WixToolset.UI.wixext")
+        set(CPACK_WIX_EXTENSIONS "WixToolset.UI.wixext;WixToolset.Util.wixext")
 
         # GUIDs are crucial for MSI packages for upgrades
         set(CPACK_WIX_UPGRADE_GUID "92C5A6B3-CC39-46C2-BA8A-2EB695156DBF")
 
         # Banner and dialog bitmaps
-        set(CPACK_WIX_UI_BANNER "${CMAKE_CURRENT_SOURCE_DIR}/assets/App/Installer/Banner.bmp")
-        set(CPACK_WIX_UI_DIALOG "${CMAKE_CURRENT_SOURCE_DIR}/assets/App/Installer/Dialog.bmp")
+        #set(CPACK_WIX_UI_BANNER "${CMAKE_CURRENT_SOURCE_DIR}/assets/App/Installer/Banner.bmp")
+        #set(CPACK_WIX_UI_DIALOG "${CMAKE_CURRENT_SOURCE_DIR}/assets/App/Installer/Dialog.bmp")
 
         # Custom UI
         set(CPACK_WIX_EXTRA_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/scripts/InstallerUI.wxs")
-        set(CPACK_WIX_UI_REF "WixUI_InstallDir")
+        set(CPACK_WIX_UI_REF "WixUI_Minimal")
 
         # Languages (cultures)
         set(CPACK_WIX_CULTURES "en-US")

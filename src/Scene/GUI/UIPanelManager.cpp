@@ -312,7 +312,7 @@ void UIPanelManager::renderPreferencesPanel() {
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 	{
-		if (ImGui::Begin(GUI::GetPanelName(m_panelAbout), nullptr, m_windowFlags | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking)) {
+		if (ImGui::Begin(GUI::GetPanelName(m_panelPreferences), nullptr, m_windowFlags | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking)) {
 
 
 			ImGuiID parentDockspaceID = ImGui::GetID("MainDialogDockspace");
@@ -551,10 +551,19 @@ void UIPanelManager::renderAboutPanel() {
 				ImGui::TextLinkOpenURL("YAML-CPP", "https://github.com/jbeder/yaml-cpp");
 
 
+				ImGui::TextWrapped("Base Code Editor Implementation:");
+				ImGui::SameLine();
+				ImGui::TextLinkOpenURL("ImGuiColorTextEdit", "https://github.com/BalazsJako/ImGuiColorTextEdit/tree/master");
+				ImGui::SameLine();
+				ImGui::TextWrapped("by BalazsJako");
+
+
 				ImGui::TextWrapped("Simulation Assets:");
 				ImGui::Indent();
 				{
-					ImGui::TextWrapped("Planet textures (Earth, Moon, etc.) by NASA Visualization Technology Applications and Development (VTAD) and NASA Visualization Studio");
+					ImGui::TextWrapped("Planet textures (Earth, Moon, etc.) by NASA Visualization Technology Applications and Development (VTAD) and");
+					ImGui::SameLine();
+					ImGui::TextLinkOpenURL("Solar System Scope", "https://www.solarsystemscope.com/textures/");
 
 					ImGui::TextLinkOpenURL("Chandra X-Ray Observatory Model", "https://nasa3d.arc.nasa.gov/detail/jpl-chandra");
 					ImGui::SameLine();

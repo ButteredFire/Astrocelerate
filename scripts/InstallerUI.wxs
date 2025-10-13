@@ -1,14 +1,64 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
      xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
 
+	<!-- UI fragment -->
 	<Fragment>
 		<UI>
 			<TextStyle Id="WixUI_Font_Normal" FaceName="Tahoma" Size="10" Red="255" Green="255" Blue="255" />
 			<TextStyle Id="WixUI_Font_Bigger" FaceName="Tahoma" Size="14" Red="255" Green="255" Blue="255" />
 			<TextStyle Id="WixUI_Font_Title" FaceName="Tahoma" Size="11" Bold="yes" Red="255" Green="255" Blue="255" />
-			<UIRef Id="WixUI_InstallDir" />
+			<UIRef Id="WixUI_Dialog" />
+
+			<Publish Dialog="ExitDialog"
+					 Control="Finish"
+					 Event="DoAction"
+					 Value="LaunchAstrocelerate"
+					 Condition="WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1" />
 		</UI>
+	</Fragment>
+
+	
+	<!-- Components -->
+	<Fragment>
+		<DirectoryRef Id="INSTALLFOLDER">
+			<Component Id="AstrocelerateExe" Guid="*">
+				<File Id="AstrocelerateExeFile"
+					  Source="..\bin\Astrocelerate.exe"
+					  KeyPath="yes">
+					<Shortcut Id="AstrocelerateDesktopShortcut"
+							  Directory="DesktopFolder"
+							  Name="Astrocelerate"
+							  WorkingDirectory="INSTALLFOLDER"
+							  Icon="AstroIcon"
+							  Advertise="no" />
+				</File>
+			</Component>
+		</DirectoryRef>
+
+		<ComponentGroup Id="AstrocelerateGroup">
+			<ComponentRef Id="AstrocelerateExe"/>
+		</ComponentGroup>
+	</Fragment>
+
+	
+	<!-- Custom action -->
+	<Fragment>
+		<CustomAction Id="LaunchAstrocelerate"
+              FileRef="AstrocelerateExeFile"
+              ExeCommand=""
+              Return="asyncNoWait" />
+	</Fragment>
+
+	
+	<!-- Icon -->
+	<Fragment>
+		<Icon Id="AstroIcon" SourceFile="..\assets\App\Installer\AppIcon.ico"/>
+	</Fragment>
+
+	
+	<!-- Exit dialog checkbox -->
+	<Fragment>
+		<Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch Astrocelerate" />
 	</Fragment>
 
 </Wix>

@@ -15,9 +15,10 @@
 class TLE
 {
 public:
+    TLE();
     TLE(const std::string &line1, const std::string &line2);
 
-    void parseLines(char *line1, char *line2);
+    void parseLines(const std::string &line1Str, const std::string &line2Str);
 
     void getRVForDate(long millisSince1970, double r[3], double v[3]);
 

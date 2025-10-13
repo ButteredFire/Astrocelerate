@@ -64,5 +64,7 @@ namespace PhysicsComponent {
 
 		std::string tleLine1;			// First TLE line detailing orbital elements for propagation. This is dynamically populated from the TLE file.
 		std::string tleLine2;			// Second TLE line detailing orbital elements for propagation. This is dynamically populated from the TLE file.
+
+		TLE tle;						// The TLE instance.
 	};
 }

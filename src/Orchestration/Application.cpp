@@ -86,3 +86,16 @@ int main() {
     Log::EndLogging();
     return EXIT_SUCCESS;
 }
+
+
+#if _WIN32
+#include <windows.h>
+
+/* CMake has been configured such that Astrocelerate would be treated as a Windows GUI application if running on Windows (thus eliminating the console window).
+
+    Using the -mwindows flag and setting the subsystem to Windows necessitate having WinMain as the entry point instead of main.
+*/
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd) {
+    return main();
+}
+#endif

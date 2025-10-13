@@ -10,7 +10,7 @@ SimulationConfig:
     CoordinateSystem:
         Frame: ECI
         Epoch: J2000
-        EpochFormat: "2025-08-30 00:00:00 UTC"
+        EpochFormat: "2000-01-01 12:00:00 UTC"
 
 Scene:
     - Entity: Body::Sun

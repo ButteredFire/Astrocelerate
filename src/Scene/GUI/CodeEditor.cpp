@@ -2026,8 +2026,8 @@ const CodeEditor::Palette &CodeEditor::GetDarkPalette()
 			ImVec4ToImU32(DarkPalette::TEXT_MUTED),                 // Char literal (same as string for now)
 			ImVec4ToImU32(DarkPalette::TEXT_LIGHT),                 // Punctuation
 			ImVec4ToImU32(DarkPalette::ACCENT_BLUE_DARK),           // Preprocessor (using accent blue)
-			ImVec4ToImU32(DarkPalette::CODE_EDITOR_IDENTIFIER),     // Identifier
-			ImVec4ToImU32(DarkPalette::ACCENT_BLUE_DARK_ACTIVE),    // Known identifier (using an even lighter accent)
+			ImVec4ToImU32(DarkPalette::TEXT_LIGHT),					// Unknown Identifier
+			ImVec4ToImU32(DarkPalette::CODE_EDITOR_IDENTIFIER),		// Known identifier
 			ImVec4ToImU32(DarkPalette::ACCENT_BLUE_DARK_HOVER),     // Preproc identifier (using lighter accent)
 			ImVec4ToImU32(DarkPalette::DARK_GRAY_800),              // Comment (single line) - a darker gray
 			ImVec4ToImU32(DarkPalette::DARK_GRAY_800),              // Comment (multi line) - same as single line
@@ -2057,11 +2057,11 @@ const CodeEditor::Palette &CodeEditor::GetLightPalette()
 		ImVec4ToImU32(LightPalette::TEXT_MUTED_LIGHT),          // Char literal (same as string for now)
 		ImVec4ToImU32(LightPalette::TEXT_DARK),                 // Punctuation
 		ImVec4ToImU32(LightPalette::ACCENT_BLUE_LIGHT),         // Preprocessor
-		ImVec4ToImU32(LightPalette::CODE_EDITOR_IDENTIFIER),    // Identifier
-		ImVec4ToImU32(LightPalette::ACCENT_BLUE_LIGHT_ACTIVE),  // Known identifier
+		ImVec4ToImU32(LightPalette::TEXT_DARK),					// Unknown Identifier
+		ImVec4ToImU32(LightPalette::CODE_EDITOR_IDENTIFIER),	// Known identifier
 		ImVec4ToImU32(LightPalette::ACCENT_BLUE_LIGHT_HOVER),   // Preproc identifier
-		ImVec4ToImU32(LightPalette::LIGHT_GRAY_800),            // Comment (single line) - a darker gray
-		ImVec4ToImU32(LightPalette::LIGHT_GRAY_800),            // Comment (multi line) - same as single line
+		ImVec4ToImU32(LightPalette::LIGHT_GRAY_700),            // Comment (single line) - a darker gray
+		ImVec4ToImU32(LightPalette::LIGHT_GRAY_700),            // Comment (multi line) - same as single line
 		ImVec4ToImU32(LightPalette::LIGHT_GRAY_300),            // Background
 		ImVec4ToImU32(LightPalette::TEXT_DARK),                 // Cursor
 		ImVec4ToImU32(LightPalette::ACCENT_BLUE_LIGHT_ACTIVE),  // Selection (using an accent blue with some transparency)
@@ -2534,6 +2534,61 @@ void CodeEditor::UndoRecord::Redo(CodeEditor *aEditor)
 	aEditor->EnsureCursorVisible();
 }
 
+
+bool TokenizeYAMLIdentifier(const char *in_begin, const char *in_end, const char *&out_begin, const char *&out_end) {
+	const char *p = in_begin;
+
+	// A scoped identifier must start with a letter or an underscore.
+	if ((*p >= 'a' && *p <= 'z') || (*p >= 'A' && *p <= 'Z') || *p == '_')
+	{
+		p++;
+
+		// Continue advancing the pointer as long as the characters are valid identifier characters.
+		while ((p < in_end) && ((*p >= 'a' && *p <= 'z') || (*p >= 'A' && *p <= 'Z') || (*p >= '0' && *p <= '9') || *p == '_'))
+		{
+			p++;
+		}
+
+		// Now, check for the '::' sequence and subsequent identifiers.
+		const char *last_valid_end = p;
+
+		while (p + 2 <= in_end && p[0] == ':' && p[1] == ':')
+		{
+			// Move the pointer past the '::'.
+			p += 2;
+			const char *next_p = p;
+
+			// Check if the next part is a valid identifier.
+			if ((next_p < in_end) && ((*next_p >= 'a' && *next_p <= 'z') || (*next_p >= 'A' && *next_p <= 'Z') || *next_p == '_'))
+			{
+				next_p++;
+				while ((next_p < in_end) && ((*next_p >= 'a' && *next_p <= 'z') || (*next_p >= 'A' && *next_p <= 'Z') || (*next_p >= '0' && *next_p <= '9') || *next_p == '_'))
+				{
+					next_p++;
+				}
+
+				// A valid identifier was found after '::', so we update our pointer and continue.
+				p = next_p;
+				last_valid_end = p;
+			}
+			else
+			{
+				// No valid identifier was found after '::'. This is an invalid sequence,
+				// so we stop. The token ends at the end of the last valid identifier.
+				break;
+			}
+		}
+
+		// A valid token was found.
+		out_begin = in_begin;
+		out_end = last_valid_end;
+		return true;
+	}
+
+	return false;
+}
+
+
 static bool TokenizeCStyleString(const char *in_begin, const char *in_end, const char *&out_begin, const char *&out_end)
 {
 	const char *p = in_begin;
@@ -2782,9 +2837,21 @@ const CodeEditor::LanguageDefinition &CodeEditor::LanguageDefinition::YAML()
 
 
 		static const std::string identifiers[] = {
+			YAMLScene::Body_Sun,
+			YAMLScene::Body_Mercury,
+			YAMLScene::Body_Venus,
+			YAMLScene::Body_Earth,
+			YAMLScene::Body_Moon,
+			YAMLScene::Body_Mars,
+			YAMLScene::Body_Jupiter,
+			YAMLScene::Body_Saturn,
+			YAMLScene::Body_Uranus,
+			YAMLScene::Body_Neptune,
+
 			YAMLScene::Core_Identifiers,
 			YAMLScene::Core_Transform,
 			YAMLScene::Physics_RigidBody,
+			YAMLScene::Physics_Propagator,
 			YAMLScene::Physics_ShapeParameters,
 			YAMLScene::Spacecraft_Spacecraft,
 			YAMLScene::Spacecraft_Thruster,
@@ -2801,6 +2868,9 @@ const CodeEditor::LanguageDefinition &CodeEditor::LanguageDefinition::YAML()
 			YAMLData::Physics_RigidBody_Velocity,
 			YAMLData::Physics_RigidBody_Acceleration,
 			YAMLData::Physics_RigidBody_Mass,
+
+			YAMLData::Physics_Propagator_PropagatorType,
+			YAMLData::Physics_Propagator_TLEPath,
 
 			YAMLData::Physics_ShapeParameters_EquatRadius,
 			YAMLData::Physics_ShapeParameters_Flattening,
@@ -2823,7 +2893,7 @@ const CodeEditor::LanguageDefinition &CodeEditor::LanguageDefinition::YAML()
 		for (auto &k : identifiers)
 		{
 			Identifier id;
-			id.mDeclaration = "Built-in function";
+			id.mDeclaration = "Built-in identifier/attribute";
 			langDef.mIdentifiers.insert(std::make_pair(k, id));
 		}
 
@@ -2845,7 +2915,7 @@ const CodeEditor::LanguageDefinition &CodeEditor::LanguageDefinition::YAML()
 					paletteIndex = PaletteIndex::String;
 				else if (TokenizeCStyleCharacterLiteral(in_begin, in_end, out_begin, out_end))
 					paletteIndex = PaletteIndex::CharLiteral;
-				else if (TokenizeCStyleIdentifier(in_begin, in_end, out_begin, out_end))
+				else if (TokenizeYAMLIdentifier(in_begin, in_end, out_begin, out_end))
 					paletteIndex = PaletteIndex::Identifier;
 				else if (TokenizeCStyleNumber(in_begin, in_end, out_begin, out_end))
 					paletteIndex = PaletteIndex::Number;

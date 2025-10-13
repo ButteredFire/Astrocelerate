@@ -94,15 +94,25 @@ glm::mat3 CoordinateSystem::getRotationMatrix(const std::string &targetFrame, do
 
 
 std::array<double, 6> CoordinateSystem::TEMEToThisFrame(const std::array<double, 6> &stateVector, double ephTime) {
-	// Convert ET -> JED
+	// Convert ET -> ...
+		// JED (Julian Ephemeris Date)
 	double julianDate = unitim_c(ephTime, "ET", "JED");
+		
+		// UT1 (UTC Julian Date)
+	double julianDateUTC = 0.0;
+	char utcStrBuf[50];
+	char *endptr;
+	uint32_t precision = 14;
+	et2utc_c(ephTime, "J", precision, 50, utcStrBuf);
+	julianDateUTC = strtod(utcStrBuf + 3, &endptr);  // Skips the "JD " prefix and convert the rest of the string to a double
 
+	std::cout << "Julian date: " << julianDate << " (JED); " << julianDateUTC << " (UTC/UT1)\n";
 
 	// Calculate Earth orientation parameters & prepare nutation parameters
 	glm::dvec3 precession = Body::Earth.getPrecessionAngles(julianDate);
 	auto [pZeta, pTheta, pZed] = std::tuple<double, double, double>(precession.x, precession.y, precession.z);	// Convert (x, y, z) to (ζ, θ, z)
-
-	PhysicsComponent::NutationAngles nutation = Body::Earth.getNutationAngles(julianDate);
+	 
+	PhysicsComponent::NutationAngles nutation = Body::Earth.getNutationAngles(julianDate, julianDateUTC);
 
 	double epsilon = nutation.meanEpsilon + nutation.deltaEpsilon;			// True obliquity of ecliptic
 	double dPsiCosEps = nutation.deltaPsi * glm::cos(epsilon);				// Nutation in longitude * cos(obliquity)
@@ -114,17 +124,17 @@ std::array<double, 6> CoordinateSystem::TEMEToThisFrame(const std::array<double,
 	glm::dvec3 axisZ = glm::dvec3(0.0, 0.0, 1.0);
 
 	glm::dmat4 nutationMatrix(1.0);
-	nutationMatrix = glm::rotate(nutationMatrix, -dPsiCosEps, axisZ);				// Remove equation of equinoxes
-	nutationMatrix = glm::rotate(nutationMatrix, epsilon, axisX);					// Rotate by true obliquity
-	nutationMatrix = glm::rotate(nutationMatrix, nutation.deltaPsi, axisZ);			// Apply nutation in longitude
 	nutationMatrix = glm::rotate(nutationMatrix, -nutation.meanEpsilon, axisX);		// Remove mean obliquity
+	nutationMatrix = glm::rotate(nutationMatrix, nutation.deltaPsi, axisZ);			// Apply nutation in longitude
+	nutationMatrix = glm::rotate(nutationMatrix, epsilon, axisX);					// Rotate by true obliquity
+	nutationMatrix = glm::rotate(nutationMatrix, -dPsiCosEps, axisZ);				// Remove equation of equinoxes
 
 
 	// Precession correction (MOD -> J2000)
 	glm::dmat4 precessionMatrix(1.0);
-	precessionMatrix = glm::rotate(precessionMatrix, pZed, axisZ);			// First rotation about the Z-axis
+	precessionMatrix = glm::rotate(precessionMatrix, pZeta, axisZ);			// Rotation about the final Z-axis
 	precessionMatrix = glm::rotate(precessionMatrix, -pTheta, axisY);		// Rotation about the intermediate Y-axis (negative angle)
-	precessionMatrix = glm::rotate(precessionMatrix, pZeta, axisZ);			// Final rotation about the final Z-axis
+	precessionMatrix = glm::rotate(precessionMatrix, pZed, axisZ);			// Rotation about the Z-axis
 
 
 	// Final transformation matrix from TEME to J2000 is a combination of nutation and precession.

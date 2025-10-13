@@ -58,7 +58,7 @@ namespace _Bodies {
 
 
         /* Computes the time-dependent nutation angles for a given epoch. */
-        inline PhysicsComponent::NutationAngles getNutationAngles(double julianDate) {
+        inline PhysicsComponent::NutationAngles getNutationAngles(double julianDate, double julianDateUTC) {
             double t = (julianDate - 2451545.0) / 36525.0;
 
             double moonAnom = evalPolynomial(m_moonAnomPolyCfs, t);
@@ -94,8 +94,9 @@ namespace _Bodies {
             // NOTE: The `eqEq` calculation from Earth.ts requires `moonRaan` to be in radians
             double eqEquinoxes = deltaPsi * cos(meanEpsilon) + 0.00264 * ASEC2RAD * sin(moonRaan) + 0.000063 * ASEC2RAD * sin(2.0 * moonRaan);
 
-            // Simplified GAST calculation
-            double greenwichSiderealTime = (6.6974243245 + 1.000021359 * t) * DEG2RAD + eqEquinoxes;
+            // Greenwich Apparent Sidereal Time (GAST)
+            //double greenwichSiderealTime = (6.6974243245 + 1.000021359 * t) * DEG2RAD + eqEquinoxes;
+            double gast = gstime(julianDateUTC);
 
             PhysicsComponent::NutationAngles angles;
             angles.deltaPsi = deltaPsi;
@@ -103,7 +104,7 @@ namespace _Bodies {
             angles.meanEpsilon = meanEpsilon;
             angles.epsilon = epsilon;
             angles.eqEquinoxes = eqEquinoxes;
-            angles.greenwichSiderealTime = greenwichSiderealTime;
+            angles.greenwichSiderealTime = gast;
 
             return angles;
         }

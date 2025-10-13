@@ -41,23 +41,29 @@ public:
 
 
 	/* Updates all entities in the scene that have SPICE ephemeris data.
-		@param currentET: The current epoch in Ephemeris Time.
+		@param et: The current epoch in Ephemeris Time.
 	*/
-	void updateSPICEBodies(const double currentET);
+	void updateSPICEBodies(const double et);
+
+
+	/* Propagates all entities in the scene that have propagators attached to them.
+		@param et: The epoch in Ephemeris Time.
+	*/
+	void propagateBodies(const double et);
 
 
 	/* Updates entities, possibly custom-defined, that neither have SPICE ephemeris data nor use propagators.
 		@param dt: Delta-time.
-		@param currentET: The current epoch in Ephemeris Time.
+		@param et: The current epoch in Ephemeris Time.
 	*/
-	void updateGeneralBodies(const double dt, const double currentET);
+	void updateGeneralBodies(const double dt, const double et);
 
 private:
 	std::shared_ptr<Registry> m_registry;
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 	std::shared_ptr<CoordinateSystem> m_coordSystem;
 
-	double m_simulationTime = 0.0;		// Simulation time (a.k.a. seconds elapsed since epoch)
+	double m_simulationTime = 0.0;		// Simulation time (a.k.a. RELATIVE seconds elapsed since epoch; ABSOLUTE seconds is `epoch + m_simulationTime`)
 
 	void bindEvents();
 

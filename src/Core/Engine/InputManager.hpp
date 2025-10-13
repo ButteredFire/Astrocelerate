@@ -67,6 +67,8 @@ public:
 	bool isViewportFocused();
 	bool isViewportUnfocused();
 
+	bool isCameraOrbiting();
+
 private:
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 	std::shared_ptr<Camera> m_camera;

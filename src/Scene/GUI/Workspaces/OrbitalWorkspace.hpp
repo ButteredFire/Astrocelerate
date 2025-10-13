@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <sstream>
 #include <iostream>
 #include <unordered_set>
 

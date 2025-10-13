@@ -136,7 +136,7 @@ void OrbitalWorkspace::update(uint32_t currentFrame) {
 
 
 	// The input blocker serves to capture all input and prevent interaction with other widgets when using the viewport.
-	if (m_inputManager->isViewportInputAllowed() && m_sceneSampleInitialized) {
+	if (m_sceneSampleInitialized && m_inputManager->isViewportInputAllowed()) {
 		m_inputBlockerIsOn = true;
 		ImGui::SetNextWindowPos(ImVec2(0, 0));
 		ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
@@ -290,10 +290,36 @@ void OrbitalWorkspace::renderViewportPanel() {
 					}
 					ImGuiUtils::CursorOnHover();
 				}
+
+
+				ImGuiUtils::VerticalSeparator();
+
+
+				// Time scale
+				static float timeScale = (Time::GetTimeScale() <= 0.0f) ? 1.0f : Time::GetTimeScale();
+				static const float MIN_VAL = 1.0f, MAX_VAL = 1000.0f;
+
+				timeScale = std::clamp(timeScale, MIN_VAL, MAX_VAL);
+
+				std::stringstream textSS;
+				textSS << std::fixed << std::setprecision(1) << timeScale << "x"; // NOTE: std::fixed ensures floating-point numbers are displayed in floating-point notation (e.g., 123.45 instead of 1.2345e+02)
+				std::string timeScaleText = textSS.str();
+				float timeScaleTextWidth = ImGui::CalcTextSize(timeScaleText.c_str()).x + 75.0f;
+
+				ImGui::Text("Time scale:");
+				ImGui::SameLine();
+				ImGui::SetNextItemWidth(timeScaleTextWidth);
+				ImGui::InputFloat("##TimeScaleInputFloat", &timeScale, 5.0f, 10.0f, timeScaleText.c_str(), ImGuiInputTextFlags_AlwaysOverwrite);
+				
+				if (ImGui::IsItemDeactivatedAfterEdit() && !m_simulationIsPaused)
+					// Only change time scale when input is complete (see legacy ImGuiInputTextFlags_EnterReturnsTrue description) AND simulation is running
+					Time::SetTimeScale(timeScale);
 			}
 			ImGui::EndGroup();
 
+
 			ImGuiUtils::VerticalSeparator();
+
 
 			// Camera
 			static Camera *camera = m_inputManager->getCamera();
@@ -373,6 +399,34 @@ void OrbitalWorkspace::renderViewportPanel() {
 			}
 			ImGui::EndGroup();
 
+
+			ImGuiUtils::VerticalSeparator();
+
+
+			// Integrator selector
+			// TODO: Implement integrator switching
+			ImGui::BeginGroup();
+			{
+				static std::string currentIntegrator = "Fourth Order Runge-Kutta";
+				ImGui::Text("Integrator:");
+				ImGui::SameLine();
+				ImGui::SetNextItemWidth(ImGuiUtils::GetAvailableWidth());
+
+				ImGuiUtils::PushStyleDisabled();
+				{
+					if (ImGui::BeginCombo("##NumericalIntegratorCombo", currentIntegrator.c_str(), ImGuiComboFlags_NoArrowButton)) {
+						// TODO
+						ImGui::EndCombo();
+					}
+					ImGuiUtils::CursorOnHover();
+				}
+				ImGuiUtils::PopStyleDisabled();
+
+				ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 0, 0, 255));
+				ImGuiUtils::TextTooltip(ImGuiHoveredFlags_AllowWhenDisabled, "Numerical integrator switching is not currently supported.");
+				ImGui::PopStyleColor();
+			}
+			ImGui::EndGroup();
 		}
 		ImGuiUtils::PopStyleClearButton();
 
@@ -381,17 +435,19 @@ void OrbitalWorkspace::renderViewportPanel() {
 
 
 		if (m_sceneSampleInitialized && ImGui::BeginChild("##ViewportSceneRegion")) {
-			static bool sceneRegionClicked = false;
+			// Viewport hovering/focusing trackers
 			g_appContext.Input.isViewportHoveredOver = ImGui::IsWindowHovered(ImGuiFocusedFlags_ChildWindows) || m_inputBlockerIsOn;
 			g_appContext.Input.isViewportFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows) || m_inputBlockerIsOn;
 
+
+			// Viewport resize mechanism
+			static bool sceneRegionClicked = false;
 			static ImVec2 viewportSceneRegion;
 			static ImVec2 lastViewportSceneRegion(0, 0);
 
 			viewportSceneRegion = ImGui::GetContentRegionAvail();
 
-
-			// If viewport size changes, dispatch an update event
+				// If viewport size changes, dispatch an update event
 			if (!ImGuiUtils::CompImVec2(viewportSceneRegion, lastViewportSceneRegion)) {
 				m_eventDispatcher->dispatch(UpdateEvent::ViewportSize{
 					.sceneDimensions = glm::vec2(viewportSceneRegion.x, viewportSceneRegion.y)
@@ -399,7 +455,6 @@ void OrbitalWorkspace::renderViewportPanel() {
 
 				lastViewportSceneRegion = viewportSceneRegion;
 			}
-
 
 			ImGui::Image(m_viewportRenderTextureIDs[m_currentFrame], viewportSceneRegion);
 			if (ImGui::IsItemClicked())
@@ -599,71 +654,6 @@ void OrbitalWorkspace::renderEntityInspectorPanel() {
 
 void OrbitalWorkspace::renderSimulationControlPanel() {
 	if (ImGui::Begin(GUI::GetPanelName(m_panelSimulationControl), nullptr, m_windowFlags)) {
-		static float padding = 0.85f;
-
-		// Numerical integrator selector
-		// TODO: Implement integrator switching
-		{
-			static std::string currentIntegrator = "Fourth Order Runge-Kutta";
-			ImGui::Text("Numerical Integrator:");
-			ImGui::SameLine();
-			ImGui::SetNextItemWidth(ImGuiUtils::GetAvailableWidth());
-
-			ImGuiUtils::PushStyleDisabled();
-			{
-				if (ImGui::BeginCombo("##NumericalIntegratorCombo", currentIntegrator.c_str(), ImGuiComboFlags_NoArrowButton)) {
-					// TODO
-					ImGui::EndCombo();
-				}
-				ImGuiUtils::CursorOnHover();
-			}
-			ImGuiUtils::PopStyleDisabled();
-
-			ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 0, 0, 255));
-				ImGuiUtils::TextTooltip(ImGuiHoveredFlags_AllowWhenDisabled, "Numerical integrator switching is not currently supported.");
-			ImGui::PopStyleColor();
-		}
-
-
-		// Slider to change time scale
-		{
-			ImGui::SeparatorText("Simulation");
-
-			static const char *sliderLabel = "Time Scale:";
-			static const char *sliderID = "##TimeScaleSliderFloat";
-			static float timeScale = (Time::GetTimeScale() <= 0.0f) ? 1.0f : Time::GetTimeScale();
-			static const float MIN_VAL = 1.0f, MAX_VAL = 1000.0f;
-			static const float RECOMMENDED_SCALE_VAL_THRESHOLD = 200.0f;
-			if (m_simulationIsPaused) {
-				// Disable time-scale changing and grey out elements if the simulation is paused
-				ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-				ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
-			}
-
-			ImGui::Text(sliderLabel);
-			ImGui::SameLine();
-			ImGui::SetNextItemWidth(ImGuiUtils::GetAvailableWidth());
-			ImGui::SliderFloat(sliderID, &timeScale, MIN_VAL, MAX_VAL, "%.1fx", ImGuiSliderFlags_AlwaysClamp);
-			ImGuiUtils::CursorOnHover();
-			if (!m_simulationIsPaused) {
-				// Edge case: Prevents modifying the time scale when the simulation control panel is open while the simulation is still running
-				Time::SetTimeScale(timeScale);
-			}
-
-			if (m_simulationIsPaused) {
-				ImGui::PopItemFlag();
-				ImGui::PopStyleVar();
-			}
-
-			if (timeScale > RECOMMENDED_SCALE_VAL_THRESHOLD) {
-				ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 255, 0, 255));
-					ImGuiUtils::AlignedText(ImGuiUtils::TEXT_ALIGN_MIDDLE, ImGuiUtils::IconString(ICON_FA_TRIANGLE_EXCLAMATION, "High time scales may cause numerical and visual instability.").c_str());
-				ImGui::PopStyleColor();
-			}
-		}
-
-
-
 		// Camera settings
 		{
 			ImGui::SeparatorText("Camera");
@@ -856,7 +846,7 @@ void OrbitalWorkspace::renderDebugApplication() {
 
 
 void OrbitalWorkspace::renderSceneResourceTree() {
-	static ImGuiTreeNodeFlags treeFlags = ImGuiTreeNodeFlags_DrawLinesFull | ImGuiTreeNodeFlags_DrawLinesToNodes;
+	static ImGuiTreeNodeFlags treeFlags = ImGuiTreeNodeFlags_DrawLinesFull | ImGuiTreeNodeFlags_DrawLinesToNodes | ImGuiTreeNodeFlags_DefaultOpen;
 
 	static std::function<void(m_ResourceType, EntityID, const std::string&)> renderTreeNode = [this](m_ResourceType resourceType, EntityID entityID, const std::string &nodeName) {
 		using enum m_ResourceType;
@@ -923,7 +913,7 @@ void OrbitalWorkspace::renderSceneResourceTree() {
 								icon = ICON_FA_METEOR;
 								break;
 							}
-
+							
 							renderTreeNode(m_ResourceType::CELESTIAL_BODIES, entity, ImGuiUtils::IconString(icon, m_registry->getEntity(entity).name));
 						}
 					}
@@ -951,7 +941,11 @@ void OrbitalWorkspace::renderSceneResourceTree() {
 							break;
 						}
 
-						renderTreeNode(m_ResourceType::PROPAGATORS, entity, ImGuiUtils::IconString(ICON_FA_HEXAGON_NODES, propagatorName));
+
+						ImGuiUtils::PushStyleDisabled();
+							ImGui::Button(ImGuiUtils::IconString(ICON_FA_HEXAGON_NODES, propagatorName).c_str());
+						ImGuiUtils::PopStyleDisabled();
+						//renderTreeNode(m_ResourceType::PROPAGATORS, entity, ImGuiUtils::IconString(ICON_FA_HEXAGON_NODES, propagatorName));
 					}
 				}
 				ImGui::Unindent();

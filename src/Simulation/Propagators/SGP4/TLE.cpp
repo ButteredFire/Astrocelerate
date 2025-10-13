@@ -12,12 +12,18 @@ void setValsToRec(TLE *tle, ElsetRec *rec);
 long parseEpoch(ElsetRec *rec, char *str);
 
 
+TLE::TLE() {}
+
 TLE::TLE(const std::string &line1, const std::string &line2) {
-    parseLines(const_cast<char*>(line1.c_str()), const_cast<char *>(line2.c_str()));
+    parseLines(line1, line2);
 }
 
 
-void TLE::parseLines(char *line1, char *line2) {
+void TLE::parseLines(const std::string &line1Str, const std::string &line2Str) {
+    char *line1 = const_cast<char *>(line1Str.c_str());
+    char *line2 = const_cast<char *>(line2Str.c_str());
+
+
     int i = 0;
     this->rec.whichconst = wgs72;
     // copy the lines
