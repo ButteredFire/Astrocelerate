@@ -164,8 +164,8 @@ void OrbitalWorkspace::preRenderUpdate(uint32_t currentFrame) {
 void OrbitalWorkspace::loadSimulationConfig(const std::string &configPath) {
 	// Reset per-session data
 	m_simulationIsPaused = true;
+	m_lastTimeScale = Time::GetTimeScale();
 	Time::SetTimeScale(0.0f);
-	m_lastTimeScale = 1.0f;
 
 	m_sceneResourceEntityData.clear();
 
@@ -304,15 +304,15 @@ void OrbitalWorkspace::renderViewportPanel() {
 				std::stringstream textSS;
 				textSS << std::fixed << std::setprecision(1) << timeScale << "x"; // NOTE: std::fixed ensures floating-point numbers are displayed in floating-point notation (e.g., 123.45 instead of 1.2345e+02)
 				std::string timeScaleText = textSS.str();
-				float timeScaleTextWidth = ImGui::CalcTextSize(timeScaleText.c_str()).x + 75.0f;
+				float timeScaleTextWidth = ImGui::CalcTextSize(timeScaleText.c_str()).x + 10.0f;
 
 				ImGui::Text("Time scale:");
 				ImGui::SameLine();
 				ImGui::SetNextItemWidth(timeScaleTextWidth);
-				ImGui::InputFloat("##TimeScaleInputFloat", &timeScale, 5.0f, 10.0f, timeScaleText.c_str(), ImGuiInputTextFlags_AlwaysOverwrite);
+				ImGui::InputFloat("##TimeScaleInputFloat", &timeScale, 0.0f, 0.0f, timeScaleText.c_str(), ImGuiInputTextFlags_AlwaysOverwrite);  // NOTE: Setting step and step_fast to 0 disables the -/+ buttons
 				
-				if (ImGui::IsItemDeactivatedAfterEdit() && !m_simulationIsPaused)
-					// Only change time scale when input is complete (see legacy ImGuiInputTextFlags_EnterReturnsTrue description) AND simulation is running
+				if (ImGui::IsItemDeactivatedAfterEdit())
+					// Only change time scale when input is complete (see legacy ImGuiInputTextFlags_EnterReturnsTrue description)
 					Time::SetTimeScale(timeScale);
 			}
 			ImGui::EndGroup();
@@ -436,8 +436,11 @@ void OrbitalWorkspace::renderViewportPanel() {
 
 		if (m_sceneSampleInitialized && ImGui::BeginChild("##ViewportSceneRegion")) {
 			// Viewport hovering/focusing trackers
-			g_appContext.Input.isViewportHoveredOver = ImGui::IsWindowHovered(ImGuiFocusedFlags_ChildWindows) || m_inputBlockerIsOn;
-			g_appContext.Input.isViewportFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows) || m_inputBlockerIsOn;
+			// If camera is orbiting, the cursor locking mechanism won't be used, meaning that we can still interact with the top bar while orbiting. If we click on the top bar (which is not considered the "scene region", i.e., child window), these trackers will be false, which is contextually incorrect since the viewport is practically the scene region, not the actual viewport window. Therefore, we must set them to consider the whole window IF the camera is in orbit mode.
+			ImGuiFocusedFlags focusFlags = (m_inputManager->isCameraOrbiting())?
+				ImGuiFocusedFlags_RootAndChildWindows : ImGuiFocusedFlags_ChildWindows;
+			g_appContext.Input.isViewportHoveredOver	= ImGui::IsWindowHovered(focusFlags) || m_inputBlockerIsOn;
+			g_appContext.Input.isViewportFocused		= ImGui::IsWindowFocused(focusFlags) || m_inputBlockerIsOn;
 
 
 			// Viewport resize mechanism
@@ -820,6 +823,14 @@ void OrbitalWorkspace::renderDebugApplication() {
 	if (ImGui::Begin(GUI::GetPanelName(m_panelDebugApp), nullptr, m_windowFlags)) {
 		io = ImGui::GetIO();
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+
+		// FPS must be >= (2 * PHYS_UPDATE_FREQ) for linear interpolation to properly work and prevent jittering
+		int recommendedFPS = std::floor(2 * (1 / SimulationConsts::TIME_STEP));
+		if (io.Framerate < recommendedFPS) {
+			ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 255, 0, 255));
+			ImGui::TextWrapped(ImGuiUtils::IconString(ICON_FA_TRIANGLE_EXCLAMATION, "This framerate is below the recommended " + std::to_string(recommendedFPS) + " FPS threshold, below which jittering may occur. Alternatively, you can lower the physics time step to lower the threshold.").c_str());
+			ImGui::PopStyleColor();
+		}
 
 		ImGui::Dummy(ImVec2(2.0f, 2.0f));
 
