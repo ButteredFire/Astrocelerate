@@ -91,7 +91,7 @@ void OrbitalWorkspace::initPanels() {
 	m_panelRenderSettings =			GUI::RegisterPanel("Render Settings");
 	m_panelOrbitalPlanner =			GUI::RegisterPanel("Orbital Planner");
 	m_panelDebugConsole =			GUI::RegisterPanel("Console");
-	m_panelDebugApp =				GUI::RegisterPanel("Application Info");
+	m_panelDebugApp =				GUI::RegisterPanel("Application Debug Info");
 	m_panelSceneResourceTree =		GUI::RegisterPanel("Scene Resources");
 	m_panelSceneResourceDetails =	GUI::RegisterPanel("Configuration", true);	// This will be dynamically updated
 	m_panelCodeEditor =				GUI::RegisterPanel("###CodeEditor", true);
@@ -254,11 +254,11 @@ void OrbitalWorkspace::renderViewportPanel() {
 			if (ImGui::BeginItemTooltip())
 			{
 				ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
-				ImGui::TextUnformatted("[Left-click]    Enter viewport");
-				ImGui::TextUnformatted("[ESC]           Exit viewport");
-				ImGui::TextUnformatted("[W,A,S,D]       Camera movement");
-				ImGui::TextUnformatted("[Q, E]          Camera up, down");
-				ImGui::TextUnformatted("[Scroll]        Camera zoom");
+				ImGui::Text("[Left-click]    Enter viewport");
+				ImGui::Text("[ESC]           Exit viewport");
+				ImGui::Text("[W,A,S,D]       Camera movement");
+				ImGui::Text("[Q, E]          Camera up, down");
+				ImGui::Text("[Scroll]        Camera zoom");
 				ImGui::PopTextWrapPos();
 				ImGui::EndTooltip();
 			}
@@ -277,6 +277,9 @@ void OrbitalWorkspace::renderViewportPanel() {
 
 				if (m_simulationIsPaused) {
 					if (ImGui::Button(ImGuiUtils::IconString(ICON_FA_PLAY, sceneName).c_str())) {
+						if (m_lastTimeScale <= 0.0f)
+							m_lastTimeScale = 1.0f;
+
 						Time::SetTimeScale(m_lastTimeScale);
 						m_simulationIsPaused = false;
 					}
@@ -299,8 +302,6 @@ void OrbitalWorkspace::renderViewportPanel() {
 				static float timeScale = (Time::GetTimeScale() <= 0.0f) ? 1.0f : Time::GetTimeScale();
 				static const float MIN_VAL = 1.0f, MAX_VAL = 1000.0f;
 
-				timeScale = std::clamp(timeScale, MIN_VAL, MAX_VAL);
-
 				std::stringstream textSS;
 				textSS << std::fixed << std::setprecision(1) << timeScale << "x"; // NOTE: std::fixed ensures floating-point numbers are displayed in floating-point notation (e.g., 123.45 instead of 1.2345e+02)
 				std::string timeScaleText = textSS.str();
@@ -310,10 +311,16 @@ void OrbitalWorkspace::renderViewportPanel() {
 				ImGui::SameLine();
 				ImGui::SetNextItemWidth(timeScaleTextWidth);
 				ImGui::InputFloat("##TimeScaleInputFloat", &timeScale, 0.0f, 0.0f, timeScaleText.c_str(), ImGuiInputTextFlags_AlwaysOverwrite);  // NOTE: Setting step and step_fast to 0 disables the -/+ buttons
-				
-				if (ImGui::IsItemDeactivatedAfterEdit())
+
+				if (ImGui::IsItemDeactivatedAfterEdit()) {
 					// Only change time scale when input is complete (see legacy ImGuiInputTextFlags_EnterReturnsTrue description)
-					Time::SetTimeScale(timeScale);
+					timeScale = std::clamp(timeScale, MIN_VAL, MAX_VAL);
+
+					m_lastTimeScale = timeScale;
+					
+					if (!m_simulationIsPaused)
+						Time::SetTimeScale(timeScale);
+				}
 			}
 			ImGui::EndGroup();
 
@@ -828,28 +835,48 @@ void OrbitalWorkspace::renderDebugApplication() {
 		int recommendedFPS = std::floor(2 * (1 / SimulationConsts::TIME_STEP));
 		if (io.Framerate < recommendedFPS) {
 			ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 255, 0, 255));
-			ImGui::TextWrapped(ImGuiUtils::IconString(ICON_FA_TRIANGLE_EXCLAMATION, "This framerate is below the recommended " + std::to_string(recommendedFPS) + " FPS threshold, below which jittering may occur. Alternatively, you can lower the physics time step to lower the threshold.").c_str());
+			ImGui::TextWrapped(ImGuiUtils::IconString(ICON_FA_TRIANGLE_EXCLAMATION, "This framerate does not meet the recommended " + std::to_string(recommendedFPS) + " FPS threshold, below which jittering may occur. Alternatively, you can lower the physics time step to lower the threshold.").c_str());
 			ImGui::PopStyleColor();
 		}
 
 		ImGui::Dummy(ImVec2(2.0f, 2.0f));
 
-		ImGui::Text("Input:");
-		ImGui::Text("\tViewport:");
+		ImGui::SeparatorText("Input");
+		ImGui::BeginGroup();
 		{
-			ImGui::BulletText("\tHovered over: %s", BOOLALPHACAP(g_appContext.Input.isViewportHoveredOver));
-			ImGui::BulletText("\tFocused: %s", BOOLALPHACAP(g_appContext.Input.isViewportFocused));
-			ImGui::BulletText("\tInput blocker on: %s", BOOLALPHACAP(m_inputBlockerIsOn));
+			ImGui::Text("Viewport");
+			ImGui::Indent();
+			{
+				ImGui::Text("Hovered over: %s", BOOLALPHACAP(g_appContext.Input.isViewportHoveredOver));
+				ImGui::Text("Focused: %s", BOOLALPHACAP(g_appContext.Input.isViewportFocused));
+				ImGui::Text("Input blocker on: %s", BOOLALPHACAP(m_inputBlockerIsOn));
+			}
+			ImGui::Unindent();
+
+
+			ImGuiUtils::Padding(5.0f);
+
+
+			ImGui::Text("Viewport controls (Input manager)");
+			ImGui::Indent();
+			{
+				ImGui::Text("Input allowed: %s", BOOLALPHACAP(m_inputManager->isViewportInputAllowed()));
+				ImGui::Text("Focused: %s", BOOLALPHACAP(m_inputManager->isViewportFocused()));
+				ImGui::Text("Unfocused: %s", BOOLALPHACAP(m_inputManager->isViewportUnfocused()));
+			}
+			ImGui::Unindent();
 		}
+		ImGui::EndGroup();
 
-		ImGui::Separator();
 
-		ImGui::Text("\tViewport controls (Input manager)");
+
+		ImGui::SeparatorText("Time & Coordinate Systems");
+		ImGui::BeginGroup();
 		{
-			ImGui::BulletText("\tInput allowed: %s", BOOLALPHACAP(m_inputManager->isViewportInputAllowed()));
-			ImGui::BulletText("\tFocused: %s", BOOLALPHACAP(m_inputManager->isViewportFocused()));
-			ImGui::BulletText("\tUnfocused: %s", BOOLALPHACAP(m_inputManager->isViewportUnfocused()));
+			ImGui::Text("Time scale: %.1fx", Time::GetTimeScale());
 		}
+		ImGui::EndGroup();
+
 
 		ImGui::End();
 	}

@@ -23,6 +23,14 @@ void SceneManager::bindEvents() {
 
 void SceneManager::init() {
     m_renderSpace = m_registry->getRenderSpaceEntity();
+
+    // Model preloading
+    loadModels();
+}
+
+
+void SceneManager::loadModels() {
+    loadTestModels();
 }
 
 
@@ -144,6 +152,11 @@ void SceneManager::loadSceneFromFile(const std::string &filePath) {
 
 void SceneManager::saveSceneToFile(const std::string &filePath) {
 
+}
+
+
+void SceneManager::loadTestModels() {
+    //m_geometryLoader.loadGeometryFromFile();
 }
 
 

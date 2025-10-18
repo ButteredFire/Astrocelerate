@@ -69,7 +69,7 @@ void PhysicsSystem::update(const double dt) {
 	m_simulationTime += dt;
 	
 	updateSPICEBodies(currentET);
-	//propagateBodies(currentET);
+	propagateBodies(currentET);
 	updateGeneralBodies(dt, currentET);
 
 }
@@ -175,8 +175,6 @@ void PhysicsSystem::propagateBodies(const double et) {
 	const double secondsSinceEpoch = et - m_coordSystem->getEpochET();
 	const double minutesSinceEpoch = secondsSinceEpoch / 60.0;
 
-	std::cout << secondsSinceEpoch << " seconds since epoch; " << minutesSinceEpoch << " minutes since epoch\n";
-
 	auto view = m_registry->getView<PhysicsComponent::Propagator, CoreComponent::Transform, PhysicsComponent::RigidBody>();
 
 	for (auto &&[entityID, propagator, transform, rigidBody] : view) {
@@ -189,11 +187,26 @@ void PhysicsSystem::propagateBodies(const double et) {
 		};
 
 
-		//std::cout << "Epoch: " << et << " (ET), " << currentJD << "(JED), " << minutesSinceEpoch << " minutes since epoch\n";
-		//std::cout << "State vector (in km and km/s): r = {" << stateVec[0] << ", " << stateVec[1] << ", " << stateVec[2] << "}, v = {" << stateVec[3] << ", " << stateVec[4] << ", " << stateVec[5] << "}\n\n";
+		std::cout << "Epoch: " << et << " (ET), " << minutesSinceEpoch << " minutes (" << secondsSinceEpoch << " seconds) since epoch.\n";
+		std::cout << "State vector (in km and km/s):\n\tr_TEME  = {" << stateVec[0] << ", " << stateVec[1] << ", " << stateVec[2] << "}, v_TEME  = {" << stateVec[3] << ", " << stateVec[4] << ", " << stateVec[5] << "}";
 
+
+		glm::dvec3 rT(stateVec[0], stateVec[1], stateVec[2]);
+		
 		// Transform the state vector from TEME to this system's frame
 		stateVec = m_coordSystem->TEMEToThisFrame(stateVec, et);
+
+		glm::dvec3 rJ(stateVec[0], stateVec[1], stateVec[2]);
+		
+		std::cout << "\n\tr_J2000 = {" << stateVec[0] << ", " << stateVec[1] << ", " << stateVec[2] << "}, v_J2000 = {" << stateVec[3] << ", " << stateVec[4] << ", " << stateVec[5] << "}\n\n";
+
+
+
+		double dr = glm::length(rJ - rT);
+		double angular = glm::degrees(acos(glm::dot(glm::normalize(rJ), glm::normalize(rT)))); // deg
+		std::cout << " |Δr| = " << dr << " km, angular = " << angular << " deg\n";
+
+
 
 
 		// Convert propagator output from km and km/s to m and m/s respectively
@@ -219,17 +232,15 @@ void PhysicsSystem::propagateBodies(const double et) {
 
 void PhysicsSystem::homogenizeCoordinateSystems() {
 	// Convert TLE state vectors (TEME coordinate system)
-
 	auto view = m_registry->getView<PhysicsComponent::Propagator, CoreComponent::Transform, PhysicsComponent::RigidBody>();
 
 	for (auto &&[entityID, propagator, transform, rigidBody] : view) {
 		// Get state vector from TLE
 		propagator.tle.parseLines(propagator.tleLine1, propagator.tleLine2);
 
-		double minutesSinceEpoch = 0.0;		// SGP4 (and TLEs) require a relative time value (i.e., minutesSinceEpoch) and not absolute (i.e., epoch + minutesSinceEpoch).
 		double position[3], velocity[3];
 
-		propagator.tle.getRV(minutesSinceEpoch, position, velocity);
+		propagator.tle.getRV(0.0, position, velocity);
 
 		std::array<double, 6> stateVec = {
 			position[0], position[1], position[2],

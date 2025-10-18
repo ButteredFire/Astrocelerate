@@ -32,6 +32,11 @@ public:
 	void init();
 
 
+	/* (Re)loads models.
+	*/
+	void loadModels();
+
+
 	/* Loads the scene from a YAML simulation configuration file.
 		@param filePath: The path to the YAML file.
 	*/
@@ -71,6 +76,10 @@ private:
 
 
 	void bindEvents();
+
+
+	/* Loads test models. */
+	void loadTestModels();
 
 
 	/* Processes file and simulation configurations. */

@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include <array>
+#include <vector>
 #include <climits>
 
 #include <External/GLM.hpp>
@@ -10,6 +12,9 @@
 #include <Core/Data/Constants.h>
 
 #include <Utils/SystemUtils.hpp>
+
+
+#define PI 3.14159265358979323846
 
 
 namespace Math {
@@ -113,4 +118,44 @@ namespace Math {
             };
         }
 	};
+
+
+    template<SystemUtils::Number DataType, uint32_t size>
+    class Polynomial {
+    public:
+        /* Initializes a polynomial.
+            @param coefficients: Coefficients of the polynomial, in increasing degree (constant, linear, quadratic, ...).
+        */
+        inline Polynomial(const std::array<DataType, static_cast<size_t>(size)> &coefficients) : m_cfs(coefficients) {};
+        inline Polynomial(std::initializer_list<DataType> coefficients) {
+            LOG_ASSERT(size == coefficients.size(), "Cannot initialize polynomial: Polynomial is declared with " + std::to_string(size) + " terms, but initializer list contains " + std::to_string(coefficients.size()) + " coefficients.");
+
+            size_t i = 0;
+            for (const auto &coef : coefficients) {
+                m_cfs[i++] = coef;
+            }
+        }
+
+
+        /* Evaluates this polynomial.
+            @return The resulting value.
+        */
+        template<typename T>
+        inline T evaluate(T input) const {
+            T val = 0;
+            for (int32_t i = (int32_t)size - 1; i >= 0; i--)
+                val = val * input + m_cfs[i];
+
+            return val;
+        }
+
+
+        inline DataType operator[](const uint32_t idx) const {
+            LOG_ASSERT(idx < size, "Cannot access nonexistent coefficient of degree " + idx + ".");
+            return m_cfs[size];
+        }
+
+    private:
+        std::array<DataType, static_cast<size_t>(size)> m_cfs;   // Coefficients vector (in increasing degree)
+    };
 }

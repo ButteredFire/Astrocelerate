@@ -1,38 +1,38 @@
-date:2025-09-06T06:22:05+00:00
+date:2025-10-17T07:23:06+00:00
 validtle:1
 satid:39160
 launchyear:2013
-epoch:25248.60610347
-epochday:248
+epoch:25289.99503987
+epochday:289
 tleage:1
 tleclassification:U
 active:1
 name:VNREDSAT
-meananomly:271.1978
-meanmotion:14.6504
+meananomly:258.5303
+meanmotion:14.6479
 rightascension:0.0000
 declination:0.0000
-semimajoraxis:7055.0712753873
-altitudeatperigee:676
-altitudeatapogee:678
-inclination:97.9416
-eccentricity:0.0001218
-argumentofperigree:88.9366
+semimajoraxis:7055.885117044
+altitudeatperigee:677
+altitudeatapogee:679
+inclination:97.9456
+eccentricity:0.0001476
+argumentofperigree:101.6067
 nickname:VNREDSAT
 idesg:13021B  
 cosparid:2013-021B
-altkm:679.91613477687
-velkms:7.516699832494
-velkmh:27060
-onumepoch:65862
-onumnow:964917.34
+altkm:680.95465631986
+velkms:7.5160265900928
+velkmh:27058
+onumepoch:66468
+onumnow:973621.96
 otype:1
 otypedesc:Low Earth Orbit (LEO)
 status:1
-timestamp:2025-09-05T14:32:47+00:00
-nowjuliandate:2460924.7653442
-nowepochdate:25249.2653356481
+timestamp:2025-10-16T23:52:51+00:00
+nowjuliandate:2460965.8077084
+nowepochdate:25290.3077083333
 TLE:
 VNREDSAT 1
-1 39160U 13021B   25248.60610347  .00001119  00000+0  21723-3 0  9993
-2 39160  97.9416 307.2789 0001218  88.9366 271.1978 14.65044606658623
+1 39160U 13021B   25289.99503987  .00000491  00000+0  10071-3 0  9997
+2 39160  97.9456 347.2379 0001476 101.6067 258.5303 14.64791141664689

@@ -45,13 +45,14 @@ namespace SPICEUtils {
 
 			handleFailure(std::string(explanation));
 
+			// Reset SPICE internal error flags to prevent stale errors
+			reset_c();
+
 			if (throwException)
 				throw Log::RuntimeException(__FUNCTION__, __LINE__, errMsg);
 
 			else if (logError)
 				Log::Print(Log::T_ERROR, __FUNCTION__, errMsg);
-
-			reset_c();
 		}
 	}
 }

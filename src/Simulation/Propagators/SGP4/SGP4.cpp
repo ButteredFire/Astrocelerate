@@ -1,7 +1,9 @@
 #include "SGP4.hpp"
 
-
 /*     ----------------------------------------------------------------
+*
+*                               sgp4unit.cpp
+*
 *    this file contains the sgp4 procedures for analytical propagation
 *    of a satellite. the code was originally released in the 1980 and 1986
 *    spacetrack papers. a detailed discussion of the theory and history
@@ -55,8 +57,76 @@
 
 
 
+
+/* -----------------------------------------------------------------------------
+*
+*                           procedure dpper
+*
+*  this procedure provides deep space long period periodic contributions
+*    to the mean elements.  by design, these periodics are zero at epoch.
+*    this used to be dscom which included initialization, but it's really a
+*    recurring function.
+*
+*  author        : david vallado                  719-573-2600   28 jun 2005
+*
+*  inputs        :
+*    e3          -
+*    ee2         -
+*    peo         -
+*    pgho        -
+*    pho         -
+*    pinco       -
+*    plo         -
+*    se2 , se3 , sgh2, sgh3, sgh4, sh2, sh3, si2, si3, sl2, sl3, sl4 -
+*    t           -
+*    xh2, xh3, xi2, xi3, xl2, xl3, xl4 -
+*    zmol        -
+*    zmos        -
+*    ep          - eccentricity                           0.0 - 1.0
+*    inclo       - inclination - needed for lyddane modification
+*    nodep       - right ascension of ascending node
+*    argpp       - argument of perigee
+*    mp          - mean anomaly
+*
+*  outputs       :
+*    ep          - eccentricity                           0.0 - 1.0
+*    inclp       - inclination
+*    nodep        - right ascension of ascending node
+*    argpp       - argument of perigee
+*    mp          - mean anomaly
+*
+*  locals        :
+*    alfdp       -
+*    betdp       -
+*    cosip  , sinip  , cosop  , sinop  ,
+*    dalf        -
+*    dbet        -
+*    dls         -
+*    f2, f3      -
+*    pe          -
+*    pgh         -
+*    ph          -
+*    pinc        -
+*    pl          -
+*    sel   , ses   , sghl  , sghs  , shl   , shs   , sil   , sinzf , sis   ,
+*    sll   , sls
+*    xls         -
+*    xnoh        -
+*    zf          -
+*    zm          -
+*
+*  coupling      :
+*    none.
+*
+*  references    :
+*    hoots, roehrich, norad spacetrack report #3 1980
+*    hoots, norad spacetrack report #6 1986
+*    hoots, schumacher and glover 2004
+*    vallado, crawford, hujsak, kelso  2006
+----------------------------------------------------------------------------*/
+
 void dpper
-    (
+(
     double e3, double ee2, double peo, double pgho, double pho,
     double pinco, double plo, double se2, double se3, double sgh2,
     double sgh3, double sgh4, double sh2, double sh3, double si2,
@@ -67,7 +137,8 @@ void dpper
     char init,
     ElsetRec *rec,
     char opsmode
-    ) {
+)
+{
     /* --------------------- local variables ------------------------ */
     double alfdp, betdp, cosip, cosop, dalf, dbet, dls,
         f2, f3, pe, pgh, ph, pinc, pl,
@@ -75,7 +146,7 @@ void dpper
         sinip, sinop, sinzf, sis, sll, sls, xls,
         xnoh, zf, zm, zel, zes, znl, zns;
 
-        
+
     /* ---------------------- constants ----------------------------- */
     zns = 1.19459e-5;
     zes = 0.01675;
@@ -91,7 +162,7 @@ void dpper
     sinzf = sin(zf);
     f2 = 0.5 * sinzf * sinzf - 0.25;
     f3 = -0.5 * sinzf * cos(zf);
-    ses = se2* f2 + se3 * f3;
+    ses = se2 * f2 + se3 * f3;
     sis = si2 * f2 + si3 * f3;
     sls = sl2 * f2 + sl3 * f3 + sl4 * sinzf;
     sghs = sgh2 * f2 + sgh3 * f3 + sgh4 * sinzf;
@@ -162,14 +233,14 @@ void dpper
             xls = rec->mp + rec->argpp + cosip * rec->nodep;
             dls = pl + pgh - pinc * rec->nodep * sinip;
             xls = xls + dls;
-            xls = fmod(xls,twopi);
+            xls = fmod(xls, twopi);
             xnoh = rec->nodep;
             rec->nodep = atan2(alfdp, betdp);
             //  sgp4fix for afspc written intrinsic functions
             // nodep used without a trigonometric function ahead
             if ((rec->nodep < 0.0) && (opsmode == 'a'))
                 rec->nodep = rec->nodep + twopi;
-            if (fabs(xnoh - rec->nodep) > pi)
+            if (fabs(xnoh - rec->nodep) > PI)
                 if (rec->nodep < xnoh)
                     rec->nodep = rec->nodep + twopi;
                 else
@@ -181,13 +252,81 @@ void dpper
 
 }  // dpper
 
+/*-----------------------------------------------------------------------------
+*
+*                           procedure dscom
+*
+*  this procedure provides deep space common items used by both the secular
+*    and periodics subroutines.  input is provided as shown. this routine
+*    used to be called dpper, but the functions inside weren't well organized.
+*
+*  author        : david vallado                  719-573-2600   28 jun 2005
+*
+*  inputs        :
+*    epoch       -
+*    ep          - eccentricity
+*    argpp       - argument of perigee
+*    tc          -
+*    inclp       - inclination
+*    nodep       - right ascension of ascending node
+*    np          - mean motion
+*
+*  outputs       :
+*    sinim  , cosim  , sinomm , cosomm , snodm  , cnodm
+*    day         -
+*    e3          -
+*    ee2         -
+*    em          - eccentricity
+*    emsq        - eccentricity squared
+*    gam         -
+*    peo         -
+*    pgho        -
+*    pho         -
+*    pinco       -
+*    plo         -
+*    rtemsq      -
+*    se2, se3         -
+*    sgh2, sgh3, sgh4        -
+*    sh2, sh3, si2, si3, sl2, sl3, sl4         -
+*    s1, s2, s3, s4, s5, s6, s7          -
+*    ss1, ss2, ss3, ss4, ss5, ss6, ss7, sz1, sz2, sz3         -
+*    sz11, sz12, sz13, sz21, sz22, sz23, sz31, sz32, sz33        -
+*    xgh2, xgh3, xgh4, xh2, xh3, xi2, xi3, xl2, xl3, xl4         -
+*    nm          - mean motion
+*    z1, z2, z3, z11, z12, z13, z21, z22, z23, z31, z32, z33         -
+*    zmol        -
+*    zmos        -
+*
+*  locals        :
+*    a1, a2, a3, a4, a5, a6, a7, a8, a9, a10         -
+*    betasq      -
+*    cc          -
+*    ctem, stem        -
+*    x1, x2, x3, x4, x5, x6, x7, x8          -
+*    xnodce      -
+*    xnoi        -
+*    zcosg  , zsing  , zcosgl , zsingl , zcosh  , zsinh  , zcoshl , zsinhl ,
+*    zcosi  , zsini  , zcosil , zsinil ,
+*    zx          -
+*    zy          -
+*
+*  coupling      :
+*    none.
+*
+*  references    :
+*    hoots, roehrich, norad spacetrack report #3 1980
+*    hoots, norad spacetrack report #6 1986
+*    hoots, schumacher and glover 2004
+*    vallado, crawford, hujsak, kelso  2006
+----------------------------------------------------------------------------*/
 
 void dscom
-    (
+(
     double epoch, double ep, double argpp, double tc, double inclp,
     double nodep, double np,
     ElsetRec *rec
-    ) {
+)
+{
     /* -------------------------- constants ------------------------- */
     const double zes = 0.01675;
     const double zel = 0.05490;
@@ -276,15 +415,15 @@ void dscom
         rec->z31 = 12.0 * x1 * x1 - 3.0 * x3 * x3;
         rec->z32 = 24.0 * x1 * x2 - 6.0 * x3 * x4;
         rec->z33 = 12.0 * x2 * x2 - 3.0 * x4 * x4;
-        rec->z1 = 3.0 *  (a1 * a1 + a2 * a2) + rec->z31 * rec->emsq;
-        rec->z2 = 6.0 *  (a1 * a3 + a2 * a4) + rec->z32 * rec->emsq;
-        rec->z3 = 3.0 *  (a3 * a3 + a4 * a4) + rec->z33 * rec->emsq;
-        rec->z11 = -6.0 * a1 * a5 + rec->emsq *  (-24.0 * x1 * x7 - 6.0 * x3 * x5);
-        rec->z12 = -6.0 *  (a1 * a6 + a3 * a5) + rec->emsq *
+        rec->z1 = 3.0 * (a1 * a1 + a2 * a2) + rec->z31 * rec->emsq;
+        rec->z2 = 6.0 * (a1 * a3 + a2 * a4) + rec->z32 * rec->emsq;
+        rec->z3 = 3.0 * (a3 * a3 + a4 * a4) + rec->z33 * rec->emsq;
+        rec->z11 = -6.0 * a1 * a5 + rec->emsq * (-24.0 * x1 * x7 - 6.0 * x3 * x5);
+        rec->z12 = -6.0 * (a1 * a6 + a3 * a5) + rec->emsq *
             (-24.0 * (x2 * x7 + x1 * x8) - 6.0 * (x3 * x6 + x4 * x5));
         rec->z13 = -6.0 * a3 * a6 + rec->emsq * (-24.0 * x2 * x8 - 6.0 * x4 * x6);
         rec->z21 = 6.0 * a2 * a5 + rec->emsq * (24.0 * x1 * x5 - 6.0 * x3 * x7);
-        rec->z22 = 6.0 *  (a4 * a5 + a2 * a6) + rec->emsq *
+        rec->z22 = 6.0 * (a4 * a5 + a2 * a6) + rec->emsq *
             (24.0 * (x2 * x5 + x1 * x6) - 6.0 * (x4 * x7 + x3 * x8));
         rec->z23 = 6.0 * a4 * a6 + rec->emsq * (24.0 * x2 * x6 - 6.0 * x4 * x8);
         rec->z1 = rec->z1 + rec->z1 + betasq * rec->z31;
@@ -330,7 +469,7 @@ void dscom
         }
     }
 
-    rec->zmol = fmod(4.7199672 + 0.22997150  * rec->day - rec->gam, twopi);
+    rec->zmol = fmod(4.7199672 + 0.22997150 * rec->day - rec->gam, twopi);
     rec->zmos = fmod(6.2565837 + 0.017201977 * rec->day, twopi);
 
     /* ------------------------ do solar terms ---------------------- */
@@ -363,12 +502,93 @@ void dscom
 
 }  // dscom
 
+/*-----------------------------------------------------------------------------
+*
+*                           procedure dsinit
+*
+*  this procedure provides deep space contributions to mean motion dot due
+*    to geopotential resonance with half day and one day orbits.
+*
+*  author        : david vallado                  719-573-2600   28 jun 2005
+*
+*  inputs        :
+*    xke         - reciprocal of tumin
+*    cosim, sinim-
+*    emsq        - eccentricity squared
+*    argpo       - argument of perigee
+*    s1, s2, s3, s4, s5      -
+*    ss1, ss2, ss3, ss4, ss5 -
+*    sz1, sz3, sz11, sz13, sz21, sz23, sz31, sz33 -
+*    t           - time
+*    tc          -
+*    gsto        - greenwich sidereal time                   rad
+*    mo          - mean anomaly
+*    mdot        - mean anomaly dot (rate)
+*    no          - mean motion
+*    nodeo       - right ascension of ascending node
+*    nodedot     - right ascension of ascending node dot (rate)
+*    xpidot      -
+*    z1, z3, z11, z13, z21, z23, z31, z33 -
+*    eccm        - eccentricity
+*    argpm       - argument of perigee
+*    inclm       - inclination
+*    mm          - mean anomaly
+*    xn          - mean motion
+*    nodem       - right ascension of ascending node
+*
+*  outputs       :
+*    em          - eccentricity
+*    argpm       - argument of perigee
+*    inclm       - inclination
+*    mm          - mean anomaly
+*    nm          - mean motion
+*    nodem       - right ascension of ascending node
+*    irez        - flag for resonance           0-none, 1-one day, 2-half day
+*    atime       -
+*    d2201, d2211, d3210, d3222, d4410, d4422, d5220, d5232, d5421, d5433    -
+*    dedt        -
+*    didt        -
+*    dmdt        -
+*    dndt        -
+*    dnodt       -
+*    domdt       -
+*    del1, del2, del3        -
+*    ses  , sghl , sghs , sgs  , shl  , shs  , sis  , sls
+*    theta       -
+*    xfact       -
+*    xlamo       -
+*    xli         -
+*    xni
+*
+*  locals        :
+*    ainv2       -
+*    aonv        -
+*    cosisq      -
+*    eoc         -
+*    f220, f221, f311, f321, f322, f330, f441, f442, f522, f523, f542, f543  -
+*    g200, g201, g211, g300, g310, g322, g410, g422, g520, g521, g532, g533  -
+*    sini2       -
+*    temp        -
+*    temp1       -
+*    theta       -
+*    xno2        -
+*
+*  coupling      :
+*    getgravconst- no longer used
+*
+*  references    :
+*    hoots, roehrich, norad spacetrack report #3 1980
+*    hoots, norad spacetrack report #6 1986
+*    hoots, schumacher and glover 2004
+*    vallado, crawford, hujsak, kelso  2006
+----------------------------------------------------------------------------*/
 
 void dsinit
-    (
+(
     double tc, double xpidot,
     ElsetRec *rec
-    ) {
+)
+{
     /* --------------------- local variables ------------------------ */
 
     double ainv2, aonv = 0.0, cosisq, eoc, f220, f221, f311,
@@ -411,7 +631,7 @@ void dsinit
     sghs = rec->ss4 * zns * (rec->sz31 + rec->sz33 - 6.0);
     shs = -zns * rec->ss2 * (rec->sz21 + rec->sz23);
     // sgp4fix for 180 deg incl
-    if ((rec->inclm < 5.2359877e-2) || (rec->inclm > pi - 5.2359877e-2))
+    if ((rec->inclm < 5.2359877e-2) || (rec->inclm > PI - 5.2359877e-2))
         shs = 0.0;
     if (rec->sinim != 0.0)
         shs = shs / rec->sinim;
@@ -424,7 +644,7 @@ void dsinit
     sghl = rec->s4 * znl * (rec->z31 + rec->z33 - 6.0);
     shll = -znl * rec->s2 * (rec->z21 + rec->z23);
     // sgp4fix for 180 deg incl
-    if ((rec->inclm < 5.2359877e-2) || (rec->inclm > pi - 5.2359877e-2))
+    if ((rec->inclm < 5.2359877e-2) || (rec->inclm > PI - 5.2359877e-2))
         shll = 0.0;
     rec->domdt = sgs + sghl;
     rec->dnodt = shs;
@@ -490,9 +710,9 @@ void dsinit
             }
             if (rec->em < 0.7)
             {
-                g533 = -919.22770 + 4988.6100 * rec->em - 9064.7700 * rec->emsq + 5542.21  * eoc;
+                g533 = -919.22770 + 4988.6100 * rec->em - 9064.7700 * rec->emsq + 5542.21 * eoc;
                 g521 = -822.71072 + 4568.6173 * rec->em - 8491.4146 * rec->emsq + 5337.524 * eoc;
-                g532 = -853.66600 + 4690.2500 * rec->em - 8624.7700 * rec->emsq + 5341.4  * eoc;
+                g532 = -853.66600 + 4690.2500 * rec->em - 8624.7700 * rec->emsq + 5341.4 * eoc;
             }
             else
             {
@@ -504,8 +724,8 @@ void dsinit
             sini2 = rec->sinim * rec->sinim;
             f220 = 0.75 * (1.0 + 2.0 * rec->cosim + cosisq);
             f221 = 1.5 * sini2;
-            f321 = 1.875 * rec->sinim  *  (1.0 - 2.0 * rec->cosim - 3.0 * cosisq);
-            f322 = -1.875 * rec->sinim  *  (1.0 + 2.0 * rec->cosim - 3.0 * cosisq);
+            f321 = 1.875 * rec->sinim * (1.0 - 2.0 * rec->cosim - 3.0 * cosisq);
+            f322 = -1.875 * rec->sinim * (1.0 + 2.0 * rec->cosim - 3.0 * cosisq);
             f441 = 35.0 * sini2 * f220;
             f442 = 39.3750 * sini2 * sini2;
             f522 = 9.84375 * rec->sinim * (sini2 * (1.0 - 2.0 * rec->cosim - 5.0 * cosisq) +
@@ -570,17 +790,89 @@ void dsinit
 
 }  // dsinit
 
+/*-----------------------------------------------------------------------------
+*
+*                           procedure dspace
+*
+*  this procedure provides deep space contributions to mean elements for
+*    perturbing third body.  these effects have been averaged over one
+*    revolution of the sun and moon.  for earth resonance effects, the
+*    effects have been averaged over no revolutions of the satellite.
+*    (mean motion)
+*
+*  author        : david vallado                  719-573-2600   28 jun 2005
+*
+*  inputs        :
+*    d2201, d2211, d3210, d3222, d4410, d4422, d5220, d5232, d5421, d5433 -
+*    dedt        -
+*    del1, del2, del3  -
+*    didt        -
+*    dmdt        -
+*    dnodt       -
+*    domdt       -
+*    irez        - flag for resonance           0-none, 1-one day, 2-half day
+*    argpo       - argument of perigee
+*    argpdot     - argument of perigee dot (rate)
+*    t           - time
+*    tc          -
+*    gsto        - gst
+*    xfact       -
+*    xlamo       -
+*    no          - mean motion
+*    atime       -
+*    em          - eccentricity
+*    ft          -
+*    argpm       - argument of perigee
+*    inclm       - inclination
+*    xli         -
+*    mm          - mean anomaly
+*    xni         - mean motion
+*    nodem       - right ascension of ascending node
+*
+*  outputs       :
+*    atime       -
+*    em          - eccentricity
+*    argpm       - argument of perigee
+*    inclm       - inclination
+*    xli         -
+*    mm          - mean anomaly
+*    xni         -
+*    nodem       - right ascension of ascending node
+*    dndt        -
+*    nm          - mean motion
+*
+*  locals        :
+*    delt        -
+*    ft          -
+*    theta       -
+*    x2li        -
+*    x2omi       -
+*    xl          -
+*    xldot       -
+*    xnddt       -
+*    xndt        -
+*    xomi        -
+*
+*  coupling      :
+*    none        -
+*
+*  references    :
+*    hoots, roehrich, norad spacetrack report #3 1980
+*    hoots, norad spacetrack report #6 1986
+*    hoots, schumacher and glover 2004
+*    vallado, crawford, hujsak, kelso  2006
+----------------------------------------------------------------------------*/
 
 void dspace(double tc, ElsetRec *rec)
 {
     int iretn;
     double delt, ft, theta, x2li, x2omi, xl, xldot, xnddt, xndt, xomi, g22, g32,
         g44, g52, g54, fasx2, fasx4, fasx6, rptim, step2, stepn, stepp;
-        
+
     xndt = 0;
     xnddt = 0;
     xldot = 0;
-        
+
     fasx2 = 0.13130908;
     fasx4 = 2.8843198;
     fasx6 = 0.37448087;
@@ -644,7 +936,7 @@ void dspace(double tc, ElsetRec *rec)
             if (rec->irez != 2)
             {
                 xndt = rec->del1 * sin(rec->xli - fasx2) + rec->del2 * sin(2.0 * (rec->xli - fasx4)) +
-                        rec->del3 * sin(3.0 * (rec->xli - fasx6));
+                    rec->del3 * sin(3.0 * (rec->xli - fasx6));
                 xldot = rec->xni + rec->xfact;
                 xnddt = rec->del1 * cos(rec->xli - fasx2) +
                     2.0 * rec->del2 * cos(2.0 * (rec->xli - fasx4)) +
@@ -658,17 +950,17 @@ void dspace(double tc, ElsetRec *rec)
                 x2omi = xomi + xomi;
                 x2li = rec->xli + rec->xli;
                 xndt = rec->d2201 * sin(x2omi + rec->xli - g22) + rec->d2211 * sin(rec->xli - g22) +
-                        rec->d3210 * sin(xomi + rec->xli - g32) + rec->d3222 * sin(-xomi + rec->xli - g32) +
-                        rec->d4410 * sin(x2omi + x2li - g44) + rec->d4422 * sin(x2li - g44) +
-                        rec->d5220 * sin(xomi + rec->xli - g52) + rec->d5232 * sin(-xomi + rec->xli - g52) +
-                        rec->d5421 * sin(xomi + x2li - g54) + rec->d5433 * sin(-xomi + x2li - g54);
+                    rec->d3210 * sin(xomi + rec->xli - g32) + rec->d3222 * sin(-xomi + rec->xli - g32) +
+                    rec->d4410 * sin(x2omi + x2li - g44) + rec->d4422 * sin(x2li - g44) +
+                    rec->d5220 * sin(xomi + rec->xli - g52) + rec->d5232 * sin(-xomi + rec->xli - g52) +
+                    rec->d5421 * sin(xomi + x2li - g54) + rec->d5433 * sin(-xomi + x2li - g54);
                 xldot = rec->xni + rec->xfact;
                 xnddt = rec->d2201 * cos(x2omi + rec->xli - g22) + rec->d2211 * cos(rec->xli - g22) +
-                        rec->d3210 * cos(xomi + rec->xli - g32) + rec->d3222 * cos(-xomi + rec->xli - g32) +
-                        rec->d5220 * cos(xomi + rec->xli - g52) + rec->d5232 * cos(-xomi + rec->xli - g52) +
+                    rec->d3210 * cos(xomi + rec->xli - g32) + rec->d3222 * cos(-xomi + rec->xli - g32) +
+                    rec->d5220 * cos(xomi + rec->xli - g52) + rec->d5232 * cos(-xomi + rec->xli - g52) +
                     2.0 * (rec->d4410 * cos(x2omi + x2li - g44) +
-                            rec->d4422 * cos(x2li - g44) + rec->d5421 * cos(xomi + x2li - g54) +
-                            rec->d5433 * cos(-xomi + x2li - g54));
+                        rec->d4422 * cos(x2li - g44) + rec->d5421 * cos(xomi + x2li - g54) +
+                        rec->d5433 * cos(-xomi + x2li - g54));
                 xnddt = xnddt * xldot;
             }
 
@@ -692,7 +984,7 @@ void dspace(double tc, ElsetRec *rec)
             }
         }  // while iretn = 381
 
-            
+
         rec->nm = rec->xni + xndt * ft + xnddt * ft * ft * 0.5;
         xl = rec->xli + xldot * ft + xndt * ft * ft * 0.5;
         if (rec->irez != 1)
@@ -710,6 +1002,58 @@ void dspace(double tc, ElsetRec *rec)
 
 }  // dsspace
 
+/*-----------------------------------------------------------------------------
+*
+*                           procedure initl
+*
+*  this procedure initializes the spg4 propagator. all the initialization is
+*    consolidated here instead of having multiple loops inside other routines.
+*
+*  author        : david vallado                  719-573-2600   28 jun 2005
+*
+*  inputs        :
+*    satn        - satellite number - not needed, placed in satrec
+*    xke         - reciprocal of tumin
+*    j2          - j2 zonal harmonic
+*    ecco        - eccentricity                           0.0 - 1.0
+*    epoch       - epoch time in days from jan 0, 1950. 0 hr
+*    inclo       - inclination of satellite
+*    no          - mean motion of satellite
+*
+*  outputs       :
+*    ainv        - 1.0 / a
+*    ao          - semi major axis
+*    con41       -
+*    con42       - 1.0 - 5.0 cos(i)
+*    cosio       - cosine of inclination
+*    cosio2      - cosio squared
+*    eccsq       - eccentricity squared
+*    method      - flag for deep space                    'd', 'n'
+*    omeosq      - 1.0 - ecco * ecco
+*    posq        - semi-parameter squared
+*    rp          - radius of perigee
+*    rteosq      - square root of (1.0 - ecco*ecco)
+*    sinio       - sine of inclination
+*    gsto        - gst at time of observation               rad
+*    no          - mean motion of satellite
+*
+*  locals        :
+*    ak          -
+*    d1          -
+*    del         -
+*    adel        -
+*    po          -
+*
+*  coupling      :
+*    getgravconst- no longer used
+*    gstime      - find greenwich sidereal time from the julian date
+*
+*  references    :
+*    hoots, roehrich, norad spacetrack report #3 1980
+*    hoots, norad spacetrack report #6 1986
+*    hoots, schumacher and glover 2004
+*    vallado, crawford, hujsak, kelso  2006
+----------------------------------------------------------------------------*/
 
 void initl(double epoch, ElsetRec *rec)
 {
@@ -719,7 +1063,7 @@ void initl(double epoch, ElsetRec *rec)
     // sgp4fix use old way of finding gst
     double ds70;
     double ts70, tfrac, c1, thgr70, fk5r, c1p2p;
-        
+
     /* ----------------------- earth constants ---------------------- */
     // sgp4fix identify constants and allow alternate values
     // only xke and j2 are used here so pass them in directly
@@ -765,7 +1109,7 @@ void initl(double epoch, ElsetRec *rec)
     thgr70 = 1.7321343856509374;
     fk5r = 5.07551419432269442e-15;
     c1p2p = c1 + twopi;
-    double gsto1 = fmod(thgr70 + c1*ds70 + c1p2p*tfrac + ts70*ts70*fk5r, twopi);
+    double gsto1 = fmod(thgr70 + c1 * ds70 + c1p2p * tfrac + ts70 * ts70 * fk5r, twopi);
     if (gsto1 < 0.0)
         gsto1 = gsto1 + twopi;
     //    }
@@ -774,21 +1118,102 @@ void initl(double epoch, ElsetRec *rec)
 
 }  // initl
 
+/*-----------------------------------------------------------------------------
+*
+*                             procedure sgp4init
+*
+*  this procedure initializes variables for sgp4.
+*
+*  author        : david vallado                  719-573-2600   28 jun 2005
+*
+*  inputs        :
+*    opsmode     - mode of operation afspc or improved 'a', 'i'
+*    whichconst  - which set of constants to use  72, 84
+*    satn        - satellite number
+*    bstar       - sgp4 type drag coefficient              kg/m2er
+*    ecco        - eccentricity
+*    epoch       - epoch time in days from jan 0, 1950. 0 hr
+*    argpo       - argument of perigee (output if ds)
+*    inclo       - inclination
+*    mo          - mean anomaly (output if ds)
+*    no          - mean motion
+*    nodeo       - right ascension of ascending node
+*
+*  outputs       :
+*    satrec      - common values for subsequent calls
+*    return code - non-zero on error.
+*                   1 - mean elements, ecc >= 1.0 or ecc < -0.001 or a < 0.95 er
+*                   2 - mean motion less than 0.0
+*                   3 - pert elements, ecc < 0.0  or  ecc > 1.0
+*                   4 - semi-latus rectum < 0.0
+*                   5 - epoch elements are sub-orbital
+*                   6 - satellite has decayed
+*
+*  locals        :
+*    cnodm  , snodm  , cosim  , sinim  , cosomm , sinomm
+*    cc1sq  , cc2    , cc3
+*    coef   , coef1
+*    cosio4      -
+*    day         -
+*    dndt        -
+*    em          - eccentricity
+*    emsq        - eccentricity squared
+*    eeta        -
+*    etasq       -
+*    gam         -
+*    argpm       - argument of perigee
+*    nodem       -
+*    inclm       - inclination
+*    mm          - mean anomaly
+*    nm          - mean motion
+*    perige      - perigee
+*    pinvsq      -
+*    psisq       -
+*    qzms24      -
+*    rtemsq      -
+*    s1, s2, s3, s4, s5, s6, s7          -
+*    sfour       -
+*    ss1, ss2, ss3, ss4, ss5, ss6, ss7         -
+*    sz1, sz2, sz3
+*    sz11, sz12, sz13, sz21, sz22, sz23, sz31, sz32, sz33        -
+*    tc          -
+*    temp        -
+*    temp1, temp2, temp3       -
+*    tsi         -
+*    xpidot      -
+*    xhdot1      -
+*    z1, z2, z3          -
+*    z11, z12, z13, z21, z22, z23, z31, z32, z33         -
+*
+*  coupling      :
+*    getgravconst-
+*    initl       -
+*    dscom       -
+*    dpper       -
+*    dsinit      -
+*    sgp4        -
+*
+*  references    :
+*    hoots, roehrich, norad spacetrack report #3 1980
+*    hoots, norad spacetrack report #6 1986
+*    hoots, schumacher and glover 2004
+*    vallado, crawford, hujsak, kelso  2006
+----------------------------------------------------------------------------*/
 
-bool sgp4init ( char opsmode,ElsetRec *satrec)
+bool sgp4init(char opsmode, ElsetRec *satrec)
 {
     /* --------------------- local variables ------------------------ */
-        
+
     double cc1sq,
         cc2, cc3, coef, coef1, cosio4,
         eeta, etasq, perige, pinvsq, psisq, qzms24,
-        sfour,tc, temp, temp1, temp2, temp3, tsi, xpidot,
-        xhdot1,qzms2t, ss, x2o3, r[3], v[3],
+        sfour, tc, temp, temp1, temp2, temp3, tsi, xpidot,
+        xhdot1, qzms2t, ss, x2o3, r[3], v[3],
         delmotemp, qzms2ttemp, qzms24temp;
-        
-                       
+
+
     double epoch = (satrec->jdsatepoch + satrec->jdsatepochF) - 2433281.5;
-        
+
     /* ------------------------ initialization --------------------- */
     // sgp4fix divisor for divide by zero check on inclination
     // the old check used 1.0 + cos(pi-1.0e-9), but then compared it to
@@ -854,9 +1279,9 @@ bool sgp4init ( char opsmode,ElsetRec *satrec)
     satrec->t = 0.0;
 
     // sgp4fix remove satn as it is not needed in initl
-        
-    initl(epoch,satrec);
-        
+
+    initl(epoch, satrec);
+
     satrec->a = pow(satrec->no_unkozai * satrec->tumin, (-2.0 / 3.0));
     satrec->alta = satrec->a * (1.0 + satrec->ecco) - 1.0;
     satrec->altp = satrec->a * (1.0 - satrec->ecco) - 1.0;
@@ -907,12 +1332,12 @@ bool sgp4init ( char opsmode,ElsetRec *satrec)
         if (satrec->ecco > 1.0e-4)
             cc3 = -2.0 * coef * tsi * satrec->j3oj2 * satrec->no_unkozai * satrec->sinio / satrec->ecco;
         satrec->x1mth2 = 1.0 - satrec->cosio2;
-        satrec->cc4 = 2.0* satrec->no_unkozai * coef1 * satrec->ao * satrec->omeosq *
+        satrec->cc4 = 2.0 * satrec->no_unkozai * coef1 * satrec->ao * satrec->omeosq *
             (satrec->eta * (2.0 + 0.5 * etasq) + satrec->ecco *
-            (0.5 + 2.0 * etasq) - satrec->j2 * tsi / (satrec->ao * psisq) *
-            (-3.0 * satrec->con41 * (1.0 - 2.0 * eeta + etasq *
-            (1.5 - 0.5 * eeta)) + 0.75 * satrec->x1mth2 *
-            (2.0 * etasq - eeta * (1.0 + etasq)) * cos(2.0 * satrec->argpo)));
+                (0.5 + 2.0 * etasq) - satrec->j2 * tsi / (satrec->ao * psisq) *
+                (-3.0 * satrec->con41 * (1.0 - 2.0 * eeta + etasq *
+                    (1.5 - 0.5 * eeta)) + 0.75 * satrec->x1mth2 *
+                    (2.0 * etasq - eeta * (1.0 + etasq)) * cos(2.0 * satrec->argpo)));
         satrec->cc5 = 2.0 * coef1 * satrec->ao * satrec->omeosq * (1.0 + 2.75 *
             (etasq + eeta) + eeta * etasq);
         cosio4 = satrec->cosio2 * satrec->cosio2;
@@ -947,23 +1372,23 @@ bool sgp4init ( char opsmode,ElsetRec *satrec)
         satrec->x7thm1 = 7.0 * satrec->cosio2 - 1.0;
 
         /* --------------- deep space initialization ------------- */
-        if ((2 * pi / satrec->no_unkozai) >= 225.0)
+        if ((2 * PI / satrec->no_unkozai) >= 225.0)
         {
             satrec->method = 'd';
             satrec->isimp = 1;
             tc = 0.0;
             satrec->inclm = satrec->inclo;
 
-            dscom(epoch, satrec->ecco, satrec->argpo, tc, satrec->inclo, satrec->nodeo, satrec->no_unkozai,satrec);
-                
-                
-            satrec->ep=satrec->ecco;
-            satrec->inclp=satrec->inclo;
-            satrec->nodep=satrec->nodeo;
-            satrec->argpp=satrec->argpo;
-            satrec->mp=satrec->mo;
+            dscom(epoch, satrec->ecco, satrec->argpo, tc, satrec->inclo, satrec->nodeo, satrec->no_unkozai, satrec);
 
-                
+
+            satrec->ep = satrec->ecco;
+            satrec->inclp = satrec->inclo;
+            satrec->nodep = satrec->nodeo;
+            satrec->argpp = satrec->argpo;
+            satrec->mp = satrec->mo;
+
+
             dpper(satrec->e3, satrec->ee2, satrec->peo, satrec->pgho,
                 satrec->pho, satrec->pinco, satrec->plo, satrec->se2,
                 satrec->se3, satrec->sgh2, satrec->sgh3, satrec->sgh4,
@@ -971,21 +1396,21 @@ bool sgp4init ( char opsmode,ElsetRec *satrec)
                 satrec->sl2, satrec->sl3, satrec->sl4, satrec->t,
                 satrec->xgh2, satrec->xgh3, satrec->xgh4, satrec->xh2,
                 satrec->xh3, satrec->xi2, satrec->xi3, satrec->xl2,
-                satrec->xl3, satrec->xl4, satrec->zmol, satrec->zmos, satrec->init,satrec,
+                satrec->xl3, satrec->xl4, satrec->zmol, satrec->zmos, satrec->init, satrec,
                 satrec->operationmode);
 
 
-            satrec->ecco=satrec->ep;
-            satrec->inclo=satrec->inclp;
-            satrec->nodeo=satrec->nodep;
-            satrec->argpo=satrec->argpp;
-            satrec->mo=satrec->mp;
+            satrec->ecco = satrec->ep;
+            satrec->inclo = satrec->inclp;
+            satrec->nodeo = satrec->nodep;
+            satrec->argpo = satrec->argpp;
+            satrec->mo = satrec->mp;
 
 
             satrec->argpm = 0.0;
             satrec->nodem = 0.0;
             satrec->mm = 0.0;
-                
+
             dsinit(tc, xpidot, satrec);
         }
 
@@ -1010,23 +1435,110 @@ bool sgp4init ( char opsmode,ElsetRec *satrec)
     /* finally propogate to zero epoch to initialize all others. */
     // sgp4fix take out check to let satellites process until they are actually below earth surface
     //       if(satrec->error == 0)
-        
-        
+
+
     sgp4(satrec, 0.0, r, v);
 
     satrec->init = 'n';
 
     //sgp4fix return boolean. satrec->error contains any error codes
-    return true;
+    return TRUE;
 }  // sgp4init
 
+/*-----------------------------------------------------------------------------
+*
+*                             procedure sgp4
+*
+*  this procedure is the sgp4 prediction model from space command. this is an
+*    updated and combined version of sgp4 and sdp4, which were originally
+*    published separately in spacetrack report #3. this version follows the
+*    methodology from the aiaa paper (2006) describing the history and
+*    development of the code.
+*
+*  author        : david vallado                  719-573-2600   28 jun 2005
+*
+*  inputs        :
+*    satrec     - initialised structure from sgp4init() call.
+*    tsince     - time since epoch (minutes)
+*
+*  outputs       :
+*    r           - position vector                     km
+*    v           - velocity                            km/sec
+*  return code - non-zero on error.
+*                   1 - mean elements, ecc >= 1.0 or ecc < -0.001 or a < 0.95 er
+*                   2 - mean motion less than 0.0
+*                   3 - pert elements, ecc < 0.0  or  ecc > 1.0
+*                   4 - semi-latus rectum < 0.0
+*                   5 - epoch elements are sub-orbital
+*                   6 - satellite has decayed
+*
+*  locals        :
+*    am          -
+*    axnl, aynl        -
+*    betal       -
+*    cosim   , sinim   , cosomm  , sinomm  , cnod    , snod    , cos2u   ,
+*    sin2u   , coseo1  , sineo1  , cosi    , sini    , cosip   , sinip   ,
+*    cosisq  , cossu   , sinsu   , cosu    , sinu
+*    delm        -
+*    delomg      -
+*    dndt        -
+*    eccm        -
+*    emsq        -
+*    ecose       -
+*    el2         -
+*    eo1         -
+*    eccp        -
+*    esine       -
+*    argpm       -
+*    argpp       -
+*    omgadf      -c
+*    pl          -
+*    r           -
+*    rtemsq      -
+*    rdotl       -
+*    rl          -
+*    rvdot       -
+*    rvdotl      -
+*    su          -
+*    t2  , t3   , t4    , tc
+*    tem5, temp , temp1 , temp2  , tempa  , tempe  , templ
+*    u   , ux   , uy    , uz     , vx     , vy     , vz
+*    inclm       - inclination
+*    mm          - mean anomaly
+*    nm          - mean motion
+*    nodem       - right asc of ascending node
+*    xinc        -
+*    xincp       -
+*    xl          -
+*    xlm         -
+*    mp          -
+*    xmdf        -
+*    xmx         -
+*    xmy         -
+*    nodedf      -
+*    xnode       -
+*    nodep       -
+*    np          -
+*
+*  coupling      :
+*    getgravconst- no longer used. Variables are conatined within satrec
+*    dpper
+*    dpspace
+*
+*  references    :
+*    hoots, roehrich, norad spacetrack report #3 1980
+*    hoots, norad spacetrack report #6 1986
+*    hoots, schumacher and glover 2004
+*    vallado, crawford, hujsak, kelso  2006
+----------------------------------------------------------------------------*/
 
 bool sgp4
-    (
+(
     ElsetRec *satrec, double tsince,
     double *r, double *v
-    ) {
-        
+)
+{
+
     double axnl, aynl, betal, cnod,
         cos2u, coseo1, cosi, cosip, cosisq, cossu, cosu,
         delm, delomg, ecose, el2, eo1,
@@ -1039,7 +1551,7 @@ bool sgp4
         xinc, xincp, xl, xlm,
         xmdf, xmx, xmy, nodedf, xnode, tc,
         x2o3, vkmpersec, delmtemp;
-        
+
     int ktr;
 
     /* ------------------ set mathematical constants --------------- */
@@ -1075,7 +1587,7 @@ bool sgp4
     t3 = 0;
     t4 = 0;
     mrt = 0;
-        
+
     if (satrec->isimp != 1)
     {
         delomg = satrec->omgcof * satrec->t;
@@ -1083,7 +1595,7 @@ bool sgp4
         delmtemp = 1.0 + satrec->eta * cos(xmdf);
         delm = satrec->xmcof *
             (delmtemp * delmtemp * delmtemp -
-            satrec->delmo);
+                satrec->delmo);
         temp = delomg + delm;
         satrec->mm = xmdf + temp;
         satrec->argpm = argpdf - temp;
@@ -1091,11 +1603,11 @@ bool sgp4
         t4 = t3 * satrec->t;
         tempa = tempa - satrec->d2 * t2 - satrec->d3 * t3 -
             satrec->d4 * t4;
-        tempe = tempe + satrec->bstar * satrec->cc5 * (sin(satrec->mm) -satrec->sinmao);
+        tempe = tempe + satrec->bstar * satrec->cc5 * (sin(satrec->mm) - satrec->sinmao);
         templ = templ + satrec->t3cof * t3 + t4 * (satrec->t4cof + satrec->t * satrec->t5cof);
     }
 
-        
+
     tc = 0;
     satrec->nm = satrec->no_unkozai;
     satrec->em = satrec->ecco;
@@ -1103,16 +1615,16 @@ bool sgp4
     if (satrec->method == 'd')
     {
         tc = satrec->t;
-        dspace(tc,satrec);        
+        dspace(tc, satrec);
     } // if method = d
 
     if (satrec->nm <= 0.0)
     {
         satrec->error = 2;
         // sgp4fix add return
-        return false;
+        return FALSE;
     }
-        
+
     satrec->am = pow((satrec->xke / satrec->nm), x2o3) * tempa * tempa;
     satrec->nm = satrec->xke / pow(satrec->am, 1.5);
     satrec->em = satrec->em - tempe;
@@ -1123,7 +1635,7 @@ bool sgp4
     {
         satrec->error = 1;
         // sgp4fix to return if there is an error in eccentricity
-        return false;
+        return FALSE;
     }
     // sgp4fix fix tolerance to avoid a divide by zero
     if (satrec->em < 1.0e-6)
@@ -1163,27 +1675,27 @@ bool sgp4
     if (satrec->method == 'd')
     {
         dpper(satrec->e3, satrec->ee2, satrec->peo, satrec->pgho,
-                satrec->pho, satrec->pinco, satrec->plo, satrec->se2,
-                satrec->se3, satrec->sgh2, satrec->sgh3, satrec->sgh4,
-                satrec->sh2, satrec->sh3, satrec->si2, satrec->si3,
-                satrec->sl2, satrec->sl3, satrec->sl4, satrec->t,
-                satrec->xgh2, satrec->xgh3, satrec->xgh4, satrec->xh2,
-                satrec->xh3, satrec->xi2, satrec->xi3, satrec->xl2,
-                satrec->xl3, satrec->xl4, satrec->zmol, satrec->zmos, 
-                'n', satrec, satrec->operationmode);
-            
+            satrec->pho, satrec->pinco, satrec->plo, satrec->se2,
+            satrec->se3, satrec->sgh2, satrec->sgh3, satrec->sgh4,
+            satrec->sh2, satrec->sh3, satrec->si2, satrec->si3,
+            satrec->sl2, satrec->sl3, satrec->sl4, satrec->t,
+            satrec->xgh2, satrec->xgh3, satrec->xgh4, satrec->xh2,
+            satrec->xh3, satrec->xi2, satrec->xi3, satrec->xl2,
+            satrec->xl3, satrec->xl4, satrec->zmol, satrec->zmos,
+            'n', satrec, satrec->operationmode);
+
         xincp = satrec->inclp;
         if (xincp < 0.0)
         {
             xincp = -xincp;
-            satrec->nodep = satrec->nodep + pi;
-            satrec->argpp = satrec->argpp - pi;
+            satrec->nodep = satrec->nodep + PI;
+            satrec->argpp = satrec->argpp - PI;
         }
         if ((satrec->ep < 0.0) || (satrec->ep > 1.0))
         {
             satrec->error = 3;
             // sgp4fix add return
-            return false;
+            return FALSE;
         }
     } // if method = d
 
@@ -1192,7 +1704,7 @@ bool sgp4
     {
         sinip = sin(xincp);
         cosip = cos(xincp);
-        satrec->aycof = -0.5*satrec->j3oj2*sinip;
+        satrec->aycof = -0.5 * satrec->j3oj2 * sinip;
         // sgp4fix for divide by zero for xincp = 180 deg
         if (fabs(cosip + 1.0) > 1.5e-12)
             satrec->xlcof = -0.25 * satrec->j3oj2 * sinip * (3.0 + 5.0 * cosip) / (1.0 + cosip);
@@ -1201,7 +1713,7 @@ bool sgp4
     }
     axnl = satrec->ep * cos(satrec->argpp);
     temp = 1.0 / (satrec->am * (1.0 - satrec->ep * satrec->ep));
-    aynl = satrec->ep* sin(satrec->argpp) + temp * satrec->aycof;
+    aynl = satrec->ep * sin(satrec->argpp) + temp * satrec->aycof;
     xl = satrec->mp + satrec->argpp + satrec->nodep + temp * satrec->xlcof * axnl;
 
     /* --------------------- solve kepler's equation --------------- */
@@ -1226,15 +1738,15 @@ bool sgp4
     }
 
     /* ------------- short period preliminary quantities ----------- */
-    ecose = axnl*coseo1 + aynl*sineo1;
-    esine = axnl*sineo1 - aynl*coseo1;
-    el2 = axnl*axnl + aynl*aynl;
-    pl = satrec->am*(1.0 - el2);
+    ecose = axnl * coseo1 + aynl * sineo1;
+    esine = axnl * sineo1 - aynl * coseo1;
+    el2 = axnl * axnl + aynl * aynl;
+    pl = satrec->am * (1.0 - el2);
     if (pl < 0.0)
     {
         satrec->error = 4;
         // sgp4fix add return
-        return false;
+        return FALSE;
     }
     else
     {
@@ -1256,9 +1768,9 @@ bool sgp4
         if (satrec->method == 'd')
         {
             cosisq = cosip * cosip;
-            satrec->con41 = 3.0*cosisq - 1.0;
+            satrec->con41 = 3.0 * cosisq - 1.0;
             satrec->x1mth2 = 1.0 - cosisq;
-            satrec->x7thm1 = 7.0*cosisq - 1.0;
+            satrec->x7thm1 = 7.0 * cosisq - 1.0;
         }
         mrt = rl * (1.0 - 1.5 * temp2 * betal * satrec->con41) +
             0.5 * temp1 * satrec->x1mth2 * cos2u;
@@ -1286,9 +1798,9 @@ bool sgp4
         vz = sini * cossu;
 
         /* --------- position and velocity (in km and km/sec) ---------- */
-        r[0] = (mrt * ux)* satrec->radiusearthkm;
-        r[1] = (mrt * uy)* satrec->radiusearthkm;
-        r[2] = (mrt * uz)* satrec->radiusearthkm;
+        r[0] = (mrt * ux) * satrec->radiusearthkm;
+        r[1] = (mrt * uy) * satrec->radiusearthkm;
+        r[2] = (mrt * uz) * satrec->radiusearthkm;
         v[0] = (mvt * ux + rvdot * vx) * vkmpersec;
         v[1] = (mvt * uy + rvdot * vy) * vkmpersec;
         v[2] = (mvt * uz + rvdot * vz) * vkmpersec;
@@ -1298,14 +1810,46 @@ bool sgp4
     if (mrt < 1.0)
     {
         satrec->error = 6;
-        return false;
+        return FALSE;
     }
 
-    return true;
+    return TRUE;
 }  // sgp4
 
 
-void getgravconst(int whichconst, ElsetRec *rec) {
+
+/* -----------------------------------------------------------------------------
+*
+*                           function getgravconst
+*
+*  this function gets constants for the propagator. note that mu is identified to
+*    facilitiate comparisons with newer models. the common useage is wgs72.
+*
+*  author        : david vallado                  719-573-2600   21 jul 2006
+*
+*  inputs        :
+*    whichconst  - which set of constants to use  wgs72old, wgs72, wgs84
+*
+*  outputs       :
+*    tumin       - minutes in one time unit
+*    mu          - earth gravitational parameter
+*    radiusearthkm - radius of the earth in km
+*    xke         - reciprocal of tumin
+*    j2, j3, j4  - un-normalized zonal harmonic values
+*    j3oj2       - j3 divided by j2
+*
+*  locals        :
+*
+*  coupling      :
+*    none
+*
+*  references    :
+*    norad spacetrack report #3
+*    vallado, crawford, hujsak, kelso  2006
+--------------------------------------------------------------------------- */
+
+void getgravconst(int whichconst, ElsetRec *rec)
+{
     rec->whichconst = whichconst;
     switch (whichconst)
     {
@@ -1324,7 +1868,7 @@ void getgravconst(int whichconst, ElsetRec *rec) {
     case wgs72:
         rec->mu = 398600.8;            // in km3 / s2
         rec->radiusearthkm = 6378.135;     // km
-        rec->xke = 60.0 / sqrt(rec->radiusearthkm*rec->radiusearthkm*rec->radiusearthkm / rec->mu);
+        rec->xke = 60.0 / sqrt(rec->radiusearthkm * rec->radiusearthkm * rec->radiusearthkm / rec->mu);
         rec->tumin = 1.0 / rec->xke;
         rec->j2 = 0.001082616;
         rec->j3 = -0.00000253881;
@@ -1336,7 +1880,7 @@ void getgravconst(int whichconst, ElsetRec *rec) {
         // ------------ wgs-84 constants ------------
         rec->mu = 398600.5;            // in km3 / s2
         rec->radiusearthkm = 6378.137;     // km
-        rec->xke = 60.0 / sqrt(rec->radiusearthkm*rec->radiusearthkm*rec->radiusearthkm / rec->mu);
+        rec->xke = 60.0 / sqrt(rec->radiusearthkm * rec->radiusearthkm * rec->radiusearthkm / rec->mu);
         rec->tumin = 1.0 / rec->xke;
         rec->j2 = 0.00108262998905;
         rec->j3 = -0.00000253215306;
@@ -1348,23 +1892,83 @@ void getgravconst(int whichconst, ElsetRec *rec) {
 }   // getgravconst
 
 
-double gstime(double jdut1) {
+/* -----------------------------------------------------------------------------
+*
+*                           function gstime
+*
+*  this function finds the greenwich sidereal time.
+*
+*  author        : david vallado                  719-573-2600    1 mar 2001
+*
+*  inputs          description                    range / units
+*    jdut1       - julian date in ut1             days from 4713 bc
+*
+*  outputs       :
+*    gstime      - greenwich sidereal time        0 to 2pi rad
+*
+*  locals        :
+*    temp        - temporary variable for doubles   rad
+*    tut1        - julian centuries from the
+*                  jan 1, 2000 12 h epoch (ut1)
+*
+*  coupling      :
+*    none
+*
+*  references    :
+*    vallado       2013, 187, eq 3-45
+* --------------------------------------------------------------------------- */
+
+double gstime(double jdut1)
+{
     double       temp, tut1;
 
     tut1 = (jdut1 - 2451545.0) / 36525.0;
-    temp = -6.2e-6* tut1 * tut1 * tut1 + 0.093104 * tut1 * tut1 +
+    temp = -6.2e-6 * tut1 * tut1 * tut1 + 0.093104 * tut1 * tut1 +
         (876600.0 * 3600 + 8640184.812866) * tut1 + 67310.54841;  // sec
-    temp = std::fmod(temp * deg2rad / 240.0, twopi); //360/86400 = 1/240, to deg, to rad
-        
+    temp = fmod(temp * deg2rad / 240.0, twopi); //360/86400 = 1/240, to deg, to rad
+
     // ------------------------ check quadrants ---------------------
     if (temp < 0.0)
         temp += twopi;
 
     return temp;
 }  // gstime
-    
-    
-void jday(int year, int mon, int day, int hr, int minute, double sec, double *jd, double *jdfrac) {
+
+/* -----------------------------------------------------------------------------
+*
+*                           procedure jday
+*
+*  this procedure finds the julian date given the year, month, day, and time.
+*    the julian date is defined by each elapsed day since noon, jan 1, 4713 bc.
+*
+*  algorithm     : calculate the answer in one step for efficiency
+*
+*  author        : david vallado                  719-573-2600    1 mar 2001
+*
+*  inputs          description                    range / units
+*    year        - year                           1900 .. 2100
+*    mon         - month                          1 .. 12
+*    day         - day                            1 .. 28,29,30,31
+*    hr          - universal time hour            0 .. 23
+*    min         - universal time min             0 .. 59
+*    sec         - universal time sec             0.0 .. 59.999
+*
+*  outputs       :
+*    jd          - julian date                    days from 4713 bc
+*    jdfrac      - julian date fraction into day  days from 4713 bc
+*
+*  locals        :
+*    none.
+*
+*  coupling      :
+*    none.
+*
+*  references    :
+*    vallado       2013, 183, alg 14, ex 3-4
+* --------------------------------------------------------------------------- */
+
+void jday(int year, int mon, int day, int hr, int minute, double sec, double *jd, double *jdfrac)
+{
 
     *jd = 367.0 * year -
         floor((7 * (year + floor((mon + 9) / 12.0))) * 0.25) +
