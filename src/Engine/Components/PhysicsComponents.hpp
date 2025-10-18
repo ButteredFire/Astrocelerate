@@ -64,6 +64,7 @@ namespace PhysicsComponent {
 
 		std::string tleLine1;			// First TLE line detailing orbital elements for propagation. This is dynamically populated from the TLE file.
 		std::string tleLine2;			// Second TLE line detailing orbital elements for propagation. This is dynamically populated from the TLE file.
+		double tleEpochET;				// The TLE's epoch, measured as TDB seconds elapsed since the J2000 epoch.
 
 		TLE tle;						// The TLE instance.
 	};

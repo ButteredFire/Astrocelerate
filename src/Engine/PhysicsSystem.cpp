@@ -172,12 +172,12 @@ void PhysicsSystem::updateGeneralBodies(const double dt, const double et) {
 
 
 void PhysicsSystem::propagateBodies(const double et) {
-	const double secondsSinceEpoch = et - m_coordSystem->getEpochET();
-	const double minutesSinceEpoch = secondsSinceEpoch / 60.0;
-
 	auto view = m_registry->getView<PhysicsComponent::Propagator, CoreComponent::Transform, PhysicsComponent::RigidBody>();
 
 	for (auto &&[entityID, propagator, transform, rigidBody] : view) {
+		const double secondsSinceEpoch = et - propagator.tleEpochET;
+		const double minutesSinceEpoch = secondsSinceEpoch / 60.0;
+
 		double position[3], velocity[3];
 		propagator.tle.getRV(minutesSinceEpoch, position, velocity);
 
@@ -204,7 +204,7 @@ void PhysicsSystem::propagateBodies(const double et) {
 
 		double dr = glm::length(rJ - rT);
 		double angular = glm::degrees(acos(glm::dot(glm::normalize(rJ), glm::normalize(rT)))); // deg
-		std::cout << " |Δr| = " << dr << " km, angular = " << angular << " deg\n";
+		std::cout << " |delta-r| = " << dr << " km, angular = " << angular << " deg\n";
 
 
 
@@ -235,6 +235,9 @@ void PhysicsSystem::homogenizeCoordinateSystems() {
 	auto view = m_registry->getView<PhysicsComponent::Propagator, CoreComponent::Transform, PhysicsComponent::RigidBody>();
 
 	for (auto &&[entityID, propagator, transform, rigidBody] : view) {
+		// Compute TLE epoch
+		propagator.tleEpochET = SPICEUtils::tleEpochToET(propagator.tleLine1);
+
 		// Get state vector from TLE
 		propagator.tle.parseLines(propagator.tleLine1, propagator.tleLine2);
 

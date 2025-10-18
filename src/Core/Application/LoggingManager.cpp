@@ -3,9 +3,9 @@
 
 
 namespace LogSpacing {
-	const int THREAD_INFO_MAX_WIDTH_OS = 40;
+	const int THREAD_INFO_MAX_WIDTH_OS = 30;
 	const int DISPLAY_TYPE_WIDTH = 9;
-	const int CALLER_WIDTH = 40;
+	const int CALLER_WIDTH = 50;
 }
 
 

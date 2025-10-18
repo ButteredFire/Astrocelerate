@@ -30,7 +30,7 @@ void UIPanelManager::bindEvents() {
 		[this](const UpdateEvent::SceneLoadProgress &event) {
 			// NOTE: These updates will happen on the worker thread, but ImGui drawing happens on the main thread.
 			// Accessing these members directly is fine as they're simple types and updates will be observed eventually.
-			// For complex UI state, a concurrent queue or a deferred update might be needed.
+			// For complex UI states, a concurrent queue or a deferred update might be needed.
 			m_showLoadingModal = true;
 			m_currentLoadProgress = event.progress;
 			m_currentLoadMessage = event.message;
@@ -286,14 +286,16 @@ void UIPanelManager::renderPreferencesPanel() {
 	};
 	static const enum SelectedOption {
 		OPTION_APPEARANCE_COLOR_THEME,
-		OPTION_DEBUGGING_CONSOLE
+		OPTION_DEBUGGING_CONSOLE,
+		OPTION_DEBUGGING_NEXT_LAUNCH
 	};
 	static const std::unordered_map<std::variant<SelectedTree, SelectedOption>, const char *> SelectedOptionNames = {
 		{TREE_APPEARANCE,		"Appearance"},
 			{OPTION_APPEARANCE_COLOR_THEME,		"Color theme"},
 
 		{TREE_DEBUGGING,		"Debugging"},
-			{OPTION_DEBUGGING_CONSOLE,			"Console"}
+			{OPTION_DEBUGGING_CONSOLE,			"Console (GUI)"},
+			{OPTION_DEBUGGING_NEXT_LAUNCH,		"Next launch"}
 
 	};
 	static SelectedTree currentTree = TREE_APPEARANCE;
@@ -423,19 +425,21 @@ void UIPanelManager::renderPreferencesPanel() {
 		ImGui::AlignTextToFramePadding();
 
 		// Header
-		ImGui::SeparatorText(SelectedOptionNames.at(currentTree));
+		ImGuiUtils::BoldText(SelectedOptionNames.at(currentTree));
 
 
 		// Content/Details
 		switch (currentTree) {
 		case TREE_APPEARANCE:
-			ImGuiUtils::BoldText(SelectedOptionNames.at(OPTION_APPEARANCE_COLOR_THEME));
+			ImGui::SeparatorText(SelectedOptionNames.at(OPTION_APPEARANCE_COLOR_THEME));
+			ImGui::Indent();
 			{
 				if (currentSelection == OPTION_APPEARANCE_COLOR_THEME)
 					ImGui::ScrollToItem();
 
+
 				using namespace ImGuiTheme;
-				ImGui::TextWrapped("\tTheme:");
+				ImGui::Text("Theme:");
 
 				ImGui::SameLine();
 				ImGui::SetNextItemWidth(150.0f);
@@ -455,22 +459,53 @@ void UIPanelManager::renderPreferencesPanel() {
 					ImGui::EndCombo();
 				}
 			}
+			ImGui::Unindent();
 
 			break;
+			
+
 
 		case TREE_DEBUGGING:
-			ImGuiUtils::BoldText(SelectedOptionNames.at(OPTION_DEBUGGING_CONSOLE));
+			ImGui::SeparatorText(SelectedOptionNames.at(OPTION_DEBUGGING_CONSOLE));
+			ImGui::Indent();
 			{
 				if (currentSelection == OPTION_DEBUGGING_CONSOLE)
 					ImGui::ScrollToItem();
 
-				ImGui::TextWrapped("\tMaximum log buffer size:");
+
+				ImGui::Text("Maximum log buffer size:");
 				ImGui::SameLine();
 
 				ImGui::SetNextItemWidth(150.0f);
 				ImGui::InputInt("##LogBufferSize", &Log::MaxLogLines, 0, 0);
 				ImGuiUtils::CursorOnHover(ImGuiMouseCursor_TextInput);
 			}
+			ImGui::Unindent();
+
+
+			ImGui::SeparatorText(SelectedOptionNames.at(OPTION_DEBUGGING_NEXT_LAUNCH));
+			ImGui::Indent();
+			{
+				if (currentSelection == OPTION_DEBUGGING_NEXT_LAUNCH)
+					ImGui::ScrollToItem();
+
+
+				// Debug mode
+				static bool enableDebMode = false;
+				if (ImGui::Checkbox("Enable debug mode", &enableDebMode)) {
+					if (enableDebMode) {}
+					else {}
+				}
+
+				// Show default console
+				static bool showDefaultConsole = false;
+				if (ImGui::Checkbox("Show default console", &showDefaultConsole)) {
+					if (showDefaultConsole) {}
+					else {}
+				}
+			}
+			ImGui::Unindent();
+
 
 			break;
 		}

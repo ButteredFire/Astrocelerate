@@ -107,13 +107,16 @@ Các nguyên tắc này có thể thay đổi theo thời gian, khi Astrocelerat
 
 
 # Lịch sử
-Astrocelerate thực hiện commit đầu tiên vào ngày 28 tháng 11 năm 2024. Tính đến ngày 10 tháng 7 năm 2025, công cụ đã được phát triển trong 7 tháng:
+Astrocelerate thực hiện commit đầu tiên vào ngày 28 tháng 11 năm 2024. Tính đến ngày 18 tháng 10 năm 2025, công cụ đã được phát triển trong 11 tháng:
 - Phiên bản cũ (OpenGL): 2 tháng
-- Phiên bản mới (Vulkan): 5 tháng
+- Phiên bản mới (Vulkan): 9 tháng
 
 
 ## Kho ảnh
-Các ảnh chụp màn hình sau đây ghi lại quá trình phát triển của Astrocelerate.
+Các ảnh chụp màn hình sau đây ghi lại quá trình phát triển của Astrocelerate (Format ngày: ngày/tháng/năm).
+
+### 18/10/2025 (sau 2 tháng ngừng phát triển)
+<img width="1919" height="1030" alt="2025-10-18" src="https://github.com/user-attachments/assets/723a596f-fc3f-4507-9b71-cc26dbe89690" />
 
 ### 16/08/2025
 <img width="1919" height="1031" alt="2025-08-16" src="https://github.com/user-attachments/assets/d0979618-2afa-4734-81da-76b5b4051492" />

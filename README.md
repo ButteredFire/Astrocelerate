@@ -102,12 +102,15 @@ These principles are subject to change over time, as Astrocelerate (and I) becom
 
 
 # History
-Astrocelerate made its first commit on November 28th, 2024. As of July 10th, 2025, it has been in development for 7 months:
+Astrocelerate made its first commit on November 28th, 2024. As of October 18th, 2025, it has been in development for 11 months:
 - Legacy engine (OpenGL): 2 months
-- Current engine (Vulkan): 5 months
+- Current engine (Vulkan): 9 months
 
 ## Screenshots
-The following screenshots document the development of Astrocelerate.
+The following screenshots document the development of Astrocelerate (Date format: DD/MM/YYYY).
+
+### 18/10/2025 (after 2-month hiatus)
+<img width="1919" height="1030" alt="2025-10-18" src="https://github.com/user-attachments/assets/723a596f-fc3f-4507-9b71-cc26dbe89690" />
 
 ### 16/08/2025
 <img width="1919" height="1031" alt="2025-08-16" src="https://github.com/user-attachments/assets/d0979618-2afa-4734-81da-76b5b4051492" />

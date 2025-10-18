@@ -264,6 +264,20 @@ void OrbitalWorkspace::renderViewportPanel() {
 			}
 			ImGui::SameLine();
 
+
+			ImGuiUtils::VerticalSeparator();
+
+
+			// Reload simulation button
+			if (!m_simulationConfigPath.empty()) {
+				if (ImGui::Button(ICON_FA_ARROW_ROTATE_RIGHT)) {
+					loadSimulationConfig(m_simulationConfigPath);
+				}
+				ImGuiUtils::CursorOnHover();
+
+				ImGui::SameLine();
+			}
+
 			
 			// Simulation control group
 			ImGui::BeginGroup();
@@ -733,6 +747,9 @@ void OrbitalWorkspace::renderDebugConsole() {
 	static bool processedLogTypes = false;
 	static std::vector<std::string> logTypes;
 
+	static bool essentialLogsOnly = true;
+	static std::unordered_set<Log::MsgType> essentialLogTypes = { Log::T_SUCCESS, Log::T_INFO, Log::T_WARNING, Log::T_ERROR, Log::T_FATAL };
+
 
 	if (!processedLogTypes) {
 		for (size_t i = 0; i < SIZE_OF(Log::MsgTypes); i++) {
@@ -750,9 +767,9 @@ void OrbitalWorkspace::renderDebugConsole() {
 
 	if (ImGui::Begin(GUI::GetPanelName(m_panelDebugConsole), nullptr, m_windowFlags)) {
 		// Filtering
-			// Filter by log type
 		ImGui::BeginGroup();
 		{
+			// Filter by log type
 			ImGui::AlignTextToFramePadding();
 
 			ImGui::Text("Filter by log type:");
@@ -774,6 +791,13 @@ void OrbitalWorkspace::renderDebugConsole() {
 				ImGui::EndCombo();
 			}
 			ImGuiUtils::CursorOnHover();
+
+
+			ImGuiUtils::VerticalSeparator();
+
+
+			// Show only essential logs checkbox
+			ImGui::Checkbox("Only display essential logs", &essentialLogsOnly);
 		}
 		ImGui::EndGroup();
 
@@ -786,6 +810,9 @@ void OrbitalWorkspace::renderDebugConsole() {
 			{
 				for (const auto &log : Log::LogBuffer) {
 					if (selectedLogType != logTypes[0] && selectedLogType != log.displayType)
+						continue;
+
+					if (essentialLogsOnly && essentialLogTypes.count(log.type) == 0)
 						continue;
 
 					ImGui::PushStyleColor(ImGuiCol_Text, ColorUtils::LogMsgTypeToImVec4(log.type));

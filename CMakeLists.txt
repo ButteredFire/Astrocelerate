@@ -10,10 +10,10 @@ project(Astrocelerate)
     add_compile_definitions(APP_NAME="${APP_NAME}")
 
     set(APP_VERSION_MAJOR 0)
-    set(APP_VERSION_MINOR 2)
+    set(APP_VERSION_MINOR 3)
     set(APP_VERSION_PATCH 0)
-    set(APP_VERSION_IDENTIFIERS "alpha")
-    set(APP_VERSION_FULL "${APP_VERSION_MAJOR}.${APP_VERSION_MINOR}.${APP_VERSION_PATCH}-${APP_VERSION_IDENTIFIERS}")
+    set(APP_VERSION_IDENTIFIERS "")
+    set(APP_VERSION_FULL "${APP_VERSION_MAJOR}.${APP_VERSION_MINOR}.${APP_VERSION_PATCH}${APP_VERSION_IDENTIFIERS}")
 
     add_compile_definitions(APP_VERSION="${APP_VERSION_FULL}")
     add_compile_definitions(APP_VERSION_MAJOR="${APP_VERSION_MAJOR}")
@@ -200,6 +200,7 @@ find_package(glm CONFIG REQUIRED)
 find_package(VulkanMemoryAllocator CONFIG REQUIRED)
 find_package(assimp CONFIG REQUIRED)
 find_package(yaml-cpp CONFIG REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
 
 
 # Organize libraries into variables
@@ -211,10 +212,7 @@ set(PKG_LIBS
     GPUOpen::VulkanMemoryAllocator
     assimp::assimp
     yaml-cpp::yaml-cpp
-)
-
-set(FETCHCONTENT_LIBS
-    #assimp
+    nlohmann_json::nlohmann_json
 )
 
 set(EXTERNAL_LIBS
@@ -245,7 +243,7 @@ add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/external/boxer")
 
 
 # Link libraries
-target_link_libraries(Astrocelerate PRIVATE ${SPICE_LIBRARIES} ${PKG_LIBS} ${FETCHCONTENT_LIBS} ${EXTERNAL_LIBS})
+target_link_libraries(Astrocelerate PRIVATE ${SPICE_LIBRARIES} ${PKG_LIBS} ${EXTERNAL_LIBS})
 
 
 # Include library directories
