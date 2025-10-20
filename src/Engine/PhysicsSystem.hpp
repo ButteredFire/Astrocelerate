@@ -14,6 +14,7 @@
 
 #include <Engine/Components/PhysicsComponents.hpp>
 #include <Engine/Components/RenderComponents.hpp>
+#include <Engine/Threading/WorkerThread.hpp>
 
 #include <Simulation/ODEs.hpp>
 #include <Simulation/Systems/CoordinateSystem.hpp>
@@ -32,6 +33,16 @@ public:
 	~PhysicsSystem() = default;
 
 	void configureCoordSys(CoordSys::FrameType frameType, CoordSys::Frame frame, const std::vector<std::string> &kernelPaths, CoordSys::Epoch epoch, const std::string &epochFormat);
+
+
+	/* Advances the simulation time by one tick and returns the accumulated simulation time.
+		NOTE: Since this task could take considerable amounts of time to finish and therefore freeze the main thread, it has been designed to run in a worker thread.
+
+		@param worker: The worker thread in which this function is run.
+
+		@return The accumulated simulation time.
+	*/
+	double tick(std::shared_ptr<WorkerThread> worker);
 
 
 	/* Performs a physics update.
@@ -63,6 +74,7 @@ private:
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 	std::shared_ptr<CoordinateSystem> m_coordSystem;
 
+	double m_accumulator = 0.0;
 	double m_simulationTime = 0.0;		// Simulation time (a.k.a. RELATIVE seconds elapsed since epoch; ABSOLUTE seconds is `epoch + m_simulationTime`)
 
 	void bindEvents();

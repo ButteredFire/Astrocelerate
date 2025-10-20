@@ -74,13 +74,15 @@ void RenderSystem::bindEvents() {
 
 
 void RenderSystem::waitForResources(const EventDispatcher::SubscriberIndex &selfIndex) {
-	ThreadManager::CreateThread("WAIT_RENDER_RESOURCES", [this, selfIndex]() {
+	auto thread = ThreadManager::CreateThread("WAIT_RENDER_RESOURCES");
+	thread->set([this, selfIndex]() {
 		EventFlags eventFlags = EVENT_FLAG_INIT_BUFFER_MANAGER_BIT;
 
 		m_eventDispatcher->waitForEventCallbacks(selfIndex, eventFlags);
 
 		m_sceneReady = true;
-	}).detach();
+	});
+	thread->start();
 }
 
 

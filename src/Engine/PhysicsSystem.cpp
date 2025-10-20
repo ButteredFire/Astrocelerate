@@ -64,6 +64,35 @@ void PhysicsSystem::configureCoordSys(CoordSys::FrameType frameType, CoordSys::F
 }
 
 
+double PhysicsSystem::tick(std::shared_ptr<WorkerThread> worker) {
+	float timeScale = Time::GetTimeScale();
+	Time::UpdateDeltaTime();
+	double deltaTime = Time::GetDeltaTime();
+
+	m_accumulator += deltaTime * timeScale;
+
+	// TODO: Implement adaptive timestepping instead of a constant TIME_STEP
+	while (m_accumulator >= SimulationConsts::TIME_STEP) {
+		if (worker->stopRequested()) {
+			// If the thread in which this function is called is requested to be stopped, immediately stop updating physics
+			m_accumulator = 0.0;
+			return 0.0;
+		}
+
+		if (Time::GetTimeScale() != timeScale) {
+			// If time scale changes while physics is updating, immediately exit update loop to renew time scale
+			m_accumulator = 0.0;
+			break;
+		}
+
+		update(SimulationConsts::TIME_STEP);
+		m_accumulator -= SimulationConsts::TIME_STEP;
+	}
+
+	return m_accumulator;
+}
+
+
 void PhysicsSystem::update(const double dt) {
 	double currentET = m_coordSystem->getEpochET() + m_simulationTime;
 	m_simulationTime += dt;
@@ -71,7 +100,6 @@ void PhysicsSystem::update(const double dt) {
 	updateSPICEBodies(currentET);
 	propagateBodies(currentET);
 	updateGeneralBodies(dt, currentET);
-
 }
 
 

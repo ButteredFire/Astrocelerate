@@ -156,8 +156,24 @@ void UIPanelManager::renderMenuBar() {
 				);
 
 				if (selectedFilePath) {
+					// Show popup modal to indicate preparation
+					bool showInitialPopup = true;
+					{
+						const char *popupName = "PrepPopupModal";
+
+						ImGui::OpenPopup(popupName);
+
+						ImGui::SetNextWindowSize(ImVec2(500.0f, 0.0f));
+						ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+						if (ImGui::BeginPopupModal(popupName, &showInitialPopup, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration)) {
+							ImGuiUtils::AlignedText(ImGuiUtils::TEXT_ALIGN_MIDDLE, "Preparing...");
+							ImGui::EndPopup();
+						}
+					}
+
+
 					// Reset UI state before starting a new load
-					m_showLoadingModal = true;
+					m_showLoadingModal = true; showInitialPopup = false;
 					m_currentLoadProgress = 0.0f;
 					m_currentLoadMessage = "Starting scene load...";
 					m_loadErrorOccurred = false;

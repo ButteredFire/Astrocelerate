@@ -165,7 +165,8 @@ public:
 			// If there is a main thread and the current thread is not it, this must be a worker thread.
 			// In this case, the event will be queued for processing in the main thread later.
 			std::thread::id threadID = std::this_thread::get_id();
-			Log::Print(Log::T_VERBOSE, __FUNCTION__, "Queueing event " + enquote(typeid(EventType).name()) + " dispatched in Worker Thread " + ThreadManager::ThreadIDToString(threadID) + " (" + ThreadManager::GetThreadNameFromID(threadID) + ")...");
+			if (!suppressLogs)
+				Log::Print(Log::T_VERBOSE, __FUNCTION__, "Queueing event " + enquote(typeid(EventType).name()) + " dispatched in Worker Thread " + ThreadManager::ThreadIDToString(threadID) + " (" + ThreadManager::GetThreadNameFromID(threadID) + ")...");
 			
 
 			std::lock_guard<std::mutex> lock(m_eventQueueMutex);
@@ -197,8 +198,8 @@ public:
 
 		m_eventQueueCondition.wait_for(lock, std::chrono::milliseconds(10));
 
-		if (!m_eventQueue.empty())
-			Log::Print(Log::T_VERBOSE, __FUNCTION__, "Processing " + TO_STR(m_eventQueue.size()) + " queued " + PLURAL(m_eventQueue.size(), "event", "events") + "...");
+		//if (!m_eventQueue.empty())
+		//	Log::Print(Log::T_VERBOSE, __FUNCTION__, "Processing " + TO_STR(m_eventQueue.size()) + " queued " + PLURAL(m_eventQueue.size(), "event", "events") + "...");
 
 		while (!m_eventQueue.empty()) {
 			m_eventQueue.front().callback(nullptr);

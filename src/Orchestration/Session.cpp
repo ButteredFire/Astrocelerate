@@ -17,6 +17,11 @@ Session::Session(VkCoreResourcesManager *coreResources, SceneManager *sceneMgr, 
 }
 
 
+Session::~Session() {
+	end();
+}
+
+
 void Session::bindEvents() {
 	static EventDispatcher::SubscriberIndex selfIndex = m_eventDispatcher->registerSubscriber<Session>();
 
@@ -57,15 +62,13 @@ void Session::bindEvents() {
 
 			switch (event.sessionStatus) {
 			case RESET:
-				m_sessionInitialized = false;
-				break;
-
 			case PREPARE_FOR_INIT:
-				m_sessionInitialized = false;
+				m_sessionIsValid = false;
+				m_accumulator = 0.0;
 				break;
 
 			case INITIALIZED:
-				m_sessionInitialized = true;
+				m_sessionIsValid = true;
 				break;
 			}
 		}
@@ -74,6 +77,9 @@ void Session::bindEvents() {
 
 
 void Session::init() {
+	m_physicsWorker = ThreadManager::CreateThread("PHYSICS");
+	m_inputWorker = ThreadManager::CreateThread("USER_INPUT");
+
 	reset();
 }
 
@@ -94,39 +100,40 @@ void Session::reset() {
 
 
 void Session::update() {
-	if (!m_sessionInitialized)
-		return;
-
-
 	// Update physics
-	float timeScale = Time::GetTimeScale();
-	Time::UpdateDeltaTime();
-	double deltaTime = Time::GetDeltaTime();
+	if (m_sessionIsValid && !m_physicsWorker->isRunning()) {
+		m_physicsWorker->set([this]() {
+			while (!m_physicsWorker->stopRequested())
+				this->m_accumulator.store(m_physicsSystem->tick(m_physicsWorker));
+		});
 
-	double accumulator = 0.0;
-	accumulator += deltaTime * timeScale;
-
-		// TODO: Implement adaptive timestepping instead of a constant TIME_STEP
-	while (accumulator >= SimulationConsts::TIME_STEP) {
-		const double scaledDeltaTime = SimulationConsts::TIME_STEP * timeScale;
-
-		m_physicsSystem->update(scaledDeltaTime);
-
-		accumulator -= scaledDeltaTime;
+		m_physicsWorker->start();
 	}
 
 
 	// Process key input events
-	m_eventDispatcher->dispatch(UpdateEvent::Input{
-		.deltaTime = Time::GetDeltaTime(),
-		.timeSinceLastPhysicsUpdate = accumulator
-	}, true);
+	if (!m_inputWorker->isRunning()) {
+		m_inputWorker->set([this]() {
+			while (!m_inputWorker->stopRequested())
+				m_eventDispatcher->dispatch(UpdateEvent::Input{
+					.deltaTime = Time::GetDeltaTime(),
+					.timeSinceLastPhysicsUpdate = m_accumulator
+				}, true);
+		});
+
+		m_inputWorker->start();
+	}
 }
 
 
 void Session::loadSceneFromFile(const std::string &filePath) {
 	// Signal all listening managers to stop accessing per-session resources, and per-session managers to destroy old resources
 	reset();
+
+
+	// Wait for physics thread to finish
+	m_physicsWorker->requestStop();
+	m_physicsWorker->waitForStop();
 
 
 	// Clear the registry and recreate its base resources
@@ -143,20 +150,21 @@ void Session::loadSceneFromFile(const std::string &filePath) {
 
 	// Load scene from file
 		// Detach scene loading from the main thread
-	ThreadManager::CreateThread("SCENE_INIT", [this, filePath]() {
+	auto sceneLoadThread = ThreadManager::CreateThread("SCENE_INIT");
+	sceneLoadThread->set([this, filePath]() {
 		try {
 			m_sceneManager->loadSceneFromFile(filePath);
 			m_eventDispatcher->dispatch(RequestEvent::InitSceneResources{});
-		
+
 			// Propagate scene initialization status to GUI
 			m_eventDispatcher->dispatch(UpdateEvent::SceneLoadProgress{
 				.progress = 1.0f,
 				.message = "Scene initialization complete."
-			});
+				});
 			m_eventDispatcher->dispatch(UpdateEvent::SceneLoadComplete{
 				.loadSuccessful = true,
 				.finalMessage = "Scene initialization complete."
-			});
+				});
 		}
 		catch (const std::exception &e) {
 			// Catch any exceptions during the worker thread's CPU-bound execution.
@@ -164,16 +172,22 @@ void Session::loadSceneFromFile(const std::string &filePath) {
 			m_eventDispatcher->dispatch(UpdateEvent::SceneLoadComplete{
 				.loadSuccessful = false,
 				.finalMessage = STD_STR(e.what())
-			});
+				});
 
 			reset();
 			// Signal an error via the SceneInitializationComplete event
 			//m_eventDispatcher.dispatch(Event::SceneInitializationComplete{ false, "Scene loading failed: " + std::string(e.what()) });
 		}
-	}).detach(); // Detach to run independently
+	});
+
+	sceneLoadThread->start(true);
 }
 
 
 void Session::end() {
+	m_physicsWorker->requestStop();
+	m_inputWorker->requestStop();
 
+	m_physicsWorker->waitForStop();
+	m_inputWorker->waitForStop();
 }

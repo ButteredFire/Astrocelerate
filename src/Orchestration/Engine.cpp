@@ -241,17 +241,6 @@ void Engine::run() {
     m_currentSession = ServiceLocator::GetService<Session>(__FUNCTION__);
     m_renderer = ServiceLocator::GetService<Renderer>(__FUNCTION__);
 
-    // TODO: Create and detach a dedicated physics update thread
-    //m_sessionThread = ThreadManager::CreateThread("PHYS_UPDATE", [this]() {
-    //        while (m_currentAppState != Application::State::SHUTDOWN)
-    //            while (m_currentAppStage == Application::Stage::WORKSPACE_ORBITAL)
-    //                m_currentSession->update();
-    //    }
-    //);
-    //
-    //m_sessionThread.detach();
-
-
     update();
 }
 
@@ -263,25 +252,38 @@ void Engine::update() {
         glfwPollEvents();
         m_eventDispatcher->processQueuedEvents();
 
-        switch (m_currentAppStage) {
-        case Stage::START_SCREEN:
-            updateStartScreen();
-            break;
 
-        case Stage::LOADING_SCREEN:
-            updateLoadingScreen();
-            break;
+        m_currentSession->update();
 
+        glm::dvec3 floatingOrigin;
+        Camera *camera = m_inputManager->getCamera();
 
-        case Stage::SETUP_ORBITAL:
-            updateOrbitalSetup();
-            break;
+        if (camera->inFreeFlyMode())
+            floatingOrigin = camera->getAbsoluteTransform().position;
+        else
+            floatingOrigin = camera->getOrbitedEntityPosition();
 
+        m_renderer->update(floatingOrigin);
 
-        case Stage::WORKSPACE_ORBITAL:
-            updateOrbitalWorkspace();
-            break;
-        }
+        //switch (m_currentAppStage) {
+        //case Stage::START_SCREEN:
+        //    updateStartScreen();
+        //    break;
+        //
+        //case Stage::LOADING_SCREEN:
+        //    updateLoadingScreen();
+        //    break;
+        //
+        //
+        //case Stage::SETUP_ORBITAL:
+        //    updateOrbitalSetup();
+        //    break;
+        //
+        //
+        //case Stage::WORKSPACE_ORBITAL:
+        //    updateOrbitalWorkspace();
+        //    break;
+        //}
     }
 
 

@@ -10,6 +10,7 @@
 #include <Core/Engine/ServiceLocator.hpp>
 
 #include <Engine/PhysicsSystem.hpp>
+#include <Engine/Threading/WorkerThread.hpp>
 
 #include <Scene/SceneManager.hpp>
 
@@ -18,7 +19,7 @@
 class Session {
 public:
 	Session(VkCoreResourcesManager *coreResources, SceneManager *sceneMgr, PhysicsSystem *physicsSystem);
-	~Session() = default;
+	~Session();
 
 	/* Creates a new session. */
 	void init();
@@ -40,7 +41,12 @@ private:
 	SceneManager *m_sceneManager;
 	PhysicsSystem *m_physicsSystem;
 
-	bool m_sessionInitialized = false;
+	// Physics threading
+	std::shared_ptr<WorkerThread> m_physicsWorker;
+	std::shared_ptr<WorkerThread> m_inputWorker;
+	std::atomic<bool> m_inputThreadIsRunning{ false };
+	std::atomic<bool> m_sessionIsValid{ false };
+	std::atomic<double> m_accumulator{ 0.0 };
 
 
 	void bindEvents();

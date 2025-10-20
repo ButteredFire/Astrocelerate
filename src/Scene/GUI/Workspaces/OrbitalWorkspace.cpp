@@ -58,6 +58,7 @@ void OrbitalWorkspace::bindEvents() {
 
 			case POST_INITIALIZATION:
 				m_sceneSampleReady = true;
+				ThreadManager::SortThreadMap();		// Sorts the thread map for displaying on the UI
 				break;
 			}
 		}
@@ -121,7 +122,7 @@ void OrbitalWorkspace::initPanels() {
 		//GUI::TogglePanel(m_panelMask, m_panelOrbitalPlanner, GUI::TOGGLE_ON);
 	GUI::TogglePanel(m_panelMask, m_panelDebugConsole, GUI::TOGGLE_ON);
 	GUI::TogglePanel(m_panelMask, m_panelSceneResourceTree, GUI::TOGGLE_ON);
-		//GUI::TogglePanel(m_panelMask, m_panelDebugApp, GUI::TOGGLE_ON);
+	GUI::TogglePanel(m_panelMask, m_panelDebugApp, GUI::TOGGLE_ON);
 }
 
 
@@ -164,8 +165,9 @@ void OrbitalWorkspace::preRenderUpdate(uint32_t currentFrame) {
 void OrbitalWorkspace::loadSimulationConfig(const std::string &configPath) {
 	// Reset per-session data
 	m_simulationIsPaused = true;
-	m_lastTimeScale = Time::GetTimeScale();
 	Time::SetTimeScale(0.0f);
+	if (m_lastTimeScale <= 0.0f)
+		m_lastTimeScale = 1.0f;
 
 	m_sceneResourceEntityData.clear();
 
@@ -291,9 +293,6 @@ void OrbitalWorkspace::renderViewportPanel() {
 
 				if (m_simulationIsPaused) {
 					if (ImGui::Button(ImGuiUtils::IconString(ICON_FA_PLAY, sceneName).c_str())) {
-						if (m_lastTimeScale <= 0.0f)
-							m_lastTimeScale = 1.0f;
-
 						Time::SetTimeScale(m_lastTimeScale);
 						m_simulationIsPaused = false;
 					}
@@ -301,7 +300,6 @@ void OrbitalWorkspace::renderViewportPanel() {
 				}
 				else {
 					if (ImGui::Button(ImGuiUtils::IconString(ICON_FA_PAUSE, sceneName).c_str())) {
-						m_lastTimeScale = Time::GetTimeScale();
 						Time::SetTimeScale(0.0f);
 						m_simulationIsPaused = true;
 					}
@@ -450,6 +448,14 @@ void OrbitalWorkspace::renderViewportPanel() {
 			ImGui::EndGroup();
 		}
 		ImGuiUtils::PopStyleClearButton();
+
+
+		// Large time scale warning
+		if (Time::GetTimeScale() >= 500.0f) {
+			ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 255, 0, 255));
+				ImGuiUtils::AlignedText(ImGuiUtils::TEXT_ALIGN_MIDDLE, ImGuiUtils::IconString(ICON_FA_TRIANGLE_EXCLAMATION, "High time scales may cause numerical and visual instability.").c_str());
+			ImGui::PopStyleColor();
+		}
 
 
 		ImGui::Separator();
@@ -855,16 +861,86 @@ void OrbitalWorkspace::renderDebugApplication() {
 	static ImGuiIO &io = ImGui::GetIO();
 
 	if (ImGui::Begin(GUI::GetPanelName(m_panelDebugApp), nullptr, m_windowFlags)) {
-		io = ImGui::GetIO();
-		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+		ImGui::SeparatorText("Application");
+		ImGui::BeginGroup();
+		{
+			// FPS
+			{
+				io = ImGui::GetIO();
+				ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
 
-		// FPS must be >= (2 * PHYS_UPDATE_FREQ) for linear interpolation to properly work and prevent jittering
-		int recommendedFPS = std::floor(2 * (1 / SimulationConsts::TIME_STEP));
-		if (io.Framerate < recommendedFPS) {
-			ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 255, 0, 255));
-			ImGui::TextWrapped(ImGuiUtils::IconString(ICON_FA_TRIANGLE_EXCLAMATION, "This framerate does not meet the recommended " + std::to_string(recommendedFPS) + " FPS threshold, below which jittering may occur. Alternatively, you can lower the physics time step to lower the threshold.").c_str());
-			ImGui::PopStyleColor();
+				// FPS must be >= (2 * PHYS_UPDATE_FREQ) for linear interpolation to properly work and prevent jittering
+				int recommendedFPS = std::floor(2 * (1 / SimulationConsts::TIME_STEP));
+				if (io.Framerate < recommendedFPS) {
+					ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 255, 0, 255));
+					ImGui::TextWrapped(ImGuiUtils::IconString(ICON_FA_TRIANGLE_EXCLAMATION, "This framerate does not meet the recommended " + std::to_string(recommendedFPS) + " FPS threshold, below which jittering may occur. Alternatively, you can lower the physics time step to lower the threshold.").c_str());
+					ImGui::PopStyleColor();
+				}
+			}
+
+
+			// Threads
+			ImGui::Text("Threads:");
+			if (ImGui::BeginTable("MyTable", 3, ImGuiTableFlags_Resizable | ImGuiTableFlags_Borders)) {
+				ImGui::TableSetupColumn("Thread");
+				ImGui::TableSetupColumn("ID");
+				ImGui::TableSetupColumn("Status");
+
+
+				ImGui::TableHeadersRow();
+				ImGui::TableNextRow();
+
+
+				// Row for the main thread
+				ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Main thread");
+
+				ImGui::TableSetColumnIndex(1);
+					ImGui::Text("%d", std::this_thread::get_id());
+
+				ImGui::TableSetColumnIndex(2);
+					ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(0, 255, 0, 255));
+						ImGui::Text("Active");
+					ImGui::PopStyleColor();
+
+
+				// Rows for worker threads
+				for (const auto &[id, worker] : ThreadManager::GetThreadMap()) {
+					ImGui::TableNextRow();
+
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text(worker->getName().c_str());
+
+					ImGui::TableSetColumnIndex(1);
+					ImGui::Text("%d", worker->getID());
+
+					ImGui::TableSetColumnIndex(2);
+					{
+						if (worker->isDetached()) {
+							ImGui::BeginDisabled();
+							ImGui::Text("Detached");
+							ImGui::EndDisabled();
+						}
+						else {
+							if (worker->isRunning()) {
+								ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(0, 255, 0, 255));
+								ImGui::Text("Active");
+								ImGui::PopStyleColor();
+							}
+							else {
+								ImGui::BeginDisabled();
+								ImGui::Text("Inactive");
+								ImGui::EndDisabled();
+							}
+						}
+					}
+				}
+
+				ImGui::EndTable();
+			}
 		}
+		ImGui::EndGroup();
+		
 
 		ImGui::Dummy(ImVec2(2.0f, 2.0f));
 
