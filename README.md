@@ -3,7 +3,7 @@
 
 <div align="center" class="grid cards" style="display: flex; align-items: center; justify-content: center; text-decoration: none;" markdown>
     <img src="assets/App/AstrocelerateLogo.png" alt="Logo" width="75%">
-    <p>Copyright © 2024-2025 <a href="https://www.linkedin.com/in/minhduong-thechosenone/">Dương Duy Nhật Minh</a>, D.B.A. <b>Oriviet Aerospace</b>.</p>
+    <p>Logo © 2024-2025 <a href="https://www.linkedin.com/in/minhduong-thechosenone/">Minh Duong</a>, D.B.A. <b>Oriviet Aerospace</b></p>
     </br>
     <p>Join our communities!</p>
     <a href="https://www.reddit.com/r/astrocelerate" target="_blank"><img alt="Reddit" src="https://img.shields.io/badge/Reddit-grey?style=flat&logo=reddit&logoColor=%23FF4500&logoSize=auto"></a>
