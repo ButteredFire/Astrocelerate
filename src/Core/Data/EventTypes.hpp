@@ -8,6 +8,7 @@
 #include <External/GLM.hpp>
 
 #include <Core/Application/GarbageCollector.hpp>
+#include <Core/Data/Device.hpp>
 #include <Core/Data/Geometry.hpp>
 #include <Core/Data/Application.hpp>
 
@@ -38,14 +39,15 @@ enum EventFlag {
 	EVENT_FLAG_UPDATE_SCENE_LOAD_PROGRESS_BIT			= 1 << 18,
 	EVENT_FLAG_UPDATE_SCENE_LOAD_COMPLETE_BIT			= 1 << 19,
 	EVENT_FLAG_UPDATE_VIEWPORT_SIZE_BIT					= 1 << 20,
+	EVENT_FLAG_UPDATE_CORE_RESOURCES_BIT				= 1 << 21,
 
-	EVENT_FLAG_REQUEST_INIT_SESSION_BIT					= 1 << 21,
-	EVENT_FLAG_REQUEST_PROCESS_SECONDARY_COMMAND_BUFFERS_BIT = 1 << 22,
-	EVENT_FLAG_REQUEST_INIT_SCENE_RESOURCES_BIT			= 1 << 23,
+	EVENT_FLAG_REQUEST_INIT_SESSION_BIT					= 1 << 22,
+	EVENT_FLAG_REQUEST_PROCESS_SECONDARY_COMMAND_BUFFERS_BIT = 1 << 23,
+	EVENT_FLAG_REQUEST_INIT_SCENE_RESOURCES_BIT			= 1 << 24,
 
-	EVENT_FLAG_CONFIG_SIMULATION_FILE_PARSED			= 1 << 24
+	EVENT_FLAG_CONFIG_SIMULATION_FILE_PARSED			= 1 << 25
 };
-constexpr size_t EVENT_FLAG_COUNT = 24 + 1; // Highest bit position + 1
+constexpr size_t EVENT_FLAG_COUNT = 25 + 1; // Highest bit position + 1
 
 
 namespace InitEvent {
@@ -259,6 +261,26 @@ namespace UpdateEvent {
 		const EventFlag eventFlag = EVENT_FLAG_UPDATE_VIEWPORT_SIZE_BIT;
 
 		glm::vec2 sceneDimensions;
+	};
+
+
+	/* Used when any core resource is recreated/updated. Core resources are defined in VkCoreResourcesManager. */
+	struct CoreResources {
+		const EventFlag eventFlag = EVENT_FLAG_UPDATE_CORE_RESOURCES_BIT;
+
+		GLFWwindow *window;
+		VkInstance instance = VK_NULL_HANDLE;
+		VkDebugUtilsMessengerEXT dbgMessenger = VK_NULL_HANDLE;
+		VkSurfaceKHR surface = VK_NULL_HANDLE;
+
+		VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+		PhysicalDeviceProperties chosenDevice{};
+		std::vector<PhysicalDeviceProperties> availableDevices;
+
+		VkDevice logicalDevice = VK_NULL_HANDLE;
+		QueueFamilyIndices familyIndices{};
+
+		VmaAllocator vmaAllocator = VK_NULL_HANDLE;
 	};
 }
 

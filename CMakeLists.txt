@@ -80,15 +80,16 @@ list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/scripts")    # Appends the 
 add_executable(Astrocelerate ${SOURCE_FILES})
 
 
-# Hide the console window
-set(HIDE_CONSOLE TRUE)
-if (HIDE_CONSOLE)
+# Show/Hide the console window
+set(SHOW_CONSOLE (CMAKE_BUILD_TYPE STREQUAL "Debug"))
+if (NOT SHOW_CONSOLE)
     if(WIN32)
+        # On Windows, applications with windows have their consoles automatically hidden
         target_link_options(
             Astrocelerate PRIVATE 
             -mwindows
             /SUBSYSTEM:WINDOWS
-        )   
+        )
     endif()
 endif()
 

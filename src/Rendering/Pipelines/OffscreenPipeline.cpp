@@ -6,6 +6,7 @@ OffscreenPipeline::OffscreenPipeline(VkCoreResourcesManager *coreResources, VkSw
 	m_logicalDevice(coreResources->getLogicalDevice()),
 	m_deviceProperties(coreResources->getDeviceProperties()),
 
+	m_swapchainManager(swapchainMgr),
 	m_swapchainExtent(swapchainMgr->getSwapChainExtent()) {
 
 	m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
@@ -52,10 +53,12 @@ void OffscreenPipeline::bindEvents() {
 
 	m_eventDispatcher->subscribe<RecreationEvent::Swapchain>(selfIndex,
 		[this](const RecreationEvent::Swapchain& event) {
+			m_swapchainExtent = m_swapchainManager->getSwapChainExtent();
+
 			if (!m_sessionReady)
 				return;
 
-			this->recreateOffscreenResources(m_swapchainExtent.width, m_swapchainExtent.height, event.imageIndex);
+			recreateOffscreenResources(m_swapchainExtent.width, m_swapchainExtent.height);
 		}
 	);
 }
@@ -109,9 +112,7 @@ void OffscreenPipeline::init() {
 
 
 	// Initialize offscreen resources
-	initOffscreenColorResources(m_swapchainExtent.width, m_swapchainExtent.height);
-	initOffscreenSampler();
-	initOffscreenFramebuffer(m_swapchainExtent.width, m_swapchainExtent.height);
+	recreateOffscreenResources(m_swapchainExtent.width, m_swapchainExtent.height);
 
 
 	m_eventDispatcher->dispatch(InitEvent::OffscreenPipeline{
@@ -710,7 +711,7 @@ void OffscreenPipeline::initDepthBufferingResources() {
 }
 
 
-void OffscreenPipeline::recreateOffscreenResources(uint32_t width, uint32_t height, uint32_t currentFrame) {
+void OffscreenPipeline::recreateOffscreenResources(uint32_t width, uint32_t height) {
 	for (auto& cleanupID : m_offscreenCleanupIDs)
 		m_garbageCollector->executeCleanupTask(cleanupID);
 

@@ -167,7 +167,7 @@ void RenderSystem::renderScene(VkCommandBuffer cmdBuffer, uint32_t currentFrame)
 	for (const auto &[entity, meshRenderable] : uboView) {
 		vertexOffset = geomData->meshOffsets[meshRenderable.meshRange.left].vertexOffset;
 
-		for (uint32_t meshIndex : meshRenderable.meshRange()) {
+		for (uint32_t meshIndex : meshRenderable.meshRange) {
 			// Object UBO
 			uint32_t objectUBOOffset = static_cast<uint32_t>(meshIndex * objectUBOAlignment);
 			vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_offscreenPipelineLayout, 0, 1, &currentDescriptorSet, 1, &objectUBOOffset);

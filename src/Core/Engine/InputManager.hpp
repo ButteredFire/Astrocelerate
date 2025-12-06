@@ -4,6 +4,7 @@
 #pragma once
 
 #include <set>
+#include <mutex>
 
 #include <imgui/imgui.h>
 
@@ -73,7 +74,10 @@ private:
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 	std::shared_ptr<Camera> m_camera;
 
+	GLFWwindow *m_window;
+
 	std::set<int> m_pressedKeys;
+	std::mutex m_pressedKeysMutex;
 
 	std::unordered_map<int, Input::CameraMovement> m_keyToCamMovementBindings;
 

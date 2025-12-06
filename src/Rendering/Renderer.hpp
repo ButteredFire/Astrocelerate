@@ -41,10 +41,14 @@ public:
 	Renderer(VkCoreResourcesManager *coreResources, VkSwapchainManager *swapchainMgr, VkCommandManager *commandMgr, VkSyncManager *syncMgr, UIRenderer *uiRenderer);
 	~Renderer();
 
+	void preRenderUpdate(uint32_t currentFrame, glm::dvec3 &renderOrigin);
+
 	/* Updates the rendering. */
 	void update(glm::dvec3& renderOrigin);
 
-	void preRenderUpdate(uint32_t currentFrame, glm::dvec3 &renderOrigin);
+	/* Recreates the swap-chain. */
+	void recreateSwapchain(GLFWwindow *newWindowPtr = nullptr);
+	void recreateSwapchain(GLFWwindow *newWindowPtr, uint32_t imageIndex, std::vector<VkFence> &inFlightFences);
 
 private:
 	std::shared_ptr<Registry> m_globalRegistry;

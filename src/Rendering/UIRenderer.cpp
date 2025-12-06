@@ -117,9 +117,10 @@ void UIRenderer::initImGui() {
     task.cleanupFunc = []() {
         ImGui::SaveIniSettingsToDisk(ConfigConsts::IMGUI_DEFAULT_CONFIG.c_str());
         ImGui_ImplVulkan_Shutdown();
+        ImGui_ImplGlfw_Shutdown();
     };
 
-    m_garbageCollector->createCleanupTask(task);
+    m_imguiCleanupID = m_garbageCollector->createCleanupTask(task);
 
 
     ImGui_ImplVulkan_Init(&vkInitInfo);
@@ -253,6 +254,15 @@ void UIRenderer::updateDockspace() {
 
         ImGui::End();
     }
+}
+
+
+void UIRenderer::reInitImGui(GLFWwindow *window) {
+    m_garbageCollector->executeCleanupTask(m_imguiCleanupID);
+
+    m_window = window;
+
+    initImGui();
 }
 
 

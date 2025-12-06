@@ -38,6 +38,8 @@ private:
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 	std::shared_ptr<GarbageCollector> m_garbageCollector;
 
+	VkSwapchainManager *m_swapchainManager;
+
 	VkPhysicalDevice m_physicalDevice;
 	VkPhysicalDeviceProperties m_deviceProperties;
 	VkDevice m_logicalDevice;
@@ -233,7 +235,7 @@ private:
 
 	void initDepthBufferingResources();
 	
-	void recreateOffscreenResources(uint32_t width, uint32_t height, uint32_t currentFrame);
+	void recreateOffscreenResources(uint32_t width, uint32_t height);
 	void initOffscreenColorResources(uint32_t width, uint32_t height);
 	void initOffscreenSampler();
 	void initOffscreenFramebuffer(uint32_t width, uint32_t height);

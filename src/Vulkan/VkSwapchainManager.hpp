@@ -63,8 +63,12 @@ public:
 	void createFrameBuffers();
 
 
-	/* Recreates the swap-chain. */
-	void recreateSwapchain(uint32_t imageIndex, std::vector<VkFence> &inFlightFences);
+	/* Recreates the swap-chain.
+		@param newWindowPtr: The pointer to the new GLFW window. If the swapchain is to be recreated in the same window, leave this as a null pointer.
+		@param imageIndex: The index at which a VkFence is currently in flight.
+		@param inFlightFences: The array of VkFences in flight.
+	*/
+	void recreateSwapchain(GLFWwindow *newWindowPtr, uint32_t imageIndex, std::vector<VkFence> &inFlightFences);
 
 
 	/* Queries the properties of a GPU's swap-chain.
@@ -81,9 +85,11 @@ private:
 	std::vector<CleanupID> m_cleanupTaskIDs; // Stores cleanup task IDs (used exclusively in the swap-chain recreation process)
 	CleanupID m_swapchainCleanupID{};	// The swapchain cleanup task ID. This is to explicitly remove this ID from the destruction list in `recreateSwapchain` because, by setting VkSwapchainCreateInfoKHR::oldSwapchain to the old swapchain handle, it is implicitly destroyed by being "consumed" by the new swapchain, and thus any vkDestroySwapchain call on the old swapchain would mean destroying the new one instead.
 
+	VkCoreResourcesManager *m_coreResources;
+
 	GLFWwindow *m_window;
 
-	VkSurfaceKHR m_surface;
+	VkSurfaceKHR m_surface, m_oldSurface;
 	VkPhysicalDevice m_physicalDevice;
 	VkDevice m_logicalDevice;
 	QueueFamilyIndices m_queueFamilies;

@@ -67,6 +67,8 @@ private:
 	Geometry::GeometryData *m_geomData = nullptr;
 	uint32_t m_meshCount{};
 
+	Math::Interval<uint32_t> m_sphereMesh{};
+
 	struct m_WorkerData {
 		float entityProcessPercentage;
 		std::string entityName;
@@ -78,8 +80,8 @@ private:
 	void bindEvents();
 
 
-	/* Loads test models. */
-	void loadTestModels();
+	/* Loads default models. */
+	void loadDefaultModels();
 
 
 	/* Processes file and simulation configurations. */

@@ -5,6 +5,7 @@
 
 VkSwapchainManager::VkSwapchainManager(GLFWwindow *window, VkCoreResourcesManager *coreResources) :
     m_window(window),
+    m_coreResources(coreResources),
     m_surface(coreResources->getSurface()),
     m_physicalDevice(coreResources->getPhysicalDevice()),
     m_logicalDevice(coreResources->getLogicalDevice()),
@@ -36,6 +37,16 @@ void VkSwapchainManager::bindEvents() {
             m_eventDispatcher->dispatch(InitEvent::SwapchainManager{});
         }
     );
+
+
+    m_eventDispatcher->subscribe<UpdateEvent::CoreResources>(selfIndex, 
+        [this](const UpdateEvent::CoreResources &event) {
+            if (event.surface != VK_NULL_HANDLE) {
+                m_oldSurface = m_surface;
+                m_surface = event.surface;
+            }
+        }
+    );
 }
 
 
@@ -50,7 +61,7 @@ void VkSwapchainManager::init() {
 }
 
 
-void VkSwapchainManager::recreateSwapchain(uint32_t imageIndex, std::vector<VkFence> &inFlightFences) {
+void VkSwapchainManager::recreateSwapchain(GLFWwindow *newWindowPtr, uint32_t imageIndex, std::vector<VkFence> &inFlightFences) {
     m_eventDispatcher->dispatch(UpdateEvent::ApplicationStatus{
         .appState = Application::State::RECREATING_SWAPCHAIN    
     });
@@ -70,22 +81,23 @@ void VkSwapchainManager::recreateSwapchain(uint32_t imageIndex, std::vector<VkFe
         // Recreate swap-chain
             // We cannot clean up outdated swap-chain objects immediately, as we cannot know when the presentation engine has finished with the current swap-chain resources, including the semaphores it's waiting on.
             // To solve this, we can defer destruction until we are absolutely sure the resources are no longer in use.
-        
-        //for (const auto &taskID : m_cleanupTaskIDs) {
-        //    m_garbageCollector->executeCleanupTask(taskID);
-        //}
         std::vector<CleanupID> deferredDestructionList(m_cleanupTaskIDs.begin(), m_cleanupTaskIDs.end());
         m_cleanupTaskIDs.clear();
 
-        // Explicitly remove the old swapchain cleanup ID from the destruction list in `recreateSwapchain`.
-        // This is necessary because, by setting VkSwapchainCreateInfoKHR::oldSwapchain to the old swapchain handle, it is implicitly destroyed by being "consumed" by the new swapchain, and thus any vkDestroySwapchain call on the old swapchain would mean destroying the new one instead.
-        auto newEnd = std::remove(deferredDestructionList.begin(), deferredDestructionList.end(), m_swapchainCleanupID);
-        deferredDestructionList.erase(newEnd, deferredDestructionList.end());
+            // Re-initialize swapchain
+        if (newWindowPtr != nullptr)
+            m_coreResources->recreateSurface(newWindowPtr);
 
-
-            // Re-initialization
         VkSwapchainKHR oldSwapchain = m_swapChain;
         createSwapChain(oldSwapchain);
+                // Destroy the old swapchain.
+                // If the new swapchain is for a different window, we must also destroy the corresponding old VkSurface AFTER swapchain destruction.
+        vkDestroySwapchainKHR(m_logicalDevice, oldSwapchain, nullptr);
+        if (newWindowPtr != nullptr)
+            vkDestroySurfaceKHR(m_coreResources->getInstance(), m_oldSurface, nullptr);
+        
+
+            // Re-initialize resources
         createImageViews();
         createFrameBuffers();
 
@@ -187,7 +199,6 @@ void VkSwapchainManager::createSwapChain(VkSwapchainKHR oldSwapchain) {
     task.cleanupFunc = [=]() { vkDestroySwapchainKHR(m_logicalDevice, m_swapChain, nullptr); };
 
     m_swapchainCleanupID = m_garbageCollector->createCleanupTask(task);
-    m_cleanupTaskIDs.push_back(m_swapchainCleanupID);
 
 
     // Fills swapChainImages with a set of VkImage objects provided after swap-chain creation

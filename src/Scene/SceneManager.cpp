@@ -30,7 +30,7 @@ void SceneManager::init() {
 
 
 void SceneManager::loadModels() {
-    loadTestModels();
+    loadDefaultModels();
 }
 
 
@@ -155,8 +155,10 @@ void SceneManager::saveSceneToFile(const std::string &filePath) {
 }
 
 
-void SceneManager::loadTestModels() {
-    //m_geometryLoader.loadGeometryFromFile();
+void SceneManager::loadDefaultModels() {
+    const std::string SPHERE_MESH = FilePathUtils::JoinPaths(ROOT_DIR, "assets/Models/TestModels/Sphere/Sphere.gltf");
+    
+    m_sphereMesh = m_geometryLoader.loadGeometryFromFile(SPHERE_MESH);
 }
 
 

@@ -79,6 +79,14 @@ void Renderer::update(glm::dvec3& renderOrigin) {
 }
 
 
+void Renderer::recreateSwapchain(GLFWwindow *newWindowPtr) {
+    m_swapchainManager->recreateSwapchain(newWindowPtr, m_currentFrame, m_inFlightFences);
+}
+void Renderer::recreateSwapchain(GLFWwindow *newWindowPtr, uint32_t imageIndex, std::vector<VkFence> &inFlightFences) {
+    m_swapchainManager->recreateSwapchain(newWindowPtr, imageIndex, inFlightFences);
+}
+
+
 void Renderer::preRenderUpdate(uint32_t currentFrame, glm::dvec3 &renderOrigin) {
     if (!m_sessionReady)
         return;
@@ -121,7 +129,8 @@ void Renderer::drawFrame(glm::dvec3& renderOrigin) {
     
     if (!m_swapchainDeferredCleanupIDs.empty()) {
         // If the swapchain has been resized (i.e., the destruction list of its resources is not empty), process the destruction list and renew per-image semaphores.
-        vkQueueWaitIdle(lastQueue);
+        if (lastQueue != VK_NULL_HANDLE)
+            vkQueueWaitIdle(lastQueue);
 
         // Destroy old swapchain resources
         for (const auto &taskID : m_swapchainDeferredCleanupIDs)
@@ -155,7 +164,7 @@ void Renderer::drawFrame(glm::dvec3& renderOrigin) {
     VkResult imgAcquisitionResult = vkAcquireNextImageKHR(m_coreResources->getLogicalDevice(), m_swapchainManager->getSwapChain(), UINT64_MAX, m_imageReadySemaphores[m_currentFrame], VK_NULL_HANDLE, &imageIndex);
     if (imgAcquisitionResult != VK_SUCCESS) {
         if (imgAcquisitionResult == VK_ERROR_OUT_OF_DATE_KHR || imgAcquisitionResult == VK_SUBOPTIMAL_KHR) {
-            m_swapchainManager->recreateSwapchain(m_currentFrame, m_inFlightFences);
+            recreateSwapchain();
             m_uiRenderer->refreshImGui();
             return;
         }
@@ -239,7 +248,7 @@ void Renderer::drawFrame(glm::dvec3& renderOrigin) {
     VkResult presentResult = vkQueuePresentKHR(graphicsQueue, &presentationInfo);
     if (presentResult != VK_SUCCESS) {
         if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR) {
-            m_swapchainManager->recreateSwapchain(imageIndex, m_inFlightFences);
+            recreateSwapchain(nullptr, imageIndex, m_inFlightFences);
             m_uiRenderer->refreshImGui();
             return;
         }

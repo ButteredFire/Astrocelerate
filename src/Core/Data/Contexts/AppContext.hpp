@@ -1,5 +1,9 @@
 #pragma once
 
+#include <mutex>
+#include <atomic>
+#include <condition_variable>
+
 #include <imgui/imgui.h>
 
 #include <Scene/GUI/Appearance.hpp>
@@ -15,6 +19,12 @@ struct AppContext {
     struct GUI {
         ImGuiTheme::Appearance currentAppearance = ImGuiTheme::Appearance::IMGUI_APPEARANCE_DARK_MODE;
     } GUI;
+
+    struct MainThread {
+        std::mutex haltMutex;
+        std::condition_variable haltCV;
+        std::atomic<bool> isHalted = false;
+    } MainThread;
 };
 
 extern AppContext g_appContext;

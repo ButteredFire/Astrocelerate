@@ -3,9 +3,8 @@
 #include <Engine/Components/TelemetryComponents.hpp>
 
 
-Camera::Camera(GLFWwindow* window, glm::dvec3 position, glm::quat orientation):
+Camera::Camera(glm::dvec3 position, glm::quat orientation):
 	m_attachedEntityID(m_camEntity.id),
-	m_window(window),
 	m_defaultPosition(position),
 	m_defaultOrientation(orientation),
 	m_inFreeFlyMode(true) {

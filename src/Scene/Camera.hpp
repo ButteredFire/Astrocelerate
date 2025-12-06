@@ -26,7 +26,7 @@ class InputManager;
 
 class Camera {
 public:
-	Camera(GLFWwindow* window, glm::dvec3 position, glm::quat orientation);
+	Camera(glm::dvec3 position, glm::quat orientation);
 	~Camera() = default;
 
 	friend class InputManager;
@@ -74,7 +74,6 @@ public:
 	float zoom = 60.0f;						// Zoom (degrees)
 
 private:
-	GLFWwindow* m_window;
 	std::shared_ptr<Registry> m_registry;
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 

@@ -50,6 +50,18 @@ void InputManager::bindEvents() {
 			}
 		}
 	);
+
+
+	m_eventDispatcher->subscribe<UpdateEvent::CoreResources>(selfIndex,
+		[this](const UpdateEvent::CoreResources &event) {
+			if (event.window != nullptr) {
+				Log::Print(Log::T_WARNING, __FUNCTION__, "Update GLFWwindow");
+				std::cout << std::showbase << std::hex << "Old window: " << m_window << '\n';
+				m_window = event.window;
+				std::cout << std::showbase << std::hex << "New window: " << m_window << '\n';
+			}
+		}
+	);
 }
 
 
@@ -77,6 +89,10 @@ bool InputManager::isCameraOrbiting() {
 
 
 void InputManager::glfwDeferKeyInput(int key, int scancode, int action, int mods) {
+	std::lock_guard lock(m_pressedKeysMutex);
+
+	std::cout << "[" << std::this_thread::get_id() << "] DEFER INPUT... (key = " << key << ")\n";
+
 	if (action == GLFW_PRESS) {
 		m_pressedKeys.insert(key);
 	}
@@ -89,11 +105,20 @@ void InputManager::glfwDeferKeyInput(int key, int scancode, int action, int mods
 void InputManager::processKeyboardInput(double dt) {
 	using namespace Input;
 
+	std::set<int> currentPressedKeys;
+	{
+		std::lock_guard lock(m_pressedKeysMutex);
+		currentPressedKeys = m_pressedKeys;
+	}
+
+	if (dt > std::numeric_limits<double>::epsilon())
+		std::cout << "[" << std::this_thread::get_id() << "] Processing keyboard input... (dt = " << dt << ")\n";
+
 	// Unlocks the cursor when the viewport loses focus (this solves desynchronization between g_appContext.Input.isViewportFocused and m_cursorLocked)
 	if (m_pressedKeys.contains(GLFW_KEY_ESCAPE) || isViewportUnfocused())
 		unfocusViewport();
 
-	for (const int key : m_pressedKeys) {
+	for (const int key : currentPressedKeys) {
 		if (isViewportInputAllowed()) {
 			if (m_keyToCamMovementBindings.count(key))
 				m_camera->processKeyboardInput(m_keyToCamMovementBindings[key], dt);
@@ -118,6 +143,7 @@ void InputManager::processMouseClicks(GLFWwindow* window, int button, int action
 	static GLFWcursor *handCursor = createHandCursor();
 	
 
+	std::cout << std::boolalpha << (button == GLFW_MOUSE_BUTTON_LEFT) << " && " << isViewportFocused() << '\n';
 	if (button == GLFW_MOUSE_BUTTON_LEFT && isViewportFocused()) {
 		// If camera is orbiting something, only temporarily lock the cursor and (TODO) change its icon
 		if (isCameraOrbiting()) {
@@ -179,5 +205,5 @@ void InputManager::processMouseScroll(double deltaX, double deltaY) {
 
 void InputManager::unfocusViewport() {
 	m_cursorLocked = false;
-	glfwSetInputMode(m_camera->m_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+	glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 }

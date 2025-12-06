@@ -568,40 +568,14 @@ void VkBufferManager::updateGlobalUBO(uint32_t currentImage, const glm::dvec3 &r
 
 
 void VkBufferManager::updateObjectUBOs(uint32_t currentImage, const glm::dvec3& renderOrigin) {
-	/*
-		I'm losing my sanity over trying to reconcile simulation space with render space. Today is my birthday (June 16), and I've officially lost it, having failed 12 times in 30 hours in the span of 5 days trying to do so.
-		The things I'd do for Astrocelerate... I'm starting to lose hope in my vision for it.
-		Also, I turned down an opportunity to join an elite entrepreneruship summer bootcamp because my family's financial situation doesn't allow me to do so. And it's on my birthday as well. Great!
-		Also also, the whole traumatic experience had me having nightmares about "Vulkan BSODs" in my midday nap.
-		Leaving this as an easter egg for future contributors... if any.
-		- Duong Duy Nhat Minh, Founder, 16/06/2025
-	*/
-
 	auto view = m_registry->getView<CoreComponent::Transform, PhysicsComponent::RigidBody, RenderComponent::MeshRenderable, TelemetryComponent::RenderTransform>();
 
 	for (auto&& [entity, transform, rigidBody, meshRenderable, renderT] : view) {
 		Buffer::ObjectUBO ubo{};
 
 		const glm::mat4 identityMat = glm::mat4(1.0f);
-		//glm::dvec3 scaledRenderOrigin = SpaceUtils::ToRenderSpace_Position(renderOrigin);
 
 		glm::dvec3 renderPosition;
-
-		/* Position in render space
-			If entity has a parent (meaning that its position is influenced by its parent's visual scale):
-			- Offset entity's position relative to its parent by its parent's visual scale. This becomes the entity's new local position.
-			- Add the entity's new local position to its parent's global position.
-
-			If not: Directly use the entity's global position.
-		if (refFrame.parentID.value() != m_renderSpace.id) {	// WARNING: I don't know where m_renderSpace comes from! Might need to get it from SceneManager!
-			const PhysicsComponent::ReferenceFrame& parentRefFrame = m_registry->getComponent<PhysicsComponent::ReferenceFrame>(refFrame.parentID.value());
-		
-			glm::dvec3 scaledOffsetFromParent = refFrame.localTransform.position * parentRefFrame.visualScale;
-			glm::dvec3 scaledGlobalPosition = parentRefFrame.globalTransform.position + scaledOffsetFromParent;
-			renderPosition = SpaceUtils::ToRenderSpace_Position(scaledGlobalPosition - scaledRenderOrigin);
-		}
-		else
-		*/
 		renderPosition = SpaceUtils::ToRenderSpace_Position(transform.position - renderOrigin);
 
 			// Update the entity's global position data after scaling to account for parent's visual scale
@@ -637,7 +611,7 @@ void VkBufferManager::updateObjectUBOs(uint32_t currentImage, const glm::dvec3& 
 
 
 		// Write mesh (and submesh) data to memory
-		for (uint32_t meshIndex : meshRenderable.meshRange()) {
+		for (uint32_t meshIndex : meshRenderable.meshRange) {
 			void *uboDst = SystemUtils::GetAlignedBufferOffset(m_alignedObjectUBOSize, m_objectUBOMappedData[currentImage], meshIndex);
 			memcpy(uboDst, &ubo, sizeof(ubo));
 		}

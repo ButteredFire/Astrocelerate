@@ -144,6 +144,15 @@ void UIPanelManager::renderMenuBar() {
 		if (ImGui::BeginMenu("File")) {
 			// Open
 			if (ImGui::MenuItem("Open", "Ctrl+O")) {
+				// Upon opening the File Dialog, the main thread will be halted. To prevent worker threads continuing to work and producing overwhelmingly
+				// huge amounts of data that's unprocessed by the main thread at this time, we need to signal to the worker threads to also halt until
+				// the main thread resumes.
+				{
+					std::lock_guard<std::mutex> lock(g_appContext.MainThread.haltMutex);
+					g_appContext.MainThread.isHalted.store(true);
+				}
+
+
 				// Handle Open using tinyfiledialogs
 				const char *filterPatterns[] = { "*.yaml" };
 				const char *selectedFilePath = tinyfd_openFileDialog(
@@ -155,6 +164,16 @@ void UIPanelManager::renderMenuBar() {
 					0            // Allow multiple selections (0 for single, 1 for multiple)
 				);
 
+
+				// Signal to all workers that the main thread has resumed
+				{
+					std::lock_guard<std::mutex> lock(g_appContext.MainThread.haltMutex);
+					g_appContext.MainThread.isHalted.store(false);
+				}
+				g_appContext.MainThread.haltCV.notify_all();
+
+
+				// Process selected file
 				if (selectedFilePath) {
 					// Show popup modal to indicate preparation
 					bool showInitialPopup = true;

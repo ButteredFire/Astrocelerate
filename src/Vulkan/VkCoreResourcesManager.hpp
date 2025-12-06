@@ -45,12 +45,28 @@ public:
     inline std::string getDeviceName() const { return m_chosenDevice.deviceName; }
     inline VkPhysicalDeviceProperties getDeviceProperties() const { return m_chosenDevice.deviceProperties; }
 
+
+    /* Other */
+    inline VkSurfaceKHR recreateSurface(GLFWwindow *w) {
+        m_instanceManager->createSurface(m_surface, m_instance, w);
+
+        m_eventDispatcher->dispatch(UpdateEvent::CoreResources{
+            .surface = m_surface
+        });
+
+        return m_surface;
+    }
+
 private:
     std::shared_ptr<EventDispatcher> m_eventDispatcher;
+
+    VkInstanceManager *m_instanceManager;
+    VkDeviceManager *m_deviceManager;
 
     Application::Stage m_currentAppStage{};
     Application::State m_currentAppState{};
 
+    // Core resources
     VkInstance m_instance = VK_NULL_HANDLE;
     VkDebugUtilsMessengerEXT m_dbgMessenger = VK_NULL_HANDLE;
     VkSurfaceKHR m_surface = VK_NULL_HANDLE;

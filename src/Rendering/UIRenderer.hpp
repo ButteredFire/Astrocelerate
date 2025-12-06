@@ -50,6 +50,9 @@ public:
 	void updateDockspace();
 
 
+	/* Re-initializes ImGui. Call this when changes have occurred to core resources (e.g., GLFW window pointer). */
+	void reInitImGui(GLFWwindow *window);
+
 	/* Refreshes ImGui. Call this when, for instance, the swap-chain is recreated. */
 	void refreshImGui();
 
@@ -67,6 +70,8 @@ private:
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 
 	std::shared_ptr<UIPanelManager> m_uiPanelManager;
+
+	CleanupID m_imguiCleanupID{};
 
 	GLFWwindow *m_window;
 	VkRenderPass m_presentPipelineRenderPass;

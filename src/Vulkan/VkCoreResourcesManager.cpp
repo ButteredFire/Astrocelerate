@@ -3,7 +3,10 @@
 
 
 
-VkCoreResourcesManager::VkCoreResourcesManager(GLFWwindow *window, VkInstanceManager *instanceManager, VkDeviceManager *deviceManager, GarbageCollector *gc) {
+VkCoreResourcesManager::VkCoreResourcesManager(GLFWwindow *window, VkInstanceManager *instanceManager, VkDeviceManager *deviceManager, GarbageCollector *gc) :
+    m_instanceManager(instanceManager),
+    m_deviceManager(deviceManager) {
+    
     m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
 
     // Create persistent Vulkan resources

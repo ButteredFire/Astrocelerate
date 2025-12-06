@@ -32,16 +32,19 @@ int main() {
     Log::BeginLogging();
     Log::PrintAppInfo();
 
-    // Creates a window
     Window window(WIN_WIDTH, WIN_HEIGHT, APP_NAME);
-    GLFWwindow *windowPtr = window.getGLFWwindowPtr();
 
-    window.initGLFWBindings(&g_callbackContext);
 
     try {
-        Engine engine(windowPtr);
+        window.initSplashScreen();
 
+        Engine engine(window.getGLFWwindowPtr()); // Engine initializes core services on creation
+
+        std::this_thread::sleep_for(std::chrono::seconds(5)); // simulate loading
+        window.initPrimaryScreen(&g_callbackContext);
+        
         engine.init();
+
 
         engine.run();
     }

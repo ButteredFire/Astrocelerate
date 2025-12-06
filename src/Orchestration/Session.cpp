@@ -103,8 +103,16 @@ void Session::update() {
 	// Update physics
 	if (m_sessionIsValid && !m_physicsWorker->isRunning()) {
 		m_physicsWorker->set([this]() {
-			while (!m_physicsWorker->stopRequested())
+			while (!m_physicsWorker->stopRequested()) {
+				// If the main thread is halted, we force THIS worker thread to also halt
+				std::unique_lock<std::mutex> lock(g_appContext.MainThread.haltMutex);
+
+					// This line blocks THIS worker thread until the main thread resumes
+				g_appContext.MainThread.haltCV.wait(lock, []() { return !g_appContext.MainThread.isHalted.load(); });
+
+				// After waiting, we do work
 				this->m_accumulator.store(m_physicsSystem->tick(m_physicsWorker));
+			}
 		});
 
 		m_physicsWorker->start();
@@ -114,11 +122,16 @@ void Session::update() {
 	// Process key input events
 	if (!m_inputWorker->isRunning()) {
 		m_inputWorker->set([this]() {
-			while (!m_inputWorker->stopRequested())
+			while (!m_inputWorker->stopRequested()) {
+				std::unique_lock<std::mutex> lock(g_appContext.MainThread.haltMutex);
+				g_appContext.MainThread.haltCV.wait(lock, []() { return !g_appContext.MainThread.isHalted.load(); });
+
+
 				m_eventDispatcher->dispatch(UpdateEvent::Input{
 					.deltaTime = Time::GetDeltaTime(),
 					.timeSinceLastPhysicsUpdate = m_accumulator
 				}, true);
+			}
 		});
 
 		m_inputWorker->start();

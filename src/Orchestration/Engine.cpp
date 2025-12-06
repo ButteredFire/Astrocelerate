@@ -25,11 +25,6 @@ Engine::~Engine() {
     m_eventDispatcher->dispatch(UpdateEvent::ApplicationStatus{
       .appState = Application::State::SHUTDOWN  
     });
-
-
-    // Frees up all associated memory.
-    glfwDestroyWindow(m_window);
-    glfwTerminate();
 }
 
 
@@ -47,6 +42,14 @@ void Engine::bindEvents() {
         [this](const UpdateEvent::ApplicationStatus &event) {
             if (event.appStage != Application::Stage::NULL_STAGE)
                 setApplicationStage(event.appStage);
+        }
+    );
+
+
+    m_eventDispatcher->subscribe<UpdateEvent::CoreResources>(selfIndex,
+        [this](const UpdateEvent::CoreResources &event) {
+            if (event.window != nullptr)
+                this->setWindowPtr(event.window);
         }
     );
 }
@@ -85,7 +88,7 @@ void Engine::initCoreManagers() {
     ServiceLocator::RegisterService(m_coreResourcesManager);
 
     m_vmaAllocator = m_coreResourcesManager->getVmaAllocator();
-    m_surface = m_coreResourcesManager->getSurface();
+    //m_surface = m_coreResourcesManager->getSurface();
 
     m_physicalDevice = m_coreResourcesManager->getPhysicalDevice();
     m_deviceProperties = m_coreResourcesManager->getDeviceProperties();
@@ -125,9 +128,8 @@ void Engine::initCoreManagers() {
     glm::dvec3 cameraPosition = glm::vec3(0.0, 1.3e8, 0.0);
 
     m_camera = std::make_shared<Camera>(
-        m_window,
         cameraPosition,
-        glm::quat(1, 0.0, 0.0, 0.0)
+        glm::quat()
     );
     ServiceLocator::RegisterService(m_camera);
 
@@ -236,6 +238,16 @@ void Engine::setApplicationStage(Application::Stage newAppStage) {
 }
 
 
+void Engine::setWindowPtr(GLFWwindow *w) {
+    m_window = w;
+
+    if (m_renderer != nullptr)
+        m_renderer->recreateSwapchain(m_window);
+
+    m_uiRenderer->reInitImGui(m_window);
+}
+
+
 void Engine::run() {
     m_inputManager = ServiceLocator::GetService<InputManager>(__FUNCTION__);
     m_currentSession = ServiceLocator::GetService<Session>(__FUNCTION__);
@@ -252,70 +264,22 @@ void Engine::update() {
         glfwPollEvents();
         m_eventDispatcher->processQueuedEvents();
 
-
+        // Update per-session data & threads
         m_currentSession->update();
 
+        // Update rendering
+            // Get current camera position
         glm::dvec3 floatingOrigin;
         Camera *camera = m_inputManager->getCamera();
 
-        if (camera->inFreeFlyMode())
-            floatingOrigin = camera->getAbsoluteTransform().position;
-        else
-            floatingOrigin = camera->getOrbitedEntityPosition();
+        if (camera->inFreeFlyMode())    floatingOrigin = camera->getAbsoluteTransform().position;
+        else                            floatingOrigin = camera->getOrbitedEntityPosition();
 
         m_renderer->update(floatingOrigin);
-
-        //switch (m_currentAppStage) {
-        //case Stage::START_SCREEN:
-        //    updateStartScreen();
-        //    break;
-        //
-        //case Stage::LOADING_SCREEN:
-        //    updateLoadingScreen();
-        //    break;
-        //
-        //
-        //case Stage::SETUP_ORBITAL:
-        //    updateOrbitalSetup();
-        //    break;
-        //
-        //
-        //case Stage::WORKSPACE_ORBITAL:
-        //    updateOrbitalWorkspace();
-        //    break;
-        //}
     }
 
 
     // All of the operations in Renderer::drawFrame are asynchronous. That means that when we exit the main loop, drawing and presentation operations may still be going on. Cleaning up resources while that is happening is a bad idea.
     // To fix that problem, we should wait for the logical device to finish operations before exiting mainLoop and destroying the window:
     vkDeviceWaitIdle(m_logicalDevice);
-}
-
-
-void Engine::updateStartScreen() {
-
-}
-
-void Engine::updateLoadingScreen() {
-
-}
-
-void Engine::updateOrbitalSetup() {
-
-}
-
-
-void Engine::updateOrbitalWorkspace() {
-    m_currentSession->update();
-
-    glm::dvec3 floatingOrigin;
-    Camera *camera = m_inputManager->getCamera();
-    
-    if (camera->inFreeFlyMode())
-        floatingOrigin = camera->getAbsoluteTransform().position;
-    else
-        floatingOrigin = camera->getOrbitedEntityPosition();
-   
-    m_renderer->update(floatingOrigin);
 }

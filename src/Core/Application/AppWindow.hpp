@@ -8,16 +8,25 @@
 #include <iostream>
 #include <string>
 
+#include <Core/Application/EventDispatcher.hpp>
 #include <Core/Data/Contexts/CallbackContext.hpp>
 
 class Window {
 public:
-	Window(int width, int height, std::string windowName);
+	Window(const uint32_t width, const uint32_t height, const std::string &windowName);
 	~Window();
 
-	inline GLFWwindow* getGLFWwindowPtr() { return m_window; };
+	/* Initializes the window for the splash screen. */
+	void initSplashScreen();
 
-	void initGLFWBindings(CallbackContext* context);
+	/* Initializes the window for the primary/main screen.
+		NOTE: It is assumed that the Event Dispatcher service has been initialized.
+	*/
+	void initPrimaryScreen(CallbackContext *context);
+
+	void loadDefaultHints();
+
+	inline GLFWwindow* getGLFWwindowPtr() { return m_window; };
 
 	static void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 
@@ -28,8 +37,10 @@ public:
 	static void ScrollCallback(GLFWwindow* window, double deltaX, double deltaY);
 	
 private:
-	const int m_WIDTH;
-	const int m_HEIGHT;
+	std::shared_ptr<EventDispatcher> m_eventDispatcher;
+
+	const uint32_t m_WIDTH;
+	const uint32_t m_HEIGHT;
 	std::string m_windowName;
 
 	GLFWmonitor* m_monitor;

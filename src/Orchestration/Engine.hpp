@@ -62,6 +62,7 @@ public:
 	void init();
 
 	void setApplicationStage(Application::Stage newAppStage);
+	void setWindowPtr(GLFWwindow *w);
 
 	/* Starts the engine. */
 	void run();
