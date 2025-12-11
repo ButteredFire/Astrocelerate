@@ -64,7 +64,6 @@ public:
 	void setApplicationStage(Application::Stage newAppStage);
 	void setWindowPtr(GLFWwindow *w);
 
-	/* Starts the engine. */
 	void run();
 
 private:
@@ -130,11 +129,6 @@ private:
 	void initEngine();
 
 
-	void update();
-
-	void updateStartScreen();				// Update method for the start/welcome screen
-	void updateLoadingScreen();				// Update method for the loading screen
-
-	void updateOrbitalSetup();				// Update method for the orbital mechanics setup screen
-	void updateOrbitalWorkspace();			// Update method for the orbital mechanics workspaces
+	void prerun();	// Runs the main loop once to ensure all resources have been initialized
+	void tick();
 };

@@ -72,10 +72,10 @@ void Window::initPrimaryScreen(CallbackContext *context) {
 
     // Dispatch update event
     //std::cout << std::showbase << std::hex << "Main window: " << m_window << '\n';
-    //m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
-    //m_eventDispatcher->dispatch(UpdateEvent::CoreResources{
-    //    .window = m_window
-    //});
+    m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
+    m_eventDispatcher->dispatch(UpdateEvent::CoreResources{
+        .window = m_window
+    });
 }
 
 
@@ -83,9 +83,10 @@ void Window::loadDefaultHints() {
     // Explicitly tell GLFW not to create an OpenGL context (since we're using Vulkan)
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
-    glfwWindowHint(GLFW_DECORATED, GLFW_TRUE);  // GLFW_DECORATED: Show window decorations (e.g., border, minimize/maximize/close widgets)
+    glfwWindowHint(GLFW_DECORATED, GLFW_TRUE);  // GLFW_DECORATED: Should window decorations (e.g., border, minimize/maximize/close widgets) be shown?
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);  // GLFW_RESIZABLE: Should the window be resizable?
-    glfwWindowHint(GLFW_FLOATING, GLFW_FALSE);  // GLFW_FLOATING: Should the window ALWAYS be on top?
+    glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);    // GLFW_VISIBLE: Should the windowed mode window be initially visible?
+    glfwWindowHint(GLFW_FLOATING, GLFW_FALSE);  // GLFW_FLOATING: Should the window always be on top?
 }
 
 

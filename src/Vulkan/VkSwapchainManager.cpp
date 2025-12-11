@@ -78,30 +78,33 @@ void VkSwapchainManager::recreateSwapchain(GLFWwindow *newWindowPtr, uint32_t im
             glfwWaitEvents();
         }
 
-        // Recreate swap-chain
-            // We cannot clean up outdated swap-chain objects immediately, as we cannot know when the presentation engine has finished with the current swap-chain resources, including the semaphores it's waiting on.
-            // To solve this, we can defer destruction until we are absolutely sure the resources are no longer in use.
-        std::vector<CleanupID> deferredDestructionList(m_cleanupTaskIDs.begin(), m_cleanupTaskIDs.end());
-        m_cleanupTaskIDs.clear();
 
+        // We cannot clean up outdated swap-chain objects immediately, as we cannot know when the presentation engine has finished with the current swap-chain resources, including the semaphores it's waiting on.
+        // To solve this, we can defer destruction until we are absolutely sure the resources are no longer in use.
+        std::vector<CleanupID> deferredDestructionList;// (m_cleanupTaskIDs.begin(), m_cleanupTaskIDs.end());
+        deferredDestructionList.push_back(m_swapchainCleanupID);
+        //m_cleanupTaskIDs.clear();
+
+
+        // Recreate swap-chain
             // Re-initialize swapchain
         if (newWindowPtr != nullptr)
             m_coreResources->recreateSurface(newWindowPtr);
 
         VkSwapchainKHR oldSwapchain = m_swapChain;
         createSwapChain(oldSwapchain);
-                // Destroy the old swapchain.
-                // If the new swapchain is for a different window, we must also destroy the corresponding old VkSurface AFTER swapchain destruction.
-        vkDestroySwapchainKHR(m_logicalDevice, oldSwapchain, nullptr);
-        if (newWindowPtr != nullptr)
-            vkDestroySurfaceKHR(m_coreResources->getInstance(), m_oldSurface, nullptr);
-        
 
             // Re-initialize resources
         createImageViews();
         createFrameBuffers();
 
         m_imageLayouts[imageIndex] = VK_IMAGE_LAYOUT_UNDEFINED;
+
+        // Destroy the old swapchain.
+        // If the new swapchain is for a different window, we must also destroy the corresponding old VkSurface AFTER swapchain destruction.
+        vkDestroySwapchainKHR(m_logicalDevice, oldSwapchain, nullptr);
+        //if (newWindowPtr != nullptr)
+        //    vkDestroySurfaceKHR(m_coreResources->getInstance(), m_oldSurface, nullptr);
 
         m_eventDispatcher->dispatch(RecreationEvent::Swapchain{
             .imageIndex = imageIndex,
@@ -199,6 +202,7 @@ void VkSwapchainManager::createSwapChain(VkSwapchainKHR oldSwapchain) {
     task.cleanupFunc = [=]() { vkDestroySwapchainKHR(m_logicalDevice, m_swapChain, nullptr); };
 
     m_swapchainCleanupID = m_garbageCollector->createCleanupTask(task);
+    //m_cleanupTaskIDs.push_back(m_garbageCollector->createCleanupTask(task));
 
 
     // Fills swapChainImages with a set of VkImage objects provided after swap-chain creation
@@ -219,7 +223,8 @@ void VkSwapchainManager::createImageViews() {
     for (size_t i = 0; i < m_images.size(); i++) {
         uint32_t viewCleanupID = VkImageManager::CreateImageView(m_imageViews[i], m_images[i], m_surfaceFormat.format, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_VIEW_TYPE_2D, 1, 1);
 
-        m_cleanupTaskIDs.push_back(viewCleanupID);
+        m_garbageCollector->addTaskDependency(viewCleanupID, m_swapchainCleanupID);
+        //m_cleanupTaskIDs.push_back(viewCleanupID);
     }
 }
 
@@ -235,7 +240,8 @@ void VkSwapchainManager::createFrameBuffers() {
         };
         uint32_t framebufferCleanupID = VkImageManager::CreateFramebuffer(m_imageFrameBuffers[i], m_presentPipelineRenderPass, attachments, m_swapChainExtent.width, m_swapChainExtent.height);
 
-        m_cleanupTaskIDs.push_back(framebufferCleanupID);
+        m_garbageCollector->addTaskDependency(framebufferCleanupID, m_swapchainCleanupID);
+        //m_cleanupTaskIDs.push_back(framebufferCleanupID);
     }
 }
 

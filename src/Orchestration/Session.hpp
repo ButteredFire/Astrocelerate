@@ -19,7 +19,7 @@
 class Session {
 public:
 	Session(VkCoreResourcesManager *coreResources, SceneManager *sceneMgr, PhysicsSystem *physicsSystem);
-	~Session();
+	~Session() = default;
 
 	/* Creates a new session. */
 	void init();

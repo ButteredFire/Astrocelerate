@@ -40,12 +40,8 @@ int main() {
 
         Engine engine(window.getGLFWwindowPtr()); // Engine initializes core services on creation
 
-        std::this_thread::sleep_for(std::chrono::seconds(5)); // simulate loading
-        window.initPrimaryScreen(&g_callbackContext);
-        
         engine.init();
-
-
+        window.initPrimaryScreen(&g_callbackContext);
         engine.run();
     }
 

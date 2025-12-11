@@ -59,6 +59,8 @@ void Engine::init() {
     initComponents();
     initCoreManagers();
     initEngine();
+
+    prerun();
 }
 
 
@@ -249,37 +251,46 @@ void Engine::setWindowPtr(GLFWwindow *w) {
 
 
 void Engine::run() {
+    while (!glfwWindowShouldClose(m_window))
+        tick();
+
+    // After the main loop ends, we wait for the device to be idle and end the session
+    vkDeviceWaitIdle(m_logicalDevice);
+    m_currentSession->end();
+}
+
+
+void Engine::prerun() {
     m_inputManager = ServiceLocator::GetService<InputManager>(__FUNCTION__);
     m_currentSession = ServiceLocator::GetService<Session>(__FUNCTION__);
     m_renderer = ServiceLocator::GetService<Renderer>(__FUNCTION__);
 
-    update();
-}
-
-
-void Engine::update() {
-    using namespace Application;
-
-    while (!glfwWindowShouldClose(m_window)) {
-        glfwPollEvents();
-        m_eventDispatcher->processQueuedEvents();
-
-        // Update per-session data & threads
-        m_currentSession->update();
-
-        // Update rendering
-            // Get current camera position
-        glm::dvec3 floatingOrigin;
-        Camera *camera = m_inputManager->getCamera();
-
-        if (camera->inFreeFlyMode())    floatingOrigin = camera->getAbsoluteTransform().position;
-        else                            floatingOrigin = camera->getOrbitedEntityPosition();
-
-        m_renderer->update(floatingOrigin);
-    }
+    for (int i = 0; i < SimulationConsts::MAX_FRAMES_IN_FLIGHT; i++)
+        tick();
 
 
     // All of the operations in Renderer::drawFrame are asynchronous. That means that when we exit the main loop, drawing and presentation operations may still be going on. Cleaning up resources while that is happening is a bad idea.
     // To fix that problem, we should wait for the logical device to finish operations before exiting mainLoop and destroying the window:
     vkDeviceWaitIdle(m_logicalDevice);
+}
+
+
+void Engine::tick() {
+    glfwPollEvents();
+    m_eventDispatcher->processQueuedEvents();
+
+
+    // Update per-session data & threads
+    m_currentSession->update();
+
+
+    // Update rendering
+        // Get current camera position
+    glm::dvec3 floatingOrigin;
+    Camera *camera = m_inputManager->getCamera();
+
+    if (camera->inFreeFlyMode())    floatingOrigin = camera->getAbsoluteTransform().position;
+    else                            floatingOrigin = camera->getOrbitedEntityPosition();
+
+    m_renderer->update(floatingOrigin);
 }

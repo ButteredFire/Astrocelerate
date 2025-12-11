@@ -17,11 +17,6 @@ Session::Session(VkCoreResourcesManager *coreResources, SceneManager *sceneMgr, 
 }
 
 
-Session::~Session() {
-	end();
-}
-
-
 void Session::bindEvents() {
 	static EventDispatcher::SubscriberIndex selfIndex = m_eventDispatcher->registerSubscriber<Session>();
 

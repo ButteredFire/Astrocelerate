@@ -5,7 +5,8 @@
 
 VkCoreResourcesManager::VkCoreResourcesManager(GLFWwindow *window, VkInstanceManager *instanceManager, VkDeviceManager *deviceManager, GarbageCollector *gc) :
     m_instanceManager(instanceManager),
-    m_deviceManager(deviceManager) {
+    m_deviceManager(deviceManager),
+    m_garbageCollector(gc) {
     
     m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
 
@@ -26,7 +27,7 @@ VkCoreResourcesManager::VkCoreResourcesManager(GLFWwindow *window, VkInstanceMan
     deviceManager->createPhysicalDevice(m_physicalDevice, m_chosenDevice, m_availableDevices, m_instance, m_surface);
 
     task = deviceManager->createLogicalDevice(m_logicalDevice, m_familyIndices, m_physicalDevice, m_surface);
-    gc->createCleanupTask(task);
+    gc->createRootCleanupTask(task); // Create a root cleanup task for the logical device because it is the latest essential Vulkan resource
 
     m_vmaAllocator = gc->createVMAllocator(m_instance, m_physicalDevice, m_logicalDevice);
 

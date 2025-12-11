@@ -91,8 +91,6 @@ bool InputManager::isCameraOrbiting() {
 void InputManager::glfwDeferKeyInput(int key, int scancode, int action, int mods) {
 	std::lock_guard lock(m_pressedKeysMutex);
 
-	std::cout << "[" << std::this_thread::get_id() << "] DEFER INPUT... (key = " << key << ")\n";
-
 	if (action == GLFW_PRESS) {
 		m_pressedKeys.insert(key);
 	}
@@ -110,9 +108,6 @@ void InputManager::processKeyboardInput(double dt) {
 		std::lock_guard lock(m_pressedKeysMutex);
 		currentPressedKeys = m_pressedKeys;
 	}
-
-	if (dt > std::numeric_limits<double>::epsilon())
-		std::cout << "[" << std::this_thread::get_id() << "] Processing keyboard input... (dt = " << dt << ")\n";
 
 	// Unlocks the cursor when the viewport loses focus (this solves desynchronization between g_appContext.Input.isViewportFocused and m_cursorLocked)
 	if (m_pressedKeys.contains(GLFW_KEY_ESCAPE) || isViewportUnfocused())

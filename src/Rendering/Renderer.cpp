@@ -47,6 +47,7 @@ void Renderer::bindEvents() {
             case POST_INITIALIZATION:
                 vkWaitForFences(m_coreResources->getLogicalDevice(), static_cast<uint32_t>(m_inFlightFences.size()), m_inFlightFences.data(), VK_TRUE, UINT64_MAX);
                 vkDeviceWaitIdle(m_coreResources->getLogicalDevice());
+
                 m_pauseUpdateLoop = false;
                 m_sessionReady = true;
                 break;

@@ -48,7 +48,8 @@ public:
 
     /* Other */
     inline VkSurfaceKHR recreateSurface(GLFWwindow *w) {
-        m_instanceManager->createSurface(m_surface, m_instance, w);
+        CleanupTask task = m_instanceManager->createSurface(m_surface, m_instance, w);
+        m_garbageCollector->createCleanupTask(task);
 
         m_eventDispatcher->dispatch(UpdateEvent::CoreResources{
             .surface = m_surface
@@ -60,6 +61,7 @@ public:
 private:
     std::shared_ptr<EventDispatcher> m_eventDispatcher;
 
+    GarbageCollector *m_garbageCollector;
     VkInstanceManager *m_instanceManager;
     VkDeviceManager *m_deviceManager;
 
