@@ -8,13 +8,13 @@
 #include <vector>
 
 #include <Core/Engine/ServiceLocator.hpp>
-#include <Core/Application/GarbageCollector.hpp>
+#include <Core/Application/ResourceManager.hpp>
 
 
 class PipelineBuilder {
 public:
 	PipelineBuilder() {
-		m_garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
+		m_resourceManager = ServiceLocator::GetService<ResourceManager>(__FUNCTION__);
 	};
 	~PipelineBuilder() = default;
 
@@ -84,7 +84,7 @@ public:
 		task.vkHandles = { graphicsPipeline };
 		task.cleanupFunc = [logicalDevice, graphicsPipeline]() { vkDestroyPipeline(logicalDevice, graphicsPipeline, nullptr); };
 
-		m_garbageCollector->createCleanupTask(task);
+		m_resourceManager->createCleanupTask(task);
 
 
 		if (result != VK_SUCCESS) {
@@ -96,5 +96,5 @@ public:
 
 	
 private:
-	std::shared_ptr<GarbageCollector> m_garbageCollector;
+	std::shared_ptr<ResourceManager> m_resourceManager;
 };

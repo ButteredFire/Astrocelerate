@@ -18,7 +18,7 @@
 
 // Local
 #include <Core/Application/LoggingManager.hpp>
-#include <Core/Application/GarbageCollector.hpp>
+#include <Core/Application/ResourceManager.hpp>
 #include <Core/Engine/ServiceLocator.hpp>
 
 #include <Core/Data/Constants.h>

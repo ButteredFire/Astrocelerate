@@ -9,7 +9,7 @@ VkSyncManager::VkSyncManager(VkCoreResourcesManager *coreResources, VkSwapchainM
 	m_swapchainManager(swapchainMgr),
 	m_logicalDevice(coreResources->getLogicalDevice()) {
 
-	m_garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
+	m_resourceManager = ServiceLocator::GetService<ResourceManager>(__FUNCTION__);
 
 	init();
 
@@ -55,8 +55,6 @@ void VkSyncManager::WaitForSingleUseFence(VkDevice logicalDevice, VkFence& fence
 
 
 void VkSyncManager::createPerImageSemaphores() {
-	m_renderFinishedSemaphoreCleanupIDs.clear();
-
 	size_t swapchainImgCount = m_swapchainManager->getImages().size();
 	m_renderFinishedSemaphores.resize(swapchainImgCount);
 
@@ -75,11 +73,9 @@ void VkSyncManager::createPerImageSemaphores() {
 		syncObjTask.vkHandles = { m_renderFinishedSemaphores[i] };
 		syncObjTask.cleanupFunc = [this, semaphores = m_renderFinishedSemaphores, i]() {
 			vkDestroySemaphore(m_logicalDevice, semaphores[i], nullptr);
-			};
+		};
 
-		m_renderFinishedSemaphoreCleanupIDs.push_back(
-			m_garbageCollector->createCleanupTask(syncObjTask)
-		);
+		m_resourceManager->createCleanupTask(syncObjTask, m_swapchainManager->getSwapchainCleanupID());
 	}
 }
 
@@ -130,7 +126,7 @@ void VkSyncManager::createPerFrameSemaphores() {
 			vkDestroySemaphore(m_logicalDevice, m_imageReadySemaphores[i], nullptr);
 		};
 
-		m_garbageCollector->createCleanupTask(syncObjTask);
+		m_resourceManager->createCleanupTask(syncObjTask, m_swapchainManager->getSwapchainCleanupID());
 	}
 }
 
@@ -159,6 +155,6 @@ void VkSyncManager::createPerFrameFences() {
 			vkDestroyFence(m_logicalDevice, m_inFlightFences[i], nullptr);
 		};
 
-		m_garbageCollector->createCleanupTask(syncObjTask);
+		m_resourceManager->createCleanupTask(syncObjTask);
 	}
 }

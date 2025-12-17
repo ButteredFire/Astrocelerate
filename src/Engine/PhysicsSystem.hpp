@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include <mutex>
+
 #include <Core/Engine/ECS.hpp>
 #include <Core/Application/LoggingManager.hpp>
 #include <Core/Engine/ServiceLocator.hpp>
@@ -39,16 +41,8 @@ public:
 		NOTE: Since this task could take considerable amounts of time to finish and therefore freeze the main thread, it has been designed to run in a worker thread.
 
 		@param worker: The worker thread in which this function is run.
-
-		@return The accumulated simulation time.
 	*/
-	double tick(std::shared_ptr<WorkerThread> worker);
-
-
-	/* Performs a physics update.
-		@param dt: Delta-time.
-	*/
-	void update(const double dt);
+	void tick(std::shared_ptr<WorkerThread> worker);
 
 
 	/* Updates all entities in the scene that have SPICE ephemeris data.
@@ -69,15 +63,31 @@ public:
 	*/
 	void updateGeneralBodies(const double dt, const double et);
 
+
+	/* Gets the time difference between now and the last physics update. */
+	inline double getDeltaTick() {
+		std::lock_guard<std::mutex> lock(m_accumulatorMutex);
+		return m_accumulator;
+	}
+
 private:
 	std::shared_ptr<Registry> m_registry;
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 	std::shared_ptr<CoordinateSystem> m_coordSystem;
 
 	double m_accumulator = 0.0;
+	double m_avgAccumulation = 0.0;
+	std::mutex m_accumulatorMutex;
+
 	double m_simulationTime = 0.0;		// Simulation time (a.k.a. RELATIVE seconds elapsed since epoch; ABSOLUTE seconds is `epoch + m_simulationTime`)
 
 	void bindEvents();
+
+
+	/* Performs a physics update.
+		@param dt: Delta-time.
+	*/
+	void update(const double dt);
 
 
 	/* "Homogenizes" coordinate systems by converting the state vectors of all bodies in different coordinate systems to corresponding state vectors in the primary coordinate system (specified in the `SimulationConfigs` YAML section). This should be done only once, at the start of every simulation. */

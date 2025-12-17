@@ -12,6 +12,8 @@
 #include <unordered_set>
 
 #include <Core/Application/LoggingManager.hpp>
+#include <Core/Data/Contexts/AppContext.hpp>
+
 #include <Engine/Threading/WorkerThread.hpp>
 class WorkerThread;
 
@@ -23,10 +25,26 @@ public:
 	/* Gets the ID of the main thread.
 		@return The ID of the main thread.
 	*/
-	inline static std::thread::id GetMainThreadID() { return m_mainThreadID; };
+	inline static std::thread::id GetMainThreadID() { return m_mainThreadID; }
 	inline static std::string GetMainThreadIDAsString() {
 		return ThreadIDToString(m_mainThreadID);
-	};
+	}
+
+
+	/* Signals to all workers that the main thread is currently unresponsive/halted. */
+	inline static void SignalMainThreadHalt() {
+		std::lock_guard<std::mutex> lock(g_appContext.MainThread.haltMutex);
+		g_appContext.MainThread.isHalted.store(true);
+	}
+
+	/* Signals to all workers that the main thread has resumed. */
+	inline static void SignalMainThreadResume() {
+		{
+			std::lock_guard<std::mutex> lock(g_appContext.MainThread.haltMutex);
+			g_appContext.MainThread.isHalted.store(false);
+		}
+		g_appContext.MainThread.haltCV.notify_all();
+	}
 
 
 	/* Gets the name of a thread created via ThreadManager::CreateThread.

@@ -8,6 +8,7 @@ Session::Session(VkCoreResourcesManager *coreResources, SceneManager *sceneMgr, 
 
 	m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
 	m_registry = ServiceLocator::GetService<Registry>(__FUNCTION__);
+	m_inputManager = ServiceLocator::GetService<InputManager>(__FUNCTION__);
 
 	bindEvents();
 
@@ -106,7 +107,7 @@ void Session::update() {
 				g_appContext.MainThread.haltCV.wait(lock, []() { return !g_appContext.MainThread.isHalted.load(); });
 
 				// After waiting, we do work
-				this->m_accumulator.store(m_physicsSystem->tick(m_physicsWorker));
+				m_physicsSystem->tick(m_physicsWorker);
 			}
 		});
 
@@ -121,11 +122,7 @@ void Session::update() {
 				std::unique_lock<std::mutex> lock(g_appContext.MainThread.haltMutex);
 				g_appContext.MainThread.haltCV.wait(lock, []() { return !g_appContext.MainThread.isHalted.load(); });
 
-
-				m_eventDispatcher->dispatch(UpdateEvent::Input{
-					.deltaTime = Time::GetDeltaTime(),
-					.timeSinceLastPhysicsUpdate = m_accumulator
-				}, true);
+				m_inputManager->tick(Time::GetDeltaTime(), m_accumulator);
 			}
 		});
 
@@ -168,11 +165,11 @@ void Session::loadSceneFromFile(const std::string &filePath) {
 			m_eventDispatcher->dispatch(UpdateEvent::SceneLoadProgress{
 				.progress = 1.0f,
 				.message = "Scene initialization complete."
-				});
+			});
 			m_eventDispatcher->dispatch(UpdateEvent::SceneLoadComplete{
 				.loadSuccessful = true,
 				.finalMessage = "Scene initialization complete."
-				});
+			});
 		}
 		catch (const std::exception &e) {
 			// Catch any exceptions during the worker thread's CPU-bound execution.
@@ -180,7 +177,7 @@ void Session::loadSceneFromFile(const std::string &filePath) {
 			m_eventDispatcher->dispatch(UpdateEvent::SceneLoadComplete{
 				.loadSuccessful = false,
 				.finalMessage = STD_STR(e.what())
-				});
+			});
 
 			reset();
 			// Signal an error via the SceneInitializationComplete event

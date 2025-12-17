@@ -3,10 +3,10 @@
 
 
 
-VkCoreResourcesManager::VkCoreResourcesManager(GLFWwindow *window, VkInstanceManager *instanceManager, VkDeviceManager *deviceManager, GarbageCollector *gc) :
+VkCoreResourcesManager::VkCoreResourcesManager(GLFWwindow *window, VkInstanceManager *instanceManager, VkDeviceManager *deviceManager, ResourceManager *gc) :
     m_instanceManager(instanceManager),
     m_deviceManager(deviceManager),
-    m_garbageCollector(gc) {
+    m_resourceManager(gc) {
     
     m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
 

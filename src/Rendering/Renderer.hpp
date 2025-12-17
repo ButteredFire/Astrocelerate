@@ -53,7 +53,7 @@ public:
 private:
 	std::shared_ptr<Registry> m_globalRegistry;
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
-	std::shared_ptr<GarbageCollector> m_garbageCollector;
+	std::shared_ptr<ResourceManager> m_resourceManager;
 
 	VkCoreResourcesManager *m_coreResources;
 	VkSwapchainManager *m_swapchainManager;
@@ -62,13 +62,11 @@ private:
 	UIRenderer *m_uiRenderer;
 
 
+	std::optional<CleanupID> m_swapchainCleanupID;
+
 	std::vector<VkSemaphore> m_imageReadySemaphores;
-	std::vector<VkFence> m_inFlightFences;
-
 	std::vector<VkSemaphore> m_renderFinishedSemaphores;
-	std::vector<CleanupID> m_renderFinishedSemaphoreCleanupIDs;
-
-	std::vector<CleanupID> m_swapchainDeferredCleanupIDs;
+	std::vector<VkFence> m_inFlightFences;
 
 	std::vector<VkCommandBuffer> m_graphicsCommandBuffers;
 

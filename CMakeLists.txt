@@ -45,7 +45,10 @@ cmake_policy(SET CMP0141 NEW)
 
 
 # Enable Address Sanitizer if in Debug Mode
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+set(DEBUG_MODES "Debug")
+set(RELEASE_MODES "Release;RelWithDebInfo;MinSizeRel")
+
+if (CMAKE_BUILD_TYPE IN_LIST DEBUG_MODES)
     if (MSVC)
         add_compile_options(/fsanitize=address)
         add_link_options(/fsanitize=address)
@@ -81,8 +84,7 @@ add_executable(Astrocelerate ${SOURCE_FILES})
 
 
 # Show/Hide the console window
-set(SHOW_CONSOLE (CMAKE_BUILD_TYPE STREQUAL "Debug"))
-if (NOT SHOW_CONSOLE)
+if (CMAKE_BUILD_TYPE IN_LIST RELEASE_MODES)
     if(WIN32)
         # On Windows, applications with windows have their consoles automatically hidden
         target_link_options(

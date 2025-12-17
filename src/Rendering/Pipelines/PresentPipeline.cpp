@@ -8,7 +8,7 @@ PresentPipeline::PresentPipeline(VkCoreResourcesManager *coreResources, VkSwapch
 	m_swapchainExtent(swapchainMgr->getSwapChainExtent()) {
 
 	m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
-	m_garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
+	m_resourceManager = ServiceLocator::GetService<ResourceManager>(__FUNCTION__);
 	m_bufferManager = ServiceLocator::GetService<VkBufferManager>(__FUNCTION__);
 
 	init();
@@ -78,7 +78,7 @@ void PresentPipeline::createPipelineLayout() {
 	task.vkHandles = { m_pipelineLayout };
 	task.cleanupFunc = [&]() { vkDestroyPipelineLayout(m_logicalDevice, m_pipelineLayout, nullptr); };
 
-	m_garbageCollector->createCleanupTask(task);
+	m_resourceManager->createCleanupTask(task);
 
 
 	if (result != VK_SUCCESS) {
@@ -172,7 +172,7 @@ void PresentPipeline::createRenderPass() {
 	task.vkHandles = { m_renderPass };
 	task.cleanupFunc = [this]() { vkDestroyRenderPass(m_logicalDevice, m_renderPass, nullptr); };
 
-	m_garbageCollector->createCleanupTask(task);
+	m_resourceManager->createCleanupTask(task);
 
 
 	if (result != VK_SUCCESS) {

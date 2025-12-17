@@ -3,13 +3,16 @@
 
 #pragma once
 
+#include <imgui/imgui.h>
+#include <imgui/imgui_impl_glfw.h>
 #include <External/GLFWVulkan.hpp>
 
-#include <iostream>
 #include <string>
+#include <iostream>
 
 #include <Core/Application/EventDispatcher.hpp>
 #include <Core/Data/Contexts/CallbackContext.hpp>
+
 
 class Window {
 public:
@@ -26,7 +29,7 @@ public:
 
 	void loadDefaultHints();
 
-	inline GLFWwindow* getGLFWwindowPtr() { return m_window; };
+	inline GLFWwindow* getGLFWwindowPtr() { return (m_mainWindow == nullptr) ? m_splashWindow : m_mainWindow; };
 
 	static void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 
@@ -43,6 +46,8 @@ private:
 	const uint32_t m_HEIGHT;
 	std::string m_windowName;
 
-	GLFWmonitor* m_monitor;
-	GLFWwindow* m_window;
+	GLFWmonitor *m_monitor;
+
+	GLFWwindow *m_splashWindow;
+	GLFWwindow *m_mainWindow;
 };

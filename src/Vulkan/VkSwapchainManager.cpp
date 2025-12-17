@@ -12,13 +12,10 @@ VkSwapchainManager::VkSwapchainManager(GLFWwindow *window, VkCoreResourcesManage
     m_queueFamilies(coreResources->getQueueFamilyIndices()) {
 
     m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
-    m_garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
+    m_resourceManager = ServiceLocator::GetService<ResourceManager>(__FUNCTION__);
 
     bindEvents();
     init();
-
-    // Initializes per-frame swapchain image layouts
-    m_imageLayouts.assign(m_images.size(), VK_IMAGE_LAYOUT_UNDEFINED);
 
     Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
@@ -79,37 +76,31 @@ void VkSwapchainManager::recreateSwapchain(GLFWwindow *newWindowPtr, uint32_t im
         }
 
 
-        // We cannot clean up outdated swap-chain objects immediately, as we cannot know when the presentation engine has finished with the current swap-chain resources, including the semaphores it's waiting on.
-        // To solve this, we can defer destruction until we are absolutely sure the resources are no longer in use.
-        std::vector<CleanupID> deferredDestructionList;// (m_cleanupTaskIDs.begin(), m_cleanupTaskIDs.end());
-        deferredDestructionList.push_back(m_swapchainCleanupID);
-        //m_cleanupTaskIDs.clear();
-
-
         // Recreate swap-chain
             // Re-initialize swapchain
         if (newWindowPtr != nullptr)
             m_coreResources->recreateSurface(newWindowPtr);
 
         VkSwapchainKHR oldSwapchain = m_swapChain;
+        CleanupID oldSwapchainCleanupID = m_swapchainCleanupID;
         createSwapChain(oldSwapchain);
 
             // Re-initialize resources
         createImageViews();
         createFrameBuffers();
 
-        m_imageLayouts[imageIndex] = VK_IMAGE_LAYOUT_UNDEFINED;
+        //m_imageLayouts[imageIndex] = VK_IMAGE_LAYOUT_UNDEFINED;
 
         // Destroy the old swapchain.
         // If the new swapchain is for a different window, we must also destroy the corresponding old VkSurface AFTER swapchain destruction.
-        vkDestroySwapchainKHR(m_logicalDevice, oldSwapchain, nullptr);
+        //vkDestroySwapchainKHR(m_logicalDevice, oldSwapchain, nullptr);
         //if (newWindowPtr != nullptr)
         //    vkDestroySurfaceKHR(m_coreResources->getInstance(), m_oldSurface, nullptr);
 
         m_eventDispatcher->dispatch(RecreationEvent::Swapchain{
             .imageIndex = imageIndex,
-            .imageLayouts = m_imageLayouts,
-            .deferredDestructionList = deferredDestructionList
+            .swapchainCleanupID = oldSwapchainCleanupID,
+            .imageLayouts = m_imageLayouts
         });
     }
 
@@ -199,16 +190,19 @@ void VkSwapchainManager::createSwapChain(VkSwapchainKHR oldSwapchain) {
     task.caller = __FUNCTION__;
     task.objectNames = { VARIABLE_NAME(m_swapChain) };
     task.vkHandles = { m_swapChain };
-    task.cleanupFunc = [=]() { vkDestroySwapchainKHR(m_logicalDevice, m_swapChain, nullptr); };
+    task.cleanupFunc = [this, swapChain = m_swapChain]() { vkDestroySwapchainKHR(m_logicalDevice, swapChain, nullptr); };
 
-    m_swapchainCleanupID = m_garbageCollector->createCleanupTask(task);
-    //m_cleanupTaskIDs.push_back(m_garbageCollector->createCleanupTask(task));
+    m_swapchainCleanupID = m_resourceManager->createCleanupTask(task);
+    //m_cleanupTaskIDs.push_back(m_resourceManager->createCleanupTask(task));
 
 
     // Fills swapChainImages with a set of VkImage objects provided after swap-chain creation
     vkGetSwapchainImagesKHR(m_logicalDevice, m_swapChain, &m_minImageCount, nullptr);
         m_images.resize(m_minImageCount);
     vkGetSwapchainImagesKHR(m_logicalDevice, m_swapChain, &m_minImageCount, m_images.data());
+
+        // (Re-)Initializes per-frame swapchain image layouts
+    m_imageLayouts.resize(m_images.size(), VK_IMAGE_LAYOUT_UNDEFINED);
 }
 
 
@@ -223,7 +217,7 @@ void VkSwapchainManager::createImageViews() {
     for (size_t i = 0; i < m_images.size(); i++) {
         uint32_t viewCleanupID = VkImageManager::CreateImageView(m_imageViews[i], m_images[i], m_surfaceFormat.format, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_VIEW_TYPE_2D, 1, 1);
 
-        m_garbageCollector->addTaskDependency(viewCleanupID, m_swapchainCleanupID);
+        m_resourceManager->addTaskDependency(viewCleanupID, m_swapchainCleanupID);
         //m_cleanupTaskIDs.push_back(viewCleanupID);
     }
 }
@@ -240,7 +234,7 @@ void VkSwapchainManager::createFrameBuffers() {
         };
         uint32_t framebufferCleanupID = VkImageManager::CreateFramebuffer(m_imageFrameBuffers[i], m_presentPipelineRenderPass, attachments, m_swapChainExtent.width, m_swapChainExtent.height);
 
-        m_garbageCollector->addTaskDependency(framebufferCleanupID, m_swapchainCleanupID);
+        m_resourceManager->addTaskDependency(framebufferCleanupID, m_swapchainCleanupID);
         //m_cleanupTaskIDs.push_back(framebufferCleanupID);
     }
 }

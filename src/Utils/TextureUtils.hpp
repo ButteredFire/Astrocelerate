@@ -6,6 +6,8 @@
 #include <memory>
 #include <external/GLFWVulkan.hpp>
 
+#include <imgui/imgui_impl_vulkan.h>
+
 
 namespace TextureUtils {
 	struct TextureProps {

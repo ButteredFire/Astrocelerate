@@ -69,7 +69,7 @@ namespace SPICEUtils {
 		bool startOfField = false;
 		std::stringstream ss;
 
-		for (size_t i = 1; i < line1.size(); i++) {
+		for (int i = 1; i < line1.size(); i++) {
 			if (line1[i - 1] != ' ') {
 				if (i - 2 >= 0 && line1[i - 2] == ' ')
 					startOfField = true;

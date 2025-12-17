@@ -2,7 +2,7 @@
 
 
 void VkDescriptorUtils::CreateDescriptorPool(VkDevice logicalDevice, VkDescriptorPool& descriptorPool, uint32_t poolSizeCount, VkDescriptorPoolSize *poolSizes, VkDescriptorPoolCreateFlags createFlags, uint32_t maxSets) {
-	std::shared_ptr<GarbageCollector> garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
+	std::shared_ptr<ResourceManager> resourceManager = ServiceLocator::GetService<ResourceManager>(__FUNCTION__);
 
 	VkDescriptorPoolCreateInfo descPoolCreateInfo{};
 	descPoolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -25,7 +25,7 @@ void VkDescriptorUtils::CreateDescriptorPool(VkDevice logicalDevice, VkDescripto
 		vkDestroyDescriptorPool(logicalDevice, descriptorPool, nullptr);
 	};
 
-	garbageCollector->createCleanupTask(task);
+	resourceManager->createCleanupTask(task);
 
 
 	if (result != VK_SUCCESS) {

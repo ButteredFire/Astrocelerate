@@ -3,8 +3,8 @@
 
 #pragma once
 
-#include <set>
 #include <mutex>
+#include <unordered_set>
 
 #include <imgui/imgui.h>
 
@@ -33,6 +33,12 @@ public:
 	}
 
 	void init();
+
+	/* Updates the input manager.
+		@param deltaTime: Delta-time.
+		@param deltaUpdate: The time difference between now and the last physics update. This allows for linear movement interpolation.
+	*/
+	void tick(double deltaTime, double deltaUpdate);
 
 
 	/* Run this function when the window is not in focus. */
@@ -67,6 +73,7 @@ public:
 	bool isViewportInputAllowed();
 	bool isViewportFocused();
 	bool isViewportUnfocused();
+	bool isViewportHoveredOver();
 
 	bool isCameraOrbiting();
 
@@ -76,12 +83,13 @@ private:
 
 	GLFWwindow *m_window;
 
-	std::set<int> m_pressedKeys;
+	std::unordered_set<int> m_pressedKeys;
+
 	std::mutex m_pressedKeysMutex;
+	std::recursive_mutex m_appContextMutex;
 
-	std::unordered_map<int, Input::CameraMovement> m_keyToCamMovementBindings;
-
-	bool m_cursorLocked = false;
+	std::atomic<double> m_deltaUpdate = 0.0;  // Time between now and the last physics update
+	std::atomic<bool> m_cursorLocked = false;
 
 	void bindEvents();
 

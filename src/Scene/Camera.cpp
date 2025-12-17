@@ -11,8 +11,17 @@ Camera::Camera(glm::dvec3 position, glm::quat orientation):
 
 	m_registry = ServiceLocator::GetService<Registry>(__FUNCTION__);
 
+	m_keyToCamMovementBindings = {
+		{GLFW_KEY_W,					Input::CameraMovement::FORWARD},
+		{GLFW_KEY_S,					Input::CameraMovement::BACKWARD},
+		{GLFW_KEY_A,					Input::CameraMovement::LEFT},
+		{GLFW_KEY_D,					Input::CameraMovement::RIGHT},
+		{GLFW_KEY_E,					Input::CameraMovement::UP},
+		{GLFW_KEY_Q,					Input::CameraMovement::DOWN}
+	};
+
 	reset();
-	update();
+	tick();
 
 	Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
@@ -62,7 +71,7 @@ void Camera::resetCameraQuatRoll(const glm::vec3 &forwardVector) {
 }
 
 
-void Camera::update(double physicsUpdateTimeDiff) {
+void Camera::tick(double deltaUpdate) {
 	/* In a +Z-up coordinate system:
 		* +Z is Up
 		* -Y is Front: The negative Y-axis points forward (the direction the camera looks by default).
@@ -92,7 +101,7 @@ void Camera::update(double physicsUpdateTimeDiff) {
 		if (Time::GetTimeScale() > 0.0) {
 			// Prevents division by zero
 			// IMPORTANT: Consider checking time step to check if it's zero in the future, if dynamic time steps are to be implemented
-			double alpha = physicsUpdateTimeDiff / (SimulationConsts::TIME_STEP * Time::GetTimeScale());
+			double alpha = deltaUpdate / (SimulationConsts::TIME_STEP * Time::GetTimeScale());
 			alpha = glm::clamp(alpha, 0.0, 1.0);
 
 			interpolatedEntityPosition = glm::mix(
@@ -175,7 +184,7 @@ void Camera::attachToEntity(EntityID entityID) {
 
 	m_attachedEntityID = entityID;
 
-	update(); // Forces an immediate update after changing attachment
+	tick(); // Forces an immediate update after changing attachment
 }
 
 
@@ -191,12 +200,17 @@ void Camera::detachFromEntity() {
 	}
 
 	m_attachedEntityID = m_camEntity.id;
-	update();
+	tick();
 }
 
 
-void Camera::processKeyboardInput(Input::CameraMovement direction, double dt) {
+void Camera::processKeyboardInput(int key, double dt) {
 	using namespace Input;
+
+	if (m_keyToCamMovementBindings.find(key) == m_keyToCamMovementBindings.end())
+		return;
+
+	Input::CameraMovement direction = m_keyToCamMovementBindings[key];
 
 	float velocity = movementSpeed * dt;
 
@@ -241,7 +255,7 @@ void Camera::processMouseInput(float deltaX, float deltaY) {
 	m_orientation = glm::normalize(pitchQuat * yawQuat * m_orientation);
 
 
-	update();
+	tick();
 }
 
 

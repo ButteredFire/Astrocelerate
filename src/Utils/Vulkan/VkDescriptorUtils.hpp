@@ -6,7 +6,7 @@
 #include <External/GLFWVulkan.hpp>
 #include <vector>
 
-#include <Core/Application/GarbageCollector.hpp>
+#include <Core/Application/ResourceManager.hpp>
 #include <Core/Engine/ServiceLocator.hpp>
 
 

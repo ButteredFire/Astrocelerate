@@ -3,7 +3,7 @@
 
 GeometryLoader::GeometryLoader() {
 	m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
-	m_garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
+	m_resourceManager = ServiceLocator::GetService<ResourceManager>(__FUNCTION__);
 
 	bindEvents();
 
@@ -115,7 +115,7 @@ Geometry::GeometryData* GeometryLoader::bakeGeometry() {
 	geomDataTask.cleanupFunc = [geomData]() {
 		delete geomData;
 	};
-	m_garbageCollector->createCleanupTask(geomDataTask);
+	m_resourceManager->createCleanupTask(geomDataTask);
 
 	LOG_ASSERT(geomData, "Cannot bake geometry: Unable to allocate enough memory for geometry data!");
 

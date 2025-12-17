@@ -23,24 +23,23 @@ const int WIN_HEIGHT = WindowConsts::DEFAULT_WINDOW_HEIGHT;
 
 
 void processCleanupStack() {
-    std::shared_ptr<GarbageCollector> garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
-    garbageCollector->processCleanupStack();
+    std::shared_ptr<ResourceManager> resourceManager = ServiceLocator::GetService<ResourceManager>(__FUNCTION__);
+    resourceManager->processCleanupStack();
 }
 
 
 int main() {
-    Log::BeginLogging();
-    Log::PrintAppInfo();
-
-    Window window(WIN_WIDTH, WIN_HEIGHT, APP_NAME);
-
-
     try {
+        Log::BeginLogging();
+        Log::PrintAppInfo();
+
+        Window window(WIN_WIDTH, WIN_HEIGHT, APP_NAME);
         window.initSplashScreen();
 
         Engine engine(window.getGLFWwindowPtr()); // Engine initializes core services on creation
 
         engine.init();
+        std::this_thread::sleep_for(std::chrono::seconds(3)); // Simulates background loading during the splash screen
         window.initPrimaryScreen(&g_callbackContext);
         engine.run();
     }
@@ -51,7 +50,7 @@ int main() {
         processCleanupStack();
         Log::Print(Log::T_ERROR, APP_NAME, "Program exited with errors.");
 
-        std::string title = "Exception raised from " + STD_STR(e.origin());
+        std::string title = "Fatal Exception";
 
         std::string errOrigin = "Origin: " + STD_STR(e.origin()) + "\n";
         std::string errLine = "Line: " + TO_STR(e.errorLine()) + "\n";
@@ -60,7 +59,7 @@ int main() {
 
         std::string msgType;
         Log::LogColor(e.severity(), msgType, false);
-        std::string severity = "Exception type: " + msgType + "\n";
+        std::string severity = "Severity: " + msgType + "\n";
 
         boxer::show((errOrigin + errLine + threadInfo + severity + "\n" + STD_STR(e.what())).c_str(), title.c_str(), boxer::Style::Error, boxer::Buttons::Quit);
 

@@ -41,7 +41,7 @@ public:
 
 private:
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
-	std::shared_ptr<GarbageCollector> m_garbageCollector;
+	std::shared_ptr<ResourceManager> m_resourceManager;
 
 
 	std::vector<Geometry::MeshData> m_meshes;

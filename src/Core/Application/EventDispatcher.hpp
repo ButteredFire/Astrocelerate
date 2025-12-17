@@ -50,6 +50,7 @@ public:
 
 		if (m_subscribers.count(subscriberTypeIndex)) {
 			Log::Print(Log::T_WARNING, __FUNCTION__, "Received request to register subscriber " + enquote(subscriberTypeIndex.name()) + ", but it already exists! The existing subscriber index will be returned.");
+
 			return subscriberTypeIndex;
 		}
 
@@ -69,7 +70,7 @@ public:
 	template<typename Subscriber>
 	inline SubscriberIndex getSubscriberIndex() {
 		std::lock_guard<std::mutex> lock(m_subscribersMutex);
-		
+
 		SubscriberIndex subscriberTypeIndex = std::type_index(typeid(Subscriber));
 		auto it = m_subscribers.find(subscriberTypeIndex);
 		LOG_ASSERT(it != m_subscribers.end(), "Cannot get index of subscriber " + enquote(subscriberTypeIndex.name()) + ": Subscriber is not registered!");
@@ -90,13 +91,13 @@ public:
 		{
 			LOG_ASSERT(m_subscribers.count(subscriberTypeIndex), "Subscription by subscriber " + enquote(subscriberTypeIndex.name()) + " to event " + enquote(eventTypeIndex.name()) + " has been denied: Subscriber is not registered!");
 		}
-		auto& events = m_events[eventTypeIndex];
-		
+		auto &events = m_events[eventTypeIndex];
+
 		// Type-erase event callback function
-		HandlerCallback callback = [handler](const void* event) {
-			handler(*static_cast<const EventType*>(event));
+		HandlerCallback callback = [handler](const void *event) {
+			handler(*static_cast<const EventType *>(event));
 		};
-		
+
 		// Register subscriber to event
 		events.push_back(Callback{
 			.callback = callback,
@@ -150,7 +151,7 @@ public:
 		@param noWorkerEventQueue (Default: False): Whether to defer the event to the main thread if this function is called from a worker thread (True), or prevent queueing and dispatch event directly (False).
 	*/
 	template<typename EventType>
-	inline void dispatch(const EventType& event, bool suppressLogs = false, bool noWorkerEventQueue = false) {
+	inline void dispatch(const EventType &event, bool suppressLogs = false, bool noWorkerEventQueue = false) {
 		EventIndex eventTypeIndex = EventIndex(typeid(EventType));
 		std::thread::id mainThreadID = ThreadManager::GetMainThreadID();
 
@@ -161,22 +162,27 @@ public:
 			// dispatch the event directly.
 			internalDispatch(eventTypeIndex, eventFlag, &event, suppressLogs);
 		}
+
 		else {
 			// If there is a main thread and the current thread is not it, this must be a worker thread.
 			// In this case, the event will be queued for processing in the main thread later.
 			std::thread::id threadID = std::this_thread::get_id();
 			if (!suppressLogs)
 				Log::Print(Log::T_VERBOSE, __FUNCTION__, "Queueing event " + enquote(typeid(EventType).name()) + " dispatched in Worker Thread " + ThreadManager::ThreadIDToString(threadID) + " (" + ThreadManager::GetThreadNameFromID(threadID) + ")...");
-			
+
 
 			std::lock_guard<std::mutex> lock(m_eventQueueMutex);
+
+			LOG_ASSERT(m_eventQueue.size() <= MAX_QUEUED_EVENTS,
+				"Queued worker event count exceeded safe thresholds! Last worker event was dispatched from Worker Thread " + ThreadManager::ThreadIDToString(threadID) + " (" + ThreadManager::GetThreadNameFromID(threadID) + ").");
+
 			m_eventQueue.push(QueuedEvent{
 				.type = eventTypeIndex,
-				.callback = [this, eventTypeIndex, eventFlag, event, suppressLogs](const void* /* Must be void(const void*) (a.k.a. HandlerCallback) instead of void(void) for consistency */) {
+				.callback = [this, eventTypeIndex, eventFlag, event, suppressLogs](const void * /* Must be void(const void*) (a.k.a. HandlerCallback) instead of void(void) for consistency */) {
 
 					/* Explanation for eventCopy:
 						In this case, event is a local variable on a worker thread's stack.
-						If we directly pass it in internalDispatch by reference, by the time it gets executed on the main thread, it will have been destroyed.
+						If we directly pass it in internalDispatch by reference, by the time it gets executed on the main thread, it will have been destroyed/invalidated.
 						Therefore, we need to copy it by value. eventCopy does that explicitly, although capture by value in the lambda is enough.
 					*/
 					EventType eventCopy = event;
@@ -184,13 +190,14 @@ public:
 					this->internalDispatch(eventTypeIndex, eventFlag, &eventCopy, suppressLogs);
 				}
 			});
+
 			m_eventQueueCondition.notify_one();
 		}
 	}
 
 
 	/* Processes all events dispatched from worker threads. */
-	inline void processQueuedEvents() {
+	inline void pollQueuedEvents() {
 		if (std::this_thread::get_id() != ThreadManager::GetMainThreadID())
 			return;
 
@@ -208,6 +215,10 @@ public:
 	}
 	
 private:
+	// Maximum number of queued events. In case the main thread goes unresponsive and thus is unable to process queued events, we must prevent the event queue from growing to enormous sizes and consuming enormous memory.
+	// Workers are assumed to also halt execution when the main thread is unresponsive. Thus, exceeding this max-events threshold could indicate a bad memory leak.
+	const size_t MAX_QUEUED_EVENTS = 1000;
+
 	// Subscriber and event data
 	using HandlerCallback = std::function<void(const void*)>;		// Type-erased callback version of EventHandler
 	using EventMask = std::bitset<EVENT_FLAG_COUNT>;
@@ -247,9 +258,9 @@ private:
 
 			auto it = m_events.find(eventTypeIndex);
 			if (it == m_events.end()) {
-				if (!suppressLogs) {
+				if (!suppressLogs)
 					Log::Print(Log::T_WARNING, __FUNCTION__, "There are no subscribers to event " + enquote(eventTypeIndex.name()) + "!");
-				}
+
 				return;
 			}
 

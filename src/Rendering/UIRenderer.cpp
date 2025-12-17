@@ -16,18 +16,27 @@ UIRenderer::UIRenderer(GLFWwindow *window, VkRenderPass presentPipelineRenderPas
     m_minImageCount(swapchainMgr->getMinImageCount()) {
 
     m_registry = ServiceLocator::GetService<Registry>(__FUNCTION__);
-    m_garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
+    m_resourceManager = ServiceLocator::GetService<ResourceManager>(__FUNCTION__);
     m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
 
     m_uiPanelManager = ServiceLocator::GetService<UIPanelManager>(__FUNCTION__);
 
+    bindEvents();
     initImGui();
 
 	Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
 
 
-UIRenderer::~UIRenderer() {}
+void UIRenderer::bindEvents() {
+    const EventDispatcher::SubscriberIndex selfIndex = m_eventDispatcher->registerSubscriber<UIRenderer>();
+
+    m_eventDispatcher->subscribe<RequestEvent::ReInitImGui>(selfIndex,
+        [this](const RequestEvent::ReInitImGui &event) {
+            reInitImGui(event.newWindowPtr);
+        }
+    );
+}
 
 
 void UIRenderer::initImGui() {
@@ -53,7 +62,9 @@ void UIRenderer::initImGui() {
 
 
     // Setup Platform/Renderer backends
-    ImGui_ImplGlfw_InitForVulkan(m_window, true);
+        // The second argument specifies whether to override current input callbacks (key/mouse events) with those of ImGui.
+        // We MUST set this to False to prevent ImGui from installing its own callbacks and overriding the GLFW ones. But since ImGui's own callbacks are required to interact with the UI, we can handle this by integrating its callbacks within our GLFW callbacks (see "Callback Chaining").
+    ImGui_ImplGlfw_InitForVulkan(m_window, false);
 
 
     // When viewports are enabled, we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones
@@ -120,7 +131,7 @@ void UIRenderer::initImGui() {
         ImGui_ImplGlfw_Shutdown();
     };
 
-    m_imguiCleanupID = m_garbageCollector->createCleanupTask(task);
+    m_imguiCleanupID = m_resourceManager->createCleanupTask(task);
 
 
     ImGui_ImplVulkan_Init(&vkInitInfo);
@@ -176,7 +187,7 @@ void UIRenderer::initFonts() {
     // Primary/Default text font
     // NOTE: It is the default font because it is the first font to be loaded.
     g_fontContext.primaryFont = 
-        g_fontContext.NotoSans.regular = io.Fonts->AddFontFromFileTTF(C_STR(FontConsts::NotoSans.REGULAR), fontSize, nullptr, glyphRanges);
+        g_fontContext.NotoSans.regular = io.Fonts->AddFontFromFileTTF(C_STR(ResourcePath::Fonts.REGULAR), fontSize, nullptr, glyphRanges);
 
     if (!g_fontContext.primaryFont) {
         Log::Print(Log::T_ERROR, __FUNCTION__, "Cannot load primary application font! A fallback font will be used instead.");
@@ -193,7 +204,7 @@ void UIRenderer::initFonts() {
         0
     };
 
-    io.Fonts->AddFontFromFileTTF(C_STR(FontConsts::NotoSans.REGULAR_MATH), fontSize, &mathMergeConfig, mathGlyphRanges);
+    io.Fonts->AddFontFromFileTTF(C_STR(ResourcePath::Fonts.REGULAR_MATH), fontSize, &mathMergeConfig, mathGlyphRanges);
 
 
     // FontAwesome icons
@@ -211,12 +222,12 @@ void UIRenderer::initFonts() {
     
 
     // Other variations
-    g_fontContext.NotoSans.bold         = io.Fonts->AddFontFromFileTTF(C_STR(FontConsts::NotoSans.BOLD), fontSize, nullptr, glyphRanges);
-    g_fontContext.NotoSans.boldItalic   = io.Fonts->AddFontFromFileTTF(C_STR(FontConsts::NotoSans.BOLD_ITALIC), fontSize, nullptr, glyphRanges);
-    g_fontContext.NotoSans.italic       = io.Fonts->AddFontFromFileTTF(C_STR(FontConsts::NotoSans.ITALIC), fontSize, nullptr, glyphRanges);
-    g_fontContext.NotoSans.light        = io.Fonts->AddFontFromFileTTF(C_STR(FontConsts::NotoSans.LIGHT), fontSize, nullptr, glyphRanges);
-    g_fontContext.NotoSans.lightItalic  = io.Fonts->AddFontFromFileTTF(C_STR(FontConsts::NotoSans.LIGHT_ITALIC), fontSize, nullptr, glyphRanges);
-    g_fontContext.NotoSans.regularMono  = io.Fonts->AddFontFromFileTTF(C_STR(FontConsts::NotoSans.REGULAR_MONO), fontSize, nullptr, glyphRanges);
+    g_fontContext.NotoSans.bold         = io.Fonts->AddFontFromFileTTF(C_STR(ResourcePath::Fonts.BOLD), fontSize, nullptr, glyphRanges);
+    g_fontContext.NotoSans.boldItalic   = io.Fonts->AddFontFromFileTTF(C_STR(ResourcePath::Fonts.BOLD_ITALIC), fontSize, nullptr, glyphRanges);
+    g_fontContext.NotoSans.italic       = io.Fonts->AddFontFromFileTTF(C_STR(ResourcePath::Fonts.ITALIC), fontSize, nullptr, glyphRanges);
+    g_fontContext.NotoSans.light        = io.Fonts->AddFontFromFileTTF(C_STR(ResourcePath::Fonts.LIGHT), fontSize, nullptr, glyphRanges);
+    g_fontContext.NotoSans.lightItalic  = io.Fonts->AddFontFromFileTTF(C_STR(ResourcePath::Fonts.LIGHT_ITALIC), fontSize, nullptr, glyphRanges);
+    g_fontContext.NotoSans.regularMono  = io.Fonts->AddFontFromFileTTF(C_STR(ResourcePath::Fonts.REGULAR_MONO), fontSize, nullptr, glyphRanges);
 
 
     io.Fonts->Build();
@@ -258,9 +269,10 @@ void UIRenderer::updateDockspace() {
 
 
 void UIRenderer::reInitImGui(GLFWwindow *window) {
-    m_garbageCollector->executeCleanupTask(m_imguiCleanupID);
+    m_resourceManager->executeCleanupTask(m_imguiCleanupID);
 
-    m_window = window;
+    if (window != nullptr)
+        m_window = window;
 
     initImGui();
 }

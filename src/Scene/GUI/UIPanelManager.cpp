@@ -74,15 +74,13 @@ void UIPanelManager::initStaticTextures() {
 	std::shared_ptr<TextureManager> textureManager = ServiceLocator::GetService<TextureManager>(__FUNCTION__);
 
 	// App logo
-	std::string logoPath = FilePathUtils::JoinPaths(ROOT_DIR, "assets/App", "AstrocelerateLogo.png");
-	Geometry::Texture texture = textureManager->createIndependentTexture(logoPath, VK_FORMAT_R8G8B8A8_SRGB);
+	Geometry::Texture texture = textureManager->createIndependentTexture(ResourcePath::App.ASTRO_LOGO, VK_FORMAT_R8G8B8A8_SRGB);
 	
 	m_appLogoTexProps.size = ImVec2(texture.size.x, texture.size.y);
 	m_appLogoTexProps.textureID = TextureUtils::GenerateImGuiTextureID(texture.imageLayout, texture.imageView, texture.sampler);
 
 	// Oriviet Aerospace logo
-	//logoPath = FilePathUtils::JoinPaths(ROOT_DIR, "assets/App", "OrivietAerospaceLogo-Mono.png");
-	//texture = textureManager->createIndependentTexture(logoPath, VK_FORMAT_R8G8B8A8_SRGB);
+	//texture = textureManager->createIndependentTexture(ResourcePath::App.ORIVIET_LOGO, VK_FORMAT_R8G8B8A8_SRGB);
 	//
 	//m_companyLogoTexProps.size = ImVec2(texture.size.x, texture.size.y);
 	//m_companyLogoTexProps.textureID = TextureUtils::GenerateImGuiTextureID(texture.imageLayout, texture.imageView, texture.sampler);
@@ -104,13 +102,20 @@ void UIPanelManager::onImGuiInit() {
 
 
 void UIPanelManager::renderWorkspace(uint32_t currentFrame) {
+	// Check if the workspace is the splash screen (in which case, we want to not render common panels)
+	bool workspaceIsSplash = false;
+	if (SplashScreen *ptr = dynamic_cast<SplashScreen *>(m_currentWorkspace))
+		workspaceIsSplash = true;
+
+
 	// Common panel callbacks
-	for (auto &&[flag, callback] : m_commonPanelCallbacks) {
-		if (GUI::IsPanelOpen(m_commonPanelMask, flag)) {
-			ImGui::SetNextWindowClass(&m_windowClass);
-			callback();
+	if (!workspaceIsSplash)
+		for (auto &&[flag, callback] : m_commonPanelCallbacks) {
+			if (GUI::IsPanelOpen(m_commonPanelMask, flag)) {
+				ImGui::SetNextWindowClass(&m_windowClass);
+				callback();
+			}
 		}
-	}
 
 
 	// Workspace panel callbacks
@@ -122,8 +127,9 @@ void UIPanelManager::renderWorkspace(uint32_t currentFrame) {
 	}
 
 		// Instanced panels
-	if (GUI::IsPanelOpen(m_commonPanelMask, m_panelWelcome))
-		renderWelcomePanel();
+	if (!workspaceIsSplash)
+		if (GUI::IsPanelOpen(m_commonPanelMask, m_panelWelcome))
+			renderWelcomePanel();
 
 
 	m_currentWorkspace->update(currentFrame);
@@ -131,6 +137,14 @@ void UIPanelManager::renderWorkspace(uint32_t currentFrame) {
 
 
 void UIPanelManager::renderMenuBar() {
+	// Check if the workspace is the splash screen (in which case, we want to hide the menu bar)
+	bool workspaceIsSplash = false;
+	if (SplashScreen *ptr = dynamic_cast<SplashScreen *>(m_currentWorkspace))
+		workspaceIsSplash = true;
+
+	if (workspaceIsSplash)
+		return;
+
 	static std::string selectedFile{};
 
 	if (m_showLoadingModal) {
@@ -147,10 +161,7 @@ void UIPanelManager::renderMenuBar() {
 				// Upon opening the File Dialog, the main thread will be halted. To prevent worker threads continuing to work and producing overwhelmingly
 				// huge amounts of data that's unprocessed by the main thread at this time, we need to signal to the worker threads to also halt until
 				// the main thread resumes.
-				{
-					std::lock_guard<std::mutex> lock(g_appContext.MainThread.haltMutex);
-					g_appContext.MainThread.isHalted.store(true);
-				}
+				ThreadManager::SignalMainThreadHalt();
 
 
 				// Handle Open using tinyfiledialogs
@@ -166,11 +177,7 @@ void UIPanelManager::renderMenuBar() {
 
 
 				// Signal to all workers that the main thread has resumed
-				{
-					std::lock_guard<std::mutex> lock(g_appContext.MainThread.haltMutex);
-					g_appContext.MainThread.isHalted.store(false);
-				}
-				g_appContext.MainThread.haltCV.notify_all();
+				ThreadManager::SignalMainThreadResume();
 
 
 				// Process selected file

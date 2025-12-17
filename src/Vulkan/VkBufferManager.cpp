@@ -11,7 +11,7 @@ VkBufferManager::VkBufferManager(VkCoreResourcesManager *coreResources, VkSwapch
 
 	m_registry = ServiceLocator::GetService<Registry>(__FUNCTION__);
 	m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
-	m_garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
+	m_resourceManager = ServiceLocator::GetService<ResourceManager>(__FUNCTION__);
 
 	m_camera = ServiceLocator::GetService<Camera>(__FUNCTION__);
 
@@ -61,7 +61,7 @@ void VkBufferManager::bindEvents() {
 
 				// Unmap memory
 				for (auto &cleanupID : m_bufferMemCleanupIDs)
-					m_garbageCollector->executeCleanupTask(cleanupID);
+					m_resourceManager->executeCleanupTask(cleanupID);
 				m_bufferMemCleanupIDs.clear();
 
 				break;
@@ -69,7 +69,7 @@ void VkBufferManager::bindEvents() {
 			case RESET:
 				// Destroy buffers
 				for (auto &cleanupID : m_bufferCleanupIDs)
-					m_garbageCollector->executeCleanupTask(cleanupID);
+					m_resourceManager->executeCleanupTask(cleanupID);
 				m_bufferCleanupIDs.clear();
 
 				break;
@@ -125,7 +125,7 @@ void VkBufferManager::checkForInit(const EventDispatcher::SubscriberIndex &selfI
 CleanupID VkBufferManager::CreateBuffer(VkBuffer& buffer, VkDeviceSize bufferSize, VkBufferUsageFlags usageFlags, VmaAllocation& bufferAllocation, VmaAllocationCreateInfo bufferAllocationCreateInfo) {
 
 	std::shared_ptr<VkCoreResourcesManager> coreResources = ServiceLocator::GetService<VkCoreResourcesManager>(__FUNCTION__);
-	std::shared_ptr<GarbageCollector> garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
+	std::shared_ptr<ResourceManager> resourceManager = ServiceLocator::GetService<ResourceManager>(__FUNCTION__);
 
 	const VmaAllocator &vmaAllocator = coreResources->getVmaAllocator();
 
@@ -167,7 +167,7 @@ CleanupID VkBufferManager::CreateBuffer(VkBuffer& buffer, VkDeviceSize bufferSiz
 	bufTask.vkHandles = { buffer, bufferAllocation };
 	bufTask.cleanupFunc = [vmaAllocator, buffer, bufferAllocation]() { vmaDestroyBuffer(vmaAllocator, buffer, bufferAllocation); };
 
-	CleanupID bufferTaskID = garbageCollector->createCleanupTask(bufTask);
+	CleanupID bufferTaskID = resourceManager->createCleanupTask(bufTask);
 
 	return bufferTaskID;
 }
@@ -263,7 +263,7 @@ void VkBufferManager::writeDataToGPUBuffer(const void *data, VkBuffer &buffer, V
 
 
 	// The staging buffer has done its job, so we can safely destroy it afterwards
-	m_garbageCollector->executeCleanupTask(stagingBufTaskID);
+	m_resourceManager->executeCleanupTask(stagingBufTaskID);
 }
 
 
@@ -381,7 +381,7 @@ void VkBufferManager::createPerFrameUniformBuffers() {
 			};
 
 		m_bufferMemCleanupIDs.push_back(
-			m_garbageCollector->createCleanupTask(task)
+			m_resourceManager->createCleanupTask(task)
 		);
 	}
 }
@@ -422,7 +422,7 @@ void VkBufferManager::createMatParamsUniformBuffer() {
 		vmaUnmapMemory(m_vmaAllocator, m_matParamsBufferAllocation);
 	};
 	m_bufferMemCleanupIDs.push_back(
-		m_garbageCollector->createCleanupTask(task)
+		m_resourceManager->createCleanupTask(task)
 	);
 
 

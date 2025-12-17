@@ -64,20 +64,20 @@ void PhysicsSystem::configureCoordSys(CoordSys::FrameType frameType, CoordSys::F
 }
 
 
-double PhysicsSystem::tick(std::shared_ptr<WorkerThread> worker) {
+void PhysicsSystem::tick(std::shared_ptr<WorkerThread> worker) {
 	float timeScale = Time::GetTimeScale();
 	Time::UpdateDeltaTime();
 	double deltaTime = Time::GetDeltaTime();
+
+	std::lock_guard<std::mutex> lock(m_accumulatorMutex);
 
 	m_accumulator += deltaTime * timeScale;
 
 	// TODO: Implement adaptive timestepping instead of a constant TIME_STEP
 	while (m_accumulator >= SimulationConsts::TIME_STEP) {
-		if (worker->stopRequested()) {
+		if (worker->stopRequested())
 			// If the thread in which this function is called is requested to be stopped, immediately stop updating physics
 			m_accumulator = 0.0;
-			return 0.0;
-		}
 
 		if (Time::GetTimeScale() != timeScale) {
 			// If time scale changes while physics is updating, immediately exit update loop to renew time scale
@@ -88,8 +88,6 @@ double PhysicsSystem::tick(std::shared_ptr<WorkerThread> worker) {
 		update(SimulationConsts::TIME_STEP);
 		m_accumulator -= SimulationConsts::TIME_STEP;
 	}
-
-	return m_accumulator;
 }
 
 
@@ -215,8 +213,8 @@ void PhysicsSystem::propagateBodies(const double et) {
 		};
 
 
-		std::cout << "Epoch: " << et << " (ET), " << minutesSinceEpoch << " minutes (" << secondsSinceEpoch << " seconds) since epoch.\n";
-		std::cout << "State vector (in km and km/s):\n\tr_TEME  = {" << stateVec[0] << ", " << stateVec[1] << ", " << stateVec[2] << "}, v_TEME  = {" << stateVec[3] << ", " << stateVec[4] << ", " << stateVec[5] << "}";
+		//std::cout << "Epoch: " << et << " (ET), " << minutesSinceEpoch << " minutes (" << secondsSinceEpoch << " seconds) since epoch.\n";
+		//std::cout << "State vector (in km and km/s):\n\tr_TEME  = {" << stateVec[0] << ", " << stateVec[1] << ", " << stateVec[2] << "}, v_TEME  = {" << stateVec[3] << ", " << stateVec[4] << ", " << stateVec[5] << "}";
 
 
 		glm::dvec3 rT(stateVec[0], stateVec[1], stateVec[2]);
@@ -226,13 +224,13 @@ void PhysicsSystem::propagateBodies(const double et) {
 
 		glm::dvec3 rJ(stateVec[0], stateVec[1], stateVec[2]);
 		
-		std::cout << "\n\tr_J2000 = {" << stateVec[0] << ", " << stateVec[1] << ", " << stateVec[2] << "}, v_J2000 = {" << stateVec[3] << ", " << stateVec[4] << ", " << stateVec[5] << "}\n\n";
+		//std::cout << "\n\tr_J2000 = {" << stateVec[0] << ", " << stateVec[1] << ", " << stateVec[2] << "}, v_J2000 = {" << stateVec[3] << ", " << stateVec[4] << ", " << stateVec[5] << "}\n\n";
 
 
 
 		double dr = glm::length(rJ - rT);
 		double angular = glm::degrees(acos(glm::dot(glm::normalize(rJ), glm::normalize(rT)))); // deg
-		std::cout << " |delta-r| = " << dr << " km, angular = " << angular << " deg\n";
+		//std::cout << " |delta-r| = " << dr << " km, angular = " << angular << " deg\n";
 
 
 

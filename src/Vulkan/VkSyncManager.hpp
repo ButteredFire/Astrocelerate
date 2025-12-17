@@ -12,7 +12,7 @@
 // Local
 
 #include <Core/Application/LoggingManager.hpp>
-#include <Core/Application/GarbageCollector.hpp>
+#include <Core/Application/ResourceManager.hpp>
 #include <Core/Engine/ServiceLocator.hpp>
 #include <Core/Data/Constants.h>
 
@@ -27,11 +27,8 @@ public:
 
 
 	inline std::vector<VkSemaphore> getImageReadySemaphores() const { return m_imageReadySemaphores; }
-	inline std::vector<VkFence> getInFlightFences() const { return m_inFlightFences; }
-
 	inline std::vector<VkSemaphore> getRenderFinishedSemaphores() const { return m_renderFinishedSemaphores; }
-	inline std::vector<CleanupID> getRenderFinishedSemaphoreCleanupIDs() const { return m_renderFinishedSemaphoreCleanupIDs; }
-
+	inline std::vector<VkFence> getInFlightFences() const { return m_inFlightFences; }
 
 	void init();
 
@@ -55,24 +52,21 @@ public:
 	/* Creates per-swapchain-image semaphores. */
 	void createPerImageSemaphores();
 
+
+	/* Creates per-frame semaphores. */
+	void createPerFrameSemaphores();
+
 private:
-	std::shared_ptr<GarbageCollector> m_garbageCollector;
+	std::shared_ptr<ResourceManager> m_resourceManager;
 
 	VkCoreResourcesManager *m_coreResources;
 	VkSwapchainManager *m_swapchainManager;
 
 	VkDevice m_logicalDevice;
 
-
 	std::vector<VkSemaphore> m_imageReadySemaphores;
-	std::vector<VkFence> m_inFlightFences;
-
 	std::vector<VkSemaphore> m_renderFinishedSemaphores;
-	std::vector<CleanupID> m_renderFinishedSemaphoreCleanupIDs;
-
-
-	/* Creates per-frame semaphores. */
-	void createPerFrameSemaphores();
+	std::vector<VkFence> m_inFlightFences;
 
 	/* Creates in-flight fences. */
 	void createPerFrameFences();

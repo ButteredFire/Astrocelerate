@@ -61,6 +61,11 @@ void Engine::init() {
     initEngine();
 
     prerun();
+
+    m_eventDispatcher->dispatch(UpdateEvent::AppIsStable{});
+
+    // Switch workspace from splash screen to actual GUI
+    m_uiPanelManager->switchWorkspace(m_orbitalWorkspace.get());
 }
 
 
@@ -71,8 +76,8 @@ void Engine::initCoreServices() {
 
 
     // Garbage collector
-    m_garbageCollector = std::make_shared<GarbageCollector>();
-    ServiceLocator::RegisterService(m_garbageCollector);
+    m_resourceManager = std::make_shared<ResourceManager>();
+    ServiceLocator::RegisterService(m_resourceManager);
 
 
     // ECS Registry
@@ -86,7 +91,7 @@ void Engine::initCoreManagers() {
     m_instanceManager = std::make_shared<VkInstanceManager>();
     m_deviceManager = std::make_shared<VkDeviceManager>();
 
-    m_coreResourcesManager = std::make_shared<VkCoreResourcesManager>(m_window, m_instanceManager.get(), m_deviceManager.get(), m_garbageCollector.get());
+    m_coreResourcesManager = std::make_shared<VkCoreResourcesManager>(m_window, m_instanceManager.get(), m_deviceManager.get(), m_resourceManager.get());
     ServiceLocator::RegisterService(m_coreResourcesManager);
 
     m_vmaAllocator = m_coreResourcesManager->getVmaAllocator();
@@ -116,12 +121,13 @@ void Engine::initCoreManagers() {
 
 
     // GUI management
-        // Workspace
+        // Workspaces
         // TODO: Create plugin manager and workspace systems to allow for dynamic workspace discovery and swapping at runtime
-    m_currentWorkspace = std::make_unique<OrbitalWorkspace>();    // The default orbital workspace will be used for now
+    m_splashScreen = std::make_unique<SplashScreen>();
+    m_orbitalWorkspace = std::make_unique<OrbitalWorkspace>();
 
     // Manager
-    m_uiPanelManager = std::make_shared<UIPanelManager>(m_currentWorkspace.get());
+    m_uiPanelManager = std::make_shared<UIPanelManager>(m_splashScreen.get());
     ServiceLocator::RegisterService(m_uiPanelManager);
 
 
@@ -196,9 +202,6 @@ void Engine::initEngine() {
     // Create new session
     m_currentSession = std::make_shared<Session>(m_coreResourcesManager.get(), m_sceneManager.get(), m_physicsSystem.get());
     ServiceLocator::RegisterService(m_currentSession);
-
-
-    m_eventDispatcher->dispatch(UpdateEvent::AppIsStable{});
 }
 
 
@@ -246,7 +249,10 @@ void Engine::setWindowPtr(GLFWwindow *w) {
     if (m_renderer != nullptr)
         m_renderer->recreateSwapchain(m_window);
 
-    m_uiRenderer->reInitImGui(m_window);
+    //m_uiRenderer->reInitImGui(m_window);
+    m_eventDispatcher->dispatch(RequestEvent::ReInitImGui{
+        .newWindowPtr = m_window
+    });
 }
 
 
@@ -277,7 +283,7 @@ void Engine::prerun() {
 
 void Engine::tick() {
     glfwPollEvents();
-    m_eventDispatcher->processQueuedEvents();
+    m_eventDispatcher->pollQueuedEvents();
 
 
     // Update per-session data & threads
@@ -285,9 +291,13 @@ void Engine::tick() {
 
 
     // Update rendering
+    static Camera *camera = m_inputManager->getCamera();
+
+        // Update camera 
+    camera->tick(m_physicsSystem->getDeltaTick());
+
         // Get current camera position
-    glm::dvec3 floatingOrigin;
-    Camera *camera = m_inputManager->getCamera();
+    static glm::dvec3 floatingOrigin;
 
     if (camera->inFreeFlyMode())    floatingOrigin = camera->getAbsoluteTransform().position;
     else                            floatingOrigin = camera->getOrbitedEntityPosition();

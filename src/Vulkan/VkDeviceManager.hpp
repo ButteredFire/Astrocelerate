@@ -18,7 +18,7 @@
 #include <External/GLFWVulkan.hpp>
 
 #include <Core/Application/LoggingManager.hpp>
-#include <Core/Application/GarbageCollector.hpp>
+#include <Core/Application/ResourceManager.hpp>
 #include <Core/Data/Constants.h>
 #include <Core/Engine/ServiceLocator.hpp>
 

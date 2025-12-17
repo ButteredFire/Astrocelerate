@@ -7,7 +7,7 @@
 
 #include <External/GLM.hpp>
 
-#include <Core/Application/GarbageCollector.hpp>
+#include <Core/Application/ResourceManager.hpp>
 #include <Core/Data/Device.hpp>
 #include <Core/Data/Geometry.hpp>
 #include <Core/Data/Application.hpp>
@@ -44,10 +44,11 @@ enum EventFlag {
 	EVENT_FLAG_REQUEST_INIT_SESSION_BIT					= 1 << 22,
 	EVENT_FLAG_REQUEST_PROCESS_SECONDARY_COMMAND_BUFFERS_BIT = 1 << 23,
 	EVENT_FLAG_REQUEST_INIT_SCENE_RESOURCES_BIT			= 1 << 24,
+	EVENT_FLAG_REQUEST_REINIT_IMGUI_BIT					= 1 << 25,
 
-	EVENT_FLAG_CONFIG_SIMULATION_FILE_PARSED			= 1 << 25
+	EVENT_FLAG_CONFIG_SIMULATION_FILE_PARSED			= 1 << 26
 };
-constexpr size_t EVENT_FLAG_COUNT = 25 + 1; // Highest bit position + 1
+constexpr size_t EVENT_FLAG_COUNT = 26 + 1; // Highest bit position + 1
 
 
 namespace InitEvent {
@@ -140,8 +141,8 @@ namespace RecreationEvent {
 		const EventFlag eventFlag = EVENT_FLAG_RECREATION_SWAPCHAIN_BIT;
 
 		uint32_t imageIndex;
+		CleanupID swapchainCleanupID;
 		std::vector<VkImageLayout> imageLayouts;
-		std::vector<CleanupID> deferredDestructionList;
 	};
 
 
@@ -268,7 +269,7 @@ namespace UpdateEvent {
 	struct CoreResources {
 		const EventFlag eventFlag = EVENT_FLAG_UPDATE_CORE_RESOURCES_BIT;
 
-		GLFWwindow *window;
+		GLFWwindow *window = nullptr;
 		VkInstance instance = VK_NULL_HANDLE;
 		VkDebugUtilsMessengerEXT dbgMessenger = VK_NULL_HANDLE;
 		VkSurfaceKHR surface = VK_NULL_HANDLE;
@@ -305,6 +306,14 @@ namespace RequestEvent {
 	/* Used when the scene processing is complete, and its Vulkan resources (e.g., offscreen pipeline) need to be initialized. */
 	struct InitSceneResources {
 		const EventFlag eventFlag = EVENT_FLAG_REQUEST_INIT_SCENE_RESOURCES_BIT;
+	};
+
+
+	/* Used when major changes warrant the re-initialization of Dear ImGui. */
+	struct ReInitImGui {
+		const EventFlag eventFlag = EVENT_FLAG_REQUEST_REINIT_IMGUI_BIT;
+
+		GLFWwindow *newWindowPtr = nullptr;		// Optional: The new window pointer, if this event was emitted in case of GLFW window recreation
 	};
 }
 

@@ -23,7 +23,7 @@
 
 #include <Core/Application/LoggingManager.hpp>
 #include <Core/Application/EventDispatcher.hpp>
-#include <Core/Application/GarbageCollector.hpp>
+#include <Core/Application/ResourceManager.hpp>
 #include <Core/Data/Buffer.hpp>
 #include <Core/Data/Geometry.hpp>
 
@@ -63,7 +63,7 @@ public:
 private:
     std::shared_ptr<Registry> m_registry;
     std::shared_ptr<EventDispatcher> m_eventDispatcher;
-    std::shared_ptr<GarbageCollector> m_garbageCollector;
+    std::shared_ptr<ResourceManager> m_resourceManager;
 
     std::shared_ptr<Camera> m_camera;
 

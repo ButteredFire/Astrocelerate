@@ -16,7 +16,7 @@
 // Other
 #include <Core/Application/LoggingManager.hpp>
 #include <Core/Application/EventDispatcher.hpp>
-#include <Core/Application/GarbageCollector.hpp>
+#include <Core/Application/ResourceManager.hpp>
 #include <Core/Data/Constants.h>
 #include <Core/Data/Geometry.hpp>
 
@@ -87,7 +87,7 @@ public:
     static void DefineImageLayoutTransitionStages(VkAccessFlags* srcAccessMask, VkAccessFlags* dstAccessMask, VkPipelineStageFlags* srcStage, VkPipelineStageFlags* dstStage, VkImageLayout oldLayout, VkImageLayout newLayout);
 
 private:
-    std::shared_ptr<GarbageCollector> m_garbageCollector;
+    std::shared_ptr<ResourceManager> m_resourceManager;
     std::shared_ptr<EventDispatcher> m_eventDispatcher;
 
     VkCoreResourcesManager *m_coreResources;

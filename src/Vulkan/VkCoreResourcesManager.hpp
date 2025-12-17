@@ -7,7 +7,7 @@
 
 #include <Core/Application/LoggingManager.hpp>
 #include <Core/Application/EventDispatcher.hpp>
-#include <Core/Application/GarbageCollector.hpp>
+#include <Core/Application/ResourceManager.hpp>
 #include <Core/Data/Device.hpp>
 #include <Core/Data/Application.hpp>
 #include <Core/Engine/ServiceLocator.hpp>
@@ -20,7 +20,7 @@ class VkInstanceManager;
 
 class VkCoreResourcesManager {
 public:
-    VkCoreResourcesManager(GLFWwindow *window, VkInstanceManager *instanceManager, VkDeviceManager *deviceManager, GarbageCollector *gc);
+    VkCoreResourcesManager(GLFWwindow *window, VkInstanceManager *instanceManager, VkDeviceManager *deviceManager, ResourceManager *gc);
     ~VkCoreResourcesManager() = default;
 
 
@@ -49,7 +49,7 @@ public:
     /* Other */
     inline VkSurfaceKHR recreateSurface(GLFWwindow *w) {
         CleanupTask task = m_instanceManager->createSurface(m_surface, m_instance, w);
-        m_garbageCollector->createCleanupTask(task);
+        m_resourceManager->createCleanupTask(task);
 
         m_eventDispatcher->dispatch(UpdateEvent::CoreResources{
             .surface = m_surface
@@ -61,7 +61,7 @@ public:
 private:
     std::shared_ptr<EventDispatcher> m_eventDispatcher;
 
-    GarbageCollector *m_garbageCollector;
+    ResourceManager *m_resourceManager;
     VkInstanceManager *m_instanceManager;
     VkDeviceManager *m_deviceManager;
 

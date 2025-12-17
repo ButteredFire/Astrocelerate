@@ -8,7 +8,7 @@
 #include <Core/Engine/ServiceLocator.hpp>
 #include <Core/Application/LoggingManager.hpp>
 #include <Core/Application/EventDispatcher.hpp>
-#include <Core/Application/GarbageCollector.hpp>
+#include <Core/Application/ResourceManager.hpp>
 
 
 
@@ -30,7 +30,7 @@ public:
 
 private:
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
-	std::shared_ptr<GarbageCollector> m_garbageCollector;
+	std::shared_ptr<ResourceManager> m_resourceManager;
 	std::shared_ptr<VkBufferManager> m_bufferManager;
 
 	VkDevice m_logicalDevice;

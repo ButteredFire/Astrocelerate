@@ -10,7 +10,7 @@ OffscreenPipeline::OffscreenPipeline(VkCoreResourcesManager *coreResources, VkSw
 	m_swapchainExtent(swapchainMgr->getSwapChainExtent()) {
 
 	m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
-	m_garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
+	m_resourceManager = ServiceLocator::GetService<ResourceManager>(__FUNCTION__);
 
 	bindEvents();
 
@@ -38,11 +38,11 @@ void OffscreenPipeline::bindEvents() {
 				m_sessionReady = false;
 
 				for (auto &cleanupID : m_offscreenCleanupIDs)
-					m_garbageCollector->executeCleanupTask(cleanupID);
+					m_resourceManager->executeCleanupTask(cleanupID);
 				m_offscreenCleanupIDs.clear();
 
 				for (auto &cleanupID : m_sessionCleanupIDs)
-					m_garbageCollector->executeCleanupTask(cleanupID);
+					m_resourceManager->executeCleanupTask(cleanupID);
 				m_sessionCleanupIDs.clear();
 
 				break;
@@ -172,7 +172,7 @@ void OffscreenPipeline::createPipelineLayout() {
 	task.cleanupFunc = [&]() { vkDestroyPipelineLayout(m_logicalDevice, m_pipelineLayout, nullptr); };
 
 	m_sessionCleanupIDs.push_back(
-		m_garbageCollector->createCleanupTask(task)
+		m_resourceManager->createCleanupTask(task)
 	);
 
 
@@ -283,7 +283,7 @@ void OffscreenPipeline::createRenderPass() {
 	task.cleanupFunc = [this]() { vkDestroyRenderPass(m_logicalDevice, m_renderPass, nullptr); };
 
 	m_sessionCleanupIDs.push_back(
-		m_garbageCollector->createCleanupTask(task)
+		m_resourceManager->createCleanupTask(task)
 	);
 
 
@@ -436,7 +436,7 @@ VkDescriptorSetLayout OffscreenPipeline::createDescriptorSetLayout(uint32_t bind
 	};
 	
 	m_sessionCleanupIDs.push_back(
-		m_garbageCollector->createCleanupTask(task)
+		m_resourceManager->createCleanupTask(task)
 	);
 
 	LOG_ASSERT(result == VK_SUCCESS, "Failed to create descriptor set layout!");
@@ -465,7 +465,7 @@ void OffscreenPipeline::createDescriptorSets(uint32_t descriptorSetCount, VkDesc
 	};
 
 	m_sessionCleanupIDs.push_back(
-		m_garbageCollector->createCleanupTask(task)
+		m_resourceManager->createCleanupTask(task)
 	);
 }
 
@@ -528,7 +528,7 @@ void OffscreenPipeline::initShaderStage() {
 		};
 
 	m_sessionCleanupIDs.push_back(
-		m_garbageCollector->createCleanupTask(cleanupTask)
+		m_resourceManager->createCleanupTask(cleanupTask)
 	);
 }
 
@@ -713,7 +713,7 @@ void OffscreenPipeline::initDepthBufferingResources() {
 
 void OffscreenPipeline::recreateOffscreenResources(uint32_t width, uint32_t height) {
 	for (auto& cleanupID : m_offscreenCleanupIDs)
-		m_garbageCollector->executeCleanupTask(cleanupID);
+		m_resourceManager->executeCleanupTask(cleanupID);
 
 	m_offscreenCleanupIDs.clear();
 
@@ -802,7 +802,7 @@ void OffscreenPipeline::initOffscreenSampler() {
 			vkDestroySampler(m_logicalDevice, sampler, nullptr);
 		};
 
-		uint32_t samplerCleanupID = m_garbageCollector->createCleanupTask(task);
+		uint32_t samplerCleanupID = m_resourceManager->createCleanupTask(task);
 		m_offscreenCleanupIDs.push_back(samplerCleanupID);
 
 

@@ -21,7 +21,7 @@
 #include <Core/Data/Constants.h>
 #include <Core/Application/LoggingManager.hpp>
 #include <Core/Engine/ServiceLocator.hpp>
-#include <Core/Application/GarbageCollector.hpp>
+#include <Core/Application/ResourceManager.hpp>
 
 
 #include <Core/Data/Contexts/AppContext.hpp>
@@ -40,7 +40,7 @@ class UIPanelManager;
 class UIRenderer {
 public:
 	UIRenderer(GLFWwindow *window, VkRenderPass presentPipelineRenderPass, VkCoreResourcesManager *coreResources, VkSwapchainManager *swapchainMgr);
-	~UIRenderer();
+	~UIRenderer() = default;
 
 	/* Initializes ImGui. */
 	void initImGui();
@@ -51,7 +51,7 @@ public:
 
 
 	/* Re-initializes ImGui. Call this when changes have occurred to core resources (e.g., GLFW window pointer). */
-	void reInitImGui(GLFWwindow *window);
+	void reInitImGui(GLFWwindow *window = nullptr);
 
 	/* Refreshes ImGui. Call this when, for instance, the swap-chain is recreated. */
 	void refreshImGui();
@@ -66,7 +66,7 @@ public:
 
 private:
 	std::shared_ptr<Registry> m_registry;
-	std::shared_ptr<GarbageCollector> m_garbageCollector;
+	std::shared_ptr<ResourceManager> m_resourceManager;
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 
 	std::shared_ptr<UIPanelManager> m_uiPanelManager;
@@ -84,4 +84,7 @@ private:
 
 	VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
 	bool m_showDemoWindow = true;
+
+
+	void bindEvents();
 };

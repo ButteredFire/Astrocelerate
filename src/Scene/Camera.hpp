@@ -31,6 +31,17 @@ public:
 
 	friend class InputManager;
 
+
+	/* Updates the camera per frame.
+		@param deltaUpdate (Default: 0): The time difference between now and the most recent physics update (for linear movement interpolation).
+	*/
+	void tick(double deltaUpdate = 0);
+
+
+	/* Translates a GLFW key to a camera movement direction. */
+	inline Input::CameraMovement glfwKeyToMovement(int key) { return m_keyToCamMovementBindings.at(key); }
+
+
 	/* Gets the camera's view matrix in render space. */
 	glm::mat4 getRenderSpaceViewMatrix() const;
 
@@ -77,6 +88,7 @@ private:
 	std::shared_ptr<Registry> m_registry;
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 
+	std::unordered_map<int, Input::CameraMovement> m_keyToCamMovementBindings;
 
 	// Camera orientation
 	const glm::vec3 m_worldUp = SimulationConsts::UP_AXIS;
@@ -116,16 +128,11 @@ private:
 	void resetCameraQuatRoll(const glm::vec3 &forwardVector);
 
 
-	/* Updates the camera per frame.
-		@param physicsUpdateTimeDiff (Default: 0): The difference between the current time and the time of the last physics update (for linear interpolation of entity positions between the two time points).
-	*/
-	void update(double physicsUpdateTimeDiff = 0);
-
 	/* Processes keyboard input.
-		@param direction: The direction the camera will go in.
+		@param key: The pressed key.
 		@param dt: Delta time.
 	*/
-	void processKeyboardInput(Input::CameraMovement direction, double dt);
+	void processKeyboardInput(int key, double dt);
 
 
 	/* Processes mouse input.

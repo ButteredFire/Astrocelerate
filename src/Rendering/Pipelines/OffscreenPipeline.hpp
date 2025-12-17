@@ -7,7 +7,7 @@
 
 #include <vector>
 
-#include <Core/Application/GarbageCollector.hpp>
+#include <Core/Application/ResourceManager.hpp>
 #include <Core/Data/Constants.h>
 #include <Core/Engine/ServiceLocator.hpp>
 
@@ -36,7 +36,7 @@ public:
 
 private:
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
-	std::shared_ptr<GarbageCollector> m_garbageCollector;
+	std::shared_ptr<ResourceManager> m_resourceManager;
 
 	VkSwapchainManager *m_swapchainManager;
 

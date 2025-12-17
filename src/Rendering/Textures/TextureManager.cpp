@@ -53,7 +53,7 @@ namespace std {
 
 TextureManager::TextureManager(VkCoreResourcesManager *coreResources) :
 	m_coreResources(coreResources) {
-	m_garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
+	m_resourceManager = ServiceLocator::GetService<ResourceManager>(__FUNCTION__);
 	m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
 
 	bindEvents();
@@ -299,7 +299,7 @@ TextureInfo TextureManager::createTextureImage(VkFormat imgFormat, const char* t
 
 
 	// Destroy the staging buffer at the end as it has served its purpose
-	m_garbageCollector->executeCleanupTask(stagingBufTaskID);
+	m_resourceManager->executeCleanupTask(stagingBufTaskID);
 
 
 	return TextureInfo{
@@ -396,7 +396,7 @@ VkSampler TextureManager::createTextureSampler(
 	task.objectNames = { VARIABLE_NAME(textureSampler) };
 	task.vkHandles = { textureSampler };
 	task.cleanupFunc = [this, textureSampler]() { vkDestroySampler(m_coreResources->getLogicalDevice(), textureSampler, nullptr); };
-	m_garbageCollector->createCleanupTask(task);
+	m_resourceManager->createCleanupTask(task);
 
 	m_uniqueSamplers[samplerInfoHash] = textureSampler;
 	

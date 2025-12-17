@@ -12,7 +12,7 @@
 #include <Core/Application/AppWindow.hpp>
 #include <Core/Application/LoggingManager.hpp>
 #include <Core/Application/EventDispatcher.hpp>
-#include <Core/Application/GarbageCollector.hpp>
+#include <Core/Application/ResourceManager.hpp>
 #include <Core/Data/Constants.h>
 #include <Core/Data/Application.hpp>
 
@@ -49,6 +49,7 @@
 
 #include <Scene/SceneManager.hpp>
 #include <Scene/GUI/UIPanelManager.hpp>
+#include <Scene/GUI/Workspaces/SplashScreen.hpp>
 #include <Scene/GUI/Workspaces/OrbitalWorkspace.hpp>
 
 #include <Utils/SpaceUtils.hpp>
@@ -90,11 +91,12 @@ private:
 
 	// Core services
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
-	std::shared_ptr<GarbageCollector> m_garbageCollector;
+	std::shared_ptr<ResourceManager> m_resourceManager;
 	std::shared_ptr<Registry> m_registry;
 	std::shared_ptr<TextureManager> m_textureManager;
 	std::shared_ptr<SceneManager> m_sceneManager;
-	std::unique_ptr<IWorkspace> m_currentWorkspace;
+	std::unique_ptr<IWorkspace> m_splashScreen;
+	std::unique_ptr<IWorkspace> m_orbitalWorkspace;
 	std::shared_ptr<UIPanelManager> m_uiPanelManager;
 	std::shared_ptr<Registry> m_globalRegistry;
 	std::shared_ptr<Camera> m_camera;

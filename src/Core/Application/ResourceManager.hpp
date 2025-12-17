@@ -64,10 +64,10 @@ struct CleanupTask {
 };
 
 
-class GarbageCollector {
+class ResourceManager {
 public:
-	GarbageCollector();
-	~GarbageCollector();
+	ResourceManager();
+	~ResourceManager();
 
 
 	/* Creates the Vulkan Memory Allocator. The VMA object is automatically added to the Vulkan context, and its cleanup task created.
@@ -80,12 +80,14 @@ public:
 	VmaAllocator createVMAllocator(VkInstance &instance, VkPhysicalDevice &physicalDevice, VkDevice &device);
 
 
-	/* Pushes a cleanup task to be executed on program exit to the cleanup stack (technically a deque, but almost always used like a stack).
+	/* Schedules a new cleanup task.
 		@param task: The cleanup task.
+		@param parentTaskID (overload): The parent task upon which this task depends.
 
 		@return The cleanup task's ID.
 	*/
 	CleanupID createCleanupTask(CleanupTask task);
+	CleanupID createCleanupTask(CleanupTask childTask, CleanupID parentTaskID);
 
 
 	/* Creates a cleanup task and sets it as the root node for the underlying tree implementation. */
@@ -111,10 +113,11 @@ public:
 
 	/* Executes a cleanup task (recursively if it has child tasks).
 		@param taskID: The task's ID.
+		@param executeParent (Default: True): If the cleanup task to be executed has children, does it need to be executed as well?
 
 		@return True if the execution was successful, False otherwise.
 	*/
-	void executeCleanupTask(CleanupID taskID);
+	void executeCleanupTask(CleanupID taskID, bool executeParent = true);
 
 
 	/* Executes all cleanup tasks in the cleanup stack. */
@@ -135,8 +138,9 @@ private:
 
 	/* Executes a cleanup task (recursively if it has child tasks).
 		@param taskID: The ID of the task to be executed.
+		@param executeParent: If the cleanup task to be executed has children, does it need to be executed as well?
 	*/
-	void executeTask(CleanupID taskID);
+	void executeTask(CleanupID taskID, bool executeParent);
 
 
 	/* Constructs a string of object names involved in a cleanup task.

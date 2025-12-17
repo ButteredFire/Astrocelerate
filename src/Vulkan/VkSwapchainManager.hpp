@@ -17,7 +17,7 @@
 
 // Local
 #include <Core/Application/LoggingManager.hpp>
-#include <Core/Application/GarbageCollector.hpp>
+#include <Core/Application/ResourceManager.hpp>
 #include <Core/Engine/ServiceLocator.hpp>
 #include <Core/Data/Constants.h>
 
@@ -54,6 +54,8 @@ public:
 	inline VkPresentModeKHR getPresentMode() const { return m_presentMode; }
 	inline uint32_t getMinImageCount() const { return m_minImageCount; }
 
+	inline CleanupID getSwapchainCleanupID() const { return m_swapchainCleanupID; }
+
 
 	/* Initializes the swap-chain manager. */
 	void init();
@@ -81,7 +83,7 @@ public:
 
 private:
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
-	std::shared_ptr<GarbageCollector> m_garbageCollector;
+	std::shared_ptr<ResourceManager> m_resourceManager;
 	std::vector<CleanupID> m_cleanupTaskIDs; // Stores cleanup task IDs (used exclusively in the swap-chain recreation process)
 	CleanupID m_swapchainCleanupID{};	// The swapchain cleanup task ID. This is to explicitly remove this ID from the destruction list in `recreateSwapchain` because, by setting VkSwapchainCreateInfoKHR::oldSwapchain to the old swapchain handle, it is implicitly destroyed by being "consumed" by the new swapchain, and thus any vkDestroySwapchain call on the old swapchain would mean destroying the new one instead.
 

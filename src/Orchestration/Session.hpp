@@ -36,6 +36,7 @@ public:
 private:
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 	std::shared_ptr<Registry> m_registry;
+	std::shared_ptr<InputManager> m_inputManager;
 
 	VkCoreResourcesManager *m_coreResources;
 	SceneManager *m_sceneManager;

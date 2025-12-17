@@ -44,6 +44,32 @@ extern const std::filesystem::path EXEC_DIR;
 extern const std::string ROOT_DIR;
 
 
+// General
+#define C_STR(stdString)	(stdString).c_str()
+#define STD_STR(cStr)		std::string((cStr))
+#define TO_STR(any)			std::to_string((any))
+
+	// Absolute paths to resources
+namespace ResourcePath {
+	extern struct _AppResources {
+		const std::string SPLASH;
+		const std::string ASTRO_LOGO;
+		const std::string ORIVIET_LOGO;
+	} App;
+
+	extern struct _FontsResources {
+		const std::string BOLD;
+		const std::string BOLD_ITALIC;
+		const std::string ITALIC;
+		const std::string LIGHT;
+		const std::string LIGHT_ITALIC;
+		const std::string REGULAR;
+		const std::string REGULAR_MATH;
+		const std::string REGULAR_MONO;
+	} Fonts;
+}
+
+
 // Shader properties
 namespace ShaderConsts {
 	// Locations
@@ -103,25 +129,6 @@ namespace WindowConsts {
 // Configuration properties
 namespace ConfigConsts {
 	extern const std::string IMGUI_DEFAULT_CONFIG;
-}
-
-
-// Fonts
-#define C_STR(stdString)	(stdString).c_str()
-#define STD_STR(cStr)		std::string((cStr))
-#define TO_STR(any)			std::to_string((any))
-
-namespace FontConsts {
-	extern struct NotoSansFonts {
-		const std::string BOLD;
-		const std::string BOLD_ITALIC;
-		const std::string ITALIC;
-		const std::string LIGHT;
-		const std::string LIGHT_ITALIC;
-		const std::string REGULAR;
-		const std::string REGULAR_MATH;
-		const std::string REGULAR_MONO;
-	} NotoSans;
 }
 
 

@@ -1,15 +1,15 @@
-#include "GarbageCollector.hpp"
+#include "ResourceManager.hpp"
 
-GarbageCollector::GarbageCollector() :
+ResourceManager::ResourceManager() :
 	m_nextID(0) {
 
 	Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
 
-GarbageCollector::~GarbageCollector() {}
+ResourceManager::~ResourceManager() {}
 
 
-VmaAllocator GarbageCollector::createVMAllocator(VkInstance &instance, VkPhysicalDevice &physicalDevice, VkDevice &device) {
+VmaAllocator ResourceManager::createVMAllocator(VkInstance &instance, VkPhysicalDevice &physicalDevice, VkDevice &device) {
 	VmaAllocatorCreateInfo allocatorCreateInfo{};
 	allocatorCreateInfo.physicalDevice = physicalDevice;
 	allocatorCreateInfo.device = device;
@@ -34,7 +34,7 @@ VmaAllocator GarbageCollector::createVMAllocator(VkInstance &instance, VkPhysica
 }
 
 
-CleanupID GarbageCollector::createCleanupTask(CleanupTask task) {
+CleanupID ResourceManager::createCleanupTask(CleanupTask task) {
 	//LOG_ASSERT(m_currentNodeID.has_value(),
 	//	"Cannot create cleanup task: Root task has not been set! This should not happen, and may indicate a bug.");
 
@@ -51,42 +51,96 @@ CleanupID GarbageCollector::createCleanupTask(CleanupTask task) {
 }
 
 
-CleanupID GarbageCollector::createRootCleanupTask(CleanupTask task) {
+CleanupID ResourceManager::createCleanupTask(CleanupTask childTask, CleanupID parentTaskID) {
+	CleanupID id = createCleanupTask(childTask);
+	addTaskDependency(id, parentTaskID);
+
+	return id;
+}
+
+
+CleanupID ResourceManager::createRootCleanupTask(CleanupTask task) {
 	m_rootNodeID = createCleanupTask(task);
 
 	return m_rootNodeID.value();
 }
 
 
-void GarbageCollector::addTaskDependency(CleanupID childTaskID, CleanupID parentTaskID) {
+void ResourceManager::addTaskDependency(CleanupID childTaskID, CleanupID parentTaskID) {
 	m_taskTree.attachNodeToParent(childTaskID, parentTaskID);
 }
 
 
-CleanupTask &GarbageCollector::modifyCleanupTask(CleanupID taskID) {
+CleanupTask &ResourceManager::modifyCleanupTask(CleanupID taskID) {
 	std::lock_guard<std::recursive_mutex> lock(m_cleanupMutex);
 	return m_taskTree.getNode(taskID).data;
 }
 
 
-void GarbageCollector::executeCleanupTask(CleanupID taskID) {
-	executeTask(taskID);
+void ResourceManager::executeCleanupTask(CleanupID taskID, bool executeParent) {
+	executeTask(taskID, executeParent);
 }
 
 
-void GarbageCollector::processCleanupStack() {
+void ResourceManager::processCleanupStack() {
 	size_t stackSize = m_taskTree.size();
 
 	Log::Print(Log::T_VERBOSE, __FUNCTION__, "Executing " + std::to_string(stackSize) + " " + PLURAL(stackSize, "task", "tasks") + " in the cleanup tree...");
 
-	executeTask(m_rootNodeID.value());
+	executeTask(m_rootNodeID.value(), true);
 }
 
 
-void GarbageCollector::executeTask(CleanupID taskID) {
+void ResourceManager::executeTask(CleanupID taskID, bool executeParent) {
 	/* Executes a cleanup task in isolation. */
 	static const std::function<void(CleanupTask &)> execute = [this](CleanupTask &task) {
-		
+		std::string objectNamesStr = getObjectNamesString(task);
+
+		// Checks whether the task is already invalid
+		if (!task._validTask) {
+			Log::Print(Log::T_WARNING, __FUNCTION__, "Skipped cleanup of " + objectNamesStr + ".");
+			return;
+		}
+
+		// Checks the validity of all Vulkan objects involved in the task
+		bool proceedCleanup = true;
+		for (const auto &object : task.vkHandles) {
+			if (!vkIsValid(object)) {
+				proceedCleanup = false;
+				break;
+			}
+		}
+
+		if (!task.cleanupConditions.empty()) {
+			for (const auto &cond : task.cleanupConditions) {
+				if (!cond) {
+					proceedCleanup = false;
+					break;
+				}
+			}
+		}
+
+		if (!proceedCleanup) {
+			Log::Print(Log::T_WARNING, __FUNCTION__, "Skipped cleanup of " + objectNamesStr + " due to an invalid Vulkan object used in their destroy/free callback function.");
+			return;
+		}
+
+		// Executes the task and invalidates it to prevent future executions
+		try {
+			task.cleanupFunc();
+		}
+		catch (const std::bad_function_call &e) {
+			Log::Print(Log::T_ERROR, __FUNCTION__, "Cannot clean up " + objectNamesStr + ": Bad function call!");
+		}
+#ifdef NDEBUG
+		catch (...) {
+			Log::Print(Log::T_ERROR, __FUNCTION__, "An unknown exception prevented cleanup task " + objectNamesStr + " from being executed!");
+		}
+#endif
+
+		Log::Print(Log::T_VERBOSE, __FUNCTION__, "Executed cleanup task for " + objectNamesStr + ".");
+
+		task._validTask = false;
 	};
 
 
@@ -96,13 +150,15 @@ void GarbageCollector::executeTask(CleanupID taskID) {
 	CleanupTask &task = m_taskTree.getNode(taskID).data;
 	auto tasks = m_taskTree.getNodes(task._id);
 
-	for (int i = tasks.size() - 1; i >= 0; i--)
+	int highestLevel = (executeParent) ? 0 : 1;
+
+	for (int i = tasks.size() - 1; i >= highestLevel; i--)
 		for (int j = tasks[i].size() - 1; j >= 0; j--)
 			execute(tasks[i][j]->data);
 }
 
 
-std::string GarbageCollector::getObjectNamesString(CleanupTask &task) {
+std::string ResourceManager::getObjectNamesString(CleanupTask &task) {
 	// Prints the address of a Vulkan handle
 	static auto printHandleTrueValue = [](const auto &handle) {
 		std::stringstream ss;

@@ -22,6 +22,7 @@
 
 #include <Scene/GUI/Appearance.hpp>
 #include <Scene/GUI/Workspaces/IWorkspace.hpp>
+#include <Scene/GUI/Workspaces/SplashScreen.hpp>
 #include <Scene/GUI/Workspaces/OrbitalWorkspace.hpp>
 
 #include <Utils/ImGuiUtils.hpp>
@@ -32,6 +33,11 @@ class UIPanelManager {
 public:
 	UIPanelManager(IWorkspace *workspace);
 	~UIPanelManager() = default;
+
+	inline void switchWorkspace(IWorkspace *newWorkspace) {
+		m_currentWorkspace = newWorkspace;
+		m_eventDispatcher->dispatch(RequestEvent::ReInitImGui{});
+	}
 
 	void preRenderUpdate(uint32_t currentFrame);
 

@@ -8,15 +8,6 @@ InputManager::InputManager() {
 	m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
 	m_camera = ServiceLocator::GetService<Camera>(__FUNCTION__);
 
-	m_keyToCamMovementBindings = {
-		{GLFW_KEY_W,					CameraMovement::FORWARD},
-		{GLFW_KEY_S,					CameraMovement::BACKWARD},
-		{GLFW_KEY_A,					CameraMovement::LEFT},
-		{GLFW_KEY_D,					CameraMovement::RIGHT},
-		{GLFW_KEY_E,					CameraMovement::UP},
-		{GLFW_KEY_Q,					CameraMovement::DOWN}
-	};
-
 	bindEvents();
 
 	Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
@@ -31,13 +22,13 @@ void InputManager::init() {
 void InputManager::bindEvents() {
 	static EventDispatcher::SubscriberIndex selfIndex = m_eventDispatcher->registerSubscriber<InputManager>();
 
-	m_eventDispatcher->subscribe<UpdateEvent::Input>(selfIndex,
-		[this](const UpdateEvent::Input& event) {
-			this->processKeyboardInput(event.deltaTime);
-
-			this->m_camera->update(event.timeSinceLastPhysicsUpdate);
-		}
-	);
+	//m_eventDispatcher->subscribe<UpdateEvent::Input>(selfIndex,
+	//	[this](const UpdateEvent::Input& event) {
+	//		this->processKeyboardInput(event.deltaTime);
+	//
+	//		this->m_camera->update(event.timeSinceLastPhysicsUpdate);
+	//	}
+	//);
 
 
 	m_eventDispatcher->subscribe<UpdateEvent::SessionStatus>(selfIndex,
@@ -54,14 +45,17 @@ void InputManager::bindEvents() {
 
 	m_eventDispatcher->subscribe<UpdateEvent::CoreResources>(selfIndex,
 		[this](const UpdateEvent::CoreResources &event) {
-			if (event.window != nullptr) {
-				Log::Print(Log::T_WARNING, __FUNCTION__, "Update GLFWwindow");
-				std::cout << std::showbase << std::hex << "Old window: " << m_window << '\n';
+			if (event.window != nullptr)
 				m_window = event.window;
-				std::cout << std::showbase << std::hex << "New window: " << m_window << '\n';
-			}
 		}
 	);
+}
+
+
+void InputManager::tick(double deltaTime, double deltaUpdate) {
+	processKeyboardInput(deltaTime);
+	m_deltaUpdate.store(deltaUpdate);
+	//m_camera->update(deltaUpdate);
 }
 
 
@@ -71,15 +65,22 @@ void InputManager::processInBackground() {
 
 
 bool InputManager::isViewportInputAllowed() {
-	return isViewportFocused() && m_cursorLocked;
+	return isViewportFocused() && m_cursorLocked.load();
 }
 
 bool InputManager::isViewportFocused() {
+	std::lock_guard<std::recursive_mutex> lock(m_appContextMutex);
 	return g_appContext.Input.isViewportFocused && g_appContext.Input.isViewportHoveredOver;
 }
 
 bool InputManager::isViewportUnfocused() {
-	return !isViewportFocused() && m_cursorLocked;
+	return !isViewportFocused() && m_cursorLocked.load();
+}
+
+
+bool InputManager::isViewportHoveredOver() {
+	std::lock_guard<std::recursive_mutex> lock(m_appContextMutex);
+	return g_appContext.Input.isViewportHoveredOver;
 }
 
 
@@ -91,40 +92,30 @@ bool InputManager::isCameraOrbiting() {
 void InputManager::glfwDeferKeyInput(int key, int scancode, int action, int mods) {
 	std::lock_guard lock(m_pressedKeysMutex);
 
-	if (action == GLFW_PRESS) {
-		m_pressedKeys.insert(key);
-	}
-	else if (action == GLFW_RELEASE) {
-		m_pressedKeys.erase(key);
-	}
+	if (action == GLFW_PRESS)			m_pressedKeys.insert(key);
+	else if (action == GLFW_RELEASE)	m_pressedKeys.erase(key);
 }
 
 
 void InputManager::processKeyboardInput(double dt) {
 	using namespace Input;
 
-	std::set<int> currentPressedKeys;
-	{
-		std::lock_guard lock(m_pressedKeysMutex);
-		currentPressedKeys = m_pressedKeys;
-	}
+	std::lock_guard lock(m_pressedKeysMutex);
 
 	// Unlocks the cursor when the viewport loses focus (this solves desynchronization between g_appContext.Input.isViewportFocused and m_cursorLocked)
 	if (m_pressedKeys.contains(GLFW_KEY_ESCAPE) || isViewportUnfocused())
 		unfocusViewport();
 
-	for (const int key : currentPressedKeys) {
-		if (isViewportInputAllowed()) {
-			if (m_keyToCamMovementBindings.count(key))
-				m_camera->processKeyboardInput(m_keyToCamMovementBindings[key], dt);
-		}
+	for (const int key : m_pressedKeys) {
+		if (isViewportInputAllowed())
+			m_camera->processKeyboardInput(key, dt);
 	}
 }
 
 void InputManager::processMouseClicks(GLFWwindow* window, int button, int action, int mods) {
 	// Create a hand cursor and schedule it for destruction
 	static std::function<GLFWcursor *()> createHandCursor = [this]() {
-		std::shared_ptr<GarbageCollector> gc = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
+		std::shared_ptr<ResourceManager> gc = ServiceLocator::GetService<ResourceManager>(__FUNCTION__);
 		GLFWcursor *handCursor = glfwCreateStandardCursor(GLFW_HAND_CURSOR);
 		
 		CleanupTask task{};
@@ -145,11 +136,11 @@ void InputManager::processMouseClicks(GLFWwindow* window, int button, int action
 			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 
 			if (action == GLFW_PRESS) {
-				m_cursorLocked = true;
+				m_cursorLocked.store(true);
 				//glfwSetCursor(window, handCursor);
 			}
 			else if (action == GLFW_RELEASE) {
-				m_cursorLocked = false;
+				m_cursorLocked.store(false);
 				//glfwSetCursor(window, NULL);
 			}
 		}
@@ -157,7 +148,7 @@ void InputManager::processMouseClicks(GLFWwindow* window, int button, int action
 
 		// If camera is not orbiting (i.e., in free-fly mode), lock and hide the cursor until the Escape key is pressed
 		else {
-			m_cursorLocked = true;
+			m_cursorLocked.store(true);
 			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 		}
 	}
@@ -199,6 +190,6 @@ void InputManager::processMouseScroll(double deltaX, double deltaY) {
 
 
 void InputManager::unfocusViewport() {
-	m_cursorLocked = false;
+	m_cursorLocked.store(false);
 	glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 }

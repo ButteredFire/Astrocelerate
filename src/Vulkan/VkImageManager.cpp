@@ -7,7 +7,7 @@ CleanupID VkImageManager::CreateImage(VkImage& image, VmaAllocation& imgAllocati
 
 
 	std::shared_ptr<VkCoreResourcesManager> coreResources = ServiceLocator::GetService<VkCoreResourcesManager>(__FUNCTION__);
-	std::shared_ptr<GarbageCollector> garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
+	std::shared_ptr<ResourceManager> resourceManager = ServiceLocator::GetService<ResourceManager>(__FUNCTION__);
 
 	const VmaAllocator &vmaAllocator = coreResources->getVmaAllocator();
 
@@ -70,7 +70,7 @@ CleanupID VkImageManager::CreateImage(VkImage& image, VmaAllocation& imgAllocati
 		vmaDestroyImage(vmaAllocator, image, imgAllocation);
 	};
 
-	uint32_t taskID = garbageCollector->createCleanupTask(imgTask);
+	uint32_t taskID = resourceManager->createCleanupTask(imgTask);
 
 	return taskID;
 }
@@ -78,7 +78,7 @@ CleanupID VkImageManager::CreateImage(VkImage& image, VmaAllocation& imgAllocati
 
 CleanupID VkImageManager::CreateImageView(VkImageView& imageView, VkImage& image, VkFormat imgFormat, VkImageAspectFlags imgAspectFlags, VkImageViewType viewType, uint32_t levelCount, uint32_t layerCount) {
 	std::shared_ptr<VkCoreResourcesManager> coreResources = ServiceLocator::GetService<VkCoreResourcesManager>(__FUNCTION__);
-	std::shared_ptr<GarbageCollector> garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
+	std::shared_ptr<ResourceManager> resourceManager = ServiceLocator::GetService<ResourceManager>(__FUNCTION__);
 
 	const VkDevice &logicalDevice = coreResources->getLogicalDevice();
 
@@ -130,7 +130,7 @@ CleanupID VkImageManager::CreateImageView(VkImageView& imageView, VkImage& image
 		vkDestroyImageView(logicalDevice, imageView, nullptr);
 	};
 
-	uint32_t taskID = garbageCollector->createCleanupTask(task);
+	uint32_t taskID = resourceManager->createCleanupTask(task);
 
 	return taskID;
 }
@@ -138,7 +138,7 @@ CleanupID VkImageManager::CreateImageView(VkImageView& imageView, VkImage& image
 
 CleanupID VkImageManager::CreateFramebuffer(VkFramebuffer& framebuffer, VkRenderPass& renderPass, std::vector<VkImageView> attachments, uint32_t width, uint32_t height) {
 	std::shared_ptr<VkCoreResourcesManager> coreResources = ServiceLocator::GetService<VkCoreResourcesManager>(__FUNCTION__);
-	std::shared_ptr<GarbageCollector> garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
+	std::shared_ptr<ResourceManager> resourceManager = ServiceLocator::GetService<ResourceManager>(__FUNCTION__);
 
 	const VkDevice &logicalDevice = coreResources->getLogicalDevice();
 
@@ -163,7 +163,7 @@ CleanupID VkImageManager::CreateFramebuffer(VkFramebuffer& framebuffer, VkRender
 		vkDestroyFramebuffer(logicalDevice, framebuffer, nullptr);
 	};
 
-	uint32_t taskID = garbageCollector->createCleanupTask(task);
+	uint32_t taskID = resourceManager->createCleanupTask(task);
 	
 	return taskID;
 }

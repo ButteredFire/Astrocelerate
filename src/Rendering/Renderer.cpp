@@ -14,7 +14,7 @@ Renderer::Renderer(VkCoreResourcesManager *coreResources, VkSwapchainManager *sw
 
     m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
     m_globalRegistry = ServiceLocator::GetService<Registry>(__FUNCTION__);
-    m_garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
+    m_resourceManager = ServiceLocator::GetService<ResourceManager>(__FUNCTION__);
 
     bindEvents();
 
@@ -58,7 +58,7 @@ void Renderer::bindEvents() {
 
     m_eventDispatcher->subscribe<RecreationEvent::Swapchain>(selfIndex, 
         [this](const RecreationEvent::Swapchain &event) {
-            m_swapchainDeferredCleanupIDs = event.deferredDestructionList;
+            m_swapchainCleanupID = event.swapchainCleanupID;
         }
     );
 }
@@ -66,10 +66,8 @@ void Renderer::bindEvents() {
 
 void Renderer::init() {
     m_imageReadySemaphores = m_syncManager->getImageReadySemaphores();
-    m_inFlightFences = m_syncManager->getInFlightFences();
-
     m_renderFinishedSemaphores = m_syncManager->getRenderFinishedSemaphores();
-    m_renderFinishedSemaphoreCleanupIDs = m_syncManager->getRenderFinishedSemaphoreCleanupIDs();
+    m_inFlightFences = m_syncManager->getInFlightFences();
 
     m_graphicsCommandBuffers = m_commandManager->getGraphicsCommandBuffers();
 }
@@ -128,25 +126,22 @@ void Renderer::drawFrame(glm::dvec3& renderOrigin) {
     LOG_ASSERT(waitResult == VK_SUCCESS, "Failed to wait for in-flight fence!");
 
     
-    if (!m_swapchainDeferredCleanupIDs.empty()) {
-        // If the swapchain has been resized (i.e., the destruction list of its resources is not empty), process the destruction list and renew per-image semaphores.
+    if (m_swapchainCleanupID.has_value()) {
+        // If the swapchain has been resized, destroy the old swapchain and dependencies, then renew per-image semaphores.
+        vkDeviceWaitIdle(m_coreResources->getLogicalDevice());
         if (lastQueue != VK_NULL_HANDLE)
             vkQueueWaitIdle(lastQueue);
 
-        // Destroy old swapchain resources
-        for (const auto &taskID : m_swapchainDeferredCleanupIDs)
-            m_garbageCollector->executeCleanupTask(taskID);
-        m_swapchainDeferredCleanupIDs.clear();
-
-        // Destroy old per-image signal semaphores
-        for (const auto &taskID : m_renderFinishedSemaphoreCleanupIDs)
-            m_garbageCollector->executeCleanupTask(taskID);
-        m_renderFinishedSemaphoreCleanupIDs.clear();
+        // Destroy old swapchain and dependent resources
+        m_resourceManager->executeCleanupTask(m_swapchainCleanupID.value());
 
         // Create new such semaphores
+        m_syncManager->createPerFrameSemaphores();
         m_syncManager->createPerImageSemaphores();
+        m_imageReadySemaphores = m_syncManager->getImageReadySemaphores();
         m_renderFinishedSemaphores = m_syncManager->getRenderFinishedSemaphores();
-        m_renderFinishedSemaphoreCleanupIDs = m_syncManager->getRenderFinishedSemaphoreCleanupIDs();
+
+        m_swapchainCleanupID = std::nullopt;
     }
 
 

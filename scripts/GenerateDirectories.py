@@ -15,6 +15,10 @@ excludedFiles = [
     "boxer_win.cpp"
 ]
 
+# File extensions that are allowed to be written into CMake files
+permissibleSourceExts = ["c", "cpp", "inl"]
+permissibleHeaderExts = ["h", "hpp"]
+
 # Name of the script (used for loggging)
 fileName = __file__.replace(str(Path(__file__).parent.parent), "").replace("\\", "/")[1:]
 
@@ -60,10 +64,6 @@ def retrieveFileDirectories(startPath, pyFilePath, targetDirs):
 
     sourceFilesContent = f"""set(SOURCE_FILES"""
     headerFilesContent = f"""set(HEADER_FILES"""
-
-    # File extensions that are allowed to be written into CMake files
-    permissibleSourceExts = ["c", "cpp"]
-    permissibleHeaderExts = ["h", "hpp"]
 
     targetDirsFullPath = []
     for dir in targetDirs:

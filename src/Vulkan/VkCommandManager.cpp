@@ -14,7 +14,7 @@ VkCommandManager::VkCommandManager(VkCoreResourcesManager *coreResources, VkSwap
 	m_swapchainImgLayouts(swapchainMgr->getImageLayouts()) {
 	
 	m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
-	m_garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
+	m_resourceManager = ServiceLocator::GetService<ResourceManager>(__FUNCTION__);
 
 	bindEvents();
 
@@ -386,7 +386,7 @@ VkCommandPool VkCommandManager::CreateCommandPool(VkDevice device, uint32_t queu
 	}
 
 
-	std::shared_ptr<GarbageCollector> garbageCollector = ServiceLocator::GetService<GarbageCollector>(__FUNCTION__);
+	std::shared_ptr<ResourceManager> resourceManager = ServiceLocator::GetService<ResourceManager>(__FUNCTION__);
 
 	VkCommandPoolCreateInfo poolCreateInfo{};
 	poolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -410,7 +410,7 @@ VkCommandPool VkCommandManager::CreateCommandPool(VkDevice device, uint32_t queu
 	task.vkHandles = { commandPool };
 	task.cleanupFunc = [device, commandPool]() { vkDestroyCommandPool(device, commandPool, nullptr); };
 
-	garbageCollector->createCleanupTask(task);
+	resourceManager->createCleanupTask(task);
 
 	return commandPool;
 }
@@ -441,5 +441,5 @@ void VkCommandManager::allocCommandBuffers(VkCommandPool& commandPool, std::vect
 	task.vkHandles = { commandPool };
 	task.cleanupFunc = [this, commandPool, commandBuffers]() { vkFreeCommandBuffers(m_logicalDevice, commandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data()); };
 
-	m_garbageCollector->createCleanupTask(task);
+	m_resourceManager->createCleanupTask(task);
 }

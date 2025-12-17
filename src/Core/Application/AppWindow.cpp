@@ -5,7 +5,8 @@
 #include <Core/Engine/InputManager.hpp>
 
 Window::Window(const uint32_t width, const uint32_t height, const std::string &windowName)
-    : m_WIDTH(width), m_HEIGHT(height), m_windowName(windowName) {
+    : m_WIDTH(width), m_HEIGHT(height), m_windowName(windowName),
+    m_splashWindow(nullptr), m_mainWindow(nullptr) {
 
     glfwInit();
     m_monitor = glfwGetPrimaryMonitor();
@@ -15,7 +16,7 @@ Window::Window(const uint32_t width, const uint32_t height, const std::string &w
 
 
 Window::~Window() {
-    glfwDestroyWindow(m_window);
+    glfwDestroyWindow(m_mainWindow);
     glfwTerminate();
 }
 
@@ -25,12 +26,11 @@ void Window::initSplashScreen() {
     // Make window borderless
     glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-    glfwWindowHint(GLFW_FLOATING, GLFW_TRUE);
 
     constexpr uint32_t SPLASH_WIDTH = 700;
     constexpr uint32_t SPLASH_HEIGHT = 400;
 
-    m_window = glfwCreateWindow(SPLASH_WIDTH, SPLASH_HEIGHT, "Astrocelerate | Loading...", nullptr, nullptr);
+    m_splashWindow = glfwCreateWindow(SPLASH_WIDTH, SPLASH_HEIGHT, "Astrocelerate | Loading...", nullptr, nullptr);
 
     const GLFWvidmode *mode = glfwGetVideoMode(m_monitor);
     const uint32_t CURRENT_SCREEN_WIDTH = mode->width;
@@ -39,43 +39,45 @@ void Window::initSplashScreen() {
     // Center window
     const uint32_t X = (CURRENT_SCREEN_WIDTH - SPLASH_WIDTH) / 2;
     const uint32_t Y = (CURRENT_SCREEN_HEIGHT - SPLASH_HEIGHT) / 2;
-    glfwSetWindowPos(m_window, X, Y);
+    glfwSetWindowPos(m_splashWindow, X, Y);
 
-    //std::cout << std::showbase << std::hex << "Splash window: " << m_window << '\n';
+    //std::cout << std::showbase << std::hex << "Splash window: " << m_splashWindow << '\n';
 }
 
 
 void Window::initPrimaryScreen(CallbackContext *context) {
     // Initialize window
-    glfwDestroyWindow(m_window);
+    glfwDestroyWindow(m_splashWindow);
+    m_splashWindow = nullptr;
 
     loadDefaultHints();
 
         // Fullscreen:
-            // m_window = glfwCreateWindow(width, height, windowName.c_str(), m_monitor, nullptr);
+            // m_mainWindow = glfwCreateWindow(width, height, windowName.c_str(), m_monitor, nullptr);
         // Set width and height:
-            //m_window = glfwCreateWindow(width, height, windowName.c_str(), nullptr, nullptr);
-    m_window = glfwCreateWindow(m_WIDTH, m_HEIGHT, m_windowName.c_str(), nullptr, nullptr);
-    glfwMaximizeWindow(m_window);
-    glfwMakeContextCurrent(m_window);
-    glfwFocusWindow(m_window);
-
-
-    // Initialize GLFW bindings
-    glfwSetWindowUserPointer(m_window, static_cast<void *>(context));
-
-    glfwSetKeyCallback(m_window, KeyCallback);
-    glfwSetCursorPosCallback(m_window, MouseCallback);
-    glfwSetMouseButtonCallback(m_window, MouseBtnCallback);
-    glfwSetScrollCallback(m_window, ScrollCallback);
+            //m_mainWindow = glfwCreateWindow(width, height, windowName.c_str(), nullptr, nullptr);
+    m_mainWindow = glfwCreateWindow(m_WIDTH, m_HEIGHT, m_windowName.c_str(), nullptr, nullptr);
+    glfwMaximizeWindow(m_mainWindow);
+    glfwMakeContextCurrent(m_mainWindow);
+    glfwFocusWindow(m_mainWindow);
 
 
     // Dispatch update event
-    //std::cout << std::showbase << std::hex << "Main window: " << m_window << '\n';
     m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
     m_eventDispatcher->dispatch(UpdateEvent::CoreResources{
-        .window = m_window
+        .window = m_mainWindow
     });
+
+
+    // Initialize GLFW bindings
+    glfwSetWindowUserPointer(m_mainWindow, static_cast<void *>(context));
+
+    glfwSetKeyCallback(m_mainWindow, KeyCallback);                      // Binds key events
+    glfwSetCharCallback(m_mainWindow, ImGui_ImplGlfw_CharCallback);     // For normal character events (text input), we let ImGui's callback handle them
+
+    glfwSetCursorPosCallback(m_mainWindow, MouseCallback);
+    glfwSetMouseButtonCallback(m_mainWindow, MouseBtnCallback);
+    glfwSetScrollCallback(m_mainWindow, ScrollCallback);
 }
 
 
@@ -91,32 +93,36 @@ void Window::loadDefaultHints() {
 
 
 void Window::KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    //std::cout << "key callback\n";
-	CallbackContext* context = static_cast<CallbackContext*>(glfwGetWindowUserPointer(window));
+    CallbackContext *context = static_cast<CallbackContext *>(glfwGetWindowUserPointer(window));
     context->inputManager->glfwDeferKeyInput(key, scancode, action, mods);
 
-    if (!glfwGetWindowAttrib(window, GLFW_FOCUSED))
-        // If window is not focused, stop processing input when it's in the background
-        context->inputManager->processInBackground();
+    //if (!glfwGetWindowAttrib(window, GLFW_FOCUSED))
+    //    // If window is not focused, stop processing input when it's in the background
+    //    context->inputManager->processInBackground();
+
+    ImGui_ImplGlfw_KeyCallback(window, key, scancode, action, mods);
 }
 
 
 void Window::MouseCallback(GLFWwindow* window, double posX, double posY) {
-    //std::cout << "mouse callback\n";
     CallbackContext *context = static_cast<CallbackContext *>(glfwGetWindowUserPointer(window));
+
+    ImGui_ImplGlfw_CursorPosCallback(window, posX, posY);
     context->inputManager->processMouseMovement(posX, posY);
 }
 
 
 void Window::MouseBtnCallback(GLFWwindow* window, int button, int action, int mods) {
-    //std::cout << "mouse btn callback\n";
-    CallbackContext* context = static_cast<CallbackContext*>(glfwGetWindowUserPointer(window));
+    CallbackContext *context = static_cast<CallbackContext *>(glfwGetWindowUserPointer(window));
+    
+    ImGui_ImplGlfw_MouseButtonCallback(window, button, action, mods);
     context->inputManager->processMouseClicks(window, button, action, mods);
 }
 
 
 void Window::ScrollCallback(GLFWwindow* window, double deltaX, double deltaY) {
-    //std::cout << "scroll callback\n";
-    CallbackContext* context = static_cast<CallbackContext*>(glfwGetWindowUserPointer(window));
+    CallbackContext *context = static_cast<CallbackContext *>(glfwGetWindowUserPointer(window));
+    
+    ImGui_ImplGlfw_ScrollCallback(window, deltaX, deltaY);
     context->inputManager->processMouseScroll(deltaX, deltaY);
 }
