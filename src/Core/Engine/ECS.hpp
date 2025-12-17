@@ -277,7 +277,7 @@ public:
 
 
 	/* Gets the entities that are included in the view. */
-	inline std::vector<EntityID> getMatchingEntities() { return m_matchingEntities; }
+	inline auto getMatchingEntities() { return m_matchingEntities; }
 
 
 	/* Ignores a variable number of components.
@@ -286,12 +286,12 @@ public:
 	template<typename... IgnoredComponents>
 	inline void ignoreComponents() {
 		m_ignoredMask = buildComponentMask<IgnoredComponents...>();
-		updateMatchingEntities(m_matchingEntities);
+		init(m_matchingEntities);
 	}
 
 
 	/* Returns the number of entries queried. */
-	inline size_t size() { return m_matchingEntities.size(); }
+	inline size_t size() { return m_matchingTuples.size(); }
 
 
 	class Iterator {
@@ -350,44 +350,51 @@ private:
 	ComponentMask m_requiredMask, m_ignoredMask;
 
 
-	inline void init() {
-		m_matchingEntities = entityManager.getAllEntityIDs();
+	/* Initializes the view.
+		@param sourceEntities (optional): The source vector of entities used as data for updating matching entities from. If it is empty, the view will filter entities from all existing entities.
+	*/
+	inline void init(std::vector<EntityID> sourceEntities = {}) {
+		std::vector<EntityID> entities = (sourceEntities.empty()) ? entityManager.getAllEntityIDs() : sourceEntities;
 		m_entityComponentMasks = entityManager.getAllComponentMasks();
 
-		updateMatchingEntities(m_matchingEntities);
+		updateMatchingEntities(entities);
 	}
 
 
 	/* Updates the list of entities according to filters (e.g., required/ignored masks).
-		@param sourceEntities: The source vector of entities used as data for updating matching entities from.
+		@param dirtyEntities: The vector of entities whose component data has changed since the last `updateMatchingEntities` call.
 	*/
-	inline void updateMatchingEntities(std::vector<EntityID>& sourceEntities) {
-		// Repopulate matching entities
-		std::vector<EntityID> temp;
-		temp.reserve(sourceEntities.size());
+	inline void updateMatchingEntities(std::vector<EntityID> &dirtyEntities) {
+		std::vector<std::tuple<EntityID, Components...>> tempTuples;
+		tempTuples.reserve(dirtyEntities.size());
 
-		for (size_t i = 0; i < sourceEntities.size(); i++)
+		for (size_t i = 0; i < dirtyEntities.size(); i++) {
+			// If entity matches filters, update/add its values in m_matchingEntities and m_matchingTuples
 			if (
 				((m_entityComponentMasks[i] & m_requiredMask) == m_requiredMask) &&	// Entity mask must match the required mask
 				((m_entityComponentMasks[i] & m_ignoredMask).none())				// Entity mask must NOT match the ignored mask
 				) {
-	
-				temp.push_back(sourceEntities[i]);
+
+				auto entityData = constructTuple(dirtyEntities[i]);
+
+				auto it = std::find(m_matchingEntities.begin(), m_matchingEntities.end(), dirtyEntities[i]);
+
+				if (it != m_matchingEntities.end()) {
+					// If it already exists in matchingEntities and matchingTuples, update
+					int index = std::distance(m_matchingEntities.begin(), it);
+
+					std::swap(m_matchingEntities[index], m_matchingEntities.back());
+
+					std::swap(m_matchingTuples[index], m_matchingTuples.back());
+					m_matchingTuples.back() = entityData;
+				}
+				else {
+					// Else, add
+					m_matchingEntities.push_back(dirtyEntities[i]);
+					m_matchingTuples.push_back(entityData);
+				}
 			}
-	
-		m_matchingEntities.swap(temp);
-
-
-		// Regenerate their tuples
-		std::vector<std::tuple<EntityID, Components...>> tempTuples;
-		tempTuples.reserve(m_matchingEntities.size());
-
-		for (size_t i = 0; i < m_matchingEntities.size(); i++)
-			tempTuples.push_back(
-				constructTuple(i)
-			);
-
-		m_matchingTuples.swap(tempTuples);
+		}
 	}
 
 
@@ -405,20 +412,24 @@ private:
 
 
 	/* Constructs a tuple of the specified components for a specific matching entity.
-		NOTE: This function assumes that `m_matchingEntities` has already been populated.
+		@param id: The ID of the entity.
 
-		@param idx: The index into `m_matchingEntities`.
-
-		@return A corresponding tuple.
+		@return A corresponding tuple containing the entity ID and the specified components.
 	*/
-	auto constructTuple(size_t idx) {
-		EntityID entityID = m_matchingEntities[idx];
-
+	auto constructTuple(EntityID id) {
 		return std::tuple<EntityID, Components...>(
-			entityID,
-			componentManager.getComponentArray<Components>()->getComponent(entityID)...
+			id,
+			componentManager.getComponentArray<Components>()->getComponent(id)...
 		);
 	}
+};
+
+
+/* A hashmap wrapper designed to store/cache View queries. */
+class ViewMap {
+public:
+	template <typename... Components>
+	inline void insert(InternalView<Components...> view) {}
 };
 
 

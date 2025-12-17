@@ -218,6 +218,16 @@ namespace ImGuiUtils {
 	}
 
 
+	/* Renders floating text relative to a panel.
+		@param pos: The position of the text widget, relative to the parent window.
+		@param text: The text to be displayed.
+	*/
+	inline void FloatingText(ImVec2 pos, const std::string &text) {
+		ImDrawList *drawList = ImGui::GetWindowDrawList();
+		drawList->AddText(pos, IM_COL32(255, 255, 255, 255), text.c_str());
+	}
+
+
 	/* Renders a string with an icon prepended to it.
 		@param icon: The icon to be prepended to the string.
 		@param text: The text to be displayed after the icon.

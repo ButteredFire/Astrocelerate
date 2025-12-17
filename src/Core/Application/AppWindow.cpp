@@ -26,6 +26,7 @@ void Window::initSplashScreen() {
     // Make window borderless
     glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    glfwWindowHint(GLFW_FLOATING, GLFW_TRUE);
 
     constexpr uint32_t SPLASH_WIDTH = 700;
     constexpr uint32_t SPLASH_HEIGHT = 400;

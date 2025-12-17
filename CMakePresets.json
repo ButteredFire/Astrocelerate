@@ -1,50 +1,72 @@
 {
-    "version": 6,
-    "configurePresets": [
-        {
-            "name": "x64-Debug-Win32",
-            "displayName": "x64 Debug (Windows)",
-            "description": "Configures for x64 Debug builds with Ninja and vcpkg on Windows.",
-            "generator": "Ninja",
-            "binaryDir": "${sourceDir}/out/build/${presetName}",
-            "installDir": "${sourceDir}/out/install/${presetName}",
-            "cacheVariables": {
-              "CMAKE_BUILD_TYPE": "Debug",
-              "CMAKE_TOOLCHAIN_FILE": "D:/vcpkg/scripts/buildsystems/vcpkg.cmake"
-            },
-            "environment": {
-                "SPICE_ROOT_DIR": "D:/CSPICE"
-            }
-        },
-        {
-            "name": "x64-Release-Win32",
-            "displayName": "x64 Release (Windows)",
-            "description": "Configures for x64 Release builds with Ninja and vcpkg on Windows.",
-            "generator": "Ninja",
-            "binaryDir": "${sourceDir}/out/build/${presetName}",
-            "installDir": "${sourceDir}/out/install/${presetName}",
-            "cacheVariables": {
-              "CMAKE_BUILD_TYPE": "RelWithDebInfo",
-              "CMAKE_TOOLCHAIN_FILE": "D:/vcpkg/scripts/buildsystems/vcpkg.cmake"
-            },
-            "environment": {
-                "SPICE_ROOT_DIR": "D:/CSPICE"
-            }
-        }
-    ],
-    "buildPresets": [
-        {
-            "name": "x64-Debug-Win32",
-            "displayName": "x64-Debug (Windows)",
-            "configurePreset": "x64-Debug-Win32",
-            "verbose": true
-        },
-        {
-            "name": "x64-Release-Win32",
-            "displayName": "x64-Release (Windows)",
-            "configurePreset": "x64-Release-Win32",
-            "verbose": true
-        }
-    ],
-    "testPresets": []
+"version": 6,
+  "configurePresets": [
+    {
+      "name": "Debug-Win32",
+      "displayName": "Debug (Windows)",
+      "description": "Configures for Debug builds with Ninja and vcpkg on Windows.",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "installDir": "${sourceDir}/out/install/${presetName}",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_TOOLCHAIN_FILE": "D:/vcpkg/scripts/buildsystems/vcpkg.cmake"
+      },
+      "environment": {
+        "SPICE_ROOT_DIR": "D:/CSPICE"
+      }
+    },
+    {
+      "name": "RelWithDebInfo-Win32",
+      "displayName": "Release w/ Debug Info (Windows)",
+      "description": "Configures for Release builds (with Debug info) with Ninja and vcpkg on Windows.",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "installDir": "${sourceDir}/out/install/${presetName}",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "CMAKE_TOOLCHAIN_FILE": "D:/vcpkg/scripts/buildsystems/vcpkg.cmake"
+      },
+      "environment": {
+        "SPICE_ROOT_DIR": "D:/CSPICE"
+      }
+    },
+    {
+      "name": "MinSizeRel-Win32",
+      "displayName": "Min-Size Release (Windows)",
+      "description": "Configures for Min-Size Release builds with Ninja and vcpkg on Windows.",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "installDir": "${sourceDir}/out/install/${presetName}",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "MinSizeRel",
+        "CMAKE_TOOLCHAIN_FILE": "D:/vcpkg/scripts/buildsystems/vcpkg.cmake"
+      },
+      "environment": {
+        "SPICE_ROOT_DIR": "D:/CSPICE"
+      }
+    }
+  ],
+
+  "buildPresets": [
+    {
+      "name": "Debug-Win32",
+      "displayName": "Debug-Win32",
+      "configurePreset": "Debug-Win32",
+      "verbose": true
+    },
+    {
+      "name": "RelWithDebInfo-Win32",
+      "displayName": "RelWithDebInfo-Win32",
+      "configurePreset": "RelWithDebInfo-Win32",
+      "verbose": true
+    },
+    {
+      "name": "MinSizeRel-Win32",
+      "displayName": "MinSizeRel-Win32",
+      "configurePreset": "MinSizeRel-Win32",
+      "verbose": true
+    }
+  ],
+  "testPresets": []
 }

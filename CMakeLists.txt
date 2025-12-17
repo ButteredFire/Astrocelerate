@@ -45,10 +45,11 @@ cmake_policy(SET CMP0141 NEW)
 
 
 # Enable Address Sanitizer if in Debug Mode
-set(DEBUG_MODES "Debug")
-set(RELEASE_MODES "Release;RelWithDebInfo;MinSizeRel")
+set(ASAN_ENABLED_MODES "Debug")
+set(DEBUG_MODES "Debug;RelWithDebInfo")
+set(RELEASE_MODES "Release;MinSizeRel")
 
-if (CMAKE_BUILD_TYPE IN_LIST DEBUG_MODES)
+if (CMAKE_BUILD_TYPE IN_LIST ASAN_ENABLED_MODES)
     if (MSVC)
         add_compile_options(/fsanitize=address)
         add_link_options(/fsanitize=address)

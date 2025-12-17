@@ -115,6 +115,9 @@ Astrocelerate thực hiện commit đầu tiên vào ngày 28 tháng 11 năm 202
 ## Kho ảnh
 Các ảnh chụp màn hình sau đây ghi lại quá trình phát triển của Astrocelerate (Format ngày: ngày/tháng/năm).
 
+### 17/12/2025
+<img width="1919" height="1031" alt="2025-12-17" src="https://github.com/user-attachments/assets/82a93f52-c7ea-45d6-a5eb-f03534892a36" />
+
 ### 20/10/2025
 <img width="1919" height="1029" alt="2025-10-20" src="https://github.com/user-attachments/assets/6a0309a0-6af9-4c2a-a9a3-4774f811d2b6" />
 

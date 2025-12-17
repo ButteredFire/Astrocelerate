@@ -485,7 +485,41 @@ void OrbitalWorkspace::renderViewportPanel() {
 				lastViewportSceneRegion = viewportSceneRegion;
 			}
 
+
+			// Display raw render as an image texture
+			ImVec2 cursorPos = ImGui::GetCursorScreenPos();
+
 			ImGui::Image(m_viewportRenderTextureIDs[m_currentFrame], viewportSceneRegion);
+
+				// Telemetry
+			auto view = m_registry->getView<PhysicsComponent::CoordinateSystem>();
+			static constexpr float PADDING_X = 20.0f, PADDING_Y = 20.0f, FONT_SCALE = 1.25f;
+
+			if (view.size() > 0) {
+				auto [_, coordSys] = view[0];
+
+				//std::atomic_ref<std::string> epochAtomic(coordSys.currentEpoch);
+
+				const std::vector<std::string> telemetry = {
+					"Coordinate System: " + CoordSys::EpochToSPICEMap.at(coordSys.simulationConfig.epoch) 
+							+ " (Observer: " + CoordSys::FrameProperties.at(coordSys.simulationConfig.frame).spiceName + ")",
+					"Epoch: " + coordSys.currentEpoch,
+					"Frame: " + CoordSys::FrameProperties.at(coordSys.simulationConfig.frame).displayName
+				};
+
+				ImGui::SetWindowFontScale(FONT_SCALE);
+				const float lineHeight = ImGui::GetFontSize();
+				{
+					for (int i = 0; i < telemetry.size(); i++)
+						ImGuiUtils::FloatingText(
+							ImVec2(cursorPos.x + PADDING_X,
+								cursorPos.y + PADDING_Y + lineHeight * i
+							),
+							telemetry[i]
+						);
+				}
+				ImGui::SetWindowFontScale(1.0f);
+			}
 
 
 			ImGui::EndChild();

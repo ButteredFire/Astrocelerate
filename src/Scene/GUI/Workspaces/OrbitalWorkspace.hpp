@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <any>
 #include <sstream>
 #include <iostream>
 #include <unordered_set>
@@ -14,6 +15,7 @@
 #include <iconfontcppheaders/IconsFontAwesome6.h>
 
 #include <Core/Data/GUI.hpp>
+#include <Core/Data/CoordSys.hpp>
 
 #include <Core/Data/Contexts/AppContext.hpp>
 #include <Core/Engine/InputManager.hpp>
@@ -109,11 +111,15 @@ private:
 	bool m_sceneSampleReady = false;			// Mirrors SessionStatus::Status::POST_INITIALIZATION
 
 	// Other
+		// General
 	uint32_t m_currentFrame = 0;
 	bool m_inputBlockerIsOn = false;  // Viewport input blocker blocker (prevents interactions with other GUI elements if the viewport is focused)
 	bool m_simulationIsPaused = true;
 
-	// Scene resources
+		// Caching
+	std::vector<std::any> m_registryCache;
+
+		// Scene resources
 	enum class m_ResourceType {
 		SPACECRAFT,
 		CELESTIAL_BODIES,

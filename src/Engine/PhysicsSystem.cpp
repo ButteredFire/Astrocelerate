@@ -61,6 +61,12 @@ void PhysicsSystem::configureCoordSys(CoordSys::FrameType frameType, CoordSys::F
 
 	m_coordSystem = std::make_shared<CoordinateSystem>();
 	m_coordSystem->init(kernelPaths, frame, epoch, epochFormat);
+
+	auto view = m_registry->getView<PhysicsComponent::CoordinateSystem>();
+	LOG_ASSERT(view.size() == 1, "Cannot configure coordinate system: Corrupt registry!");
+	auto [id, coordSys] = view[0];
+	coordSys.epochET = m_coordSystem->getEpochET();
+	m_registry->updateComponent(id, coordSys);
 }
 
 
@@ -93,11 +99,31 @@ void PhysicsSystem::tick(std::shared_ptr<WorkerThread> worker) {
 
 void PhysicsSystem::update(const double dt) {
 	double currentET = m_coordSystem->getEpochET() + m_simulationTime;
-	m_simulationTime += dt;
 	
 	updateSPICEBodies(currentET);
 	propagateBodies(currentET);
 	updateGeneralBodies(dt, currentET);
+
+	m_simulationTime += dt;
+	
+
+	auto [id, coordSys] = m_registry->getView<PhysicsComponent::CoordinateSystem>()[0];
+	{
+		// Convert current seconds past J2000 => string
+		static const char *FMT = "C"; // Calendar format, UTC (https://naif.jpl.nasa.gov/pub/naif/toolkit_docs/C/cspice/et2utc_c.html)
+		static constexpr int PREC = 5;
+		static constexpr int LENOUT = 35;
+		static char buf[LENOUT];
+
+		et2utc_c(currentET, FMT, PREC, LENOUT, buf);
+
+		coordSys.currentEpoch = std::string(buf);
+
+			// Perform thread-safe writes to a non-atomic variable (NOTE: We can't have std::atomic types in components since atomics are non-copyable and non-movable)
+		//std::atomic_ref<std::string> atomic(coordSys.currentEpoch);
+		//atomic.store(std::string(buf));
+	}
+	m_registry->updateComponent(id, coordSys);
 }
 
 

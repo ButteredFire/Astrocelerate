@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include <atomic>
+
 #include <External/GLM.hpp>
 
 #include "CoreComponents.hpp"
@@ -51,6 +53,8 @@ namespace PhysicsComponent {
 	/* Properties of coordinate systems. */
 	struct CoordinateSystem {
 		Application::SimulationConfig simulationConfig;
+		double epochET;
+		std::string currentEpoch;
 	};
 
 
