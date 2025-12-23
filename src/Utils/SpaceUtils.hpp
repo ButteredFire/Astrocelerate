@@ -62,7 +62,7 @@ namespace SpaceUtils {
 
 	/* Gets the maximum smallest scale that could be rendered in render space. */  
 	inline double GetRenderableScale(double scale) {  
-		return std::fmax(scale, 0.01);  
+		return std::fmax(scale, 0.001);  
 	}
 
 

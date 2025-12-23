@@ -1,6 +1,7 @@
 #pragma once
 
 #include <mutex>
+#include <chrono>
 #include <atomic>
 #include <condition_variable>
 
@@ -24,6 +25,8 @@ struct AppContext {
         std::mutex haltMutex;
         std::condition_variable haltCV;
         std::atomic<bool> isHalted = false;
+
+        std::atomic<std::chrono::steady_clock::time_point> heartbeatTimePoint;
     } MainThread;
 };
 

@@ -47,6 +47,17 @@ public:
 	}
 
 
+	/* Puts THIS thread to sleep if the main thread is currently unresponsive.
+		NOTE: This method is reserved for worker threads.
+	*/
+	inline static void SleepIfMainThreadHalted() {
+		LOG_ASSERT(std::this_thread::get_id() != m_mainThreadID, "Programmer Error: Cannot call ThreadManager::SleepIfMainThreadHalted in the main thread!");
+
+		std::unique_lock<std::mutex> lock(g_appContext.MainThread.haltMutex);
+		g_appContext.MainThread.haltCV.wait(lock, []() { return !g_appContext.MainThread.isHalted.load(); });
+	}
+
+
 	/* Gets the name of a thread created via ThreadManager::CreateThread.
 		NOTE: If threadID is the main thread ID, an empty string will be returned.
 

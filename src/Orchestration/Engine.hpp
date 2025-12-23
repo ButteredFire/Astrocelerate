@@ -62,7 +62,6 @@ public:
 
 	void init();
 
-	void setApplicationStage(Application::Stage newAppStage);
 	void setWindowPtr(GLFWwindow *w);
 
 	void run();
@@ -70,7 +69,6 @@ public:
 private:
 	GLFWwindow *m_window;
 
-	Application::Stage m_currentAppStage = Application::Stage::WORKSPACE_ORBITAL;
 	Application::State m_currentAppState = Application::State::IDLE;
 
 	std::shared_ptr<VkInstanceManager> m_instanceManager;
@@ -87,6 +85,8 @@ private:
 
 	VkDevice m_logicalDevice = VK_NULL_HANDLE;
 	QueueFamilyIndices m_queueFamilies{};
+
+	std::shared_ptr<WorkerThread> m_watchdogThread;
 
 
 	// Core services

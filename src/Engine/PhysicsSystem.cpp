@@ -26,8 +26,12 @@ void PhysicsSystem::bindEvents() {
 			case INITIALIZED:
 				m_simulationTime = 0.0;
 
+				cacheRegistryData();
+
 				this->homogenizeCoordinateSystems();
 				this->update(Time::GetDeltaTime());
+
+				syncRegistryData();
 
 				break;
 			}
@@ -71,42 +75,112 @@ void PhysicsSystem::configureCoordSys(CoordSys::FrameType frameType, CoordSys::F
 
 
 void PhysicsSystem::tick(std::shared_ptr<WorkerThread> worker) {
+	// Cache physics data
+	cacheRegistryData();
+
+
+	// Compute accumulator
 	float timeScale = Time::GetTimeScale();
 	Time::UpdateDeltaTime();
 	double deltaTime = Time::GetDeltaTime();
 
-	std::lock_guard<std::mutex> lock(m_accumulatorMutex);
-
-	m_accumulator += deltaTime * timeScale;
+	double localAccumulator;
+	{
+		std::lock_guard<std::mutex> lock(m_accumulatorMutex);
+		m_accumulator += deltaTime * timeScale;
+		localAccumulator = m_accumulator;
+	}
 
 	// TODO: Implement adaptive timestepping instead of a constant TIME_STEP
-	while (m_accumulator >= SimulationConsts::TIME_STEP) {
-		if (worker->stopRequested())
-			// If the thread in which this function is called is requested to be stopped, immediately stop updating physics
-			m_accumulator = 0.0;
+	uint32_t iterations = 0;
+	static constexpr uint32_t SYNC_FREQUENCY = 100;
 
-		if (Time::GetTimeScale() != timeScale) {
-			// If time scale changes while physics is updating, immediately exit update loop to renew time scale
-			m_accumulator = 0.0;
+	while (localAccumulator >= SimulationConsts::TIME_STEP) {
+		if (worker->stopRequested() || Time::GetTimeScale() != timeScale) {
+			// If the thread in which this function is called is requested to be stopped,
+			// OR If time scale changes while physics is updating (e.g., when the simulation is stopped in the middle of the updates),
+			// immediately stop updating physics
+			localAccumulator = 0.0;
 			break;
 		}
 
 		update(SimulationConsts::TIME_STEP);
-		m_accumulator -= SimulationConsts::TIME_STEP;
+		localAccumulator -= SimulationConsts::TIME_STEP;
+
+		// Sync registry data every [SYNC_FREQUENCY] iterations to see frequent visual progress on high time scales
+		if (iterations++ % SYNC_FREQUENCY == 0)
+			syncRegistryData();
+	}
+
+	{
+		std::lock_guard<std::mutex> lock(m_accumulatorMutex);
+		m_accumulator = localAccumulator;
+	}
+
+
+	// Write cache to ECS registry
+	syncRegistryData();
+}
+
+
+void PhysicsSystem::cacheRegistryData() {
+	m_generalData.clear();
+	m_propData.clear();
+	m_identifierData.clear();
+
+	// General data
+	auto generalView = m_registry->getView<CoreComponent::Transform, PhysicsComponent::RigidBody>();
+	auto propView = m_registry->getView<PhysicsComponent::Propagator, CoreComponent::Transform, PhysicsComponent::RigidBody>();
+
+	m_generalData = generalView.getData();
+	m_propData = propView.getData();
+
+	
+	// Specific data
+	m_identifierData.resize(m_generalData.size());
+
+	for (int i = 0; i < m_generalData.size(); i++) {
+		EntityID id = std::get<EntityID>(m_generalData[i]);
+		
+		// Identifiers
+		std::get<EntityID>(m_identifierData[i]) = id;
+		std::get<CoreComponent::Identifiers>(m_identifierData[i]) = m_registry->getComponent<CoreComponent::Identifiers>(id);
 	}
 }
 
 
-void PhysicsSystem::update(const double dt) {
-	double currentET = m_coordSystem->getEpochET() + m_simulationTime;
-	
-	updateSPICEBodies(currentET);
-	propagateBodies(currentET);
-	updateGeneralBodies(dt, currentET);
+void PhysicsSystem::syncRegistryData() {
+	// General data
+	for (auto &&[entityID, transform, rigidBody] : m_generalData) {
+		m_registry->updateComponent(entityID, transform);
+		m_registry->updateComponent(entityID, rigidBody);
+	}
 
-	m_simulationTime += dt;
-	
+	for (auto &&[entityID, propagator, transform, rigidBody] : m_propData) {
+		m_registry->updateComponent(entityID, propagator);
+		m_registry->updateComponent(entityID, transform);
+		m_registry->updateComponent(entityID, rigidBody);
+	}
 
+
+	// Specific data
+		// Identifiers (NONE - they should be constant and read-only)
+		// Point lights: If an entity is a star, update its point light position to its own
+	for (int i = 0; i < m_identifierData.size(); i++) {
+		auto &&[entityID, identifier] = m_identifierData[i];
+
+		if (identifier.entityType == CoreComponent::Identifiers::EntityType::STAR) {
+			RenderComponent::PointLight &pointLight = m_registry->getComponent<RenderComponent::PointLight>(entityID);
+
+			auto &&[_, transform, _1] = m_generalData[i];
+			pointLight.position = SpaceUtils::ToRenderSpace_Position(transform.position);
+
+			m_registry->updateComponent(entityID, pointLight);
+		}
+	}
+
+
+	// Update epoch
 	auto [id, coordSys] = m_registry->getView<PhysicsComponent::CoordinateSystem>()[0];
 	{
 		// Convert current seconds past J2000 => string
@@ -115,11 +189,11 @@ void PhysicsSystem::update(const double dt) {
 		static constexpr int LENOUT = 35;
 		static char buf[LENOUT];
 
-		et2utc_c(currentET, FMT, PREC, LENOUT, buf);
+		et2utc_c(m_currentEpoch, FMT, PREC, LENOUT, buf);
 
 		coordSys.currentEpoch = std::string(buf);
 
-			// Perform thread-safe writes to a non-atomic variable (NOTE: We can't have std::atomic types in components since atomics are non-copyable and non-movable)
+		// Perform thread-safe writes to a non-atomic variable (NOTE: We can't have std::atomic types in components since atomics are non-copyable and non-movable)
 		//std::atomic_ref<std::string> atomic(coordSys.currentEpoch);
 		//atomic.store(std::string(buf));
 	}
@@ -127,13 +201,26 @@ void PhysicsSystem::update(const double dt) {
 }
 
 
-void PhysicsSystem::updateSPICEBodies(const double et) {
-	auto view = m_registry->getView<CoreComponent::Transform, PhysicsComponent::RigidBody>();
+void PhysicsSystem::update(const double dt) {
+	m_currentEpoch = m_coordSystem->getEpochET() + m_simulationTime;
+	
+	updateSPICEBodies(m_currentEpoch);
+	propagateBodies(m_currentEpoch);
+	updateGeneralBodies(dt, m_currentEpoch);
 
+	m_simulationTime += dt;
+}
+
+
+void PhysicsSystem::updateSPICEBodies(const double et) {
+	//auto view = m_registry->getView<CoreComponent::Transform, PhysicsComponent::RigidBody>();
+	
 
 	// Query SPICE data for bodies with available ephemeris data
-	for (auto &&[entityID, transform, rigidBody] : view) {
-		CoreComponent::Identifiers identifiers = m_registry->getComponent<CoreComponent::Identifiers>(entityID);
+	for (int i = 0; i < m_generalData.size(); i++) {
+		auto &&[entityID, transform, rigidBody] = m_generalData[i];
+
+		auto &&[_, identifiers] = m_identifierData[i];
 
 		if (identifiers.spiceID.has_value()) {
 			const std::string &spiceID = identifiers.spiceID.value();
@@ -157,20 +244,11 @@ void PhysicsSystem::updateSPICEBodies(const double et) {
 			transform.rotation = glm::dquat(rotMatrix);
 
 
-			// Write to components
-			m_registry->updateComponent(entityID, transform);
-			m_registry->updateComponent(entityID, rigidBody);
-
-
-
-			// SPECIAL CASE: If the entity is a star, update its point light position to its own.
-			if (identifiers.entityType == CoreComponent::Identifiers::EntityType::STAR) {
-				RenderComponent::PointLight &pointLight = m_registry->getComponent<RenderComponent::PointLight>(entityID);
-
-				pointLight.position = SpaceUtils::ToRenderSpace_Position(transform.position);
-
-				m_registry->updateComponent(entityID, pointLight);
-			}
+			// Update cache data
+			std::get<CoreComponent::Transform>(m_generalData[i]) = transform;
+			std::get<PhysicsComponent::RigidBody>(m_generalData[i]) = rigidBody;
+			//m_registry->updateComponent(entityID, transform);
+			//m_registry->updateComponent(entityID, rigidBody);
 		}
 	}
 }
@@ -179,16 +257,16 @@ void PhysicsSystem::updateSPICEBodies(const double et) {
 void PhysicsSystem::updateGeneralBodies(const double dt, const double et) {
 	using namespace PhysicsConsts;
 	
-	auto view = m_registry->getView<CoreComponent::Transform, PhysicsComponent::RigidBody>();
+	//auto view = m_registry->getView<CoreComponent::Transform, PhysicsComponent::RigidBody>();
 
 
 	// Integration and component updating
-	for (size_t i = 0; i < view.size(); i++) {
-		auto [targetEntityID, targetTransform, targetRigidBody] = view[i];
+	for (size_t i = 0; i < m_generalData.size(); i++) {
+		auto &&[targetEntityID, targetTransform, targetRigidBody] = m_generalData[i];
 
 		{
 			// If the target entity uses SPICE, its state vector has already been computed. We must, therefore, skip them.
-			CoreComponent::Identifiers targetIDs = m_registry->getComponent<CoreComponent::Identifiers>(targetEntityID);
+			auto &&[_, targetIDs] = m_identifierData[i];
 			if (targetIDs.spiceID.has_value())
 				continue;
 		
@@ -203,7 +281,8 @@ void PhysicsSystem::updateGeneralBodies(const double dt, const double et) {
 		state.velocity = targetRigidBody.velocity;
 
 		ODE::NewtonianNBody ode{};
-		ode.view = &view;
+		//ode.view = &view;
+		ode.bodies = &m_generalData;
 		ode.entityID = targetEntityID;
 
 
@@ -211,22 +290,26 @@ void PhysicsSystem::updateGeneralBodies(const double dt, const double et) {
 		RK4Integrator<Physics::State, ODE::NewtonianNBody>::Integrate(state, et, dt, ode);
 
 
-		// Update components
+		// Update cache data
 		targetTransform.position = state.position;
 
 		targetRigidBody.velocity = state.velocity;
 		targetRigidBody.acceleration = ode(state, dt).velocity;		// Recompute acceleration again
 
-		m_registry->updateComponent(targetEntityID, targetTransform);
-		m_registry->updateComponent(targetEntityID, targetRigidBody);
+		std::get<CoreComponent::Transform>(m_generalData[i]) = targetTransform;
+		std::get<PhysicsComponent::RigidBody>(m_generalData[i]) = targetRigidBody;
+		//m_registry->updateComponent(targetEntityID, targetTransform);
+		//m_registry->updateComponent(targetEntityID, targetRigidBody);
 	}
 }
 
 
 void PhysicsSystem::propagateBodies(const double et) {
-	auto view = m_registry->getView<PhysicsComponent::Propagator, CoreComponent::Transform, PhysicsComponent::RigidBody>();
+	//auto view = m_registry->getView<PhysicsComponent::Propagator, CoreComponent::Transform, PhysicsComponent::RigidBody>();
 
-	for (auto &&[entityID, propagator, transform, rigidBody] : view) {
+	for (int i = 0; i < m_propData.size(); i++) {
+		auto &&[entityID, propagator, transform, rigidBody] = m_propData[i];
+
 		const double secondsSinceEpoch = et - propagator.tleEpochET;
 		const double minutesSinceEpoch = secondsSinceEpoch / 60.0;
 
@@ -267,7 +350,7 @@ void PhysicsSystem::propagateBodies(const double et) {
 				stateVec[i] *= 1e3;
 
 
-		// Write new data to the components
+		// Write new data to the cache
 		transform.position = glm::dvec3(
 			stateVec[0], stateVec[1], stateVec[2]
 		);
@@ -276,17 +359,22 @@ void PhysicsSystem::propagateBodies(const double et) {
 			stateVec[3], stateVec[4], stateVec[5]
 		);
 
-		m_registry->updateComponent(entityID, transform);
-		m_registry->updateComponent(entityID, rigidBody);
+
+		std::get<CoreComponent::Transform>(m_propData[i]) = transform;
+		std::get<PhysicsComponent::RigidBody>(m_propData[i]) = rigidBody;
+		//m_registry->updateComponent(entityID, transform);
+		//m_registry->updateComponent(entityID, rigidBody);
 	}
 }
 
 
 void PhysicsSystem::homogenizeCoordinateSystems() {
 	// Convert TLE state vectors (TEME coordinate system)
-	auto view = m_registry->getView<PhysicsComponent::Propagator, CoreComponent::Transform, PhysicsComponent::RigidBody>();
+	//auto view = m_registry->getView<PhysicsComponent::Propagator, CoreComponent::Transform, PhysicsComponent::RigidBody>();
 
-	for (auto &&[entityID, propagator, transform, rigidBody] : view) {
+	for (int i = 0; i < m_propData.size(); i++) {
+		auto &&[entityID, propagator, transform, rigidBody] = m_propData[i];
+
 		// Compute TLE epoch
 		propagator.tleEpochET = SPICEUtils::tleEpochToET(propagator.tleLine1);
 
@@ -322,8 +410,12 @@ void PhysicsSystem::homogenizeCoordinateSystems() {
 			stateVec[3], stateVec[4], stateVec[5]
 		);
 
-		m_registry->updateComponent(entityID, propagator);
-		m_registry->updateComponent(entityID, transform);
-		m_registry->updateComponent(entityID, rigidBody);
+
+		std::get<PhysicsComponent::Propagator>(m_propData[i]) = propagator;
+		std::get<CoreComponent::Transform>(m_propData[i]) = transform;
+		std::get<PhysicsComponent::RigidBody>(m_propData[i]) = rigidBody;
+		//m_registry->updateComponent(entityID, propagator);
+		//m_registry->updateComponent(entityID, transform);
+		//m_registry->updateComponent(entityID, rigidBody);
 	}
 }

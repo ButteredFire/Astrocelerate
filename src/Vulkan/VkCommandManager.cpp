@@ -50,7 +50,25 @@ void VkCommandManager::bindEvents() {
 
 	m_eventDispatcher->subscribe<RequestEvent::ProcessSecondaryCommandBuffers>(selfIndex,
 		[this](const RequestEvent::ProcessSecondaryCommandBuffers &event) {
-			m_secondaryCmdBufs = event.buffers;
+			using enum RequestEvent::ProcessSecondaryCommandBuffers::Stage;
+
+			switch (event.targetStage) {
+			case OFFSCREEN:
+				for (const auto buffer : event.buffers)
+					m_secondaryCmdBufsStageOFFSCREEN.emplace_back(buffer);
+				break;
+
+			case PRESENT:
+				for (const auto buffer : event.buffers)
+					m_secondaryCmdBufsStagePRESENT.emplace_back(buffer);
+				break;
+
+			case NONE:
+			default:
+				for (const auto buffer : event.buffers)
+					m_secondaryCmdBufsStageNONE.emplace_back(buffer);
+				break;
+			}
 		}
 	);
 
@@ -112,7 +130,7 @@ void VkCommandManager::init() {
 }
 
 
-void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, uint32_t imageIndex, uint32_t currentFrame) {
+void VkCommandManager::recordRenderingCommandBuffer(std::shared_ptr<std::barrier<>> barrier, VkCommandBuffer& cmdBuffer, uint32_t imageIndex, uint32_t currentFrame) {
 	// Specifies details about how the passed-in command buffer will be used before beginning
 	VkCommandBufferBeginInfo bufferBeginInfo{};
 	bufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -152,14 +170,15 @@ void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, 
 
 
 	// OFFSCREEN RENDER PASS
-	static std::function<void(VkCommandBuffer&, uint32_t, uint32_t)> writeOffscreenCommands = [this](VkCommandBuffer &cmdBuffer, uint32_t imageIndex, uint32_t currentFrame) {
+	using SyncPoint = std::shared_ptr<std::barrier<>>;
+	static std::function<void(SyncPoint, VkCommandBuffer&, uint32_t, uint32_t)> writeOffscreenCommands = [this](SyncPoint barrier, VkCommandBuffer &cmdBuffer, uint32_t imageIndex, uint32_t currentFrame) {
 		if (m_coreResources->getAppState() == Application::State::RECREATING_SWAPCHAIN)
 			return;
 
-		// Record all secondary command buffers
-		if (!m_secondaryCmdBufs.empty()) {
-			vkCmdExecuteCommands(cmdBuffer, static_cast<uint32_t>(m_secondaryCmdBufs.size()), m_secondaryCmdBufs.data());
-			m_secondaryCmdBufs.clear();
+		// Record all uncategorized secondary command buffers
+		if (!m_secondaryCmdBufsStageNONE.empty()) {
+			vkCmdExecuteCommands(cmdBuffer, static_cast<uint32_t>(m_secondaryCmdBufsStageNONE.size()), m_secondaryCmdBufsStageNONE.data());
+			m_secondaryCmdBufsStageNONE.clear();
 		}
 
 		
@@ -172,39 +191,21 @@ void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, 
 		offscreenRenderPassBeginInfo.clearValueCount = static_cast<uint32_t>(SIZE_OF(clearValues));
 		offscreenRenderPassBeginInfo.pClearValues = clearValues;
 
-		/* The final parameter controls how the drawing commands within the render pass will be provided. It can have 2 values: VK_SUBPASS_...
-			...CONTENTS_INLINE: The render pass commands will be embedded in the primary command buffer itself and no secondary command buffers will be executed
+		/* The final parameter controls how the drawing commands within the render pass will be provided. It can have 2 values: VK_SUBPASS_CONTENTS_...
+			...INLINE: The render pass commands will be embedded in the primary command buffer itself and no secondary command buffers will be executed
 			..SECONDARY_COMMAND_BUFFERS: The render pass commands will be executed from secondary command buffers
+			...INLINE_AND_SECONDARY_COMMAND_BUFFERS_KHR (requires VK_KHR_maintenance7 device extension): Allows for hybrid recording (inline commands for the primary buffer; secondary command buffers executed via vkCmdExecuteCommands)
 		*/
-		vkCmdBeginRenderPass(cmdBuffer, &offscreenRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+		vkCmdBeginRenderPass(cmdBuffer, &offscreenRenderPassBeginInfo, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
 
 
-		vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_offscreenPipeline);
+		// Record all offscreen-stage secondary command buffers
+		barrier->arrive_and_wait();
 
-		// Specify viewport and scissor states (since they're dynamic states)
-			// Viewport
-		VkViewport viewport{};
-		viewport.x = 0.0f;
-		viewport.y = 0.0f;
-		viewport.width = static_cast<float>(m_swapchainExtent.width);
-		viewport.height = static_cast<float>(m_swapchainExtent.height);
-		viewport.minDepth = 0.0f;
-		viewport.maxDepth = 1.0f;
-		vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
-
-		// Scissor
-		VkRect2D scissor{};
-		scissor.offset = { 0, 0 };
-		scissor.extent = m_swapchainExtent;
-		vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
-
-
-		// Processes renderables
-		m_eventDispatcher->dispatch(UpdateEvent::Renderables{
-			.renderableType = UpdateEvent::Renderables::Type::MESHES,
-			.commandBuffer = cmdBuffer,
-			.currentFrame = currentFrame
-			}, true);
+		if (!m_secondaryCmdBufsStageOFFSCREEN.empty()) {
+			vkCmdExecuteCommands(cmdBuffer, static_cast<uint32_t>(m_secondaryCmdBufsStageOFFSCREEN.size()), m_secondaryCmdBufsStageOFFSCREEN.data());
+			m_secondaryCmdBufsStageOFFSCREEN.clear();
+		}
 
 
 		vkCmdEndRenderPass(cmdBuffer);
@@ -266,18 +267,28 @@ void VkCommandManager::recordRenderingCommandBuffer(VkCommandBuffer& cmdBuffer, 
 
 		vkCmdBeginRenderPass(cmdBuffer, &presentRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
+		// Process GUI rendering
 		m_eventDispatcher->dispatch(UpdateEvent::Renderables{
 			.renderableType = UpdateEvent::Renderables::Type::GUI,
 			.commandBuffer = cmdBuffer,
 			.currentFrame = currentFrame
-			}, true);
+		}, true);
+
+
+		// Record all present-stage secondary command buffers
+		// TODO: To record both inline commands and execute secondary command buffers, we need to begin the render pass with INLINE_AND_SECONDARY_COMMAND_BUFFERS_KHR, which requires the VK_KHR_maintenance7 device extension.
+		if (!m_secondaryCmdBufsStagePRESENT.empty()) {
+			throw Log::RuntimeException(__FUNCTION__, __LINE__, "Programmer Error: Cannot simultaneously execute inline commands and secondary command buffers in present render pass!\nDoing so requires beginning the render pass with the VK_SUBPASS_CONTENTS_INLINE_AND_SECONDARY_COMMAND_BUFFERS_KHR bit.");
+			//vkCmdExecuteCommands(cmdBuffer, static_cast<uint32_t>(m_secondaryCmdBufsStagePRESENT.size()), m_secondaryCmdBufsStagePRESENT.data());
+			//m_secondaryCmdBufsStagePRESENT.clear();
+		}
 
 		vkCmdEndRenderPass(cmdBuffer);
 	};
 
 
 	if (m_sceneReady)
-		writeOffscreenCommands(cmdBuffer, imageIndex, currentFrame);
+		writeOffscreenCommands(barrier, cmdBuffer, imageIndex, currentFrame);
 
 	writePresentCommands(cmdBuffer, imageIndex, currentFrame);
 
@@ -375,17 +386,6 @@ void VkCommandManager::EndSingleUseCommandBuffer(VkDevice logicalDevice, SingleU
 
 
 VkCommandPool VkCommandManager::CreateCommandPool(VkDevice device, uint32_t queueFamilyIndex, VkCommandPoolCreateFlags flags) {
-	CommandPoolCreateInfo createInfo{};
-	createInfo.logicalDevice = device;
-	createInfo.queueFamilyIndex = queueFamilyIndex;
-	createInfo.flags = flags;
-
-	if (cmdPoolMappings.find(createInfo) != cmdPoolMappings.end()) {
-		//Log::Print(Log::T_WARNING, __FUNCTION__, "The command pool to be created has creation parameters matching those of an existing pool, which will be used instead.");
-		return cmdPoolMappings[createInfo];
-	}
-
-
 	std::shared_ptr<ResourceManager> resourceManager = ServiceLocator::GetService<ResourceManager>(__FUNCTION__);
 
 	VkCommandPoolCreateInfo poolCreateInfo{};
@@ -398,11 +398,8 @@ VkCommandPool VkCommandManager::CreateCommandPool(VkDevice device, uint32_t queu
 
 	VkCommandPool commandPool;
 	VkResult result = vkCreateCommandPool(device, &poolCreateInfo, nullptr, &commandPool);
-	if (result != VK_SUCCESS) {
-		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create command pool!");
-	}
 
-	cmdPoolMappings[createInfo] = commandPool;
+	LOG_ASSERT(result == VK_SUCCESS, "Failed to create command pool!");
 
 	CleanupTask task{};
 	task.caller = __FUNCTION__;

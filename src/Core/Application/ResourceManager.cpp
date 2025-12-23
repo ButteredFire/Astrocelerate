@@ -177,6 +177,8 @@ std::string ResourceManager::getObjectNamesString(CleanupTask &task) {
 			ss << ", " << task.objectNames[i];
 		ss << ")";
 	}
+	else
+		ss << "empty cleanup task";
 
 
 	if (!task.vkHandles.empty()) {

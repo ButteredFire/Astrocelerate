@@ -7,11 +7,13 @@
 #include <External/GLFWVulkan.hpp>
 
 // C++ STLs
-#include <filesystem>
-#include <algorithm>
-#include <iostream>
-#include <fstream>
 #include <vector>
+#include <memory>
+#include <barrier>
+#include <fstream>
+#include <iostream>
+#include <algorithm>
+#include <filesystem>
 
 // Local
 #include <Core/Engine/ECS.hpp>
@@ -49,30 +51,6 @@ struct SingleUseCommandBufferInfo {
 };
 
 
-// A structure that stores command pool creation information.
-struct CommandPoolCreateInfo {
-	VkDevice logicalDevice;					// The logical device from which to create the command pool.
-	uint32_t queueFamilyIndex;				// The index of the queue family for which the command pool is to be created.
-	VkCommandPoolCreateFlags flags;			// The command pool creation flags.
-};
-
-	// Custom equality operator and hash function for CommandPoolCreateInfo to be used as a key in hashmaps
-inline bool operator==(const CommandPoolCreateInfo& lhs, const CommandPoolCreateInfo& rhs) {
-	return (lhs.logicalDevice == rhs.logicalDevice) && (lhs.queueFamilyIndex == rhs.queueFamilyIndex) && (lhs.flags == rhs.flags);
-}
-namespace std {
-	template<>
-	struct hash<CommandPoolCreateInfo> {
-		inline std::size_t operator()(const CommandPoolCreateInfo& info) const noexcept {
-			// Combines the hash values of the members
-			return std::hash<VkDevice>()(info.logicalDevice) ^
-				std::hash<uint32_t>()(info.queueFamilyIndex) ^
-				std::hash<VkCommandPoolCreateFlags>()(info.flags);
-		}
-	};
-}
-
-
 class VkCommandManager {
 public:
 	VkCommandManager(VkCoreResourcesManager *coreResources, VkSwapchainManager *swapchainMgr);
@@ -86,11 +64,12 @@ public:
 	void init();
 
 	/* Writes commands into the command buffer to be used for rendering.
+		@param barrier: The barrier to synchronize the main thread with the rendering thread.
 		@param buffer: The buffer to be recorded into.
 		@param imageIndex: The index of the swap-chain image from which commands are recorded.
 		@param currentFrame: The index of the frame currently being rendered.
 	*/
-	void recordRenderingCommandBuffer(VkCommandBuffer& buffer, uint32_t imageIndex, uint32_t currentFrame);
+	void recordRenderingCommandBuffer(std::shared_ptr<std::barrier<>> barrier, VkCommandBuffer& buffer, uint32_t imageIndex, uint32_t currentFrame);
 
 
 	/* Begins recording a single-use/anonymous command buffer for single-time commands.
@@ -150,13 +129,11 @@ private:
 	std::vector<VkCommandBuffer> m_transferCmdBuffers;
 
 
-	// Primarily used in command pool creation to implicitly return an existing command pool if the creation parameters matches its own.
-	inline static std::unordered_map<CommandPoolCreateInfo, VkCommandPool> cmdPoolMappings;
-
-
 	// Session data
 	bool m_sceneReady = false;
-	std::vector<VkCommandBuffer> m_secondaryCmdBufs{};
+	std::vector<VkCommandBuffer> m_secondaryCmdBufsStageNONE{};
+	std::vector<VkCommandBuffer> m_secondaryCmdBufsStageOFFSCREEN{};
+	std::vector<VkCommandBuffer> m_secondaryCmdBufsStagePRESENT{};
 
 		// Offscreen pipeline data
 	VkRenderPass m_offscreenRenderPass;

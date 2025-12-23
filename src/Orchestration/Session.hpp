@@ -18,7 +18,7 @@
 
 class Session {
 public:
-	Session(VkCoreResourcesManager *coreResources, SceneManager *sceneMgr, PhysicsSystem *physicsSystem);
+	Session(VkCoreResourcesManager *coreResources, SceneManager *sceneMgr, PhysicsSystem *physicsSystem, RenderSystem *renderSystem);
 	~Session() = default;
 
 	/* Creates a new session. */
@@ -31,7 +31,7 @@ public:
 	void loadSceneFromFile(const std::string &filePath);
 
 	/* Cleans up and shuts down THIS session. */
-	void end();
+	void endSession();
 
 private:
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
@@ -41,9 +41,11 @@ private:
 	VkCoreResourcesManager *m_coreResources;
 	SceneManager *m_sceneManager;
 	PhysicsSystem *m_physicsSystem;
+	RenderSystem *m_renderSystem;
 
 	// Physics threading
 	std::shared_ptr<WorkerThread> m_physicsWorker;
+	std::shared_ptr<WorkerThread> m_renderWorker;
 	std::shared_ptr<WorkerThread> m_inputWorker;
 	std::atomic<bool> m_inputThreadIsRunning{ false };
 	std::atomic<bool> m_sessionIsValid{ false };

@@ -57,9 +57,9 @@ struct CleanupTask {
 	CleanupID _id{};												// [INTERNAL] The task's own cleanup ID. This is used for stack optimization.
 	bool _validTask = true;											// [INTERNAL] A special boolean specifying whether this task is executable or not.
 	std::string caller = "Unknown caller";							// The caller from which the task was pushed to the cleanup stack (used for logging).
-	std::vector<std::string> objectNames = { "Unknown object" };	// The variable name of objects to be cleaned up later (used for logging).
+	std::vector<std::string> objectNames;							// The variable name of objects to be cleaned up later (used for logging).
 	std::vector<VulkanHandles> vkHandles;							// A vector of Vulkan handles involved in their cleanup function.
-	std::function<void()> cleanupFunc;								// The cleanup/destroy callback function.
+	std::function<void()> cleanupFunc = [](){};						// The cleanup/destroy callback function.
 	std::vector<bool> cleanupConditions;							// The conditions required for the callback function to be executed (aside from the default object validity checking).
 };
 

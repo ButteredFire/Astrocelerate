@@ -18,8 +18,8 @@
 #include <boxer/boxer.h>
 
 
-const int WIN_WIDTH = WindowConsts::DEFAULT_WINDOW_WIDTH;
-const int WIN_HEIGHT = WindowConsts::DEFAULT_WINDOW_HEIGHT;
+const int WIN_WIDTH = AppConsts::DEFAULT_WINDOW_WIDTH;
+const int WIN_HEIGHT = AppConsts::DEFAULT_WINDOW_HEIGHT;
 
 
 void processCleanupStack() {

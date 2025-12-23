@@ -70,6 +70,11 @@ void Renderer::init() {
     m_inFlightFences = m_syncManager->getInFlightFences();
 
     m_graphicsCommandBuffers = m_commandManager->getGraphicsCommandBuffers();
+
+
+    // Define renderer barrier
+        // NOTE: std::barrier<> (with empty template brackets) uses the default no-op completion function
+    m_renderThreadBarrier = std::make_shared<std::barrier<>>(RENDERER_THREAD_COUNT);
 }
 
 
@@ -125,9 +130,17 @@ void Renderer::drawFrame(glm::dvec3& renderOrigin) {
     VkResult waitResult = vkWaitForFences(m_coreResources->getLogicalDevice(), 1, &m_inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
     LOG_ASSERT(waitResult == VK_SUCCESS, "Failed to wait for in-flight fence!");
 
+
+    // Update worker threads with new data
+    m_eventDispatcher->dispatch(UpdateEvent::Renderables{
+        .currentFrame = m_currentFrame,
+        .barrier = m_renderThreadBarrier
+    }, true);
+
+
     
+    // If the swapchain has been resized, destroy the old swapchain and dependencies, then renew per-image semaphores.
     if (m_swapchainCleanupID.has_value()) {
-        // If the swapchain has been resized, destroy the old swapchain and dependencies, then renew per-image semaphores.
         vkDeviceWaitIdle(m_coreResources->getLogicalDevice());
         if (lastQueue != VK_NULL_HANDLE)
             vkQueueWaitIdle(lastQueue);
@@ -178,7 +191,7 @@ void Renderer::drawFrame(glm::dvec3& renderOrigin) {
     LOG_ASSERT(cmdBufResetResult == VK_SUCCESS, "Failed to reset command buffer!");
     
         // Records commands
-    m_commandManager->recordRenderingCommandBuffer(m_graphicsCommandBuffers[m_currentFrame], imageIndex, m_currentFrame);
+    m_commandManager->recordRenderingCommandBuffer(m_renderThreadBarrier, m_graphicsCommandBuffers[m_currentFrame], imageIndex, m_currentFrame);
 
 
     // Submits the buffer to the queue

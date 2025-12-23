@@ -108,8 +108,7 @@ private:
 
     // Session data
     bool m_sceneInitReady = false;      // Is the scene ready to be initialized?
-    std::vector<CleanupID> m_bufferCleanupIDs;
-    std::vector<CleanupID> m_bufferMemCleanupIDs;
+    CleanupID m_depParentID;            // Virtual task of which real tasks of dependencies are children
 
         // Viewport data
     glm::vec2 m_uiViewportSceneRegion{};

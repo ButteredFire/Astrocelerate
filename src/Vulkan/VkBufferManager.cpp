@@ -15,6 +15,10 @@ VkBufferManager::VkBufferManager(VkCoreResourcesManager *coreResources, VkSwapch
 
 	m_camera = ServiceLocator::GetService<Camera>(__FUNCTION__);
 
+	m_depParentID = m_resourceManager->createCleanupTask(CleanupTask{
+		.caller = __FUNCTION__
+	});
+
 	bindEvents();
 
 	Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
@@ -58,19 +62,11 @@ void VkBufferManager::bindEvents() {
 			switch (event.sessionStatus) {
 			case PREPARE_FOR_RESET:
 				m_sceneInitReady = false;
-
-				// Unmap memory
-				for (auto &cleanupID : m_bufferMemCleanupIDs)
-					m_resourceManager->executeCleanupTask(cleanupID);
-				m_bufferMemCleanupIDs.clear();
-
 				break;
 
 			case RESET:
 				// Destroy buffers
-				for (auto &cleanupID : m_bufferCleanupIDs)
-					m_resourceManager->executeCleanupTask(cleanupID);
-				m_bufferCleanupIDs.clear();
+				m_resourceManager->executeCleanupTask(m_depParentID, false);
 
 				break;
 
@@ -282,7 +278,7 @@ void VkBufferManager::createGlobalVertexBuffer(const std::vector<Geometry::Verte
 
 	CleanupID taskID = CreateBuffer(m_vertexBuffer, bufferSize, vertBufUsage, m_vertexBufferAllocation, vertBufAllocInfo);
 
-	m_bufferCleanupIDs.push_back(taskID);
+	m_resourceManager->addTaskDependency(taskID, m_depParentID);
 
 	writeDataToGPUBuffer(vertexData.data(), m_vertexBuffer, bufferSize);
 }
@@ -303,7 +299,7 @@ void VkBufferManager::createGlobalIndexBuffer(const std::vector<uint32_t>& index
 
 	CleanupID taskID = CreateBuffer(m_indexBuffer, bufferSize, indexBufUsage, m_indexBufferAllocation, indexBufAllocInfo);
 
-	m_bufferCleanupIDs.push_back(taskID);
+	m_resourceManager->addTaskDependency(taskID, m_depParentID);
 
 	writeDataToGPUBuffer(indexData.data(), m_indexBuffer, bufferSize);
 }
@@ -349,7 +345,7 @@ void VkBufferManager::createPerFrameUniformBuffers() {
 
 	for (size_t i = 0; i < SimulationConsts::MAX_FRAMES_IN_FLIGHT; i++) {
 		// Global UBO
-		CleanupID bufCleanupID = CreateBuffer(m_globalUBOs[i].buffer, globalBufSize, uniformBufUsageFlags, m_globalUBOs[i].allocation, uniformBufAllocInfo);
+		CleanupID globalBufCleanupID = CreateBuffer(m_globalUBOs[i].buffer, globalBufSize, uniformBufUsageFlags, m_globalUBOs[i].allocation, uniformBufAllocInfo);
 
 		/*
 		The buffer allocation stays mapped to the pointer for the application's whole lifetime.
@@ -357,32 +353,32 @@ void VkBufferManager::createPerFrameUniformBuffers() {
 		*/
 		vmaMapMemory(m_vmaAllocator, m_globalUBOs[i].allocation, &m_globalUBOMappedData[i]);
 
-		m_bufferCleanupIDs.push_back(bufCleanupID);
+		m_resourceManager->addTaskDependency(globalBufCleanupID, m_depParentID);
 
 
 		// Object UBO
-		bufCleanupID = CreateBuffer(m_objectUBOs[i].buffer, objectBufSize, uniformBufUsageFlags, m_objectUBOs[i].allocation, uniformBufAllocInfo);
+		CleanupID objectBufCleanupID = CreateBuffer(m_objectUBOs[i].buffer, objectBufSize, uniformBufUsageFlags, m_objectUBOs[i].allocation, uniformBufAllocInfo);
 		vmaMapMemory(m_vmaAllocator, m_objectUBOs[i].allocation, &m_objectUBOMappedData[i]);
 
-		m_bufferCleanupIDs.push_back(bufCleanupID);
+		m_resourceManager->addTaskDependency(objectBufCleanupID, m_depParentID);
 
 
-		// Cleanup task
-		VmaAllocation globalUBOAlloc = m_globalUBOs[i].allocation;
-		VmaAllocation objectUBOAlloc = m_objectUBOs[i].allocation;
-
+		// Cleanup tasks
 		CleanupTask task{};
 		task.caller = __FUNCTION__;
-		task.objectNames = { "Global and per-object UBOs" };
-		task.vkHandles = { globalUBOAlloc, objectUBOAlloc };
-		task.cleanupFunc = [this, i, globalUBOAlloc, objectUBOAlloc]() {
-			vmaUnmapMemory(m_vmaAllocator, globalUBOAlloc);
-			vmaUnmapMemory(m_vmaAllocator, objectUBOAlloc);
-			};
-
-		m_bufferMemCleanupIDs.push_back(
-			m_resourceManager->createCleanupTask(task)
-		);
+		task.objectNames = { "Global UBO" };
+		task.vkHandles = { m_globalUBOs[i].allocation };
+		task.cleanupFunc = [this, i, alloc = m_globalUBOs[i].allocation]() {
+			vmaUnmapMemory(m_vmaAllocator, alloc);
+		};
+		m_resourceManager->createCleanupTask(task, globalBufCleanupID);
+		
+		task.objectNames = { "Per-object UBOs" };
+		task.vkHandles = { m_objectUBOs[i].allocation };
+		task.cleanupFunc = [this, i, alloc = m_objectUBOs[i].allocation]() {
+			vmaUnmapMemory(m_vmaAllocator, alloc);
+		};
+		m_resourceManager->createCleanupTask(task, objectBufCleanupID);
 	}
 }
 
@@ -410,7 +406,7 @@ void VkBufferManager::createMatParamsUniformBuffer() {
 
 	CleanupID cleanupTaskID = CreateBuffer(m_matParamsBuffer, bufferSize, bufferUsage, m_matParamsBufferAllocation, matParamsUBAllocInfo);
 
-	m_bufferCleanupIDs.push_back(cleanupTaskID);
+	m_resourceManager->addTaskDependency(cleanupTaskID, m_depParentID);
 
 	vmaMapMemory(m_vmaAllocator, m_matParamsBufferAllocation, &m_matParamsBufferMappedData);
 
@@ -421,9 +417,7 @@ void VkBufferManager::createMatParamsUniformBuffer() {
 	task.cleanupFunc = [this]() {
 		vmaUnmapMemory(m_vmaAllocator, m_matParamsBufferAllocation);
 	};
-	m_bufferMemCleanupIDs.push_back(
-		m_resourceManager->createCleanupTask(task)
-	);
+	m_resourceManager->createCleanupTask(task, cleanupTaskID);
 
 
 	// Populate buffer with all materials

@@ -25,7 +25,6 @@ public:
 
 
     /* GETTERS */
-    inline Application::Stage getAppStage() const { return m_currentAppStage; }
     inline Application::State getAppState() const { return m_currentAppState; }
 
     inline VkInstance getInstance() const { return m_instance; }
@@ -65,7 +64,6 @@ private:
     VkInstanceManager *m_instanceManager;
     VkDeviceManager *m_deviceManager;
 
-    Application::Stage m_currentAppStage{};
     Application::State m_currentAppState{};
 
     // Core resources

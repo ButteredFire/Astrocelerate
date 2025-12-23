@@ -280,6 +280,10 @@ public:
 	inline auto getMatchingEntities() { return m_matchingEntities; }
 
 
+	/* Gets the unwrapped view data. */
+	inline auto getData() { return m_matchingTuples; }
+
+
 	/* Ignores a variable number of components.
 		@tparam IgnoredComponents: The components whose entities having them attached are to be ignored in the view.
 	*/

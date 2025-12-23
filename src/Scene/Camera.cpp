@@ -36,7 +36,6 @@ void Camera::reset() {
 	m_inFreeFlyMode = true;
 	m_revertPosition = false;
 	m_attachedEntityID = m_camEntity.id;
-	m_orbitRadius = 2.0f;
 }
 
 
@@ -71,6 +70,23 @@ void Camera::resetCameraQuatRoll(const glm::vec3 &forwardVector) {
 }
 
 
+void Camera::setOrbitRadii(EntityID orbitEntityID) {
+	CoreComponent::Transform &entityTransform = m_registry->getComponent<CoreComponent::Transform>(orbitEntityID);
+
+	double entityRenderScale = SpaceUtils::ToRenderSpace_Scale(entityTransform.scale);
+	static const float fixedMinRadius = 0.2f;
+	static const float fixedMaxRadius = 5000.0f;
+	static const float initialDistanceMult = 3.0f;
+
+	// NOTE: Orbit radius determination formulas below are based on fine-tuned adjustments specific to how Astrocelerate handles object scaling. Thus, they are arbitrary and have no real mathematical basis.
+
+	m_minOrbitRadius = std::fmax(fixedMinRadius, SpaceUtils::GetRenderableScale(entityRenderScale) * (1 + fixedMinRadius));
+	m_maxOrbitRadius = std::fmax(fixedMaxRadius, entityRenderScale * fixedMaxRadius);
+
+	m_orbitRadius = std::fmax(m_minOrbitRadius, entityRenderScale * initialDistanceMult);
+}
+
+
 void Camera::tick(double deltaUpdate) {
 	/* In a +Z-up coordinate system:
 		* +Z is Up
@@ -82,14 +98,8 @@ void Camera::tick(double deltaUpdate) {
 	// Update camera's position if currently attached to an entity
 	if (!m_inFreeFlyMode) {
 		CoreComponent::Transform &entityTransform = m_registry->getComponent<CoreComponent::Transform>(m_attachedEntityID);
-		RenderComponent::MeshRenderable &entityRenderable = m_registry->getComponent<RenderComponent::MeshRenderable>(m_attachedEntityID);
-
 		m_orbitedEntityPosition = entityTransform.position;
-
-		const double minCameraZoom = SpaceUtils::ToSimulationSpace(
-			SpaceUtils::GetRenderableScale(SpaceUtils::ToRenderSpace_Scale(entityTransform.scale)) * entityRenderable.visualScale
-		);	  // Added to orbit radius to prevent zooming inside entity
-
+		
 
 		// Interpolate entity positions between now and the time of the last physics update.
 		// Explanation: While physics updates happen at a fixed time step (e.g., 60 Hz), rendering is uncapped. This can result in jittery movements of entities that are especially noticeable in atttached/orbital mode. To fix this, we must interpolate the entity positions between the two time points for smoothness.
@@ -116,11 +126,8 @@ void Camera::tick(double deltaUpdate) {
 			interpolatedEntityPosition = m_orbitedEntityPosition;
 
 
-
 		// Rotate the orbit radius (offset from entity) vector using the camera's orientation
 		glm::vec3 scaledOrbitRadius = SpaceUtils::ToSimulationSpace(glm::dvec3(0.0, static_cast<double>(m_orbitRadius), 0.0));	// Offset from entity's origin
-		scaledOrbitRadius.y += minCameraZoom;
-
 		glm::dvec3 rotatedOffset = m_orientation * scaledOrbitRadius;
 
 		m_position = interpolatedEntityPosition + rotatedOffset;
@@ -174,16 +181,19 @@ CoreComponent::Transform Camera::getAbsoluteTransform() const {
 
 void Camera::attachToEntity(EntityID entityID) {
 	if (m_inFreeFlyMode && entityID != m_camEntity.id) {
+		// If camera is switching from free-fly mode
 		m_freeFlyPosition = m_position;
 		m_freeFlyOrientation = m_orientation;
 
 		m_inFreeFlyMode = false;
 	}
 	else if (entityID == m_camEntity.id)
+		// If camera is attempting to attach to itself
 		detachFromEntity();
 
+	
 	m_attachedEntityID = entityID;
-
+	setOrbitRadii(entityID);
 	tick(); // Forces an immediate update after changing attachment
 }
 
@@ -291,12 +301,9 @@ void Camera::processMouseScroll(float deltaY) {
 	}
 	else {
 		// Attached/Orbital mode
-		static const float minDistance = 0.1f;
-		static const float maxDistance = 10000.0f;
-
 		const float expZoom = m_orbitRadius * 1.5f;	// Exponential zoom multiplier
 
 		m_orbitRadius -= (deltaY * expZoom) * mouseSensitivity;
-		m_orbitRadius = glm::clamp(m_orbitRadius, minDistance, maxDistance);
+		m_orbitRadius = glm::clamp(m_orbitRadius, m_minOrbitRadius, m_maxOrbitRadius);
 	}
 }

@@ -1,10 +1,11 @@
 #include "Session.hpp"
 
 
-Session::Session(VkCoreResourcesManager *coreResources, SceneManager *sceneMgr, PhysicsSystem *physicsSystem) :
+Session::Session(VkCoreResourcesManager *coreResources, SceneManager *sceneMgr, PhysicsSystem *physicsSystem, RenderSystem *renderSystem) :
 	m_coreResources(coreResources),
 	m_sceneManager(sceneMgr),
-	m_physicsSystem(physicsSystem) {
+	m_physicsSystem(physicsSystem),
+	m_renderSystem(renderSystem) {
 
 	m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
 	m_registry = ServiceLocator::GetService<Registry>(__FUNCTION__);
@@ -74,7 +75,8 @@ void Session::bindEvents() {
 
 void Session::init() {
 	m_physicsWorker = ThreadManager::CreateThread("PHYSICS");
-	m_inputWorker = ThreadManager::CreateThread("USER_INPUT");
+	m_renderWorker	= ThreadManager::CreateThread("RENDERER");
+	//m_inputWorker = ThreadManager::CreateThread("USER_INPUT");
 
 	reset();
 }
@@ -100,13 +102,8 @@ void Session::update() {
 	if (m_sessionIsValid && !m_physicsWorker->isRunning()) {
 		m_physicsWorker->set([this]() {
 			while (!m_physicsWorker->stopRequested()) {
-				// If the main thread is halted, we force THIS worker thread to also halt
-				std::unique_lock<std::mutex> lock(g_appContext.MainThread.haltMutex);
+				ThreadManager::SleepIfMainThreadHalted();
 
-					// This line blocks THIS worker thread until the main thread resumes
-				g_appContext.MainThread.haltCV.wait(lock, []() { return !g_appContext.MainThread.isHalted.load(); });
-
-				// After waiting, we do work
 				m_physicsSystem->tick(m_physicsWorker);
 			}
 		});
@@ -115,28 +112,41 @@ void Session::update() {
 	}
 
 
-	// Process key input events
-	if (!m_inputWorker->isRunning()) {
-		m_inputWorker->set([this]() {
-			while (!m_inputWorker->stopRequested()) {
-				std::unique_lock<std::mutex> lock(g_appContext.MainThread.haltMutex);
-				g_appContext.MainThread.haltCV.wait(lock, []() { return !g_appContext.MainThread.isHalted.load(); });
+	// Update rendering
+	if (!m_renderWorker->isRunning()) {
+		m_renderWorker->set([this]() {
+			while (!m_renderWorker->stopRequested()) {
+				ThreadManager::SleepIfMainThreadHalted();
 
-				m_inputManager->tick(Time::GetDeltaTime(), m_accumulator);
+				m_renderSystem->tick();
 			}
 		});
-
-		m_inputWorker->start();
+	
+		m_renderWorker->start();
 	}
+
+
+	// Process key input events
+	//if (!m_inputWorker->isRunning()) {
+	//	m_inputWorker->set([this]() {
+	//		while (!m_inputWorker->stopRequested()) {
+	//			std::unique_lock<std::mutex> lock(g_appContext.MainThread.haltMutex);
+	//			g_appContext.MainThread.haltCV.wait(lock, []() { return !g_appContext.MainThread.isHalted.load(); });
+	//
+	//			m_inputManager->tick(Time::GetDeltaTime(), m_accumulator);
+	//		}
+	//	});
+	//
+	//	m_inputWorker->start();
+	//}
 }
 
 
 void Session::loadSceneFromFile(const std::string &filePath) {
 	// Signal all listening managers to stop accessing per-session resources, and per-session managers to destroy old resources
 	reset();
+	//endSession();
 
-
-	// Wait for physics thread to finish
 	m_physicsWorker->requestStop();
 	m_physicsWorker->waitForStop();
 
@@ -189,10 +199,12 @@ void Session::loadSceneFromFile(const std::string &filePath) {
 }
 
 
-void Session::end() {
+void Session::endSession() {
 	m_physicsWorker->requestStop();
-	m_inputWorker->requestStop();
+	m_renderWorker->requestStop();
+	//m_inputWorker->requestStop();
 
 	m_physicsWorker->waitForStop();
-	m_inputWorker->waitForStop();
+	//m_renderWorker->waitForStop();
+	//m_inputWorker->waitForStop();
 }

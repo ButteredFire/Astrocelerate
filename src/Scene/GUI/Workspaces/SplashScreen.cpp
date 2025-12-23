@@ -41,8 +41,33 @@ void SplashScreen::renderSplash() {
 
 		if (ImGui::Begin(GUI::GetPanelName(m_panelSplash), nullptr, splashWindowFlags)) {
 			ImVec2 availableSpace = ImGui::GetContentRegionAvail();
+			ImVec2 cursorPos = ImGui::GetCursorScreenPos();
 
+			// Splash image
 			ImGui::Image(m_splashTexture.textureID, m_splashTexture.size);
+
+			// Splash text
+			static constexpr float PADDING_X = 50.0f, PADDING_Y = 50.0f, FONT_SCALE = 1.25f;
+
+			static const std::vector<std::string> text = {
+				"Version " + std::string(APP_VERSION),
+				"Open-sourced under Apache License 2.0"
+				// TODO: Set loading text here...
+			};
+
+			ImGui::SetWindowFontScale(FONT_SCALE);
+			const float lineHeight = ImGui::GetFontSize();
+			{
+				for (int i = 0; i < text.size(); i++)
+					ImGuiUtils::FloatingText(
+						ImVec2(cursorPos.x + (availableSpace.x - PADDING_X - ImGui::CalcTextSize(text[i].c_str()).x),
+							cursorPos.y + PADDING_Y + lineHeight * i
+						),
+						text[i]
+					);
+			}
+			ImGui::SetWindowFontScale(1.0f);
+
 
 			ImGui::End();
 		}

@@ -139,8 +139,8 @@ public:
 		@param eventFlags: The event flags to check.
 	*/
 	inline void waitForEventCallbacks(SubscriberIndex subscriberTypeIndex, EventFlags eventFlags) {
-		while (!eventCallbacksInvoked(subscriberTypeIndex, eventFlags))
-			std::this_thread::sleep_for(std::chrono::milliseconds(10));		// Small sleep to avoid 100% CPU usage
+		std::unique_lock<std::mutex> lock(m_eventCallbacksWaitMutex);
+		m_eventCallbacksWaitCondVar.wait(lock, [this, subscriberTypeIndex, eventFlags]() { return eventCallbacksInvoked(subscriberTypeIndex, eventFlags); });
 	}
 
 
@@ -161,6 +161,7 @@ public:
 			// if (the current thread is the main thread || no main thread is set || override event queueing if in worker thread),
 			// dispatch the event directly.
 			internalDispatch(eventTypeIndex, eventFlag, &event, suppressLogs);
+			m_eventCallbacksWaitCondVar.notify_one();
 		}
 
 		else {
@@ -245,6 +246,9 @@ private:
 	std::queue<QueuedEvent> m_eventQueue;
 	std::mutex m_eventQueueMutex;
 	std::condition_variable m_eventQueueCondition;	// Condition variable to signal when new (deferred) events are available.
+
+	std::mutex m_eventCallbacksWaitMutex;
+	std::condition_variable m_eventCallbacksWaitCondVar;
 
 
 	/* Internal event dispatching logic.

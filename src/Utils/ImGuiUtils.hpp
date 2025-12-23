@@ -82,7 +82,7 @@ namespace ImGuiUtils {
 
 		@return The resized image size.
 	*/
-	inline ImVec2 ResizeImagePreserveAspectRatio(const ImVec2& imgSize, ImVec2& viewportSize) {
+	inline ImVec2 ResizeImagePreserveAspectRatio(ImVec2& imgSize, ImVec2& viewportSize) {
 		ImVec2 textureSize{};
 
 		const float renderAspect = static_cast<float>(imgSize.x) / imgSize.y;

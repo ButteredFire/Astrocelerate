@@ -28,8 +28,8 @@ void Window::initSplashScreen() {
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
     glfwWindowHint(GLFW_FLOATING, GLFW_TRUE);
 
-    constexpr uint32_t SPLASH_WIDTH = 700;
-    constexpr uint32_t SPLASH_HEIGHT = 400;
+    constexpr uint32_t SPLASH_WIDTH = 900;
+    constexpr uint32_t SPLASH_HEIGHT = 600;
 
     m_splashWindow = glfwCreateWindow(SPLASH_WIDTH, SPLASH_HEIGHT, "Astrocelerate | Loading...", nullptr, nullptr);
 
@@ -95,13 +95,9 @@ void Window::loadDefaultHints() {
 
 void Window::KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     CallbackContext *context = static_cast<CallbackContext *>(glfwGetWindowUserPointer(window));
-    context->inputManager->glfwDeferKeyInput(key, scancode, action, mods);
-
-    //if (!glfwGetWindowAttrib(window, GLFW_FOCUSED))
-    //    // If window is not focused, stop processing input when it's in the background
-    //    context->inputManager->processInBackground();
 
     ImGui_ImplGlfw_KeyCallback(window, key, scancode, action, mods);
+    context->inputManager->glfwDeferKeyInput(key, scancode, action, mods);
 }
 
 

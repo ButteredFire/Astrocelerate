@@ -3,6 +3,9 @@
 
 #pragma once
 
+#include <memory>
+#include <barrier>
+
 #include <External/GLFWVulkan.hpp>
 
 #include <External/GLM.hpp>
@@ -163,7 +166,6 @@ namespace UpdateEvent {
 	struct ApplicationStatus {
 		const EventFlag eventFlag = EVENT_FLAG_UPDATE_APPLICATION_STATUS_BIT;
 
-		Application::Stage appStage = Application::Stage::NULL_STAGE;
 		Application::State appState = Application::State::NULL_STATE;
 	};
 
@@ -180,15 +182,18 @@ namespace UpdateEvent {
 	/* Used when renderables need to be updated. */
 	struct Renderables {
 		enum class Type {
-			MESHES,			// Meshes.
-			GUI				// Dear ImGui quads.
+			GENERAL,		// General renderables
+			GUI				// ImGui
 		};
 		const EventFlag eventFlag = EVENT_FLAG_UPDATE_RENDERABLES_BIT;
 
-		Type renderableType;
+		Type renderableType = Type::GENERAL;
 
-		VkCommandBuffer commandBuffer;
+		VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
 		uint32_t currentFrame;
+
+		// Synchronization
+		std::shared_ptr<std::barrier<>> barrier;
 	};
 
 
@@ -297,9 +302,16 @@ namespace RequestEvent {
 
 	/* Used when any secondary command buffers have finished recording, and need to be recorded into the primary command buffer. */
 	struct ProcessSecondaryCommandBuffers {
+		enum class Stage {
+			NONE,
+			OFFSCREEN,
+			PRESENT
+		};
+
 		const EventFlag eventFlag = EVENT_FLAG_REQUEST_PROCESS_SECONDARY_COMMAND_BUFFERS_BIT;
 
 		std::vector<VkCommandBuffer> buffers;
+		Stage targetStage = Stage::NONE;
 	};
 
 

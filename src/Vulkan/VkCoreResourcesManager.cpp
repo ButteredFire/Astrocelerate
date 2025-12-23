@@ -43,9 +43,6 @@ void VkCoreResourcesManager::bindEvents() {
 
     m_eventDispatcher->subscribe<UpdateEvent::ApplicationStatus>(selfIndex, 
         [this](const UpdateEvent::ApplicationStatus &event) {
-            if (event.appStage != Application::Stage::NULL_STAGE)
-                m_currentAppStage = event.appStage;
-
             if (event.appState != Application::State::NULL_STATE)
                 m_currentAppState = event.appState;
         }

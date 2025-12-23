@@ -115,7 +115,9 @@ private:
 	glm::vec3 m_freeFlyPosition;		// The camera's saved position in free-fly mode (to switch back to later)
 	glm::quat m_freeFlyOrientation;
 
-	float m_orbitRadius;	// Distance between camera and entity (in render space)
+	float m_orbitRadius;		// Orbit distance between camera and entity (in render space)
+	float m_minOrbitRadius;		// Dynamic minimum orbit distance between camera and entity (in render space)
+	float m_maxOrbitRadius;		// Dynamic maximum orbit distance between camera and entity (in render space)
 
 	std::unordered_map<EntityID, std::optional<glm::dvec3>> m_orbitedEntityLastPosition;		// The last positions of the entities being orbited (to perform linear interpolation)
 	glm::dvec3 m_orbitedEntityPosition{};	// The position of the entity currently being orbited
@@ -126,6 +128,12 @@ private:
 
 	/* Resets the camera quaternion's roll. */
 	void resetCameraQuatRoll(const glm::vec3 &forwardVector);
+
+
+	/* Sets orbit radius values for the camera's Orbital mode.
+		@param orbitEntityID: The ID of the entity being orbited.
+	*/
+	void setOrbitRadii(EntityID orbitEntityID);
 
 
 	/* Processes keyboard input.

@@ -12,10 +12,11 @@
 #include <imgui/imgui.h>
 
 
+#include <vector>
+#include <barrier>
 #include <iostream>
 #include <optional>
 #include <algorithm>
-#include <vector>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -75,6 +76,9 @@ private:
 	// Session data
 	bool m_sessionReady = false;
 	bool m_pauseUpdateLoop = false;
+
+	const uint32_t RENDERER_THREAD_COUNT = 1 + 1; // + 1 to count the main thread, which also participates in rendering
+	std::shared_ptr<std::barrier<>> m_renderThreadBarrier;
 
 
 	void bindEvents();

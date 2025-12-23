@@ -20,7 +20,10 @@ Engine::Engine(GLFWwindow *w):
 
 
 Engine::~Engine() {
-    m_currentAppState = Application::State::SHUTDOWN;
+    m_currentSession->endSession();
+
+    m_watchdogThread->requestStop();
+    m_watchdogThread->waitForStop();
 
     m_eventDispatcher->dispatch(UpdateEvent::ApplicationStatus{
       .appState = Application::State::SHUTDOWN  
@@ -34,14 +37,6 @@ void Engine::bindEvents() {
     m_eventDispatcher->subscribe<UpdateEvent::RegistryReset>(selfIndex,
         [this](const UpdateEvent::RegistryReset &event) {
             this->initComponents();
-        }
-    );
-
-
-    m_eventDispatcher->subscribe<UpdateEvent::ApplicationStatus>(selfIndex,
-        [this](const UpdateEvent::ApplicationStatus &event) {
-            if (event.appStage != Application::Stage::NULL_STAGE)
-                setApplicationStage(event.appStage);
         }
     );
 
@@ -63,6 +58,10 @@ void Engine::init() {
     prerun();
 
     m_eventDispatcher->dispatch(UpdateEvent::AppIsStable{});
+    m_eventDispatcher->dispatch(UpdateEvent::ApplicationStatus{
+        .appState = Application::State::IDLE
+    });
+
 
     // Switch workspace from splash screen to actual GUI
     m_uiPanelManager->switchWorkspace(m_orbitalWorkspace.get());
@@ -191,7 +190,7 @@ void Engine::initEngine() {
 
 
     // Systems
-    m_renderSystem = std::make_shared<RenderSystem>(m_coreResourcesManager.get(), m_uiRenderer.get());
+    m_renderSystem = std::make_shared<RenderSystem>(m_coreResourcesManager.get(), m_swapchainManager.get(), m_uiRenderer.get());
     ServiceLocator::RegisterService(m_renderSystem);
 
     m_physicsSystem = std::make_shared<PhysicsSystem>();
@@ -200,7 +199,7 @@ void Engine::initEngine() {
 
     
     // Create new session
-    m_currentSession = std::make_shared<Session>(m_coreResourcesManager.get(), m_sceneManager.get(), m_physicsSystem.get());
+    m_currentSession = std::make_shared<Session>(m_coreResourcesManager.get(), m_sceneManager.get(), m_physicsSystem.get(), m_renderSystem.get());
     ServiceLocator::RegisterService(m_currentSession);
 }
 
@@ -236,13 +235,6 @@ void Engine::initComponents() {
 }
 
 
-void Engine::setApplicationStage(Application::Stage newAppStage) {
-    Log::Print(Log::T_INFO, __FUNCTION__, "Transitioning application stage from Stage " + TO_STR((int)m_currentAppStage) + " to Stage " + TO_STR((int)newAppStage) + ".");
-
-    m_currentAppStage = newAppStage;
-}
-
-
 void Engine::setWindowPtr(GLFWwindow *w) {
     m_window = w;
 
@@ -257,12 +249,52 @@ void Engine::setWindowPtr(GLFWwindow *w) {
 
 
 void Engine::run() {
+    // Initialize watchdog thread
+    m_watchdogThread = ThreadManager::CreateThread("WATCHDOG");
+    m_watchdogThread->set([this]() {
+        while (!m_watchdogThread->stopRequested()) {
+            /*
+                By default, std::atomic::load uses std::memory_order_seq_cst (sequentially consistent). It's the safest but slowest memory ordering as it enforces a total global ordering operation across all threads.
+                Since the watchdog thread only needs to know how much time has roughly elapsed since the last heartbeat, we can use std::memory_order_relaxed. It's the weakest memory ordering that only guarantees atomicity and nothing else, therefore giving us a performance advantage at the expense of no strict synchronization between threads (which is tolerable).
+            */
+            auto lastHeartbeat = g_appContext.MainThread.heartbeatTimePoint.load(std::memory_order_relaxed);
+            auto now = std::chrono::steady_clock::now();
+
+
+            if (now - lastHeartbeat >= std::chrono::milliseconds(AppConsts::MAX_MAIN_THREAD_TIMEOUT)) {
+                // If the time elapsed between now and the last heartbeat exceeds the maximum timeout, signal to all worker threads that the main thread has halted
+                if (!g_appContext.MainThread.isHalted.load()) {
+                    m_eventDispatcher->dispatch(UpdateEvent::ApplicationStatus{
+                        .appState = Application::State::MAIN_THREAD_HALTING
+                    });
+
+                    ThreadManager::SignalMainThreadHalt();
+                }
+            }
+            else {
+                // Else (time elapsed < max. timeout threshold), signal that the main thread has resumed
+                if (g_appContext.MainThread.isHalted.load()) {
+                    m_eventDispatcher->dispatch(UpdateEvent::ApplicationStatus{
+                        .appState = Application::State::IDLE
+                    });
+
+                    ThreadManager::SignalMainThreadResume();
+                }
+            }
+
+
+            // The watchdog thread doesn't need to run constantly; we should have it work on intervals to avoid 100% CPU usage.
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+    });
+    m_watchdogThread->start();
+
+
+    // Main loop
     while (!glfwWindowShouldClose(m_window))
         tick();
 
-    // After the main loop ends, we wait for the device to be idle and end the session
     vkDeviceWaitIdle(m_logicalDevice);
-    m_currentSession->end();
 }
 
 
@@ -282,8 +314,15 @@ void Engine::prerun() {
 
 
 void Engine::tick() {
+    // Update main thread heartbeat
+        // NOTE: See note in watchdog thread callable for std::memory_order_relaxed justification
+    g_appContext.MainThread.heartbeatTimePoint.store(std::chrono::steady_clock::now(), std::memory_order_relaxed);
+
+
+    // Polling
     glfwPollEvents();
     m_eventDispatcher->pollQueuedEvents();
+    m_inputManager->tick();
 
 
     // Update per-session data & threads
@@ -298,7 +337,6 @@ void Engine::tick() {
 
         // Get current camera position
     static glm::dvec3 floatingOrigin;
-
     if (camera->inFreeFlyMode())    floatingOrigin = camera->getAbsoluteTransform().position;
     else                            floatingOrigin = camera->getOrbitedEntityPosition();
 

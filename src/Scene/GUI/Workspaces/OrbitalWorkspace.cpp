@@ -463,9 +463,10 @@ void OrbitalWorkspace::renderViewportPanel() {
 
 		if (m_sceneSampleInitialized && ImGui::BeginChild("##ViewportSceneRegion")) {
 			// Viewport hovering/focusing trackers
-			// If camera is orbiting, the cursor locking mechanism won't be used, meaning that we can still interact with the top bar while orbiting. If we click on the top bar (which is not considered the "scene region", i.e., child window), these trackers will be false, which is contextually incorrect since the viewport is practically the scene region, not the actual viewport window. Therefore, we must set them to consider the whole window IF the camera is in orbit mode.
-			ImGuiFocusedFlags focusFlags = (m_inputManager->isCameraOrbiting()) ?
-				ImGuiFocusedFlags_RootAndChildWindows : ImGuiFocusedFlags_ChildWindows;
+			
+			// NOTE: Here, the actual viewport is the child ##ViewportSceneRegion window. The parent window contains this and other UI elements (e.g., the top bar), and we don't want to interfere with input flags solely by interacting with the UI elements outside the viewport scene region.
+			ImGuiFocusedFlags focusFlags = ImGuiFocusedFlags_ChildWindows;
+
 			g_appContext.Input.isViewportHoveredOver	= ImGui::IsWindowHovered(focusFlags) || m_inputBlockerIsOn;
 			g_appContext.Input.isViewportFocused		= ImGui::IsWindowFocused(focusFlags) || m_inputBlockerIsOn;
 

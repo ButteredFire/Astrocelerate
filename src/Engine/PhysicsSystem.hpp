@@ -75,13 +75,28 @@ private:
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 	std::shared_ptr<CoordinateSystem> m_coordSystem;
 
+	// Cached ECS view data for efficient updating (i.e., less ECS view calls)
+	std::vector<std::tuple<EntityID, CoreComponent::Transform, PhysicsComponent::RigidBody>> m_generalData;
+	std::vector<std::tuple<EntityID, PhysicsComponent::Propagator, CoreComponent::Transform, PhysicsComponent::RigidBody>> m_propData;
+	std::vector<std::tuple<EntityID, CoreComponent::Identifiers>> m_identifierData;
+
 	double m_accumulator = 0.0;
 	double m_avgAccumulation = 0.0;
 	std::mutex m_accumulatorMutex;
 
+	double m_currentEpoch = 0.0;		// Current epoch (seconds past J2000) in ET
 	double m_simulationTime = 0.0;		// Simulation time (a.k.a. RELATIVE seconds elapsed since epoch; ABSOLUTE seconds is `epoch + m_simulationTime`)
 
 	void bindEvents();
+
+
+	/* Caches physics data from the registry.
+		The goal is to have update functions write to the cached data instead of querying views from the registry and updating the components directly, which can become a huge performance bottleneck with larger time scales.
+	*/
+	void cacheRegistryData();
+
+	/* Writes the cached data to the ECS registry. */
+	void syncRegistryData();
 
 
 	/* Performs a physics update.

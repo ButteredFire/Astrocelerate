@@ -3,6 +3,9 @@
 
 #pragma once
 
+#include <tuple>
+#include <vector>
+
 #include <Core/Data/Physics.hpp>
 
 namespace ODE {
@@ -51,7 +54,7 @@ namespace ODE {
 
 
 	struct NewtonianNBody {
-		InternalView<CoreComponent::Transform, PhysicsComponent::RigidBody> *view;
+		std::vector<std::tuple<EntityID, CoreComponent::Transform, PhysicsComponent::RigidBody>> *bodies;
 		EntityID entityID;
 
 
@@ -62,7 +65,7 @@ namespace ODE {
 
 
 			// Compute all forces acting on this body
-			for (const auto &[otherEntityID, otherTransform, otherRigidBody] : *view) {
+			for (const auto &[otherEntityID, otherTransform, otherRigidBody] : *bodies) {
 				if (otherEntityID == entityID)
 					continue;
 

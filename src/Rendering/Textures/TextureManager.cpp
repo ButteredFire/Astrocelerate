@@ -507,7 +507,8 @@ void TextureManager::SwitchImageLayout(VkImage image, VkFormat imgFormat, VkImag
 		*pSecondaryCmdBuf = cmdBuf;
 		
 		eventDispatcher->dispatch(RequestEvent::ProcessSecondaryCommandBuffers{
-			.buffers = { *pSecondaryCmdBuf }
+			.buffers = { *pSecondaryCmdBuf },
+			.targetStage = RequestEvent::ProcessSecondaryCommandBuffers::Stage::NONE
 		});
 	}
 }
@@ -621,6 +622,7 @@ void TextureManager::copyBufferToImage(VkBuffer& buffer, VkImage& image, uint32_
 
 	if (!inMainThread)
 		m_eventDispatcher->dispatch(RequestEvent::ProcessSecondaryCommandBuffers{
-			.buffers = { secondaryCmdBuf }
+			.buffers = { secondaryCmdBuf },
+			.targetStage = RequestEvent::ProcessSecondaryCommandBuffers::Stage::NONE
 		});
 }

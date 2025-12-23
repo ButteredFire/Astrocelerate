@@ -52,10 +52,13 @@ void InputManager::bindEvents() {
 }
 
 
-void InputManager::tick(double deltaTime, double deltaUpdate) {
-	processKeyboardInput(deltaTime);
-	m_deltaUpdate.store(deltaUpdate);
-	//m_camera->update(deltaUpdate);
+void InputManager::tick() {
+	processKeyboardInput(Time::GetDeltaTime());
+
+	// If camera is in Orbital mode and the mouse button is down (i.e., m_cursorLocked is True), change the cursor icon
+	if (isCameraOrbiting() && m_cursorLocked.load())
+		ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);
+	// By default, ImGui automatically sets the cursor to Arrow so we don't need to have an `else` here
 }
 
 
@@ -100,54 +103,31 @@ void InputManager::glfwDeferKeyInput(int key, int scancode, int action, int mods
 void InputManager::processKeyboardInput(double dt) {
 	using namespace Input;
 
-	std::lock_guard lock(m_pressedKeysMutex);
-
-	// Unlocks the cursor when the viewport loses focus (this solves desynchronization between g_appContext.Input.isViewportFocused and m_cursorLocked)
-	if (m_pressedKeys.contains(GLFW_KEY_ESCAPE) || isViewportUnfocused())
-		unfocusViewport();
+	//std::lock_guard lock(m_pressedKeysMutex);
 
 	for (const int key : m_pressedKeys) {
 		if (isViewportInputAllowed())
 			m_camera->processKeyboardInput(key, dt);
+
+		if (key == GLFW_KEY_ESCAPE)
+			unfocusViewport();
 	}
 }
 
 void InputManager::processMouseClicks(GLFWwindow* window, int button, int action, int mods) {
-	// Create a hand cursor and schedule it for destruction
-	static std::function<GLFWcursor *()> createHandCursor = [this]() {
-		std::shared_ptr<ResourceManager> gc = ServiceLocator::GetService<ResourceManager>(__FUNCTION__);
-		GLFWcursor *handCursor = glfwCreateStandardCursor(GLFW_HAND_CURSOR);
-		
-		CleanupTask task{};
-		task.caller = __FUNCTION__;
-		task.objectNames = { VARIABLE_NAME(handCursor) };
-		task.cleanupFunc = [handCursor]() { glfwDestroyCursor(handCursor); };
-		gc->createCleanupTask(task);
-
-		return handCursor;
-	};
-	static GLFWcursor *handCursor = createHandCursor();
-	
-
-	std::cout << std::boolalpha << (button == GLFW_MOUSE_BUTTON_LEFT) << " && " << isViewportFocused() << '\n';
-	if (button == GLFW_MOUSE_BUTTON_LEFT && isViewportFocused()) {
-		// If camera is orbiting something, only temporarily lock the cursor and (TODO) change its icon
+	if (button == GLFW_MOUSE_BUTTON_LEFT && isViewportHoveredOver()) {
 		if (isCameraOrbiting()) {
-			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-
+			// If camera is orbiting something, only temporarily lock the cursor and change its icon (see InputManager::tick)
 			if (action == GLFW_PRESS) {
 				m_cursorLocked.store(true);
-				//glfwSetCursor(window, handCursor);
 			}
 			else if (action == GLFW_RELEASE) {
-				m_cursorLocked.store(false);
-				//glfwSetCursor(window, NULL);
+				unfocusViewport();
 			}
 		}
 
-
-		// If camera is not orbiting (i.e., in free-fly mode), lock and hide the cursor until the Escape key is pressed
 		else {
+			// If camera is not orbiting (i.e., in free-fly mode), lock and hide the cursor until the Escape key is pressed
 			m_cursorLocked.store(true);
 			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 		}

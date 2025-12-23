@@ -34,11 +34,8 @@ public:
 
 	void init();
 
-	/* Updates the input manager.
-		@param deltaTime: Delta-time.
-		@param deltaUpdate: The time difference between now and the last physics update. This allows for linear movement interpolation.
-	*/
-	void tick(double deltaTime, double deltaUpdate);
+	/* Updates the input manager. */
+	void tick();
 
 
 	/* Run this function when the window is not in focus. */
@@ -88,7 +85,6 @@ private:
 	std::mutex m_pressedKeysMutex;
 	std::recursive_mutex m_appContextMutex;
 
-	std::atomic<double> m_deltaUpdate = 0.0;  // Time between now and the last physics update
 	std::atomic<bool> m_cursorLocked = false;
 
 	void bindEvents();

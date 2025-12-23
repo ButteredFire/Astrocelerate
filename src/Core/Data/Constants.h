@@ -120,9 +120,11 @@ namespace SubpassConsts {
 
 
 // Window properties
-namespace WindowConsts {
-	constexpr int DEFAULT_WINDOW_WIDTH = 1500;
-	constexpr int DEFAULT_WINDOW_HEIGHT = 900;
+namespace AppConsts {
+	constexpr int DEFAULT_WINDOW_WIDTH = 1500;	// Default window width (pixels)
+	constexpr int DEFAULT_WINDOW_HEIGHT = 900;	// Default window height (pixels)
+
+	constexpr int MAX_MAIN_THREAD_TIMEOUT = 500;	// Maximum main thread timeout (milliseconds)
 }
 
 
