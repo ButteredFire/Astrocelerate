@@ -13,55 +13,32 @@
 
 
 # Mục lục
-* [Giới thiệu](#giới-thiệu)
-    * [Mục tiêu](#mục-tiêu)
-    * [Tầm nhìn](#tầm-nhìn)
-        * [Tầm nhìn ngắn hạn (MVP)](#tầm-nhìn-ngắn-hạn-mvp)
-    * [Triết lý thiết kế](#triết-lý-thiết-kế)
+* [Mục tiêu & Tầm nhìn](#mục-tiêu--tầm-nhìn)
 * [Tính năng](#tính-năng)
     * [Đã triển khai](#đã-triển-khai)
     * [Sắp có](#sắp-có)
 * [Cài đặt](#cài-đặt)
-    * [Phần mềm thiết yếu](#phần-mềm-thiết-yếu)
+    * [Yêu cầu hệ thống](#yêu-cầu-hệ-thống)
     * [Cài đặt lần đầu](#cài-đặt-lần-đầu)
 * [Lịch sử](#lịch-sử)
     * [Kho ảnh](#kho-ảnh)
 
 ---
 
-# Giới thiệu
-Astrocelerate là công cụ mô phỏng cơ học quỹ đạo và chuyến bay vũ trụ hiệu suất cao đầu tiên được phát triển tại Việt Nam, nhằm nâng cao năng lực quốc gia và tiềm lực khoa học - công nghệ trong lĩnh vực Hàng không Vũ trụ và Thiên văn học.
+Astrocelerate là một engine mô phỏng cơ học quỹ đạo và du hành không gian hiệu suất cao. Dự án được thiết kế như một công cụ linh hoạt và trực quan, giúp xóa bỏ rào cản giữa các phần mềm mô phỏng vũ trụ chuyên dụng "khô khan" và sự dễ tiếp cận của các engine hiện đại.
 
-Dự án được phát triển bởi người Việt cho người Việt, trong công cuộc xây dựng nền móng tự chủ công nghệ của quốc gia.
+# Mục tiêu & Tầm nhìn
+Hầu hết các phần mềm mô phỏng vũ trụ hiện nay đã được đơn giản hóa theo hướng trò chơi (ví dụ: Kerbal Space Program) hoặc là các công cụ cũ kỹ dựa trên mã nguồn Fortran/C từ nhiều thập kỷ trước (ví dụ: GMAT/STK). Astrocelerate hướng tới trở thành một công cụ:
 
-## Mục tiêu
-Được phát triển bằng C++ với pipeline đồ họa dựa trên Vulkan và mẫu thiết kế phân phối và thành phần (Entity-Component-System), Astrocelerate được thiết kế để cung cấp hình ảnh trực quan theo thời gian thực, chính xác về mặt vật lý cho động học vệ tinh, quỹ đạo phóng và mô phỏng cơ động.
+- Chính xác về mặt khoa học: Sử dụng SPICE kernels của NASA để đạt độ chính xác cao về lịch thiên văn (ephemeris) và hệ tọa độ;
+- Dễ tiếp cận: Cho phép những người đam mê và những người không chuyên về lập trình có thể thiết kế các mission/mô phỏng phức tạp thông qua giao diện UI hiện đại và hệ thống Lập trình Trực quan (Visual Scripting);
+- Đa năng: Các công cụ mô phỏng đáp ứng hầu hết các nhu cầu thực tế;
+- Hiệu suất cao: Được xây dựng cho các mô phỏng quy mô lớn (mạng lưới vệ tinh, vành đai tiểu hành tinh) bằng cách sử dụng multithreaded C++ và GPU acceleration;
+- Mã nguồn mở: Đóng góp vào hệ sinh thái nguồn mở và sự phát triển chung của cộng đồng hàng không vũ trụ với mã nguồn công khai, documentation chi tiết và hỗ trợ plugin.
 
-Nhưng vượt xa hiệu suất kỹ thuật, Astrocelerate đại diện cho một điều vĩ đại hơn nhiều:
+Astrocelerate được phát triển với niềm tin rằng "chân trời lớn nhất của nhân loại" nên được mở rộng, hiện đại hóa và không phụ thuộc vào các hệ sinh thái độc quyền chi phí cao. Đây là công cụ dành cho sinh viên, nhà nghiên cứu và kỹ sư để xây dựng tương lai của thiên văn học.
 
->Sự khẳng định rằng các công cụ hàng không vũ trụ đẳng cấp thế giới có thể bắt nguồn từ Việt Nam và trong bàn tay của người Việt, và được xây dựng không phải bởi các nhà thầu ngoại nước, mà bởi một thế hệ kỹ sư mới của Việt Nam.
-
-Nhiệm vụ của Astrocelerate là trao quyền cho các tổ chức học thuật, nhà quy hoạch ứng phó thảm họa, nhà công nghệ không gian và nhà nghiên cứu quốc phòng một nền tảng mô phỏng minh bạch, có khả năng mở rộng và tự chủ. Hơn thế nữa, nó đại diện cho chủ quyền công nghệ trong một lĩnh vực từ lâu đã bị chi phối bởi các hệ thống bên ngoài.
-
-Phát triển bởi Hàng không Vũ trụ Oriviet. Nguồn gốc tại Việt Nam. Định mệnh tại các vì sao.
-
-## Tầm nhìn
-### Tầm nhìn ngắn hạn (MVP)
-Tầm nhìn ngắn hạn của Astrocelerate là tạo ra một Sản phẩm khả dụng tối thiểu (MVP) đáp ứng các tính năng cốt lõi. Cụ thể, MVP phải đạt được các yêu cầu tối thiểu sau:
-- Hình ảnh trực quan chính xác, thời gian thực và tương tác, minh họa các kịch bản đơn giản (ví dụ: quỹ đạo vệ tinh-Trái đất, mô phỏng cơ động cơ bản, chuỗi "phóng, vào quỹ đạo, tách tầng, tái nhập khí quyển, thu hồi").
-- Một giao diện người dùng rõ ràng, trau chuốt.
-- Thiết kế dựa trên mẫu thiết kế ECS.
-
-## Triết lý thiết kế
-Triết lý thiết kế của Astrocelerate lấy cảm hứng từ công cụ trò chơi Unity và công cụ mô phỏng chuyến bay vũ trụ GMAT (General Mission Analysis Tool) của NASA.
-Các nguyên tắc này có thể thay đổi theo thời gian, khi Astrocelerate (và tôi) trở nên trưởng thành hơn.
-
-| Nguyên tắc thiết kế cốt lõi                          | Mô tả                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-|------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Mã nguồn mở                                          | Astrocelerate hướng tới sự minh bạch và phát triển mạnh mẽ nhờ phản hồi, chỉnh sửa và mở rộng từ cộng đồng. Do đó, để tối đa hóa sự đóng góp và phát triển, đã quyết định rằng công cụ này nên là mã nguồn mở.                                                                                                                                                                                                                                                                                 |
-| Kiến trúc dựa trên ECS, mô-đun & có khả năng mở rộng | Astrocelerate được cấu trúc để cho phép tính linh hoạt và mô-đun hóa, cho phép người dùng thiết lập và phát triển môi trường, đối tượng, trọng lực, v.v. của riêng họ với các "mô-đun" tích hợp, của bên thứ ba và tùy chỉnh. Đây là một phần trong việc tích hợp các nguyên tắc Hệ thống thực thể-thành phần của Astrocelerate.    Astrocelerate được xây dựng để cho phép các plug-in và tiện ích mở rộng của bên thứ ba, cho phép các nhà nghiên cứu tích hợp các mô hình hoặc bộ giải mới. |
-| Ngôn ngữ kịch bản không độc quyền                    | Astrocelerate cho phép người dùng lập trình các mô-đun riêng của họ và ghi đè các mô-đun tích hợp sẵn bằng C++.                                                                                                                                                                                                                                                                                                                                                                                |
-| Hỗ trợ các nhiệm vụ thực tế                          | Astrocelerate có thể được sử dụng để lập kế hoạch nhiệm vụ vận hành (ví dụ: chuyển giao Mặt trăng và liên hành tinh, quy trình phóng và thu hồi tàu vũ trụ).                                                                                                                                                                                                                                                                                                                                   |
+*Astrocelerate là sáng kiến và dự án đầu tiên của [Oriviet Aerospace](https://www.oriviet.org), một startup giai đoạn đầu tại Việt Nam với mục tiêu xây dựng các công cụ mô phỏng vũ trụ thế hệ mới cho các kỹ sư, nhà nghiên cứu và nhà thiết kế.*
 
 
 # Tính năng
@@ -76,6 +53,7 @@ Các nguyên tắc này có thể thay đổi theo thời gian, khi Astrocelerat
 - Khả năng mô phỏng N-vật thể
 - Bộ nạp mô hình nâng cao hơn, với các texture được ánh xạ tốt hơn, chính xác hơn và độ chân thực hình ảnh cao hơn
 - Bộ giải (solvers), hệ tọa độ (coordinate systems), kỷ nguyên (epochs)
+- Lập trình Trực quan (Visual Scripting) để cho phép người dùng tạo mô phỏng
 
 ## Sắp có
 - Bộ tích hợp số có thể hoán đổi (Symplectic Euler, RK4)
@@ -83,7 +61,6 @@ Các nguyên tắc này có thể thay đổi theo thời gian, khi Astrocelerat
 - Compute shaders và việc chuyển các quy trình song song sang GPU
 - Chia tỷ lệ động để chuyển đổi liền mạch (ví dụ: từ địa hình sang hành tinh)
 - Một loạt các phương pháp tích hợp số đa dạng hơn (Verlet, Quy tắc Simpson, tích phân Gauss)
-- Kịch bản C++ để cho phép người dùng tạo mô phỏng
 - Tuần tự hóa GUI và dữ liệu mô phỏng, với khả năng xuất cơ bản
 
 
@@ -92,7 +69,7 @@ Các nguyên tắc này có thể thay đổi theo thời gian, khi Astrocelerat
 > Astrocelerate mới chỉ được thử nghiệm trên Windows, mặc dù công cụ này hướng tới khả năng tương thích đa nền tảng.
 
 
-## Phần mềm thiết yếu
+## Yêu cầu hệ thống
 - Vulkan SDK (Vulkan 1.2+)
 - CSPICE Toolkit N0067
 - Vcpkg dependency manager
@@ -107,9 +84,7 @@ Các nguyên tắc này có thể thay đổi theo thời gian, khi Astrocelerat
 
 
 # Lịch sử
-Astrocelerate thực hiện commit đầu tiên vào ngày 28 tháng 11 năm 2024. Tính đến ngày 18 tháng 10 năm 2025, công cụ đã được phát triển trong 11 tháng:
-- Phiên bản cũ (OpenGL): 2 tháng
-- Phiên bản mới (Vulkan): 9 tháng
+Astrocelerate có bản commit đầu tiên vào ngày 28 tháng 11 năm 2024. Tính đến ngày 28 tháng 12 năm 2025, dự án đã được phát triển trong 395 ngày. Trong hai tháng đầu tiên, Astrocelerate được viết bằng OpenGL, nhưng sau đó đã chuyển sang Vulkan do những hạn chế của mô hình lập trình máy trạng thái (state-machine) trong OpenGL.
 
 
 ## Kho ảnh

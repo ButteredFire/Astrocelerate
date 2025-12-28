@@ -20,8 +20,6 @@ RenderSystem::RenderSystem(VkCoreResourcesManager *coreResources, VkSwapchainMan
 	m_sceneReady.store(false);
 	m_hasNewData.store(false);
 
-	m_stopTick.store(false);
-
 	bindEvents();
 	init();
 
@@ -29,25 +27,11 @@ RenderSystem::RenderSystem(VkCoreResourcesManager *coreResources, VkSwapchainMan
 }
 
 
-RenderSystem::~RenderSystem() {
-	m_stopTick.store(true);
-	m_tickCondVar.notify_one();
-}
+RenderSystem::~RenderSystem() {}
 
 
 void RenderSystem::bindEvents() {
 	static EventDispatcher::SubscriberIndex selfIndex = m_eventDispatcher->registerSubscriber<RenderSystem>();
-
-	m_eventDispatcher->subscribe<UpdateEvent::ApplicationStatus>(selfIndex,
-		[this](const UpdateEvent::ApplicationStatus &event) {
-			if (event.appState == Application::State::MAIN_THREAD_HALTING) {
-				m_stopTick.store(true);
-					m_tickCondVar.notify_one();
-				m_stopTick.store(false);
-			}
-		}
-	);
-
 
 	m_eventDispatcher->subscribe<InitEvent::BufferManager>(selfIndex,
 		[this](const InitEvent::BufferManager &event) {
@@ -93,6 +77,7 @@ void RenderSystem::bindEvents() {
 				m_renderThreadBarrier = event.barrier;
 				m_currentFrame.store(event.currentFrame);
 				m_hasNewData.store(true);
+
 				m_tickCondVar.notify_one();
 
 				break;
@@ -144,15 +129,17 @@ void RenderSystem::init() {
 }
 
 
-void RenderSystem::tick() {
+void RenderSystem::tick(std::stop_token stopToken) {
 	std::unique_lock<std::mutex> lock(m_tickMutex);
-	m_tickCondVar.wait(lock, [this]() { return m_hasNewData.load() || m_stopTick.load(); });
-
-	uint32_t currentFrame = m_currentFrame.load();
+	m_tickCondVar.wait(lock, stopToken, [this, stopToken]() { return m_hasNewData.load(); });
 	m_hasNewData.store(false);
+
+	if (stopToken.stop_requested())
+		return;
 
 	// Scene
 	if (m_sceneReady.load()) {
+		uint32_t currentFrame = m_currentFrame.load();
 		renderScene(currentFrame);
 
 		m_eventDispatcher->dispatch(RequestEvent::ProcessSecondaryCommandBuffers{
@@ -161,13 +148,17 @@ void RenderSystem::tick() {
 		}, true, true);
 	}
 
-	m_renderThreadBarrier->arrive_and_wait();
+
+	// Sync with main thread
+	auto barrier = m_renderThreadBarrier.lock();
+	if (barrier && !stopToken.stop_requested())
+		barrier->arrive_and_wait();
 }
 
 
 void RenderSystem::waitForResources(const EventDispatcher::SubscriberIndex &selfIndex) {
 	auto thread = ThreadManager::CreateThread("WAIT_RENDER_RESOURCES");
-	thread->set([this, selfIndex]() {
+	thread->set([this, selfIndex](std::stop_token stopToken) {
 		EventFlags eventFlags = EVENT_FLAG_INIT_BUFFER_MANAGER_BIT;
 
 		m_eventDispatcher->waitForEventCallbacks(selfIndex, eventFlags);

@@ -102,7 +102,7 @@ void VkBufferManager::bindEvents() {
 void VkBufferManager::checkForInit(const EventDispatcher::SubscriberIndex &selfIndex) {
 	// Continually checks when all required event callbacks have been invoked to dispatch the buffer manager initialization event
 	auto thread = ThreadManager::CreateThread("WAIT_BUFFER_MGR_DISPATCH");
-	thread->set([this, selfIndex]() {
+	thread->set([this, selfIndex](std::stop_token stopToken) {
 		EventFlags eventFlags = EVENT_FLAG_INIT_GEOMETRY_BIT | EVENT_FLAG_INIT_OFFSCREEN_PIPELINE_BIT;
 
 		m_eventDispatcher->waitForEventCallbacks(selfIndex, eventFlags);
@@ -111,7 +111,7 @@ void VkBufferManager::checkForInit(const EventDispatcher::SubscriberIndex &selfI
 			.globalVertexBuffer = m_vertexBuffer,
 			.globalIndexBuffer = m_indexBuffer,
 			.perFrameDescriptorSets = m_perFrameDescriptorSets
-			});
+		});
 	});
 
 	thread->start();

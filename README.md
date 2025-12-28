@@ -13,11 +13,7 @@
 
 
 # Table of Contents
-* [About Astrocelerate](#about-astrocelerate)
-    * [Goal](#goal)
-    * [Vision](#vision)
-        * [Short-term vision (MVP)](#short-term-vision-mvp)
-    * [Design philosophy](#design-philosophy)
+* [Goal & Vision](#goal--vision)
 * [Features](#features)
     * [Currently implemented](#currently-implemented)
     * [Near-future plans](#near-future-plans)
@@ -29,36 +25,20 @@
 
 ---
 
-# About Astrocelerate
-Astrocelerate is Vietnam’s first high-performance orbital mechanics and spaceflight simulation engine, designed from the ground up to serve as a sovereign alternative to foreign aerospace software.
+Astrocelerate is a high-performance orbital mechanics and spaceflight simulation engine, designed as a versatile and intuitive tool that bridges the gap between "arcane" professional aerospace software and the accessibility of modern engines.
 
-## Goal
-Developed in C++ with a Vulkan-based graphics pipeline and custom ECS architecture, Astrocelerate is engineered for real-time, physically accurate visualizations of satellite kinematics, launch trajectories, and maneuver simulations. But beyond technical performance, Astrocelerate stands for something far greater:
+# Goal & Vision
+Most aerospace software is either simplified and gamified (e.g., Kerbal Space Program) or a legacy tool built on decades-old Fortran/C codebases (e.g., GMAT/STK). Astrocelerate aims to be:
 
->The assertion that world-class aerospace tools can emerge from within Vietnam, built not by legacy contractors, but by a new generation of engineers who refuse to wait for permission.
+- Scientifically Valid: Utilizing NASA's SPICE kernels for high-fidelity ephemeris and coordinate systems;
+- Approachable: Enabling hobbyists and non-programmers to design complex orbital maneuvers with a friendly modern UI and Visual Scripting system;
+- Versatile: Boasting a simulation suite sufficient for most simulation needs;
+- Performant: Built for massive-scale simulations (constellations, asteroid belts) using multi-threaded C++ and GPU acceleration;
+- Open-Source: Contributing to the open-source ecosystem and overall growth in the aerospace community with publicly available source code, documentation, and support for plugins.
 
-Its mission is to empower academic institutions, disaster-response planners, space technologists, and national defense researchers with a transparent, extensible, and self-owned simulation platform. But more than that, it represents technological sovereignty in a domain long dominated by external systems.
+Astrocelerate is developed with the belief that humanity's greatest frontier should be open, modern, and independent of proprietary, high-cost ecosystems. It is a tool for students, researchers, and engineers to build the future of orbital infrastructure.
 
-Powered by Oriviet Aerospace. Grounded in Vietnam. Engineered for the stars.
-
-## Vision
-### Short-term vision (MVP)
-The short term vision of Astrocelerate is to create a Minimum-Viable Product (MVP) that satisfies core features. Specifically, the MVP must be able to achieve these minima:
-- Accurate real-time and interactive visualizations demonstrating simple scenarios (e.g., Earth-satellite orbit, basic maneuver simulation, the "launch, enter orbit, stage separation, re-entry, recovery" sequence)
-- A clean, polished GUI (planned to be made with *Dear ImGui*)
-- An Entity-Component-System (ECS)-based design
-
-## Design philosophy
-Astrocelerate's design philosophy takes inspiration from that of the Unity game engine and the GMAT spaceflight simulation engine.
-These principles are subject to change over time, as Astrocelerate (and I) become more mature.
-
-|              Core design principles              | Description                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| :----------------------------------------------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-|         **Open-source**          | Astrocelerate aims to be transparent and thrives on community feedback, modification, and extension. Therefore, to maximize contribution and growth, it is decided that the engine should be open-source.                                                                                                                                                              |
-| **ECS-based, Modular & Extensible Architecture** | Astrocelerate is structured to allow flexibility and modularity, allowing users to set up and develop their own environments, objects, gravity, etc. with built-in, third-party, and custom "modules". This is part of Astrocelerate's integration of Entity-Component-System principles.<br><br>Astrocelerate is built to allow third-party plug-ins and extensions, enabling researchers to integrate new models or solvers. |
-|      **Non-proprietary scripting language**      | Astrocelerate allows users to program their own modules and override built-in counterparts with C++.                                                                                                                                                                                                                                                                                                                           |
-|          **Support for real missions**           | Astrocelerate can be used for operational mission planning (e.g., lunar and interplanetary transfers, spacecraft launch-and-recovery procedures).                                                                                                                                                                                                                                                                              |
-
+*Astrocelerate is an initiative and first project of [Oriviet Aerospace](https://www.oriviet.org), an early-stage startup based in Vietnam aiming to build the next generation of spaceflight simulation tools for engineers, researchers, and space mission designers.*
 
 # Features
 ## Currently implemented
@@ -79,7 +59,7 @@ These principles are subject to change over time, as Astrocelerate (and I) becom
 - Compute shaders and the offloading of parallelizable processes to the GPU
 - Dynamic scaling for seamless transitions (e.g., from terrain to planet)
 - A more diverse range of numerical integration methods (Verlet, Simpson's Rule, Gaussian quadrature)
-- C++ scripting to allow for user-created simulations
+- Visual scripting to allow for user-created simulations
 - Serialization of GUI and simulation data, with basic exporting capabilities
 
 
@@ -102,9 +82,7 @@ These principles are subject to change over time, as Astrocelerate (and I) becom
 
 
 # History
-Astrocelerate made its first commit on November 28th, 2024. As of October 18th, 2025, it has been in development for 11 months:
-- Legacy engine (OpenGL): 2 months
-- Current engine (Vulkan): 9 months
+Astrocelerate made its first commit on November 28, 2024. As of December 28, 2025, it has been in development for 395 days. During its first two months in existence, Astrocelerate was written in OpenGL, but it henceforth migrated to Vulkan due to inherent limitations with OpenGL's state-machine programming paradigm.
 
 ## Screenshots
 The following screenshots document the development of Astrocelerate (Date format: DD/MM/YYYY).

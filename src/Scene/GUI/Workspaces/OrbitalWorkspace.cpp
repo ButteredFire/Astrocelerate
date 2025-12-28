@@ -252,25 +252,7 @@ void OrbitalWorkspace::renderViewportPanel() {
 			ImGui::AlignTextToFramePadding();
 
 
-			ImGuiUtils::BoldText("Controls\t");
-			if (ImGui::BeginItemTooltip())
-			{
-				ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
-				ImGui::Text("[Left-click]    Enter viewport");
-				ImGui::Text("[ESC]           Exit viewport");
-				ImGui::Text("[W,A,S,D]       Camera movement");
-				ImGui::Text("[Q, E]          Camera up, down");
-				ImGui::Text("[Scroll]        Camera zoom");
-				ImGui::PopTextWrapPos();
-				ImGui::EndTooltip();
-			}
-			ImGui::SameLine();
-
-
-			ImGuiUtils::VerticalSeparator();
-
-
-			// Reload simulation button
+			// ----- RELOAD SIMULATION BUTTON -----
 			if (!m_simulationConfigPath.empty()) {
 				if (ImGui::Button(ICON_FA_ARROW_ROTATE_RIGHT)) {
 					loadSimulationConfig(m_simulationConfigPath);
@@ -280,8 +262,9 @@ void OrbitalWorkspace::renderViewportPanel() {
 				ImGui::SameLine();
 			}
 
+
 			
-			// Simulation control group
+			// ----- PAUSE/PLAY BUTTON & TIME SCALE -----
 			ImGui::BeginGroup();
 			{
 				// Pause/Play button
@@ -337,33 +320,33 @@ void OrbitalWorkspace::renderViewportPanel() {
 			ImGui::EndGroup();
 
 
+
 			ImGuiUtils::VerticalSeparator();
 
 
-			// Camera
-			static Camera *camera = m_inputManager->getCamera();
 
+			// ----- CAMERA PERSPECTIVE SELECTOR -----
+			static Camera *camera = m_inputManager->getCamera();
 			ImGui::BeginGroup();
 			{
-				// All entities with reference frames are camera-attachable
-				static auto view = m_registry->getView<CoreComponent::Transform>();
-				static std::vector<std::pair<std::string, EntityID>> m_entityList;
-				static std::pair<std::string, EntityID> m_selectedEntity, m_prevSelectedEntity;
+				// Data Querying
+				static auto view = m_registry->getView<CoreComponent::Transform>();		// All entities with transforms are camera-attachable
+				static std::vector<std::pair<std::string, EntityID>> entityList;
+				static std::pair<std::string, EntityID> selectedEntity, prevSelectedEntity;
 				static bool prevSceneStatChanged = m_sceneSampleInitialized;
 			
-
 				if (m_sceneSampleInitialized && !prevSceneStatChanged) {
 					// Do only once on scene load: construct/refresh the view and update entity names list
 					view.refresh();
-					m_entityList.clear();
+					entityList.clear();
 
 						// Push camera as first option
 					Entity camEntity = camera->getEntity();
-					m_entityList.push_back({
+					entityList.push_back({
 						"Free-fly",
 						camEntity.id
 					});
-					m_selectedEntity = m_prevSelectedEntity = m_entityList.back();
+					selectedEntity = prevSelectedEntity = entityList.back();
 
 						// Populate with other options
 					for (auto &entityID : view.getMatchingEntities()) {
@@ -371,7 +354,7 @@ void OrbitalWorkspace::renderViewportPanel() {
 							// DO NOT include the render space entity
 							continue;
 
-						m_entityList.push_back({
+						entityList.push_back({
 							m_registry->getEntity(entityID).name,
 							entityID
 						});
@@ -380,12 +363,12 @@ void OrbitalWorkspace::renderViewportPanel() {
 
 					prevSceneStatChanged = true;
 				}
-				else if (prevSceneStatChanged && !m_sceneSampleInitialized)
+				else if (!m_sceneSampleInitialized && prevSceneStatChanged)
 					// Else if another scene is being loaded
 					prevSceneStatChanged = false;
 
 
-
+				// Perspective Selector
 				ImGui::Text("Camera:");
 
 				ImGui::SameLine();
@@ -393,11 +376,11 @@ void OrbitalWorkspace::renderViewportPanel() {
 
 				if (!m_sceneSampleInitialized) ImGuiUtils::PushStyleDisabled();
 				{
-					if (ImGui::BeginCombo("##CameraSwitchCombo", m_selectedEntity.first.c_str(), ImGuiComboFlags_NoArrowButton)) {
-						for (const auto &entityPair : m_entityList) {
-							bool isSelected = (m_selectedEntity == entityPair);
+					if (ImGui::BeginCombo("##CameraSwitchCombo", selectedEntity.first.c_str(), ImGuiComboFlags_NoArrowButton)) {
+						for (const auto &entityPair : entityList) {
+							bool isSelected = (selectedEntity == entityPair);
 							if (ImGui::Selectable(entityPair.first.c_str(), isSelected))
-								m_selectedEntity = entityPair;
+								selectedEntity = entityPair;
 
 							if (isSelected)
 								ImGui::SetItemDefaultFocus();
@@ -411,18 +394,20 @@ void OrbitalWorkspace::renderViewportPanel() {
 				if (!m_sceneSampleInitialized) ImGuiUtils::PopStyleDisabled();
 
 
-				if (m_prevSelectedEntity != m_selectedEntity) {
-					m_prevSelectedEntity = m_selectedEntity;
-					camera->attachToEntity(m_selectedEntity.second);
+				if (prevSelectedEntity != selectedEntity) {
+					prevSelectedEntity = selectedEntity;
+					camera->attachToEntity(selectedEntity.second);
 				}
 			}
 			ImGui::EndGroup();
 
 
+
 			ImGuiUtils::VerticalSeparator();
 
 
-			// Integrator selector
+
+			// ----- INTEGRATOR SELECTOR -----
 			// TODO: Implement integrator switching
 			ImGui::BeginGroup();
 			{
@@ -450,7 +435,8 @@ void OrbitalWorkspace::renderViewportPanel() {
 		ImGuiUtils::PopStyleClearButton();
 
 
-		// Large time scale warning
+
+		// ----- LARGE TIME SCALE WARNING -----
 		if (Time::GetTimeScale() >= 500.0f) {
 			ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 255, 0, 255));
 				ImGuiUtils::AlignedText(ImGuiUtils::TEXT_ALIGN_MIDDLE, ImGuiUtils::IconString(ICON_FA_TRIANGLE_EXCLAMATION, "High time scales may cause numerical and visual instability.").c_str());
@@ -458,73 +444,165 @@ void OrbitalWorkspace::renderViewportPanel() {
 		}
 
 
+
 		ImGui::Separator();
 
 
-		if (m_sceneSampleInitialized && ImGui::BeginChild("##ViewportSceneRegion")) {
-			// Viewport hovering/focusing trackers
-			
-			// NOTE: Here, the actual viewport is the child ##ViewportSceneRegion window. The parent window contains this and other UI elements (e.g., the top bar), and we don't want to interfere with input flags solely by interacting with the UI elements outside the viewport scene region.
-			ImGuiFocusedFlags focusFlags = ImGuiFocusedFlags_ChildWindows;
 
-			g_appContext.Input.isViewportHoveredOver	= ImGui::IsWindowHovered(focusFlags) || m_inputBlockerIsOn;
-			g_appContext.Input.isViewportFocused		= ImGui::IsWindowFocused(focusFlags) || m_inputBlockerIsOn;
+		// ----- VIEWPORT RENDERING -----
+		ImVec2 cursorPos = ImGui::GetCursorScreenPos();
+
+		if (ImGui::BeginChild("##ViewportSceneRegion")) {
+			if (m_sceneSampleInitialized) {
+				// Viewport Hovering/Focusing Trackers
+					// NOTE: Here, the actual viewport is the child ##ViewportSceneRegion window. The parent window contains this and other UI elements (e.g., the top bar), and we don't want to interfere with input flags solely by interacting with the UI elements outside the viewport scene region.
+				ImGuiFocusedFlags focusFlags = ImGuiFocusedFlags_ChildWindows;
+
+				g_appContext.Input.isViewportHoveredOver	= ImGui::IsWindowHovered(focusFlags) || m_inputBlockerIsOn;
+				g_appContext.Input.isViewportFocused		= ImGui::IsWindowFocused(focusFlags) || m_inputBlockerIsOn;
 
 
-			// Viewport resize mechanism
-			static ImVec2 viewportSceneRegion;
-			static ImVec2 lastViewportSceneRegion(0, 0);
+				// Viewport Resize Mechanism
+				static ImVec2 viewportSceneRegion;
+				static ImVec2 lastViewportSceneRegion(0, 0);
 
-			viewportSceneRegion = ImGui::GetContentRegionAvail();
+				viewportSceneRegion = ImGui::GetContentRegionAvail();
 
-				// If viewport size changes, dispatch an update event
-			if (!ImGuiUtils::CompImVec2(viewportSceneRegion, lastViewportSceneRegion)) {
-				m_eventDispatcher->dispatch(UpdateEvent::ViewportSize{
-					.sceneDimensions = glm::vec2(viewportSceneRegion.x, viewportSceneRegion.y)
-					}, true);
+					// If viewport size changes, dispatch an update event
+				if (!ImGuiUtils::CompImVec2(viewportSceneRegion, lastViewportSceneRegion)) {
+					m_eventDispatcher->dispatch(UpdateEvent::ViewportSize{
+						.sceneDimensions = glm::vec2(viewportSceneRegion.x, viewportSceneRegion.y)
+						}, true);
 
-				lastViewportSceneRegion = viewportSceneRegion;
+					lastViewportSceneRegion = viewportSceneRegion;
+				}
+
+
+				// Viewport Rendering
+				ImGui::Image(m_viewportRenderTextureIDs[m_currentFrame], viewportSceneRegion);
+
+					// Telemetry (vertically aligned)
+				{
+					auto view = m_registry->getView<PhysicsComponent::CoordinateSystem>();
+					static constexpr float
+						PADDING_X = 20.0f,
+						PADDING_Y = 20.0f,
+						FONT_SCALE = 1.25f;
+
+					if (view.size() > 0) {
+						auto [_, coordSys] = view[0];
+
+						const std::vector<std::string> telemetry = {
+							"Coordinate System: " + CoordSys::EpochToSPICEMap.at(coordSys.simulationConfig.epoch)
+									+ " (Observer: " + CoordSys::FrameProperties.at(coordSys.simulationConfig.frame).spiceName + ")",
+							"Epoch: " + coordSys.currentEpoch,
+							"Frame: " + CoordSys::FrameProperties.at(coordSys.simulationConfig.frame).displayName
+						};
+
+						ImGui::SetWindowFontScale(FONT_SCALE);
+						const float lineHeight = ImGui::GetFontSize();
+						{
+							for (int i = 0; i < telemetry.size(); i++)
+								ImGuiUtils::FloatingText(
+									ImVec2(cursorPos.x + PADDING_X,
+										cursorPos.y + PADDING_Y + lineHeight * i
+									),
+									telemetry[i]
+								);
+						}
+					}
+				}
+
+					// Controls (horizontally aligned)
+				{
+					static constexpr float
+						PADDING_PER_LABEL = 40.0f,  // Padding between labels
+						PADDING_BOTTOM = 40.0f,
+						FONT_SCALE = 1.0f;
+
+					const std::vector<std::string> controlLabels = {
+						(m_inputManager->isCameraOrbiting()) ? "[LMB-Hold] Move Camera" : "[LMB]/[ESC] Pilot/Release Camera",
+						(m_inputManager->isCameraOrbiting()) ? ""						: "[W,A,S,D | Q,E] Move Camera",
+						"[Scroll] Change Camera Zoom"
+					};
+					std::vector<float> labelWidths;
+
+					ImGui::SetWindowFontScale(FONT_SCALE);
+					{
+						// Calculate the total width of all labels + padding between each
+						float totalTextWidth = (controlLabels.size() - 1) * PADDING_PER_LABEL;
+
+						for (int i = 0; i < controlLabels.size(); i++) {
+							ImVec2 textSize = ImGui::CalcTextSize(controlLabels[i].c_str());
+							labelWidths.push_back(textSize.x);
+							totalTextWidth += textSize.x;
+						}
+
+						const float startX = cursorPos.x + (viewportSceneRegion.x - totalTextWidth) / 2;
+						const float startY = cursorPos.y + viewportSceneRegion.y - PADDING_BOTTOM;
+
+						// Render
+						ImVec2 start(startX, startY);
+
+						for (int i = 0, sz = controlLabels.size(); i < sz; i++) {
+							if (i > 0)
+								start.x += labelWidths[i-1] + PADDING_PER_LABEL;
+
+							ImGuiUtils::FloatingText(start, controlLabels[i]);
+						}
+					}
+				}
+
+				ImGui::SetWindowFontScale(1.0f);
 			}
 
+			else {
+				// If the scene has not been initialized, show a prompt to load the scene
+				ImVec2 viewportSceneRegion = ImGui::GetContentRegionAvail();
 
-			// Display raw render as an image texture
-			ImVec2 cursorPos = ImGui::GetCursorScreenPos();
+				static constexpr float FONT_SIZE_HEADING = 3.0f, FONT_SIZE_SUBHEADING = 2.0f, PADDING_Y = 20.0f;
 
-			ImGui::Image(m_viewportRenderTextureIDs[m_currentFrame], viewportSceneRegion);
+				const std::string heading = "No Simulations Loaded";
+				const std::string subheading = "Load a simulation to get started!";
 
-				// Telemetry
-			auto view = m_registry->getView<PhysicsComponent::CoordinateSystem>();
-			static constexpr float PADDING_X = 20.0f, PADDING_Y = 20.0f, FONT_SCALE = 1.25f;
 
-			if (view.size() > 0) {
-				auto [_, coordSys] = view[0];
+				ImGui::SetWindowFontScale(FONT_SIZE_HEADING);
+					ImVec2 headingSize = ImGui::CalcTextSize(heading.c_str());
+					float lhHeading = ImGui::GetFontSize();
 
-				//std::atomic_ref<std::string> epochAtomic(coordSys.currentEpoch);
+				ImGui::SetWindowFontScale(FONT_SIZE_SUBHEADING);
+					ImVec2 subheadingSize = ImGui::CalcTextSize(subheading.c_str());
+					float lhSubheading = ImGui::GetFontSize();
 
-				const std::vector<std::string> telemetry = {
-					"Coordinate System: " + CoordSys::EpochToSPICEMap.at(coordSys.simulationConfig.epoch) 
-							+ " (Observer: " + CoordSys::FrameProperties.at(coordSys.simulationConfig.frame).spiceName + ")",
-					"Epoch: " + coordSys.currentEpoch,
-					"Frame: " + CoordSys::FrameProperties.at(coordSys.simulationConfig.frame).displayName
-				};
 
-				ImGui::SetWindowFontScale(FONT_SCALE);
-				const float lineHeight = ImGui::GetFontSize();
-				{
-					for (int i = 0; i < telemetry.size(); i++)
-						ImGuiUtils::FloatingText(
-							ImVec2(cursorPos.x + PADDING_X,
-								cursorPos.y + PADDING_Y + lineHeight * i
-							),
-							telemetry[i]
-						);
-				}
+				float totalHeight = headingSize.y + PADDING_Y + subheadingSize.y;
+				float startY = cursorPos.y + (viewportSceneRegion.y - totalHeight) / 2;
+
+
+				ImVec2 headingTextStart(
+					cursorPos.x + (viewportSceneRegion.x - headingSize.x) / 2,
+					startY
+				);
+
+				ImVec2 subheadingTextStart(
+					cursorPos.x + (viewportSceneRegion.x - subheadingSize.x) / 2,
+					startY + lhHeading + PADDING_Y
+				);
+
+
+				ImGui::SetWindowFontScale(FONT_SIZE_HEADING);
+					ImGuiUtils::FloatingText(headingTextStart, heading.c_str());
+				ImGui::SetWindowFontScale(FONT_SIZE_SUBHEADING);
+					ImGuiUtils::FloatingText(subheadingTextStart, subheading.c_str());
 				ImGui::SetWindowFontScale(1.0f);
 			}
 
 
+
 			ImGui::EndChild();
 		}
+
+
 
 		ImGui::End();
 	}

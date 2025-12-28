@@ -193,7 +193,7 @@ namespace UpdateEvent {
 		uint32_t currentFrame;
 
 		// Synchronization
-		std::shared_ptr<std::barrier<>> barrier;
+		std::weak_ptr<std::barrier<>> barrier;
 	};
 
 

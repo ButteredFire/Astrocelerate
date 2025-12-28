@@ -49,12 +49,16 @@ public:
 
 	/* Puts THIS thread to sleep if the main thread is currently unresponsive.
 		NOTE: This method is reserved for worker threads.
+		@param workerThread: The worker thread calling this function.
 	*/
-	inline static void SleepIfMainThreadHalted() {
+	inline static void SleepIfMainThreadHalted(WorkerThread *workerThread) {
 		LOG_ASSERT(std::this_thread::get_id() != m_mainThreadID, "Programmer Error: Cannot call ThreadManager::SleepIfMainThreadHalted in the main thread!");
 
 		std::unique_lock<std::mutex> lock(g_appContext.MainThread.haltMutex);
-		g_appContext.MainThread.haltCV.wait(lock, []() { return !g_appContext.MainThread.isHalted.load(); });
+
+		g_appContext.MainThread.haltCV.wait(lock, [workerThread]() {
+			return !g_appContext.MainThread.isHalted.load() || workerThread->stopRequested();
+		});
 	}
 
 

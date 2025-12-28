@@ -116,9 +116,6 @@ private:
 	bool m_inputBlockerIsOn = false;  // Viewport input blocker blocker (prevents interactions with other GUI elements if the viewport is focused)
 	bool m_simulationIsPaused = true;
 
-		// Caching
-	std::vector<std::any> m_registryCache;
-
 		// Scene resources
 	enum class m_ResourceType {
 		SPACECRAFT,

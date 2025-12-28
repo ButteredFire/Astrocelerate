@@ -19,16 +19,7 @@ Engine::Engine(GLFWwindow *w):
 }
 
 
-Engine::~Engine() {
-    m_currentSession->endSession();
-
-    m_watchdogThread->requestStop();
-    m_watchdogThread->waitForStop();
-
-    m_eventDispatcher->dispatch(UpdateEvent::ApplicationStatus{
-      .appState = Application::State::SHUTDOWN  
-    });
-}
+Engine::~Engine() {}
 
 
 void Engine::bindEvents() {
@@ -251,7 +242,7 @@ void Engine::setWindowPtr(GLFWwindow *w) {
 void Engine::run() {
     // Initialize watchdog thread
     m_watchdogThread = ThreadManager::CreateThread("WATCHDOG");
-    m_watchdogThread->set([this]() {
+    m_watchdogThread->set([this](std::stop_token stopToken) {
         while (!m_watchdogThread->stopRequested()) {
             /*
                 By default, std::atomic::load uses std::memory_order_seq_cst (sequentially consistent). It's the safest but slowest memory ordering as it enforces a total global ordering operation across all threads.
@@ -266,7 +257,7 @@ void Engine::run() {
                 if (!g_appContext.MainThread.isHalted.load()) {
                     m_eventDispatcher->dispatch(UpdateEvent::ApplicationStatus{
                         .appState = Application::State::MAIN_THREAD_HALTING
-                    });
+                    }, false, true);
 
                     ThreadManager::SignalMainThreadHalt();
                 }
@@ -276,7 +267,7 @@ void Engine::run() {
                 if (g_appContext.MainThread.isHalted.load()) {
                     m_eventDispatcher->dispatch(UpdateEvent::ApplicationStatus{
                         .appState = Application::State::IDLE
-                    });
+                    }, false, true);
 
                     ThreadManager::SignalMainThreadResume();
                 }
@@ -284,17 +275,24 @@ void Engine::run() {
 
 
             // The watchdog thread doesn't need to run constantly; we should have it work on intervals to avoid 100% CPU usage.
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            //std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
     });
     m_watchdogThread->start();
 
 
     // Main loop
-    while (!glfwWindowShouldClose(m_window))
-        tick();
+    try {
+        while (!glfwWindowShouldClose(m_window))
+            tick();
+    }
+    catch (const Log::EngineExitException &e) {
+        shutdown();
+        throw;  // Propagate to higher-level catch (main)
+    }
 
-    vkDeviceWaitIdle(m_logicalDevice);
+
+    shutdown();
 }
 
 
@@ -341,4 +339,18 @@ void Engine::tick() {
     else                            floatingOrigin = camera->getOrbitedEntityPosition();
 
     m_renderer->update(floatingOrigin);
+}
+
+
+void Engine::shutdown() {
+    vkDeviceWaitIdle(m_logicalDevice);
+
+    m_eventDispatcher->dispatch(UpdateEvent::ApplicationStatus{
+      .appState = Application::State::SHUTDOWN
+        });
+
+    m_watchdogThread->requestStop();
+    m_watchdogThread->waitForStop();
+
+    m_currentSession->endSession();
 }

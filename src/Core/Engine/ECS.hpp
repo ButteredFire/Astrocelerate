@@ -3,7 +3,9 @@
 
 #pragma once
 
+#include <any>
 #include <mutex>
+#include <typeindex>
 
 #include "ECSCore.hpp"
 
@@ -429,11 +431,41 @@ private:
 };
 
 
-/* A hashmap wrapper designed to store/cache View queries. */
+/* A hashmap wrapper that stores View queries. */
 class ViewMap {
 public:
+	/* Inserts a View into the map, or updates the map with a new View. */
 	template <typename... Components>
-	inline void insert(InternalView<Components...> view) {}
+	inline void insert(InternalView<Components...> view) {
+		m_viewMap[typeid(InternalView<Components...>)] = std::move(view);
+	}
+
+
+	/* Gets a cached View from the map.
+		@tparam Components...: The combination of component types required to perform the operation.
+	*/
+	template<typename... Components>
+	inline auto& get() {
+		return std::any_cast<InternalView<Components...>&>(
+			m_viewMap.at(typeid(InternalView<Components...>))
+		);
+	}
+
+
+	/* Determines whether the map contains a cached View.
+		@tparam Components...: The combination of component types required to perform the operation.
+	*/
+	template<typename... Components>
+	inline bool contains() {
+		return m_viewMap.find(typeid(InternalView<Components...>)) != m_viewMap.end();
+	}
+
+
+	/* Clears the map. */
+	inline void clear() { m_viewMap.clear(); }
+
+private:
+	std::unordered_map<std::type_index, std::any> m_viewMap;
 };
 
 
@@ -528,7 +560,7 @@ public:
 
 		init();
 
-		Log::Print(Log::T_INFO, __FUNCTION__, "Registry has been cleared.");
+		Log::Print(Log::T_INFO, __FUNCTION__, "Entity-Component Registry has been cleared.");
 	}
 
 

@@ -156,8 +156,8 @@ void UIPanelManager::renderMenuBar() {
 	if (ImGui::BeginMainMenuBar()) {
 
 		if (ImGui::BeginMenu("File")) {
-			// Open
-			if (ImGui::MenuItem("Open", "Ctrl+O")) {
+			// Load Simulation
+			if (ImGui::MenuItem("Load Simulation", "Ctrl+O")) {
 				// Handle Open using tinyfiledialogs
 				const char *filterPatterns[] = { "*.yaml" };
 				const char *selectedFilePath = tinyfd_openFileDialog(
@@ -202,8 +202,8 @@ void UIPanelManager::renderMenuBar() {
 			ImGuiUtils::CursorOnHover();
 
 
-			// Save
-			if (ImGui::MenuItem("Save", "Ctrl+S")) {
+			// Save Simulation
+			if (ImGui::MenuItem("Save Simulation", "Ctrl+S")) {
 				// TODO: Handle Save
 			}
 			ImGuiUtils::CursorOnHover();
@@ -577,7 +577,7 @@ void UIPanelManager::renderAboutPanel() {
 			ImGui::PushFont(g_fontContext.NotoSans.bold);
 			{
 				ImGuiUtils::AlignedText(ImGuiUtils::TEXT_ALIGN_MIDDLE, "%s (version %s)", APP_NAME, APP_VERSION);
-				ImGuiUtils::AlignedText(ImGuiUtils::TEXT_ALIGN_MIDDLE, "Copyright © 2024-2025 %s, D.B.A. Oriviet Aerospace.", AUTHOR_DIACRITIC);
+				ImGuiUtils::AlignedText(ImGuiUtils::TEXT_ALIGN_MIDDLE, "Open-source project by %s", AUTHOR_DIACRITIC);
 			}
 			ImGui::PopFont();
 
@@ -760,7 +760,7 @@ void UIPanelManager::renderWelcomePanel() {
 
 		ImGuiUtils::Padding();
 
-		ImGui::Text("To get started, please open a simulation script by going to File > Open.");
+		ImGui::Text("To get started, please open a simulation script by going to File > Load Simulation.");
 		ImGui::Text("A few sample scripts have been provided. Feel free to play around with them!");
 
 		ImGuiUtils::Padding();

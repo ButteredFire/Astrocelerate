@@ -133,4 +133,6 @@ private:
 
 	void prerun();	// Runs the main loop once to ensure all resources have been initialized
 	void tick();
+
+	void shutdown();
 };

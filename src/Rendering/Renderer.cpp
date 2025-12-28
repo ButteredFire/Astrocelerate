@@ -30,6 +30,14 @@ Renderer::~Renderer() {}
 void Renderer::bindEvents() {
     static EventDispatcher::SubscriberIndex selfIndex = m_eventDispatcher->registerSubscriber<Renderer>();
 
+    m_eventDispatcher->subscribe<UpdateEvent::ApplicationStatus>(selfIndex,
+        [this](const UpdateEvent::ApplicationStatus &event) {
+            if (event.appState == Application::State::SHUTDOWN) {
+                m_renderThreadBarrier.reset();  // Destroys the shared pointer to the barrier. Observers (objects holding a weak pointer to the barrier) will now see a nullptr via `std::weak_ptr::lock`.
+            }
+        }
+    );
+
     m_eventDispatcher->subscribe<UpdateEvent::SessionStatus>(selfIndex,
         [this](const UpdateEvent::SessionStatus &event) {
             using enum UpdateEvent::SessionStatus::Status;
@@ -132,11 +140,11 @@ void Renderer::drawFrame(glm::dvec3& renderOrigin) {
 
 
     // Update worker threads with new data
-    m_eventDispatcher->dispatch(UpdateEvent::Renderables{
-        .currentFrame = m_currentFrame,
-        .barrier = m_renderThreadBarrier
-    }, true);
-
+    if (m_sessionReady)
+        m_eventDispatcher->dispatch(UpdateEvent::Renderables{
+            .currentFrame = m_currentFrame,
+            .barrier = m_renderThreadBarrier
+        }, true);
 
     
     // If the swapchain has been resized, destroy the old swapchain and dependencies, then renew per-image semaphores.

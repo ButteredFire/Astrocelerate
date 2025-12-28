@@ -180,20 +180,22 @@ CoreComponent::Transform Camera::getAbsoluteTransform() const {
 
 
 void Camera::attachToEntity(EntityID entityID) {
-	if (m_inFreeFlyMode && entityID != m_camEntity.id) {
-		// If camera is switching from free-fly mode
-		m_freeFlyPosition = m_position;
-		m_freeFlyOrientation = m_orientation;
+	if (entityID != m_camEntity.id) {
+		if (m_inFreeFlyMode) {
+			m_inFreeFlyMode = false;
 
-		m_inFreeFlyMode = false;
+			m_freeFlyPosition = m_position;
+			m_freeFlyOrientation = m_orientation;
+		}
+
+		setOrbitRadii(entityID);
 	}
-	else if (entityID == m_camEntity.id)
+	else
 		// If camera is attempting to attach to itself
 		detachFromEntity();
 
 	
 	m_attachedEntityID = entityID;
-	setOrbitRadii(entityID);
 	tick(); // Forces an immediate update after changing attachment
 }
 

@@ -74,7 +74,7 @@ void PhysicsSystem::configureCoordSys(CoordSys::FrameType frameType, CoordSys::F
 }
 
 
-void PhysicsSystem::tick(std::shared_ptr<WorkerThread> worker) {
+void PhysicsSystem::tick(WorkerThread *worker) {
 	// Cache physics data
 	cacheRegistryData();
 

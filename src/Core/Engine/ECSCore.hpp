@@ -178,8 +178,8 @@ private:
 
 class ComponentTypeID {
 public:
-	/* Generates a unique ID for a component type.
-		@return A unique ID for the component type.
+	/* Retrieves the unique ID of a component type, or generates it if that component does not have one yet.
+		@return The unique ID of the component type.
 	*/
 	template<typename Component>
 	inline static size_t get() {

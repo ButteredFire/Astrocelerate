@@ -100,11 +100,11 @@ void Session::reset() {
 void Session::update() {
 	// Update physics
 	if (m_sessionIsValid && !m_physicsWorker->isRunning()) {
-		m_physicsWorker->set([this]() {
+		m_physicsWorker->set([this](std::stop_token stopToken) {
 			while (!m_physicsWorker->stopRequested()) {
-				ThreadManager::SleepIfMainThreadHalted();
+				ThreadManager::SleepIfMainThreadHalted(m_physicsWorker.get());
 
-				m_physicsSystem->tick(m_physicsWorker);
+				m_physicsSystem->tick(m_physicsWorker.get());
 			}
 		});
 
@@ -113,12 +113,12 @@ void Session::update() {
 
 
 	// Update rendering
-	if (!m_renderWorker->isRunning()) {
-		m_renderWorker->set([this]() {
+	if (m_sessionIsValid && !m_renderWorker->isRunning()) {
+		m_renderWorker->set([this](std::stop_token stopToken) {
 			while (!m_renderWorker->stopRequested()) {
-				ThreadManager::SleepIfMainThreadHalted();
+				ThreadManager::SleepIfMainThreadHalted(m_renderWorker.get());
 
-				m_renderSystem->tick();
+				m_renderSystem->tick(stopToken);
 			}
 		});
 	
@@ -128,7 +128,7 @@ void Session::update() {
 
 	// Process key input events
 	//if (!m_inputWorker->isRunning()) {
-	//	m_inputWorker->set([this]() {
+	//	m_inputWorker->set([this](std::stop_token stopToken) {
 	//		while (!m_inputWorker->stopRequested()) {
 	//			std::unique_lock<std::mutex> lock(g_appContext.MainThread.haltMutex);
 	//			g_appContext.MainThread.haltCV.wait(lock, []() { return !g_appContext.MainThread.isHalted.load(); });
@@ -143,18 +143,7 @@ void Session::update() {
 
 
 void Session::loadSceneFromFile(const std::string &filePath) {
-	// Signal all listening managers to stop accessing per-session resources, and per-session managers to destroy old resources
-	reset();
-	//endSession();
-
-	m_physicsWorker->requestStop();
-	m_physicsWorker->waitForStop();
-
-
-	// Clear the registry and recreate its base resources
-	m_registry->clear();
-	m_eventDispatcher->dispatch(UpdateEvent::RegistryReset{});
-	m_eventDispatcher->resetEventCallbackRegistry();
+	endSession();
 
 
 	// Signal per-session managers to prepare the necessary resources for new session initialization.
@@ -166,7 +155,7 @@ void Session::loadSceneFromFile(const std::string &filePath) {
 	// Load scene from file
 		// Detach scene loading from the main thread
 	auto sceneLoadThread = ThreadManager::CreateThread("SCENE_INIT");
-	sceneLoadThread->set([this, filePath]() {
+	sceneLoadThread->set([this, filePath](std::stop_token stopToken) {
 		try {
 			m_sceneManager->loadSceneFromFile(filePath);
 			m_eventDispatcher->dispatch(RequestEvent::InitSceneResources{});
@@ -190,8 +179,6 @@ void Session::loadSceneFromFile(const std::string &filePath) {
 			});
 
 			reset();
-			// Signal an error via the SceneInitializationComplete event
-			//m_eventDispatcher.dispatch(Event::SceneInitializationComplete{ false, "Scene loading failed: " + std::string(e.what()) });
 		}
 	});
 
@@ -200,11 +187,20 @@ void Session::loadSceneFromFile(const std::string &filePath) {
 
 
 void Session::endSession() {
+	// Signal all listening managers to stop accessing per-session resources, and per-session managers to destroy old resources
+	reset();
+
+
+	// Wait for worker threads to finish
 	m_physicsWorker->requestStop();
 	m_renderWorker->requestStop();
-	//m_inputWorker->requestStop();
 
 	m_physicsWorker->waitForStop();
-	//m_renderWorker->waitForStop();
-	//m_inputWorker->waitForStop();
+	m_renderWorker->waitForStop();
+
+
+	// Clear the registry and recreate its base resources
+	m_registry->clear();
+	m_eventDispatcher->dispatch(UpdateEvent::RegistryReset{});
+	m_eventDispatcher->resetEventCallbackRegistry();
 }

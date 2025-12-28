@@ -130,7 +130,7 @@ void VkCommandManager::init() {
 }
 
 
-void VkCommandManager::recordRenderingCommandBuffer(std::shared_ptr<std::barrier<>> barrier, VkCommandBuffer& cmdBuffer, uint32_t imageIndex, uint32_t currentFrame) {
+void VkCommandManager::recordRenderingCommandBuffer(std::weak_ptr<std::barrier<>> barrier, VkCommandBuffer& cmdBuffer, uint32_t imageIndex, uint32_t currentFrame) {
 	// Specifies details about how the passed-in command buffer will be used before beginning
 	VkCommandBufferBeginInfo bufferBeginInfo{};
 	bufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -170,7 +170,7 @@ void VkCommandManager::recordRenderingCommandBuffer(std::shared_ptr<std::barrier
 
 
 	// OFFSCREEN RENDER PASS
-	using SyncPoint = std::shared_ptr<std::barrier<>>;
+	using SyncPoint = std::weak_ptr<std::barrier<>>;
 	static std::function<void(SyncPoint, VkCommandBuffer&, uint32_t, uint32_t)> writeOffscreenCommands = [this](SyncPoint barrier, VkCommandBuffer &cmdBuffer, uint32_t imageIndex, uint32_t currentFrame) {
 		if (m_coreResources->getAppState() == Application::State::RECREATING_SWAPCHAIN)
 			return;
@@ -200,7 +200,9 @@ void VkCommandManager::recordRenderingCommandBuffer(std::shared_ptr<std::barrier
 
 
 		// Record all offscreen-stage secondary command buffers
-		barrier->arrive_and_wait();
+		auto syncPoint = barrier.lock();
+		if (syncPoint)
+			syncPoint->arrive_and_wait();
 
 		if (!m_secondaryCmdBufsStageOFFSCREEN.empty()) {
 			vkCmdExecuteCommands(cmdBuffer, static_cast<uint32_t>(m_secondaryCmdBufsStageOFFSCREEN.size()), m_secondaryCmdBufsStageOFFSCREEN.data());

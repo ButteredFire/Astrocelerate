@@ -69,7 +69,7 @@ public:
 		@param imageIndex: The index of the swap-chain image from which commands are recorded.
 		@param currentFrame: The index of the frame currently being rendered.
 	*/
-	void recordRenderingCommandBuffer(std::shared_ptr<std::barrier<>> barrier, VkCommandBuffer& buffer, uint32_t imageIndex, uint32_t currentFrame);
+	void recordRenderingCommandBuffer(std::weak_ptr<std::barrier<>> barrier, VkCommandBuffer& buffer, uint32_t imageIndex, uint32_t currentFrame);
 
 
 	/* Begins recording a single-use/anonymous command buffer for single-time commands.

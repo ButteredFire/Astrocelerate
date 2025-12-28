@@ -14,8 +14,6 @@
 #include <Core/Engine/ServiceLocator.hpp>
 #include <Core/Application/EventDispatcher.hpp>
 #include <Core/Application/ResourceManager.hpp>
-
-
 #include <Core/Data/Buffer.hpp>
 
 #include <Engine/Components/RenderComponents.hpp>
@@ -32,7 +30,7 @@ public:
 	~RenderSystem();
 
 
-	void tick();
+	void tick(std::stop_token stopToken);
 
 private:
 	std::shared_ptr<Registry> m_registry;
@@ -47,10 +45,9 @@ private:
 	// Synchronization to sleep until new data arrives for rendering
 	std::mutex m_tickMutex;
 	std::atomic<bool> m_hasNewData;
-	std::atomic<bool> m_stopTick;
-	std::condition_variable m_tickCondVar;
+	std::condition_variable_any m_tickCondVar;
 
-	std::shared_ptr<std::barrier<>> m_renderThreadBarrier;
+	std::weak_ptr<std::barrier<>> m_renderThreadBarrier;
 
 
 	// Persistent

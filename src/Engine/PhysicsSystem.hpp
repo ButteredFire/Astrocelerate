@@ -42,7 +42,7 @@ public:
 
 		@param worker: The worker thread in which this function is run.
 	*/
-	void tick(std::shared_ptr<WorkerThread> worker);
+	void tick(WorkerThread *worker);
 
 
 	/* Updates all entities in the scene that have SPICE ephemeris data.
