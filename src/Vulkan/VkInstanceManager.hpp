@@ -22,6 +22,7 @@
 #include <Core/Engine/ServiceLocator.hpp>
 
 #include <Core/Data/Constants.h>
+#include <Core/Data/Contexts/AppContext.hpp>
 
 
 inline VkResult createDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {

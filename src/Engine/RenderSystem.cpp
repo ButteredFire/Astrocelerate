@@ -104,9 +104,9 @@ void RenderSystem::bindEvents() {
 
 void RenderSystem::init() {
 	// Pre-allocate secondary command buffers for scene rendering
-	m_sceneSecondaryCmdBufs.resize(SimulationConsts::MAX_FRAMES_IN_FLIGHT);
+	m_sceneSecondaryCmdBufs.resize(SimulationConst::MAX_FRAMES_IN_FLIGHT);
 
-	for (int i = 0; i < SimulationConsts::MAX_FRAMES_IN_FLIGHT; i++) {
+	for (int i = 0; i < SimulationConst::MAX_FRAMES_IN_FLIGHT; i++) {
 		VkCommandBufferAllocateInfo cmdBufAllocInfo{};
 		cmdBufAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 		cmdBufAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_SECONDARY;

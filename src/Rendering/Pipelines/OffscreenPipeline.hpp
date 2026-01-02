@@ -113,7 +113,7 @@ private:
 	// Offscreen resources
 	VmaAllocation m_colorImgAlloc{};
 
-	const size_t m_OFFSCREEN_RESOURCE_COUNT = SimulationConsts::MAX_FRAMES_IN_FLIGHT;
+	const size_t m_OFFSCREEN_RESOURCE_COUNT = SimulationConst::MAX_FRAMES_IN_FLIGHT;
 	std::vector<VkImage> m_colorImages;
 	std::vector<VkImageView> m_colorImgViews;
 	std::vector<VkSampler> m_colorImgSamplers;

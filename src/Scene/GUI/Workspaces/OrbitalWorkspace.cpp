@@ -252,12 +252,18 @@ void OrbitalWorkspace::renderViewportPanel() {
 			ImGui::AlignTextToFramePadding();
 
 
+			std::string sceneName{};
+			if (!m_simulationConfigPath.empty())
+				sceneName += FilePathUtils::GetFileName(m_simulationConfigPath, false);
+
+
 			// ----- RELOAD SIMULATION BUTTON -----
 			if (!m_simulationConfigPath.empty()) {
 				if (ImGui::Button(ICON_FA_ARROW_ROTATE_RIGHT)) {
 					loadSimulationConfig(m_simulationConfigPath);
 				}
 				ImGuiUtils::CursorOnHover();
+				ImGuiUtils::TextTooltip(ImGuiHoveredFlags_None, ("Reload " + sceneName).c_str());
 
 				ImGui::SameLine();
 			}
@@ -269,10 +275,6 @@ void OrbitalWorkspace::renderViewportPanel() {
 			{
 				// Pause/Play button
 				static bool initialLoad = true;
-				std::string sceneName{};
-				if (!m_simulationConfigPath.empty())
-					sceneName += FilePathUtils::GetFileName(m_simulationConfigPath, false);
-
 
 				if (m_simulationIsPaused) {
 					if (ImGui::Button(ImGuiUtils::IconString(ICON_FA_PLAY, sceneName).c_str())) {
@@ -330,15 +332,15 @@ void OrbitalWorkspace::renderViewportPanel() {
 			ImGui::BeginGroup();
 			{
 				// Data Querying
-				static auto view = m_registry->getView<CoreComponent::Transform>();		// All entities with transforms are camera-attachable
 				static std::vector<std::pair<std::string, EntityID>> entityList;
 				static std::pair<std::string, EntityID> selectedEntity, prevSelectedEntity;
-				static bool prevSceneStatChanged = m_sceneSampleInitialized;
 			
-				if (m_sceneSampleInitialized && !prevSceneStatChanged) {
+				if (m_sceneSampleInitialized && entityList.empty()) {
 					// Do only once on scene load: construct/refresh the view and update entity names list
-					view.refresh();
-					entityList.clear();
+					auto view = m_registry->getView<CoreComponent::Transform>();		// All entities with transforms are camera-attachable
+
+					entityList.reserve(view.size());
+
 
 						// Push camera as first option
 					Entity camEntity = camera->getEntity();
@@ -359,13 +361,10 @@ void OrbitalWorkspace::renderViewportPanel() {
 							entityID
 						});
 					}
-
-
-					prevSceneStatChanged = true;
 				}
-				else if (!m_sceneSampleInitialized && prevSceneStatChanged)
+				else if (!m_sceneSampleInitialized && !entityList.empty())
 					// Else if another scene is being loaded
-					prevSceneStatChanged = false;
+					entityList.clear();
 
 
 				// Perspective Selector
@@ -980,7 +979,7 @@ void OrbitalWorkspace::renderDebugApplication() {
 				ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
 
 				// FPS must be >= (2 * PHYS_UPDATE_FREQ) for linear interpolation to properly work and prevent jittering
-				int recommendedFPS = std::floor(2 * (1 / SimulationConsts::TIME_STEP));
+				int recommendedFPS = std::floor(2 * (1 / SimulationConst::TIME_STEP));
 				if (io.Framerate < recommendedFPS) {
 					ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 255, 0, 255));
 					ImGui::TextWrapped(ImGuiUtils::IconString(ICON_FA_TRIANGLE_EXCLAMATION, "This framerate does not meet the recommended " + std::to_string(recommendedFPS) + " FPS threshold, below which jittering may occur. Alternatively, you can lower the physics time step to lower the threshold.").c_str());

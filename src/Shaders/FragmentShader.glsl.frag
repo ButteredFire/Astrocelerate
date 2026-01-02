@@ -209,7 +209,7 @@ vec3 computePBRFragment() {
     // --- Ambient Lighting (Simple Approximation) ---
     // TODO: Implement a fully functioning ambient lighting model
     // NOTE: In a full PBR setup, this would be IBL (irradiance map + prefiltered env map)
-    vec3 ambientColor = vec3(0.000001); // TODO: This should be editable via globalUBO.ambientStrength
+    vec3 ambientColor = vec3(0.0001); // TODO: This should be editable via globalUBO.ambientStrength
     vec3 ambient = ambientColor * albedo * ao;
 
 

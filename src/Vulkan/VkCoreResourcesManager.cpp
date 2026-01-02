@@ -16,7 +16,7 @@ VkCoreResourcesManager::VkCoreResourcesManager(GLFWwindow *window, VkInstanceMan
     task = instanceManager->createVulkanInstance(m_instance);
     gc->createCleanupTask(task);
 
-    if (IN_DEBUG_MODE) {
+    if (IN_DEBUG_MODE || g_appContext.Config.debugging_VkValidationLayers) {
         task = instanceManager->createDebugMessenger(m_dbgMessenger, m_instance);
         gc->createCleanupTask(task);
     }

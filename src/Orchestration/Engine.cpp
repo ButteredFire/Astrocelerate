@@ -122,7 +122,7 @@ void Engine::initCoreManagers() {
 
 
     // Camera
-    //glm::dvec3 cameraPosition = glm::vec3(8e8, (PhysicsConsts::AU + 10e8), 1e7);
+    //glm::dvec3 cameraPosition = glm::vec3(8e8, (PhysicsConst::AU + 10e8), 1e7);
     glm::dvec3 cameraPosition = glm::vec3(0.0, 1.3e8, 0.0);
 
     m_camera = std::make_shared<Camera>(
@@ -252,7 +252,7 @@ void Engine::run() {
             auto now = std::chrono::steady_clock::now();
 
 
-            if (now - lastHeartbeat >= std::chrono::milliseconds(AppConsts::MAX_MAIN_THREAD_TIMEOUT)) {
+            if (now - lastHeartbeat >= std::chrono::milliseconds(AppConst::MAX_MAIN_THREAD_TIMEOUT)) {
                 // If the time elapsed between now and the last heartbeat exceeds the maximum timeout, signal to all worker threads that the main thread has halted
                 if (!g_appContext.MainThread.isHalted.load()) {
                     m_eventDispatcher->dispatch(UpdateEvent::ApplicationStatus{
@@ -301,7 +301,7 @@ void Engine::prerun() {
     m_currentSession = ServiceLocator::GetService<Session>(__FUNCTION__);
     m_renderer = ServiceLocator::GetService<Renderer>(__FUNCTION__);
 
-    for (int i = 0; i < SimulationConsts::MAX_FRAMES_IN_FLIGHT; i++)
+    for (int i = 0; i < SimulationConst::MAX_FRAMES_IN_FLIGHT; i++)
         tick();
 
 

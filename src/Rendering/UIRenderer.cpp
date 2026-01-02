@@ -94,7 +94,7 @@ void UIRenderer::initImGui() {
         { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE },
         
         // Samplers to draw offscreen resources (for rendering onto the viewport)
-        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, static_cast<uint32_t>(SimulationConsts::MAX_FRAMES_IN_FLIGHT) }
+        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, static_cast<uint32_t>(SimulationConst::MAX_FRAMES_IN_FLIGHT) }
     };
     VkDescriptorPoolCreateFlags imgui_DescPoolCreateFlags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
     VkDescriptorUtils::CreateDescriptorPool(m_logicalDevice, m_descriptorPool, imgui_PoolSizes.size(), imgui_PoolSizes.data(), imgui_DescPoolCreateFlags);
@@ -126,7 +126,7 @@ void UIRenderer::initImGui() {
     task.caller = __FUNCTION__;
     task.objectNames = { "ImGui destruction calls" };
     task.cleanupFunc = []() {
-        ImGui::SaveIniSettingsToDisk(ConfigConsts::IMGUI_DEFAULT_CONFIG.c_str());
+        ImGui::SaveIniSettingsToDisk(ResourcePath::App.CONFIG_IMGUI.c_str());
         ImGui_ImplVulkan_Shutdown();
         ImGui_ImplGlfw_Shutdown();
     };
@@ -145,8 +145,8 @@ void UIRenderer::initImGui() {
     ImGuiTheme::ApplyTheme(defaultAppearance);
     g_appContext.GUI.currentAppearance = defaultAppearance;
 
-    //std::cout << ConfigConsts::IMGUI_DEFAULT_CONFIG << '\n';
-    auto iniBuffer = FilePathUtils::ReadFile(ConfigConsts::IMGUI_DEFAULT_CONFIG);
+    //std::cout << ResourcePath::App.CONFIG_IMGUI << '\n';
+    auto iniBuffer = FilePathUtils::ReadFile(ResourcePath::App.CONFIG_IMGUI);
     ImGui::LoadIniSettingsFromMemory(iniBuffer.data(), iniBuffer.size());
 
     m_eventDispatcher->dispatch(InitEvent::ImGui{});

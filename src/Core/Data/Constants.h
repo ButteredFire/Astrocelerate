@@ -52,9 +52,13 @@ extern const std::string ROOT_DIR;
 	// Absolute paths to resources
 namespace ResourcePath {
 	extern struct _AppResources {
-		const std::string SPLASH;
-		const std::string ASTRO_LOGO;
-		const std::string ORIVIET_LOGO;
+		const std::string LOGO_SPLASH;
+		const std::string LOGO_ASTRO;
+		const std::string LOGO_ORIVIET;
+		const std::string LOGO_APP_ICON;
+
+		const std::string CONFIG_APP;
+		const std::string CONFIG_IMGUI;
 	} App;
 
 	extern struct _FontsResources {
@@ -71,7 +75,7 @@ namespace ResourcePath {
 
 
 // Shader properties
-namespace ShaderConsts {
+namespace ShaderConst {
 	// Locations
 		// Vertex shader
 	constexpr int VERT_BIND_GLOBAL_UBO = 0;
@@ -111,7 +115,7 @@ namespace ShaderConsts {
 
 
 // Subpass properties
-namespace SubpassConsts {
+namespace SubpassConst {
 	enum Type {
 		T_MAIN,
 		T_IMGUI
@@ -120,17 +124,11 @@ namespace SubpassConsts {
 
 
 // Window properties
-namespace AppConsts {
+namespace AppConst {
 	constexpr int DEFAULT_WINDOW_WIDTH = 1500;	// Default window width (pixels)
 	constexpr int DEFAULT_WINDOW_HEIGHT = 900;	// Default window height (pixels)
 
 	constexpr int MAX_MAIN_THREAD_TIMEOUT = 500;	// Maximum main thread timeout (milliseconds)
-}
-
-
-// Configuration properties
-namespace ConfigConsts {
-	extern const std::string IMGUI_DEFAULT_CONFIG;
 }
 
 
@@ -145,7 +143,7 @@ namespace Gamma {
 
 
 // Physics constants
-namespace PhysicsConsts {
+namespace PhysicsConst {
 	constexpr double G = 6.67430e-11;			// Gravitational constant (m^3 kg^-1 s^-2)
 	constexpr double C = 299792458.0;           // Speed of light (m/s)
 	constexpr double AU = 149597870700;			// 1 Astronomical Unit (AU) OR 149,597,870,700 meters (average distance from the Earth to the Sun)
@@ -153,7 +151,7 @@ namespace PhysicsConsts {
 
 
 // Simulation settings
-namespace SimulationConsts {
+namespace SimulationConst {
 	constexpr int MAX_SIMULATION_STEPS = 10000;
 	extern int MAX_FRAMES_IN_FLIGHT;								// How many frames should be processed concurrently
 	constexpr int MAX_GLOBAL_TEXTURES = 128;						// The maximum number of textures in the global texture array

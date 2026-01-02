@@ -1,8 +1,0 @@
-UserPreferences:
-    Appearance:
-        ColorTheme: DARK
-
-    Debugging:
-        MaxUIConsoleLines: 1000
-        DebugModeNextLaunch: False
-        ShowDefaultConsoleNextLaunch: False

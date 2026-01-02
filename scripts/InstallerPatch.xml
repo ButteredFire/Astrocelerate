@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Inject the custom features from `InstallerUI.wxs` into the default WixUI_InstallDir template -->
+<CPackWiXPatch>
+	<CPackWiXFragment Id="#PRODUCTFEATURE">
+		<ComponentGroupRef Id="CustomShortcuts" />
+	</CPackWiXFragment>
+</CPackWiXPatch>

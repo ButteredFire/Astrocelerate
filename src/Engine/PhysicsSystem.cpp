@@ -95,7 +95,7 @@ void PhysicsSystem::tick(WorkerThread *worker) {
 	uint32_t iterations = 0;
 	static constexpr uint32_t SYNC_FREQUENCY = 100;
 
-	while (localAccumulator >= SimulationConsts::TIME_STEP) {
+	while (localAccumulator >= SimulationConst::TIME_STEP) {
 		if (worker->stopRequested() || Time::GetTimeScale() != timeScale) {
 			// If the thread in which this function is called is requested to be stopped,
 			// OR If time scale changes while physics is updating (e.g., when the simulation is stopped in the middle of the updates),
@@ -104,8 +104,8 @@ void PhysicsSystem::tick(WorkerThread *worker) {
 			break;
 		}
 
-		update(SimulationConsts::TIME_STEP);
-		localAccumulator -= SimulationConsts::TIME_STEP;
+		update(SimulationConst::TIME_STEP);
+		localAccumulator -= SimulationConst::TIME_STEP;
 
 		// Sync registry data every [SYNC_FREQUENCY] iterations to see frequent visual progress on high time scales
 		if (iterations++ % SYNC_FREQUENCY == 0)
@@ -255,7 +255,7 @@ void PhysicsSystem::updateSPICEBodies(const double et) {
 
 
 void PhysicsSystem::updateGeneralBodies(const double dt, const double et) {
-	using namespace PhysicsConsts;
+	using namespace PhysicsConst;
 	
 	//auto view = m_registry->getView<CoreComponent::Transform, PhysicsComponent::RigidBody>();
 

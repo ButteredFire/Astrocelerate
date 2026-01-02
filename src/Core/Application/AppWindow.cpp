@@ -33,6 +33,8 @@ void Window::initSplashScreen() {
 
     m_splashWindow = glfwCreateWindow(SPLASH_WIDTH, SPLASH_HEIGHT, "Astrocelerate | Loading...", nullptr, nullptr);
 
+    loadWindowIcon(m_splashWindow);
+
     const GLFWvidmode *mode = glfwGetVideoMode(m_monitor);
     const uint32_t CURRENT_SCREEN_WIDTH = mode->width;
     const uint32_t CURRENT_SCREEN_HEIGHT = mode->height;
@@ -41,8 +43,6 @@ void Window::initSplashScreen() {
     const uint32_t X = (CURRENT_SCREEN_WIDTH - SPLASH_WIDTH) / 2;
     const uint32_t Y = (CURRENT_SCREEN_HEIGHT - SPLASH_HEIGHT) / 2;
     glfwSetWindowPos(m_splashWindow, X, Y);
-
-    //std::cout << std::showbase << std::hex << "Splash window: " << m_splashWindow << '\n';
 }
 
 
@@ -58,9 +58,12 @@ void Window::initPrimaryScreen(CallbackContext *context) {
         // Set width and height:
             //m_mainWindow = glfwCreateWindow(width, height, windowName.c_str(), nullptr, nullptr);
     m_mainWindow = glfwCreateWindow(m_WIDTH, m_HEIGHT, m_windowName.c_str(), nullptr, nullptr);
+
     glfwMaximizeWindow(m_mainWindow);
     glfwMakeContextCurrent(m_mainWindow);
     glfwFocusWindow(m_mainWindow);
+
+    loadWindowIcon(m_mainWindow);
 
 
     // Dispatch update event
@@ -90,6 +93,26 @@ void Window::loadDefaultHints() {
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);  // GLFW_RESIZABLE: Should the window be resizable?
     glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);    // GLFW_VISIBLE: Should the windowed mode window be initially visible?
     glfwWindowHint(GLFW_FLOATING, GLFW_FALSE);  // GLFW_FLOATING: Should the window always be on top?
+}
+
+
+void Window::loadWindowIcon(GLFWwindow *window) {
+    int width, height, channels;
+    stbi_uc *pixels = stbi_load(ResourcePath::App.LOGO_APP_ICON.c_str(), &width, &height, &channels, 4);
+
+    if (!pixels) {
+        Log::Print(Log::T_ERROR, __FUNCTION__, "Failed to load icon image " + enquote(ResourcePath::App.LOGO_APP_ICON) + "!");
+        return;
+    }
+
+    GLFWimage image[1];
+    image[0].width = width;
+    image[0].height = height;
+    image[0].pixels = pixels;
+
+    glfwSetWindowIcon(window, 1, image);
+
+    stbi_image_free(pixels);
 }
 
 

@@ -111,7 +111,7 @@ void Camera::tick(double deltaUpdate) {
 		if (Time::GetTimeScale() > 0.0) {
 			// Prevents division by zero
 			// IMPORTANT: Consider checking time step to check if it's zero in the future, if dynamic time steps are to be implemented
-			double alpha = deltaUpdate / (SimulationConsts::TIME_STEP * Time::GetTimeScale());
+			double alpha = deltaUpdate / (SimulationConst::TIME_STEP * Time::GetTimeScale());
 			alpha = glm::clamp(alpha, 0.0, 1.0);
 
 			interpolatedEntityPosition = glm::mix(

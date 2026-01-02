@@ -15,7 +15,7 @@ namespace ODE {
 		double centralMass;		// Mass of the body being orbited.
 
 		State operator()(const State& state, double t) const {
-			using namespace PhysicsConsts;
+			using namespace PhysicsConst;
 
 			glm::dvec3 relativePosition = state.position;
 			glm::dvec3 currentVelocity = state.velocity;
@@ -59,7 +59,7 @@ namespace ODE {
 
 
 		State operator()(const State &state, double t) {
-			using namespace PhysicsConsts;
+			using namespace PhysicsConst;
 
 			glm::dvec3 totalAcceleration(0.0);
 

@@ -11,7 +11,7 @@ project(Astrocelerate)
 
     set(APP_VERSION_MAJOR 0)
     set(APP_VERSION_MINOR 2)
-    set(APP_VERSION_PATCH 0)
+    set(APP_VERSION_PATCH 1)
     set(APP_VERSION_IDENTIFIERS "")
     set(APP_VERSION_FULL "${APP_VERSION_MAJOR}.${APP_VERSION_MINOR}.${APP_VERSION_PATCH}${APP_VERSION_IDENTIFIERS}")
 
@@ -21,12 +21,16 @@ project(Astrocelerate)
     add_compile_definitions(APP_VERSION_PATCH="${APP_VERSION_PATCH}")
 
     set(APP_VENDOR "Oriviet Aerospace")
+    add_compile_definitions(APP_VENDOR="${APP_VENDOR}")
     
     set(AUTHOR "Duong Duy Nhat Minh")
     add_compile_definitions(AUTHOR="${AUTHOR}")
 
     set(AUTHOR_DIACRITIC "Dương Duy Nhật Minh")
     add_compile_definitions(AUTHOR_DIACRITIC="${AUTHOR_DIACRITIC}")
+
+    set(AUTHOR_INTL "Minh Duong")
+    add_compile_definitions(AUTHOR_INTL="${AUTHOR_INTL}")
 
     # Specify VMA version
     set(VMA_VERSION 1002000) # 1.2.0  (Form: ABBBCCC -> A = major, BBB = minor, CCC = patch); The VMA version must match that of the Vulkan version, i.e., VULKAN_VERSION
@@ -85,19 +89,16 @@ add_executable(Astrocelerate ${SOURCE_FILES})
 
 
 # Show/Hide the console window
-if (CMAKE_BUILD_TYPE IN_LIST RELEASE_MODES)
-    if(WIN32)
-        # On Windows, applications with windows have their consoles automatically hidden
-        target_link_options(
-            Astrocelerate PRIVATE 
-            -mwindows
-            /SUBSYSTEM:WINDOWS
-        )
-    endif()
+    # On Windows, applications with windows have their consoles automatically hidden
+    # On Linux/macOS, this property is ignored and does nothing
+set_target_properties(Astrocelerate PROPERTIES WIN32_EXECUTABLE TRUE)
+if(MSVC)
+    # Because Microsoft always feels the need to make themselves look special, Windows applications look for `WinMain` rather than the conventional `main` function as the entry point. We can force MSVC to look for `main` instead.
+    set_target_properties(Astrocelerate PROPERTIES LINK_FLAGS "/ENTRY:mainCRTStartup")
 endif()
 
 
-# Copy resources from source to binary directory (for development builds)
+# Copy resources from source to binary directory
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/samples" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
 
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/kernels" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
@@ -304,8 +305,8 @@ install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/configs/"
     set(CPACK_PACKAGE_VENDOR "${APP_VENDOR}")
     #set(CPACK_PACKAGE_CONTACT "email@example.com")
 
-    set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Astrocelerate is Vietnam's first independent orbital mechanics and spaceflight simulation engine, designed from the ground up to serve as a sovereign alternative to foreign aerospace software.")
-    set(CPACK_PACKAGE_INSTALL_DIRECTORY "${APP_NAME} ${APP_VERSION_FULL}")
+    set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Astrocelerate is a high-performance orbital mechanics and spaceflight simulation engine, designed as a versatile and intuitive tool that bridges the gap between arcane professional aerospace software and the accessibility of modern engines.")
+    set(CPACK_PACKAGE_INSTALL_DIRECTORY "${APP_NAME}")
 
     set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
     set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt")
@@ -326,21 +327,28 @@ install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/configs/"
         set(CPACK_WIX_VERSION 4)
         set(CPACK_WIX_EXTENSIONS "WixToolset.UI.wixext;WixToolset.Util.wixext")
 
+        set(CPACK_WIX_ARCHITECTURE "x64") 
+
+        # Installer package name (NOTE: it must match the internal ID that CMake gives the `bin` destination)
+        set(CPACK_WIX_INSTALLER_PACKAGE_NAME "Astrocelerate")
+
         # GUIDs are crucial for MSI packages for upgrades
         set(CPACK_WIX_UPGRADE_GUID "92C5A6B3-CC39-46C2-BA8A-2EB695156DBF")
 
-        # Banner and dialog bitmaps
+        # Branding
         #set(CPACK_WIX_UI_BANNER "${CMAKE_CURRENT_SOURCE_DIR}/assets/App/Installer/Banner.bmp")
-        #set(CPACK_WIX_UI_DIALOG "${CMAKE_CURRENT_SOURCE_DIR}/assets/App/Installer/Dialog.bmp")
+        set(CPACK_WIX_UI_DIALOG "${CMAKE_CURRENT_SOURCE_DIR}/assets/App/Installer/Dialog.bmp")
+        set(CPACK_WIX_PRODUCT_ICON "${CMAKE_CURRENT_SOURCE_DIR}/assets/App/AppIcon.ico")
 
         # Custom UI
+        set(CPACK_WIX_UI_REF "WixUI_InstallDir")
         set(CPACK_WIX_EXTRA_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/scripts/InstallerUI.wxs")
-        set(CPACK_WIX_UI_REF "WixUI_Minimal")
+        set(CPACK_WIX_PATCH_FILE "${CMAKE_CURRENT_SOURCE_DIR}/scripts/InstallerPatch.xml")
+        set(CPACK_WIX_PROPERTY_INSTALLDIR "INSTALL_ROOT")
 
         # Languages (cultures)
         set(CPACK_WIX_CULTURES "en-US")
     endif()
 
 # Include CPack at the end so that it could read the configuration (environmental variables)
-# DO NOT PUT THIS BEFORE THE CONFIG PART! I WASTED 12 HOURS OF MY FUCKING LIFE ON THIS!! READ THE DOCS PEOPLE!!!
 include(CPack)

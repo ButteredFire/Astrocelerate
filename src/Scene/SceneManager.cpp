@@ -247,7 +247,7 @@ void SceneManager::processScene(const YAML::Node &rootNode, std::string &current
 
         RenderComponent::PointLight pointLight{};
         pointLight.color = glm::vec3(1.0f, 0.95f, 0.90f);
-        pointLight.radiantFlux = SOLAR_LUMINOSITY / std::pow(SimulationConsts::SIMULATION_SCALE, 2.3);
+        pointLight.radiantFlux = SOLAR_LUMINOSITY / std::pow(SimulationConst::SIMULATION_SCALE, 2.3);
 
         m_registry->addComponent(entityID, pointLight);
     };

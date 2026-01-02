@@ -13,12 +13,12 @@
 
 namespace SpaceUtils {  
 	constexpr double SCALE_FACTOR = 1000.0;  // This controls how much the scene is compressed
-	constexpr double TRANSITION_DISTANCE = SimulationConsts::SIMULATION_SCALE * 10.0; // The distance where linear scaling switches to logarithmic scaling
+	constexpr double TRANSITION_DISTANCE = SimulationConst::SIMULATION_SCALE * 10.0; // The distance where linear scaling switches to logarithmic scaling
 	constexpr double OBJ_SCALE_VISUAL_BOOST = 10.0; // Exaggeration of object scale
 
 	/* Converts to simulation space. */
 	inline auto ToSimulationSpace(const SystemUtils::MultipliableByDouble auto& value) {
-		return value * SimulationConsts::SIMULATION_SCALE;
+		return value * SimulationConst::SIMULATION_SCALE;
 	}
 
 
@@ -32,7 +32,7 @@ namespace SpaceUtils {
 
 		if (distance <= TRANSITION_DISTANCE)
 			// If distance from origin is too small, use linear scale
-			return vec * (SpaceUtils::SCALE_FACTOR / SimulationConsts::SIMULATION_SCALE);
+			return vec * (SpaceUtils::SCALE_FACTOR / SimulationConst::SIMULATION_SCALE);
 
 		glm::dvec3 direction = vec / distance;
 
@@ -43,20 +43,20 @@ namespace SpaceUtils {
 		// logScaleFactor * glm::log(1.0 + 10.0) = 10.0
 		// logScaleFactor * glm::log(11.0) = 10.0
 		// logScaleFactor = 10.0 / glm::log(11.0)
-		const double LOG_SCALE_CORRECTION_FACTOR = 10.0 / glm::log(1.0 + TRANSITION_DISTANCE / SimulationConsts::SIMULATION_SCALE);
+		const double LOG_SCALE_CORRECTION_FACTOR = 10.0 / glm::log(1.0 + TRANSITION_DISTANCE / SimulationConst::SIMULATION_SCALE);
 
-		double scaledDistance = LOG_SCALE_CORRECTION_FACTOR * SpaceUtils::SCALE_FACTOR * glm::log(1.0 + distance / SimulationConsts::SIMULATION_SCALE);
+		double scaledDistance = LOG_SCALE_CORRECTION_FACTOR * SpaceUtils::SCALE_FACTOR * glm::log(1.0 + distance / SimulationConst::SIMULATION_SCALE);
 		
 		return direction * scaledDistance;
 		*/
-		return vec / SimulationConsts::SIMULATION_SCALE;
+		return vec / SimulationConst::SIMULATION_SCALE;
 	}
 
 
 	/* Converts scale to render space. */
 	inline double ToRenderSpace_Scale(const double simulationScalar) {
-		return simulationScalar / SimulationConsts::SIMULATION_SCALE;
-		//return simulationScalar * OBJ_SCALE_VISUAL_BOOST / SimulationConsts::SIMULATION_SCALE;
+		return simulationScalar / SimulationConst::SIMULATION_SCALE;
+		//return simulationScalar * OBJ_SCALE_VISUAL_BOOST / SimulationConst::SIMULATION_SCALE;
 	}
 
 

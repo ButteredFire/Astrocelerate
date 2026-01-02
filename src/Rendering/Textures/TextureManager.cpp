@@ -192,7 +192,7 @@ void TextureManager::updateTextureArrayDescriptorSet(uint32_t texIndex, const Vk
 	VkWriteDescriptorSet descriptorWrite{};
 	descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 	descriptorWrite.dstSet = m_texArrayDescriptorSet;
-	descriptorWrite.dstBinding = ShaderConsts::FRAG_BIND_TEXTURE_MAP;
+	descriptorWrite.dstBinding = ShaderConst::FRAG_BIND_TEXTURE_MAP;
 	descriptorWrite.dstArrayElement = texIndex; // The specific index in the array where this texture belongs
 	descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	descriptorWrite.descriptorCount = 1;

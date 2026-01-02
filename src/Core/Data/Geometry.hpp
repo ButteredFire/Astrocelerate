@@ -84,7 +84,7 @@ namespace Geometry {
 			// Attribute: Position
 			VkVertexInputAttributeDescription positionAttribDesc{};
 			positionAttribDesc.binding = 0;
-			positionAttribDesc.location = ShaderConsts::VERT_LOC_IN_INPOSITION;
+			positionAttribDesc.location = ShaderConst::VERT_LOC_IN_INPOSITION;
 			positionAttribDesc.format = VK_FORMAT_R32G32B32_SFLOAT;
 			positionAttribDesc.offset = offsetof(Vertex, position);
 
@@ -94,7 +94,7 @@ namespace Geometry {
 			// Attribute: Color
 			VkVertexInputAttributeDescription colorAttribDesc{};
 			colorAttribDesc.binding = 0;
-			colorAttribDesc.location = ShaderConsts::VERT_LOC_IN_INCOLOR;
+			colorAttribDesc.location = ShaderConst::VERT_LOC_IN_INCOLOR;
 			colorAttribDesc.format = VK_FORMAT_R32G32B32_SFLOAT;
 			colorAttribDesc.offset = offsetof(Vertex, color);
 
@@ -104,7 +104,7 @@ namespace Geometry {
 			// Attribute: Texture/UV coordinates
 			VkVertexInputAttributeDescription texCoordAttribDesc{};
 			texCoordAttribDesc.binding = 0;
-			texCoordAttribDesc.location = ShaderConsts::VERT_LOC_IN_INTEXTURECOORD_0;
+			texCoordAttribDesc.location = ShaderConst::VERT_LOC_IN_INTEXTURECOORD_0;
 			texCoordAttribDesc.format = VK_FORMAT_R32G32_SFLOAT;
 			texCoordAttribDesc.offset = offsetof(Vertex, texCoord0);
 
@@ -114,7 +114,7 @@ namespace Geometry {
 			// Attribute: Normal
 			VkVertexInputAttributeDescription normalAttribDesc{};
 			normalAttribDesc.binding = 0;
-			normalAttribDesc.location = ShaderConsts::VERT_LOC_IN_INNORMAL;
+			normalAttribDesc.location = ShaderConst::VERT_LOC_IN_INNORMAL;
 			normalAttribDesc.format = VK_FORMAT_R32G32B32_SFLOAT;
 			normalAttribDesc.offset = offsetof(Vertex, normal);
 
@@ -123,7 +123,7 @@ namespace Geometry {
 			// Attribute: Tangent
 			VkVertexInputAttributeDescription tangentAttribDesc{};
 			tangentAttribDesc.binding = 0;
-			tangentAttribDesc.location = ShaderConsts::VERT_LOC_IN_INTANGENT;
+			tangentAttribDesc.location = ShaderConst::VERT_LOC_IN_INTANGENT;
 			tangentAttribDesc.format = VK_FORMAT_R32G32B32_SFLOAT;
 			tangentAttribDesc.offset = offsetof(Vertex, tangent);
 

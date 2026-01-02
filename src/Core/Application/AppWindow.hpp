@@ -4,6 +4,7 @@
 #pragma once
 
 #include <imgui/imgui.h>
+#include <stb/stb_image.h>
 #include <imgui/imgui_impl_glfw.h>
 #include <External/GLFWVulkan.hpp>
 
@@ -30,14 +31,6 @@ public:
 	void loadDefaultHints();
 
 	inline GLFWwindow* getGLFWwindowPtr() { return (m_mainWindow == nullptr) ? m_splashWindow : m_mainWindow; };
-
-	static void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
-
-	static void MouseCallback(GLFWwindow* window, double posX, double posY);
-
-	static void MouseBtnCallback(GLFWwindow* window, int button, int action, int mods);
-
-	static void ScrollCallback(GLFWwindow* window, double deltaX, double deltaY);
 	
 private:
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
@@ -50,4 +43,15 @@ private:
 
 	GLFWwindow *m_splashWindow;
 	GLFWwindow *m_mainWindow;
+
+
+	void loadWindowIcon(GLFWwindow *window);
+
+	static void KeyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);
+
+	static void MouseCallback(GLFWwindow *window, double posX, double posY);
+
+	static void MouseBtnCallback(GLFWwindow *window, int button, int action, int mods);
+
+	static void ScrollCallback(GLFWwindow *window, double deltaX, double deltaY);
 };

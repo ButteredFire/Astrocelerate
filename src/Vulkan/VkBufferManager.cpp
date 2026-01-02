@@ -315,8 +315,8 @@ void VkBufferManager::createPerFrameUniformBuffers() {
 	// Global UBOs
 	VkDeviceSize globalBufSize = sizeof(Buffer::GlobalUBO);
 
-	m_globalUBOs.resize(SimulationConsts::MAX_FRAMES_IN_FLIGHT);
-	m_globalUBOMappedData.resize(SimulationConsts::MAX_FRAMES_IN_FLIGHT);
+	m_globalUBOs.resize(SimulationConst::MAX_FRAMES_IN_FLIGHT);
+	m_globalUBOMappedData.resize(SimulationConst::MAX_FRAMES_IN_FLIGHT);
 
 
 	// Object UBOs
@@ -328,8 +328,8 @@ void VkBufferManager::createPerFrameUniformBuffers() {
 
 	VkDeviceSize objectBufSize = static_cast<VkDeviceSize>(m_alignedObjectUBOSize) * m_totalObjects;
 
-	m_objectUBOs.resize(SimulationConsts::MAX_FRAMES_IN_FLIGHT);
-	m_objectUBOMappedData.resize(SimulationConsts::MAX_FRAMES_IN_FLIGHT);
+	m_objectUBOs.resize(SimulationConst::MAX_FRAMES_IN_FLIGHT);
+	m_objectUBOMappedData.resize(SimulationConst::MAX_FRAMES_IN_FLIGHT);
 
 
 	// Create the UBOs and map them to CPU memory
@@ -343,7 +343,7 @@ void VkBufferManager::createPerFrameUniformBuffers() {
 		uniformBufAllocInfo.flags |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 	*/
 
-	for (size_t i = 0; i < SimulationConsts::MAX_FRAMES_IN_FLIGHT; i++) {
+	for (size_t i = 0; i < SimulationConst::MAX_FRAMES_IN_FLIGHT; i++) {
 		// Global UBO
 		CleanupID globalBufCleanupID = CreateBuffer(m_globalUBOs[i].buffer, globalBufSize, uniformBufUsageFlags, m_globalUBOs[i].allocation, uniformBufAllocInfo);
 
@@ -431,7 +431,7 @@ void VkBufferManager::createMatParamsUniformBuffer() {
 void VkBufferManager::initPerFrameUniformBuffers() {
 	std::vector<VkWriteDescriptorSet> descriptorWrites;
 
-	for (size_t i = 0; i < SimulationConsts::MAX_FRAMES_IN_FLIGHT; i++) {
+	for (size_t i = 0; i < SimulationConst::MAX_FRAMES_IN_FLIGHT; i++) {
 		descriptorWrites.clear();
 
 		// Global uniform buffer
@@ -455,7 +455,7 @@ void VkBufferManager::initPerFrameUniformBuffers() {
 		VkWriteDescriptorSet globalUBODescWrite{};
 		globalUBODescWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		globalUBODescWrite.dstSet = m_perFrameDescriptorSets[i];
-		globalUBODescWrite.dstBinding = ShaderConsts::VERT_BIND_GLOBAL_UBO;
+		globalUBODescWrite.dstBinding = ShaderConst::VERT_BIND_GLOBAL_UBO;
 
 		// Since descriptors can be arrays, we must specify the first descriptor's index to update in the array.
 		// We are not using an array now, so we can leave it at 0.
@@ -483,7 +483,7 @@ void VkBufferManager::initPerFrameUniformBuffers() {
 		VkWriteDescriptorSet objectUBODescWrite{};
 		objectUBODescWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		objectUBODescWrite.dstSet = m_perFrameDescriptorSets[i];
-		objectUBODescWrite.dstBinding = ShaderConsts::VERT_BIND_OBJECT_UBO;
+		objectUBODescWrite.dstBinding = ShaderConst::VERT_BIND_OBJECT_UBO;
 		objectUBODescWrite.dstArrayElement = 0;
 		objectUBODescWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
 		objectUBODescWrite.descriptorCount = 1;
@@ -507,7 +507,7 @@ void VkBufferManager::initMatParamsUniformBuffer() {
 	VkWriteDescriptorSet pbrMaterialUBOdescWrite{};
 	pbrMaterialUBOdescWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 	pbrMaterialUBOdescWrite.dstSet = m_matParamsDescriptorSet;
-	pbrMaterialUBOdescWrite.dstBinding = ShaderConsts::FRAG_BIND_MATERIAL_PARAMETERS;
+	pbrMaterialUBOdescWrite.dstBinding = ShaderConst::FRAG_BIND_MATERIAL_PARAMETERS;
 	pbrMaterialUBOdescWrite.dstArrayElement = 0;
 	pbrMaterialUBOdescWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
 	pbrMaterialUBOdescWrite.descriptorCount = 1;

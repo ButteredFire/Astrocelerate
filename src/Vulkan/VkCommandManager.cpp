@@ -416,7 +416,7 @@ VkCommandPool VkCommandManager::CreateCommandPool(VkDevice device, uint32_t queu
 
 
 void VkCommandManager::allocCommandBuffers(VkCommandPool& commandPool, std::vector<VkCommandBuffer>& commandBuffers) {
-	commandBuffers.resize(SimulationConsts::MAX_FRAMES_IN_FLIGHT);
+	commandBuffers.resize(SimulationConst::MAX_FRAMES_IN_FLIGHT);
 
 	VkCommandBufferAllocateInfo bufferAllocInfo{};
 	bufferAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;

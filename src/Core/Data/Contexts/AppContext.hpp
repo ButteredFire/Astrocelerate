@@ -3,6 +3,7 @@
 #include <mutex>
 #include <chrono>
 #include <atomic>
+#include <cstdint>
 #include <condition_variable>
 
 #include <imgui/imgui.h>
@@ -12,9 +13,18 @@
 
 // General application context
 struct AppContext {
+    struct Config {
+        std::string appearance_ColorTheme           = "DARK";
+
+        uint32_t    debugging_MaxUIConsoleLines     = 1000;
+        bool        debugging_ShowConsole           = false;
+        bool        debugging_VkValidationLayers    = false;
+        bool        debugging_VkAPIDump             = false;
+    } Config;
+
     struct Input {
-        bool isViewportHoveredOver = false;
-        bool isViewportFocused = false;
+        bool isViewportHoveredOver  = false;
+        bool isViewportFocused      = false;
     } Input;
 
     struct GUI {

@@ -298,7 +298,7 @@ void OffscreenPipeline::setUpDescriptors() {
 		// Layout bindings
 			// Global uniform buffer
 	VkDescriptorSetLayoutBinding globalUBOLayoutBinding{};
-	globalUBOLayoutBinding.binding = ShaderConsts::VERT_BIND_GLOBAL_UBO;
+	globalUBOLayoutBinding.binding = ShaderConst::VERT_BIND_GLOBAL_UBO;
 	globalUBOLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	globalUBOLayoutBinding.descriptorCount = 1;
 	globalUBOLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT; // Specifies which shader stages will the UBO(s) be referenced and used (through `VkShaderStageFlagBits` values; see the specification for more information)
@@ -307,7 +307,7 @@ void OffscreenPipeline::setUpDescriptors() {
 
 	// Per-object uniform buffer
 	VkDescriptorSetLayoutBinding objectUBOLayoutBinding{};
-	objectUBOLayoutBinding.binding = ShaderConsts::VERT_BIND_OBJECT_UBO;
+	objectUBOLayoutBinding.binding = ShaderConst::VERT_BIND_OBJECT_UBO;
 	objectUBOLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;  // Allows the same descriptor to reference different offsets within a uniform buffer at draw time. That is, there will be a single big buffer with all object UBOs for each frame, and making this descriptor dynamic lets you bind this buffer once, and access it via offsets.
 	objectUBOLayoutBinding.descriptorCount = 1;
 	objectUBOLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
@@ -317,7 +317,7 @@ void OffscreenPipeline::setUpDescriptors() {
 	// PBR textures
 		// Material parameters UBO
 	VkDescriptorSetLayoutBinding pbrLayoutBinding{};
-	pbrLayoutBinding.binding = ShaderConsts::FRAG_BIND_MATERIAL_PARAMETERS;
+	pbrLayoutBinding.binding = ShaderConst::FRAG_BIND_MATERIAL_PARAMETERS;
 	pbrLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
 	pbrLayoutBinding.descriptorCount = 1;
 	pbrLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -325,9 +325,9 @@ void OffscreenPipeline::setUpDescriptors() {
 
 		// Texture array
 	VkDescriptorSetLayoutBinding texArrayLayoutBinding{};
-	texArrayLayoutBinding.binding = ShaderConsts::FRAG_BIND_TEXTURE_MAP;
+	texArrayLayoutBinding.binding = ShaderConst::FRAG_BIND_TEXTURE_MAP;
 	texArrayLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	texArrayLayoutBinding.descriptorCount = SimulationConsts::MAX_GLOBAL_TEXTURES;
+	texArrayLayoutBinding.descriptorCount = SimulationConst::MAX_GLOBAL_TEXTURES;
 	texArrayLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 	texArrayLayoutBinding.pImmutableSamplers = nullptr;
 
@@ -354,8 +354,8 @@ void OffscreenPipeline::setUpDescriptors() {
 		// Descriptor pool allocation
 	VkDescriptorPool perFrameDescriptorPool;
 	VkDescriptorPoolSize perFramePoolSizes[] = {
-		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, static_cast<uint32_t>(SimulationConsts::MAX_FRAMES_IN_FLIGHT) },
-		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, static_cast<uint32_t>(SimulationConsts::MAX_FRAMES_IN_FLIGHT) }
+		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, static_cast<uint32_t>(SimulationConst::MAX_FRAMES_IN_FLIGHT) },
+		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, static_cast<uint32_t>(SimulationConst::MAX_FRAMES_IN_FLIGHT) }
 	};
 
 
@@ -368,7 +368,7 @@ void OffscreenPipeline::setUpDescriptors() {
 	VkDescriptorPool texArrayDescriptorPool;
 	VkDescriptorPoolSize texArrayPoolSize{
 		.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-		.descriptorCount = SimulationConsts::MAX_GLOBAL_TEXTURES
+		.descriptorCount = SimulationConst::MAX_GLOBAL_TEXTURES
 	};
 
 
@@ -379,7 +379,7 @@ void OffscreenPipeline::setUpDescriptors() {
 		// Descriptor pools
 	VkDescriptorUtils::CreateDescriptorPool(m_logicalDevice, perFrameDescriptorPool, SIZE_OF(perFramePoolSizes), perFramePoolSizes, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT, 500);
 	VkDescriptorUtils::CreateDescriptorPool(m_logicalDevice, pbrDescriptorPool, 1, &pbrPoolSize, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT, 10);
-	VkDescriptorUtils::CreateDescriptorPool(m_logicalDevice, texArrayDescriptorPool, 1, &texArrayPoolSize, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT | VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT, SimulationConsts::MAX_GLOBAL_TEXTURES);
+	VkDescriptorUtils::CreateDescriptorPool(m_logicalDevice, texArrayDescriptorPool, 1, &texArrayPoolSize, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT | VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT, SimulationConst::MAX_GLOBAL_TEXTURES);
 	
 		// Descriptor set layouts
 	VkDescriptorSetLayout setLayout0 = createDescriptorSetLayout(SIZE_OF(perFrameLayoutBindings), perFrameLayoutBindings, 0, nullptr);
@@ -396,7 +396,7 @@ void OffscreenPipeline::setUpDescriptors() {
 
 	// Specific descriptor set creation
 		// Per-frame descriptor sets
-	std::vector<VkDescriptorSetLayout> descSetLayouts(SimulationConsts::MAX_FRAMES_IN_FLIGHT, setLayout0);
+	std::vector<VkDescriptorSetLayout> descSetLayouts(SimulationConst::MAX_FRAMES_IN_FLIGHT, setLayout0);
 	m_perFrameDescriptorSets.resize(descSetLayouts.size());
 
 	createDescriptorSets(descSetLayouts.size(), m_perFrameDescriptorSets.data(), descSetLayouts.data(), perFrameDescriptorPool, nullptr);
@@ -473,12 +473,12 @@ void OffscreenPipeline::createDescriptorSets(uint32_t descriptorSetCount, VkDesc
 void OffscreenPipeline::initShaderStage() {
 	// Loads shader bytecode onto buffers
 		// Vertex shader
-	m_vertShaderBytecode = FilePathUtils::ReadFile(ShaderConsts::VERTEX);
+	m_vertShaderBytecode = FilePathUtils::ReadFile(ShaderConst::VERTEX);
 	Log::Print(Log::T_SUCCESS, __FUNCTION__, ("Loaded vertex shader! SPIR-V bytecode file size is " + std::to_string(m_vertShaderBytecode.size()) + " (bytes)."));
 	m_vertShaderModule = createShaderModule(m_vertShaderBytecode);
 
 	// Fragment shader
-	m_fragShaderBytecode = FilePathUtils::ReadFile(ShaderConsts::FRAGMENT);
+	m_fragShaderBytecode = FilePathUtils::ReadFile(ShaderConst::FRAGMENT);
 	Log::Print(Log::T_SUCCESS, __FUNCTION__, ("Loaded fragment shader! SPIR-V bytecode file size is " + std::to_string(m_fragShaderBytecode.size()) + " (bytes)."));
 	m_fragShaderModule = createShaderModule(m_fragShaderBytecode);
 

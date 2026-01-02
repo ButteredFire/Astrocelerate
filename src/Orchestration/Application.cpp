@@ -16,10 +16,19 @@
 #include <cstdlib>
 
 #include <boxer/boxer.h>
+#include <nlohmann/json.hpp>
 
 
-const int WIN_WIDTH = AppConsts::DEFAULT_WINDOW_WIDTH;
-const int WIN_HEIGHT = AppConsts::DEFAULT_WINDOW_HEIGHT;
+#if _WIN32
+    #include <windows.h>
+#endif
+
+
+using json = nlohmann::json;
+
+
+const int WIN_WIDTH = AppConst::DEFAULT_WINDOW_WIDTH;
+const int WIN_HEIGHT = AppConst::DEFAULT_WINDOW_HEIGHT;
 
 
 void processCleanupStack() {
@@ -28,7 +37,72 @@ void processCleanupStack() {
 }
 
 
-int main() {
+int processAppConfig(int argc, char *argv[]) {
+    std::unordered_set<std::string> args;
+
+    for (int i = 0; i < argc; i++)
+        args.insert(std::string(argv[i]));
+    
+
+    std::function <bool(json, std::string, std::string) > getConfigOrArgVal = [args](json appConfig, std::string k1, std::string k2) {
+        return (args.count(k2)) ? true : appConfig[k1][k2].get<bool>();
+    };
+
+
+
+    try {
+        std::ifstream f(ResourcePath::App.CONFIG_APP);
+        json appConfig = json::parse(f);
+
+        g_appContext.Config.appearance_ColorTheme           = appConfig["Appearance"]["ColorTheme"].get<std::string>();
+
+        g_appContext.Config.debugging_MaxUIConsoleLines     = appConfig["Debugging"]["MaxUIConsoleLines"].get<uint32_t>();
+        g_appContext.Config.debugging_ShowConsole           = getConfigOrArgVal(appConfig, "Debugging", "ShowWindowConsole");//appConfig["Debugging"]["ShowWindowConsole"].get<bool>();
+        g_appContext.Config.debugging_VkValidationLayers    = getConfigOrArgVal(appConfig, "Debugging", "VkValidationLayers");//appConfig["Debugging"]["VkValidationLayers"].get<bool>();
+        g_appContext.Config.debugging_VkAPIDump             = getConfigOrArgVal(appConfig, "Debugging", "VkAPIDump");//appConfig["Debugging"]["VkAPIDump"].get<bool>();
+    }
+    catch (const json::parse_error &parseErr) {
+        boxer::show(("Cannot start Astrocelerate: Unable to parse file " + enquote(ResourcePath::App.CONFIG_APP) + ".\n\nParser error: " + parseErr.what()).c_str(), "Configuration Error", boxer::Style::Error, boxer::Buttons::Quit);
+
+        return EXIT_FAILURE;
+    }
+    catch (const json::type_error &typeErr) {
+        boxer::show(("Cannot start Astrocelerate: Type error present in configuration file " + enquote(ResourcePath::App.CONFIG_APP) + ".\n\nParser error: " + typeErr.what()).c_str(), "Configuration Error", boxer::Style::Error, boxer::Buttons::Quit);
+
+        return EXIT_FAILURE;
+    }
+
+    return EXIT_SUCCESS;
+}
+
+
+void tryOpenConsole() {
+#if _WIN32
+    // If there is no console window yet and `showConsole` is true, allocate a new console window and redirect standard streams to it
+    if (GetConsoleWindow() == NULL && g_appContext.Config.debugging_ShowConsole) {
+        if (AllocConsole()) {
+            FILE *fDummy;
+            freopen_s(&fDummy, "CONOUT$", "w", stdout);
+            freopen_s(&fDummy, "CONOUT$", "w", stderr);
+            freopen_s(&fDummy, "CONIN$", "r", stdin);
+
+            // Clear the error state of cin/cout/cerr
+            std::cout.clear();
+            std::cerr.clear();
+            std::cin.clear();
+        }
+    }
+#endif
+}
+
+
+int main(int argc, char *argv[]) {
+    int processStat = processAppConfig(argc, argv);
+    if (processStat != EXIT_SUCCESS) return processStat;
+
+    tryOpenConsole();
+
+
     try {
         Log::BeginLogging();
         Log::PrintAppInfo();
@@ -78,22 +152,11 @@ int main() {
     }
 #endif
 
+
     processCleanupStack();
     Log::Print(Log::T_SUCCESS, APP_NAME, "Program exited successfully.");
+
 
     Log::EndLogging();
     return EXIT_SUCCESS;
 }
-
-
-#if _WIN32
-#include <windows.h>
-
-/* CMake has been configured such that Astrocelerate would be treated as a Windows GUI application if running on Windows (thus eliminating the console window).
-
-    Using the -mwindows flag and setting the subsystem to Windows necessitate having WinMain as the entry point instead of main.
-*/
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd) {
-    return main();
-}
-#endif

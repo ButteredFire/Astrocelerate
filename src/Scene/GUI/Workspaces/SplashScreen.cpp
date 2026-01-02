@@ -5,7 +5,7 @@ void SplashScreen::init() {
 	std::shared_ptr<TextureManager> textureManager = ServiceLocator::GetService<TextureManager>(__FUNCTION__);
 
 	// Splash image
-	Geometry::Texture texture = textureManager->createIndependentTexture(ResourcePath::App.SPLASH, VK_FORMAT_R8G8B8A8_SRGB);
+	Geometry::Texture texture = textureManager->createIndependentTexture(ResourcePath::App.LOGO_SPLASH, VK_FORMAT_R8G8B8A8_SRGB);
 
 	m_splashTexture.size = ImVec2(texture.size.x, texture.size.y);
 	m_splashTexture.textureID = TextureUtils::GenerateImGuiTextureID(texture.imageLayout, texture.imageView, texture.sampler);

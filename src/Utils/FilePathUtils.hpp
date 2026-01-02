@@ -52,9 +52,7 @@ namespace FilePathUtils {
 		// macOS: _NSGetExecutablePath
 		uint32_t buffer_size = sizeof(path_buffer);
 		if (_NSGetExecutablePath(path_buffer, &buffer_size) != 0) {
-			// Buffer was too small, try again with a larger buffer if needed,
-			// but for simplicity, we'll just throw for now.
-			// In a real-world scenario, you might reallocate.
+			// If the buffer was too small, we should try again with a larger buffer, but we'll just throw for now for the sake of simplicity
 			throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to get executable path on macOS (buffer too small or other error).");
 		}
 		executablePath = path_buffer;
@@ -79,7 +77,7 @@ namespace FilePathUtils {
 		@return The full path as a string.
 	*/
 	template<typename... Paths>
-		requires(std::convertible_to<Paths, std::string> && ...) // Ensures all paths are convertible to std::string
+		requires(std::convertible_to<Paths, std::string> && ...)
 	inline std::string JoinPaths(const std::string& root, const Paths&... paths) {
 		std::filesystem::path fullPath = root;
 		(fullPath /= ... /= paths);

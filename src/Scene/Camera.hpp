@@ -91,7 +91,7 @@ private:
 	std::unordered_map<int, Input::CameraMovement> m_keyToCamMovementBindings;
 
 	// Camera orientation
-	const glm::vec3 m_worldUp = SimulationConsts::UP_AXIS;
+	const glm::vec3 m_worldUp = SimulationConst::UP_AXIS;
 	glm::dvec3 m_position;
 	glm::quat m_orientation;
 	

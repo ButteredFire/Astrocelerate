@@ -74,13 +74,13 @@ void UIPanelManager::initStaticTextures() {
 	std::shared_ptr<TextureManager> textureManager = ServiceLocator::GetService<TextureManager>(__FUNCTION__);
 
 	// App logo
-	Geometry::Texture texture = textureManager->createIndependentTexture(ResourcePath::App.ASTRO_LOGO, VK_FORMAT_R8G8B8A8_SRGB);
+	Geometry::Texture texture = textureManager->createIndependentTexture(ResourcePath::App.LOGO_ASTRO, VK_FORMAT_R8G8B8A8_SRGB);
 	
 	m_appLogoTexProps.size = ImVec2(texture.size.x, texture.size.y);
 	m_appLogoTexProps.textureID = TextureUtils::GenerateImGuiTextureID(texture.imageLayout, texture.imageView, texture.sampler);
 
 	// Oriviet Aerospace logo
-	//texture = textureManager->createIndependentTexture(ResourcePath::App.ORIVIET_LOGO, VK_FORMAT_R8G8B8A8_SRGB);
+	//texture = textureManager->createIndependentTexture(ResourcePath::App.LOGO_ORIVIET, VK_FORMAT_R8G8B8A8_SRGB);
 	//
 	//m_companyLogoTexProps.size = ImVec2(texture.size.x, texture.size.y);
 	//m_companyLogoTexProps.textureID = TextureUtils::GenerateImGuiTextureID(texture.imageLayout, texture.imageView, texture.sampler);
@@ -577,7 +577,8 @@ void UIPanelManager::renderAboutPanel() {
 			ImGui::PushFont(g_fontContext.NotoSans.bold);
 			{
 				ImGuiUtils::AlignedText(ImGuiUtils::TEXT_ALIGN_MIDDLE, "%s (version %s)", APP_NAME, APP_VERSION);
-				ImGuiUtils::AlignedText(ImGuiUtils::TEXT_ALIGN_MIDDLE, "Open-source project by %s", AUTHOR_DIACRITIC);
+				ImGuiUtils::AlignedText(ImGuiUtils::TEXT_ALIGN_MIDDLE, "Open-source project developed under %s", APP_VENDOR);
+				ImGuiUtils::AlignedText(ImGuiUtils::TEXT_ALIGN_MIDDLE, "Founded and maintained by %s (%s)", AUTHOR_INTL, AUTHOR_DIACRITIC);
 			}
 			ImGui::PopFont();
 
@@ -585,15 +586,15 @@ void UIPanelManager::renderAboutPanel() {
 			ImGuiUtils::Padding();
 
 
-			ImGui::TextWrapped(STD_STR("Astrocelerate was released under Apache License, Version 2.0 (the " + enquote("License") + "). You may obtain a copy of the License").c_str());
-			ImGui::SameLine();
+			ImGui::TextWrapped(STD_STR("Astrocelerate was released under Apache License, Version 2.0 (the " + enquote("License") + "). You may obtain a copy of the License ").c_str());
+			ImGui::SameLine(0, 0.0f);
 			ImGui::TextLinkOpenURL("here.", "http://www.apache.org/licenses/LICENSE-2.0");
 
 
 			ImGuiUtils::Padding();
 
 
-			ImGui::TextWrapped("Astrocelerate is Vietnam's first high-performance orbital mechanics and spaceflight simulation engine, designed from the ground up to serve as a sovereign alternative to foreign aerospace software.");
+			ImGui::TextWrapped("Astrocelerate is a high-performance orbital mechanics and spaceflight simulation engine, designed as a versatile and intuitive tool that bridges the gap between arcane professional aerospace software and the accessibility of modern engines.");
 
 
 			ImGuiUtils::Padding();
@@ -601,40 +602,50 @@ void UIPanelManager::renderAboutPanel() {
 
 			ImGui::SeparatorText("Attribution");
 			{
-				ImGui::TextWrapped("Graphics API:");
-				ImGui::SameLine();
+				ImGui::TextWrapped("Graphics API: ");
+				ImGui::SameLine(0, 0.0f);
 				ImGui::TextLinkOpenURL("Vulkan 1.2", "https://www.vulkan.org/");
 
 
-				ImGui::TextWrapped("GUI Library:");
-				ImGui::SameLine();
+				ImGui::TextWrapped("GUI Library: ");
+				ImGui::SameLine(0, 0.0f);
 				ImGui::TextLinkOpenURL("Dear ImGui (docking branch)", "https://github.com/ocornut/imgui/");
-				ImGui::SameLine();
-				ImGui::TextWrapped("by Omar Cornut");
+				ImGui::SameLine(0, 0.0f);
+				ImGui::TextWrapped(" by Omar Cornut");
 
 
-				ImGui::TextWrapped("Script parser:");
-				ImGui::SameLine();
+				ImGui::TextWrapped("Script parser: ");
+				ImGui::SameLine(0, 0.0f);
 				ImGui::TextLinkOpenURL("YAML-CPP", "https://github.com/jbeder/yaml-cpp");
 
 
-				ImGui::TextWrapped("Base Code Editor Implementation:");
-				ImGui::SameLine();
+				ImGui::TextWrapped("Base Code Editor Implementation: ");
+				ImGui::SameLine(0, 0.0f);
 				ImGui::TextLinkOpenURL("ImGuiColorTextEdit", "https://github.com/BalazsJako/ImGuiColorTextEdit/tree/master");
-				ImGui::SameLine();
-				ImGui::TextWrapped("by BalazsJako");
+				ImGui::SameLine(0, 0.0f);
+				ImGui::TextWrapped(" by BalazsJako");
+
+
+				ImGui::TextWrapped("Model implementations: ");
+				ImGui::Indent();
+				{
+					ImGui::TextLinkOpenURL("TLE + SGP4", "https://github.com/aholinch/sgp4");
+					ImGui::SameLine(0, 0.0f);
+					ImGui::TextWrapped(" by David A. Vallado (original author) and aholinch (implementation distributor & tester)");
+				}
+				ImGui::Unindent();
 
 
 				ImGui::TextWrapped("Simulation Assets:");
 				ImGui::Indent();
 				{
-					ImGui::TextWrapped("Planet textures (Earth, Moon, etc.) by NASA Visualization Technology Applications and Development (VTAD) and");
-					ImGui::SameLine();
+					ImGui::TextWrapped("Planet textures (Earth, Moon, etc.) by NASA Visualization Technology Applications and Development (VTAD) and ");
+					ImGui::SameLine(0, 0.0f);
 					ImGui::TextLinkOpenURL("Solar System Scope", "https://www.solarsystemscope.com/textures/");
 
 					ImGui::TextLinkOpenURL("Chandra X-Ray Observatory Model", "https://nasa3d.arc.nasa.gov/detail/jpl-chandra");
-					ImGui::SameLine();
-					ImGui::TextWrapped("by Brian Kumanchik, NASA/JPL-Caltech");
+					ImGui::SameLine(0, 0.0f);
+					ImGui::TextWrapped(" by Brian Kumanchik, NASA/JPL-Caltech");
 				}
 				ImGui::Unindent();
 			}
@@ -735,18 +746,28 @@ void UIPanelManager::renderSceneLoadModal(const std::string &fileName) {
 
 
 void UIPanelManager::renderWelcomePanel() {
-	ImGui::SetNextWindowSize(ImVec2(800.0f, 550.0f));
+	ImGui::SetNextWindowSize(ImVec2(1000.0f, 800.0f));
 	ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 
 	static const char *panelName = GUI::GetPanelName(m_panelWelcome);
 	static bool panelOpen = GUI::IsPanelOpen(m_commonPanelMask, m_panelWelcome);
+
 	if (ImGui::Begin(panelName, &panelOpen, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoScrollbar)) {
+		// Draw a dimming overlay behind the window
+		ImGuiViewport *viewport = ImGui::GetMainViewport();
+		ImGui::GetBackgroundDrawList()->AddRectFilled(
+			viewport->Pos,
+			ImVec2(viewport->Pos.x + viewport->Size.x, viewport->Pos.y + viewport->Size.y),
+			IM_COL32(0, 0, 0, 128)
+		);
+
+
 
 		ImVec2 availableRegion = ImGui::GetContentRegionAvail();
 		float availableScrollHeight = availableRegion.y - ImGuiUtils::GetBottomButtonAreaHeight();
 
 		// Render logo
-		ImVec2 viewportSize = { ImGuiUtils::GetAvailableWidth() / 1.5f, availableScrollHeight };
+		ImVec2 viewportSize = { ImGuiUtils::GetAvailableWidth() / 2.0f, availableScrollHeight };
 
 			// Calculate the horizontal offset needed to center the text
 		float offsetX = (availableRegion.x - viewportSize.x) * 0.5f;
@@ -756,39 +777,79 @@ void UIPanelManager::renderWelcomePanel() {
 
 
 		// Body
-		ImGuiUtils::AlignedText(ImGuiUtils::TEXT_ALIGN_MIDDLE, ImGuiUtils::IconString(ICON_FA_SATELLITE, "Welcome to Astrocelerate!").c_str());
-
-		ImGuiUtils::Padding();
-
-		ImGui::Text("To get started, please open a simulation script by going to File > Load Simulation.");
-		ImGui::Text("A few sample scripts have been provided. Feel free to play around with them!");
-
-		ImGuiUtils::Padding();
-
-		ImGui::TextWrapped("The source code for Astrocelerate is available in");
-		ImGui::SameLine();
-		ImGui::TextLinkOpenURL("this repository.", "https://github.com/ButteredFire/Astrocelerate/");
-		ImGui::TextWrapped("If you have any questions or concerns, you can submit an issue there. Contributions are absolutely welcome!");
-
-		ImGuiUtils::Padding();
-
-		ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 255, 0, 255));
+			// Introduction
 		{
-			ImGuiUtils::AlignedText(ImGuiUtils::TEXT_ALIGN_MIDDLE, ImGuiUtils::IconString(ICON_FA_TRIANGLE_EXCLAMATION, "WE WANT TO HEAR WHAT YOU HAVE TO SAY!").c_str());
-		}
-		ImGui::PopStyleColor();
+			ImGuiUtils::AlignedText(ImGuiUtils::TEXT_ALIGN_MIDDLE, ImGuiUtils::IconString(ICON_FA_SATELLITE, "Welcome to Astrocelerate!").c_str());
 
-		ImGui::TextWrapped("Astrocelerate is in its early development phase. Your feedback is absolutely instrumental in shaping the future of Astrocelerate as an orbital mechanics simulation engine.");
-		ImGui::TextWrapped("We deeply value your feedback. To submit one, please fill in");
-		ImGui::SameLine();
-		ImGui::TextLinkOpenURL("this form.", "https://forms.gle/xpaqY4BoVRsGLhbC9/");
-		ImGui::TextWrapped("Alternatively, you can directly give feedback via");
-		ImGui::SameLine();
-		ImGui::TextLinkOpenURL("GitHub Discussions.", "https://github.com/ButteredFire/Astrocelerate/discussions/");
+			ImGuiUtils::Padding();
+
+			ImGui::TextWrapped("To get started, please open a simulation script by going to File > Load Simulation.");
+			ImGui::TextWrapped("A few sample scripts have been provided. Feel free to play around with them!");
+
+			ImGuiUtils::Padding();
+
+			ImGui::TextWrapped("The source code for Astrocelerate is available in ");
+			ImGui::SameLine(0, 0.0f);
+			ImGui::TextLinkOpenURL("this repository.", "https://github.com/ButteredFire/Astrocelerate/");
+			ImGui::TextWrapped("If you have any questions or concerns, you can submit an issue there. Contributions are absolutely welcome!");
+		}
+
 
 		ImGuiUtils::Padding();
 
-		ImGuiUtils::AlignedText(ImGuiUtils::TEXT_ALIGN_MIDDLE, "Thank you, and may the future of spaceflight rise and shine!");
+
+			// Roadmap
+		{
+			ImGuiUtils::AlignedText(ImGuiUtils::TEXT_ALIGN_MIDDLE, ImGuiUtils::IconString(ICON_FA_CODE, "Development Roadmap").c_str());
+
+			ImGui::TextWrapped("By version 1.0 (ETA: 1 - 1.5 years), Astrocelerate is expected to be:");
+			ImGui::Indent();
+			{
+				ImGui::Bullet(); ImGui::SameLine();
+				ImGui::TextWrapped("Scientifically Valid: Utilizing NASA's SPICE kernels for high-fidelity ephemeris and coordinate systems");
+
+				ImGui::Bullet(); ImGui::SameLine();
+				ImGui::TextWrapped("Approachable: Enabling hobbyists and non-programmers to design complex orbital maneuvers with a friendly modern UI and Visual Scripting system");
+
+				ImGui::Bullet(); ImGui::SameLine();
+				ImGui::TextWrapped("Versatile: Boasting a simulation suite sufficient for most simulation needs");
+
+				ImGui::Bullet(); ImGui::SameLine();
+				ImGui::TextWrapped("Performant: Built for massive-scale simulations (constellations, asteroid belts) using multi-threaded C++ and GPU acceleration");
+
+				ImGui::Bullet(); ImGui::SameLine();
+				ImGui::TextWrapped("Open-Source: Contributing to the open-source ecosystem and overall growth in the aerospace community with publicly available source code, documentation, and support for plugins");
+			}
+			ImGui::Unindent();
+
+			ImGuiUtils::Padding();
+
+			ImGui::TextWrapped("Astrocelerate is currently in its early stages, where the top priority is to develop a stable and absolutely deterministic multithreaded engine as a separately linked library, with a properly documented API.");
+		}
+
+
+		ImGuiUtils::Padding();
+
+
+			// CTA (Feedback)
+		{
+			ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 255, 0, 255));
+			{
+				ImGuiUtils::AlignedText(ImGuiUtils::TEXT_ALIGN_MIDDLE, ImGuiUtils::IconString(ICON_FA_TRIANGLE_EXCLAMATION, "WE WANT TO HEAR WHAT YOU HAVE TO SAY!").c_str());
+			}
+			ImGui::PopStyleColor();
+
+			ImGui::TextWrapped("Astrocelerate is in its early development phase. Your feedback is absolutely instrumental in shaping the future of Astrocelerate as an orbital mechanics simulation engine.");
+			ImGui::TextWrapped("We deeply value your feedback. To submit one, please fill in ");
+			ImGui::SameLine(0, 0.0f);
+			ImGui::TextLinkOpenURL("this form.", "https://forms.gle/xpaqY4BoVRsGLhbC9/");
+			ImGui::TextWrapped("Alternatively, you can directly give feedback via ");
+			ImGui::SameLine(0, 0.0f);
+			ImGui::TextLinkOpenURL("GitHub Discussions.", "https://github.com/ButteredFire/Astrocelerate/discussions/");
+		}
+
+
+		ImGuiUtils::Padding();
 
 		ImGui::End();
 	}

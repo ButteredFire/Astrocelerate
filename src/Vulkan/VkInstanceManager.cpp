@@ -44,10 +44,12 @@ CleanupTask VkInstanceManager::createVulkanInstance(VkInstance &instance) {
         addVulkanExtensions({ glfwExtensions[i] });
 
         // Sets up additional extensions
-    if (IN_DEBUG_MODE)
+    bool enableDebugLogs = (IN_DEBUG_MODE || g_appContext.Config.debugging_VkValidationLayers);
+    if (enableDebugLogs)
         addVulkanExtensions({
             VK_EXT_DEBUG_UTILS_EXTENSION_NAME
         });
+
 
     if (verifyVulkanExtensions(m_enabledExtensions) == false) {
         m_enabledExtensions.clear();
@@ -60,7 +62,7 @@ CleanupTask VkInstanceManager::createVulkanInstance(VkInstance &instance) {
 
     // Configures global validation layers
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
-    if (IN_DEBUG_MODE) {
+    if (enableDebugLogs) {
         instanceInfo.enabledLayerCount = static_cast<uint32_t>(m_enabledValidationLayers.size());
         instanceInfo.ppEnabledLayerNames = m_enabledValidationLayers.data();
 
@@ -104,7 +106,7 @@ CleanupTask VkInstanceManager::createDebugMessenger(VkDebugUtilsMessengerEXT &db
     task.objectNames = { VARIABLE_NAME(dbgMessenger) };
     task.vkHandles = { dbgMessenger };
     task.cleanupFunc = [instance, dbgMessenger]() { destroyDebugUtilsMessengerEXT(instance, dbgMessenger, nullptr); };
-    task.cleanupConditions = { IN_DEBUG_MODE };
+    task.cleanupConditions = { IN_DEBUG_MODE || g_appContext.Config.debugging_VkValidationLayers };
 
     return task;
 }
@@ -156,9 +158,11 @@ void VkInstanceManager::initVulkan() {
     // Sets validation layers to be bound to a Vulkan instance
     addVulkanValidationLayers({
         "VK_LAYER_KHRONOS_validation",
-        "VK_LAYER_LUNARG_screenshot",
-        //"VK_LAYER_LUNARG_api_dump"
+        "VK_LAYER_LUNARG_screenshot"
     });
+
+    if (g_appContext.Config.debugging_VkAPIDump)
+        addVulkanValidationLayers({ "VK_LAYER_LUNARG_api_dump" });
 }
 
 

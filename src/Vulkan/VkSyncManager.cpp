@@ -106,7 +106,7 @@ void VkSyncManager::createPerFrameSemaphores() {
 		*
 		* Fences must be reset manually to put them back into the unsignaled state. This is because fences are used to control the execution of the host, and so the host gets to decide when to reset the fence. Contrast this to semaphores which are used to order work on the GPU without the host being involved.
 	*/
-	m_imageReadySemaphores.resize(SimulationConsts::MAX_FRAMES_IN_FLIGHT);
+	m_imageReadySemaphores.resize(SimulationConst::MAX_FRAMES_IN_FLIGHT);
 
 
 	VkSemaphoreCreateInfo semaphoreCreateInfo{};
@@ -114,7 +114,7 @@ void VkSyncManager::createPerFrameSemaphores() {
 
 	
 
-	for (size_t i = 0; i < SimulationConsts::MAX_FRAMES_IN_FLIGHT; i++) {
+	for (size_t i = 0; i < SimulationConst::MAX_FRAMES_IN_FLIGHT; i++) {
 		VkResult imageSemaphoreCreateResult = vkCreateSemaphore(m_logicalDevice, &semaphoreCreateInfo, nullptr, &m_imageReadySemaphores[i]);
 		LOG_ASSERT(imageSemaphoreCreateResult == VK_SUCCESS, "Failed to create semaphores for frame " + std::to_string(i) + "!");
 
@@ -132,7 +132,7 @@ void VkSyncManager::createPerFrameSemaphores() {
 
 
 void VkSyncManager::createPerFrameFences() {
-	m_inFlightFences.resize(SimulationConsts::MAX_FRAMES_IN_FLIGHT);
+	m_inFlightFences.resize(SimulationConst::MAX_FRAMES_IN_FLIGHT);
 
 
 	VkFenceCreateInfo fenceCreateInfo{};
@@ -143,7 +143,7 @@ void VkSyncManager::createPerFrameFences() {
 	fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
 
-	for (size_t i = 0; i < SimulationConsts::MAX_FRAMES_IN_FLIGHT; i++) {
+	for (size_t i = 0; i < SimulationConst::MAX_FRAMES_IN_FLIGHT; i++) {
 		VkResult inFlightFenceCreateResult = vkCreateFence(m_logicalDevice, &fenceCreateInfo, nullptr, &m_inFlightFences[i]);
 		LOG_ASSERT(inFlightFenceCreateResult == VK_SUCCESS, "Failed to create in-flight fence for frame " + std::to_string(i) + "!");
 

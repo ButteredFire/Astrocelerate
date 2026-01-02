@@ -276,5 +276,5 @@ void Renderer::drawFrame(glm::dvec3& renderOrigin) {
 
 
     // Updates current frame index
-    m_currentFrame = (m_currentFrame + 1) % SimulationConsts::MAX_FRAMES_IN_FLIGHT;
+    m_currentFrame = (m_currentFrame + 1) % SimulationConst::MAX_FRAMES_IN_FLIGHT;
 }
