@@ -1,6 +1,9 @@
+/* Constants.cpp defines constants that can only be defined at runtime rather than compile time.
+*/
+
 #include "Constants.h"
 
-#include <Utils/FilePathUtils.hpp>
+#include <Core/Utils/FilePathUtils.hpp>
 
 const std::filesystem::path EXEC_DIR = FilePathUtils::GetExecDir();
 const std::string ROOT_DIR = EXEC_DIR.parent_path().string();
@@ -38,7 +41,5 @@ namespace ShaderConst {
 
 
 namespace SimulationConst {
-	// How many frames should be processed concurrently
-	
-	int MAX_FRAMES_IN_FLIGHT = 3;
+	int MAX_FRAMES_IN_FLIGHT = 3;	// Placeholder value. This will be dynamically updated by VkSwapchainManager to store the number of supported swapchain images (SwapChainProperties::surfaceCapabilities.minImageCount + 1)
 }

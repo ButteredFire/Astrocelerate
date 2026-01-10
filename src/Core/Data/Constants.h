@@ -6,7 +6,7 @@
 #include <string>
 #include <filesystem>
 
-#include <External/GLM.hpp>
+#include <Platform/External/GLM.hpp>
 
 
 // Default working directory

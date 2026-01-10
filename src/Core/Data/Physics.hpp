@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include <External/GLM.hpp>
+#include <Platform/External/GLM.hpp>
 
 #include <Core/Data/Constants.h>
 

@@ -3,12 +3,12 @@
 
 #pragma once
 
-#include <External/GLM.hpp>
+#include <Platform/External/GLM.hpp>
 
-#include <Engine/Components/CoreComponents.hpp>
-#include <Engine/Components/PhysicsComponents.hpp>
+#include <Engine/Registry/ECS/Components/CoreComponents.hpp>
+#include <Engine/Registry/ECS/Components/PhysicsComponents.hpp>
 
-#include <Utils/FilePathUtils.hpp>
+#include <Core/Utils/FilePathUtils.hpp>
 
 
 class ICelestialBody {

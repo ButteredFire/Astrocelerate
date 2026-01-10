@@ -6,4 +6,4 @@ struct CallbackContext {
     InputManager* inputManager;
 };
 
-extern CallbackContext g_callbackContext;
+extern CallbackContext g_glfwCallbackCtx;

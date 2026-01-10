@@ -7,11 +7,11 @@
 #include <vector>
 #include <climits>
 
-#include <External/GLM.hpp>
+#include <Platform/External/GLM.hpp>
 
 #include <Core/Data/Constants.h>
 
-#include <Utils/SystemUtils.hpp>
+#include <Core/Utils/SystemUtils.hpp>
 
 
 #define PI 3.14159265358979323846

@@ -2,51 +2,57 @@
 "version": 6,
   "configurePresets": [
     {
-      "name": "Debug-Win32",
-      "displayName": "Debug (Windows)",
-      "description": "Configures for Debug builds with Ninja and vcpkg on Windows.",
+      "name": "BaseCfg",
+      "hidden": true,
       "generator": "Ninja",
-      "binaryDir": "${sourceDir}/out/build/${presetName}",
-      "installDir": "${sourceDir}/out/install/${presetName}",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
+        //"WARNINGS_AS_ERRORS": "ON",
         "CMAKE_TOOLCHAIN_FILE": "D:/vcpkg/scripts/buildsystems/vcpkg.cmake"
       },
       "environment": {
         "SPICE_ROOT_DIR": "D:/CSPICE"
       }
     },
+
+
+    {
+      "name": "Debug-Win32",
+      "displayName": "Debug (Windows)",
+      "description": "Configures for Debug builds with Ninja and vcpkg on Windows.",
+      "inherits": "BaseCfg",
+      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "installDir": "${sourceDir}/out/install/${presetName}",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+
     {
       "name": "RelWithDebInfo-Win32",
       "displayName": "Release w/ Debug Info (Windows)",
       "description": "Configures for Release builds (with Debug info) with Ninja and vcpkg on Windows.",
-      "generator": "Ninja",
+      "inherits": "BaseCfg",
       "binaryDir": "${sourceDir}/out/build/${presetName}",
       "installDir": "${sourceDir}/out/install/${presetName}",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
-        "CMAKE_TOOLCHAIN_FILE": "D:/vcpkg/scripts/buildsystems/vcpkg.cmake"
-      },
-      "environment": {
-        "SPICE_ROOT_DIR": "D:/CSPICE"
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
       }
     },
+
     {
       "name": "MinSizeRel-Win32",
       "displayName": "Min-Size Release (Windows)",
       "description": "Configures for Min-Size Release builds with Ninja and vcpkg on Windows.",
-      "generator": "Ninja",
+      "inherits": "BaseCfg",
       "binaryDir": "${sourceDir}/out/build/${presetName}",
       "installDir": "${sourceDir}/out/install/${presetName}",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "MinSizeRel",
-        "CMAKE_TOOLCHAIN_FILE": "D:/vcpkg/scripts/buildsystems/vcpkg.cmake"
-      },
-      "environment": {
-        "SPICE_ROOT_DIR": "D:/CSPICE"
+        "CMAKE_BUILD_TYPE": "MinSizeRel"
       }
     }
   ],
+
+
 
   "buildPresets": [
     {
@@ -68,5 +74,8 @@
       "verbose": true
     }
   ],
+
+
+
   "testPresets": []
 }

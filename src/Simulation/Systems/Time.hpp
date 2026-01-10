@@ -3,9 +3,9 @@
 
 #pragma once
 
+#include <mutex>
 #include <chrono>
 #include <atomic>
-#include <mutex>
 
 
 using high_resolution_clock = std::chrono::high_resolution_clock;

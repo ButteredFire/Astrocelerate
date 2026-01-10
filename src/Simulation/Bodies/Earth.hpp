@@ -6,22 +6,21 @@
 
 #pragma once
 
-#include <cmath>
-#include <numbers>
-
-#include <vector>
-
 #include "ICelestialBody.hpp"
 
+#include <cmath>
+#include <vector>
+#include <numbers>
+
+
 #include <Core/Data/Math.hpp>
+
 #include <Simulation/NutationCoefficients/IAU1980.hpp>
 
 
 static const double DEG2RAD = PI / 180.0;
 static const double ASEC2RAD = DEG2RAD / 3600.0;
-
 static const double TAU = PI * 2.0;
-
 
 
 namespace _Bodies {

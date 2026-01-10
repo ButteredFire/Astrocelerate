@@ -6,15 +6,16 @@
 #include <array>
 #include <vector>
 
-#include <External/GLM.hpp>
-#include <External/SPICE.hpp>
 
-#include <Core/Data/Bodies.hpp>
-#include <Core/Data/CoordSys.hpp>
-#include <Core/Application/LoggingManager.hpp>
+#include <Core/Utils/SPICEUtils.hpp>
+#include <Core/Utils/FilePathUtils.hpp>
+#include <Core/Application/IO/LoggingManager.hpp>
 
-#include <Utils/SPICEUtils.hpp>
-#include <Utils/FilePathUtils.hpp>
+#include <Platform/External/GLM.hpp>
+#include <Platform/External/SPICE.hpp>
+
+#include <Simulation/Data/Bodies.hpp>
+#include <Simulation/Data/CoordSys.hpp>
 
 
 class CoordinateSystem {
