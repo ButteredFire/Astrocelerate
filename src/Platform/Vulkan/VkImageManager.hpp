@@ -8,7 +8,6 @@
 #include <Core/Application/Resources/ServiceLocator.hpp>
 
 #include <Platform/Vulkan/VkCoreResourcesManager.hpp>
-#include <Platform/External/GLFWVulkan.hpp>
 
 
 class VkCoreResourcesManager;

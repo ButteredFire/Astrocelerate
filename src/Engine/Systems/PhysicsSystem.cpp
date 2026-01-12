@@ -67,7 +67,7 @@ void PhysicsSystem::configureCoordSys(CoordSys::FrameType frameType, CoordSys::F
 	m_coordSystem->init(kernelPaths, frame, epoch, epochFormat);
 
 	auto view = m_ecsRegistry->getView<PhysicsComponent::CoordinateSystem>();
-	LOG_ASSERT(view.size() == 1, "Cannot configure coordinate system: Corrupt registry!");
+	LOG_ASSERT(view.size() == 1, "Cannot configure coordinate system: Corrupt registry or incorrect simulation configuration!");
 	auto [id, coordSys] = view[0];
 	coordSys.epochET = m_coordSystem->getEpochET();
 	m_ecsRegistry->updateComponent(id, coordSys);
@@ -82,7 +82,10 @@ void PhysicsSystem::tick(WorkerThread *worker) {
 	// Compute accumulator
 	float timeScale = Time::GetTimeScale();
 	Time::UpdateDeltaTime();
+
 	double deltaTime = Time::GetDeltaTime();
+		// If update() performs a heavy calculation, the delta-time of the next frame will be huge. This leads to an even bigger accumulation, which causes an engine-freezing loop. To solve this, we limit how much real time per frame the engine can process.
+	deltaTime = std::min(deltaTime, 0.25);
 
 	double localAccumulator;
 	{
@@ -91,26 +94,36 @@ void PhysicsSystem::tick(WorkerThread *worker) {
 		localAccumulator = m_accumulator;
 	}
 
+
 	// TODO: Implement adaptive timestepping instead of a constant TIME_STEP
-	uint32_t iterations = 0;
-	static constexpr uint32_t SYNC_FREQUENCY = 100;
-
-	while (localAccumulator >= SimulationConst::TIME_STEP) {
-		if (worker->stopRequested() || Time::GetTimeScale() != timeScale) {
-			// If the thread in which this function is called is requested to be stopped,
-			// OR If time scale changes while physics is updating (e.g., when the simulation is stopped in the middle of the updates),
-			// immediately stop updating physics
-			localAccumulator = 0.0;
-			break;
-		}
-
-		update(SimulationConst::TIME_STEP);
-		localAccumulator -= SimulationConst::TIME_STEP;
-
-		// Sync registry data every [SYNC_FREQUENCY] iterations to see frequent visual progress on high time scales
-		if (iterations++ % SYNC_FREQUENCY == 0)
-			syncECSData();
+	if (timeScale > 1000.0f) {
+		// For high time scales, do one big jump
+		update(localAccumulator);
+		localAccumulator = 0.0;
 	}
+	else {
+		// For low time scales, keep the fixed step for physics stability
+		uint32_t iterations = 0;
+		static constexpr uint32_t SYNC_FREQUENCY = 100;
+
+		while (localAccumulator >= SimulationConst::TIME_STEP) {
+			if (worker->stopRequested() || Time::GetTimeScale() != timeScale) {
+				// If the thread in which this function is called is requested to be stopped,
+				// OR If time scale changes while physics is updating (e.g., when the simulation is stopped in the middle of the updates),
+				// immediately stop updating physics
+				localAccumulator = 0.0;
+				break;
+			}
+
+			update(SimulationConst::TIME_STEP);
+			localAccumulator -= SimulationConst::TIME_STEP;
+
+			// Sync registry data every [SYNC_FREQUENCY] iterations to see frequent visual progress on high time scales
+			if (iterations++ % SYNC_FREQUENCY == 0)
+				syncECSData();
+		}
+	}
+	
 
 	{
 		std::lock_guard<std::mutex> lock(m_accumulatorMutex);

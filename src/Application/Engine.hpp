@@ -25,7 +25,7 @@
 #include <Engine/GUI/UIPanelManager.hpp>
 #include <Engine/GUI/Workspaces/SplashScreen.hpp>
 #include <Engine/GUI/Workspaces/OrbitalWorkspace.hpp>
-#include <Engine/Scene/SceneLoader.hpp>
+#include <Engine/Scene/Parsing/SceneLoader.hpp>
 #include <Engine/Input/InputManager.hpp>
 #include <Engine/Systems/RenderSystem.hpp>
 #include <Engine/Systems/PhysicsSystem.hpp>

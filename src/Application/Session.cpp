@@ -76,7 +76,6 @@ void Session::bindEvents() {
 void Session::init() {
 	m_physicsWorker = ThreadManager::CreateThread("PHYSICS");
 	m_renderWorker	= ThreadManager::CreateThread("RENDERER");
-	//m_inputWorker = ThreadManager::CreateThread("USER_INPUT");
 
 	reset();
 }
@@ -124,21 +123,6 @@ void Session::update() {
 	
 		m_renderWorker->start();
 	}
-
-
-	// Process key input events
-	//if (!m_inputWorker->isRunning()) {
-	//	m_inputWorker->set([this](std::stop_token stopToken) {
-	//		while (!m_inputWorker->stopRequested()) {
-	//			std::unique_lock<std::mutex> lock(g_appCtx.MainThread.haltMutex);
-	//			g_appCtx.MainThread.haltCV.wait(lock, []() { return !g_appCtx.MainThread.isHalted.load(); });
-	//
-	//			m_inputManager->tick(Time::GetDeltaTime(), m_accumulator);
-	//		}
-	//	});
-	//
-	//	m_inputWorker->start();
-	//}
 }
 
 

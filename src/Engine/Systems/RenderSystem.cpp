@@ -93,8 +93,12 @@ void RenderSystem::bindEvents() {
 			switch (event.sessionStatus) {
 			case PREPARE_FOR_INIT:
 				m_sceneReady.store(false);
-				waitForResources(selfIndex);
+				//waitForResources(selfIndex);
 
+				break;
+
+			case POST_INITIALIZATION:
+				m_sceneReady.store(true);
 				break;
 			}
 		}

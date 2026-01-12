@@ -18,7 +18,6 @@
 #include <Core/Application/Resources/ServiceLocator.hpp>
 
 #include <Platform/Vulkan/VkSyncManager.hpp>
-#include <Platform/External/GLFWVulkan.hpp>
 
 #include <Engine/Systems/RenderSystem.hpp>
 #include <Engine/Registry/ECS/ECS.hpp>

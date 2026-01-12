@@ -23,7 +23,6 @@
 #include <Core/Application/Resources/ServiceLocator.hpp>
 
 #include <Platform/Vulkan/VkSwapchainManager.hpp>
-#include <Platform/External/GLFWVulkan.hpp>
 
 
 class VkDeviceManager {

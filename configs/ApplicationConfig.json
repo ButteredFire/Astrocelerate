@@ -7,6 +7,15 @@
     "MaxUIConsoleLines": 1000,
     "ShowWindowConsole": false,
     "VkValidationLayers": false,
-    "VkAPIDump":  false
+    "VkAPIDump": false
+  },
+
+  "Simulation": {
+    "TimeStep": 60,
+    "SyncFrequency": 100
+  },
+
+  "Rendering": {
+
   }
 }

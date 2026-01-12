@@ -3,7 +3,10 @@
 
 #pragma once
 
+#define NOMINMAX	// minwindef.h keeps overriding std::min and std::max definitions provided by the algorithms header for some reason, so we have to define this macro to disable minwindef.h definitions.
+
 #include <mutex>
+#include <algorithm>
 
 
 #include <Core/Data/Physics.hpp>

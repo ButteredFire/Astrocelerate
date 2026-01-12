@@ -28,7 +28,7 @@ set(SOURCE_FILES
 	"src/Engine/Rendering/Pipelines/PresentPipeline.cpp"
 	"src/Engine/Rendering/Textures/TextureManager.cpp"
 	"src/Engine/Scene/Camera.cpp"
-	"src/Engine/Scene/SceneLoader.cpp"
+	"src/Engine/Scene/Parsing/SceneLoader.cpp"
 	"src/Engine/Systems/PhysicsSystem.cpp"
 	"src/Engine/Systems/RenderSystem.cpp"
 	"src/Platform/External/STB_Impl.cpp"

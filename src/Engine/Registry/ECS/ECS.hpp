@@ -525,16 +525,25 @@ public:
 
 
 	template<typename Component>
-	inline void removeComponent(EntityID entityID) {
+	inline void updateComponent(EntityID entityID, Component component) {
 		std::lock_guard<std::mutex> lock(m_componentMutex);
-		componentManager.removeComponent(entityID);
+		componentManager.updateComponent(entityID, component);
 	}
 
 
 	template<typename Component>
-	inline void updateComponent(EntityID entityID, Component component) {
+	inline void addOrUpdateComponent(EntityID entityID, Component component) {
+		if (hasComponent<Component>(entityID))
+			updateComponent(entityID, component);
+		else
+			addComponent(entityID, component);
+	}
+
+
+	template<typename Component>
+	inline void removeComponent(EntityID entityID) {
 		std::lock_guard<std::mutex> lock(m_componentMutex);
-		componentManager.updateComponent(entityID, component);
+		componentManager.removeComponent(entityID);
 	}
 
 

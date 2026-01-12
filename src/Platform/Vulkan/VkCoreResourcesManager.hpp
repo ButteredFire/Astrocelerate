@@ -12,7 +12,6 @@
 #include <Platform/Vulkan/VkDeviceManager.hpp>
 #include <Platform/Vulkan/VkInstanceManager.hpp>
 #include <Platform/Vulkan/Data/Device.hpp>
-#include <Platform/External/GLFWVulkan.hpp>
 
 #include <Engine/Registry/Event/EventDispatcher.hpp>
 

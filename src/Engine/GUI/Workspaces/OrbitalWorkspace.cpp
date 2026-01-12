@@ -297,7 +297,7 @@ void OrbitalWorkspace::renderViewportPanel() {
 
 				// Time scale
 				static float timeScale = (Time::GetTimeScale() <= 0.0f) ? 1.0f : Time::GetTimeScale();
-				static const float MIN_VAL = 1.0f, MAX_VAL = 1000.0f;
+				static const float MIN_VAL = 1.0f, MAX_VAL = std::numeric_limits<float>::infinity();
 
 				std::stringstream textSS;
 				textSS << std::fixed << std::setprecision(1) << timeScale << "x"; // NOTE: std::fixed ensures floating-point numbers are displayed in floating-point notation (e.g., 123.45 instead of 1.2345e+02)

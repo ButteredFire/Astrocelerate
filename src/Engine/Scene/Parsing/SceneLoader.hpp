@@ -2,7 +2,6 @@
 */
 #pragma once
 
-#include <atomic>
 #include <thread>
 
 
@@ -20,6 +19,7 @@
 #include <Engine/Registry/Event/EventDispatcher.hpp>
 #include <Engine/Rendering/Data/Geometry.hpp>
 #include <Engine/Rendering/Geometry/GeometryLoader.hpp>
+#include <Engine/Serialization/SerialLogicRegistry.hpp>
 
 #include <Simulation/Data/Bodies.hpp>
 
@@ -32,8 +32,11 @@ public:
 	void init();
 
 
-	/* (Re)loads models.
-	*/
+	/* (Re)loads deserialization logic bindings. */
+	void loadDeserialBindings();
+
+	
+	/* (Re)loads models. */
 	void loadModels();
 
 
@@ -55,6 +58,8 @@ public:
 private:
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 	std::shared_ptr<ECSRegistry> m_ecsRegistry;
+
+	SerialLogicRegistry m_serialRegistry;
 
 
 	std::string m_fileName;

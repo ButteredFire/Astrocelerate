@@ -19,7 +19,6 @@
 #include <Platform/Vulkan/VkCommandManager.hpp>
 #include <Platform/Vulkan/VkCoreResourcesManager.hpp>
 #include <Platform/External/GLM.hpp>
-#include <Platform/External/GLFWVulkan.hpp>
 
 #include <Engine/Scene/Camera.hpp>
 #include <Engine/Registry/ECS/ECS.hpp>

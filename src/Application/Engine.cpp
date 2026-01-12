@@ -275,7 +275,7 @@ void Engine::run() {
 
 
             // The watchdog thread doesn't need to run constantly; we should have it work on intervals to avoid 100% CPU usage.
-            //std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
     });
     m_watchdogThread->start();

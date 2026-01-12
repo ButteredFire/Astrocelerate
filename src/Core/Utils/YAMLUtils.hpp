@@ -26,9 +26,6 @@ namespace YAMLUtils {
 
 
     /* Populates an ECS component with data from a component node.
-    
-        This is a utility function for YAMLUtils::TryGetEntryData.
-        
         @param data: A pointer to the ECS component.
         @param componentNode: The YAML Node that contains the data.
 
