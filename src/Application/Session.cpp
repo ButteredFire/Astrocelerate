@@ -1,15 +1,17 @@
 #include "Session.hpp"
 
 
-Session::Session(VkCoreResourcesManager *coreResources, SceneLoader *sceneMgr, PhysicsSystem *physicsSystem, RenderSystem *renderSystem) :
-	m_coreResources(coreResources),
-	m_sceneManager(sceneMgr),
+Session::Session(const Ctx::VkRenderDevice *renderDeviceCtx, const Ctx::VkWindow *windowCtx, const Ctx::OffscreenPipeline *offscreenData, std::shared_ptr<InputManager> inputMgr, std::shared_ptr<SceneLoader> sceneLoader, std::shared_ptr<PhysicsSystem> physicsSystem, std::shared_ptr<RenderSystem> renderSystem) :
+	m_renderDeviceCtx(renderDeviceCtx),
+	m_windowCtx(windowCtx),
+	m_offscreenData(offscreenData),
+	m_inputManager(inputMgr),
+	m_sceneLoader(sceneLoader),
 	m_physicsSystem(physicsSystem),
 	m_renderSystem(renderSystem) {
 
 	m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
 	m_ecsRegistry = ServiceLocator::GetService<ECSRegistry>(__FUNCTION__);
-	m_inputManager = ServiceLocator::GetService<InputManager>(__FUNCTION__);
 
 	bindEvents();
 
@@ -25,20 +27,6 @@ void Session::bindEvents() {
 	m_eventDispatcher->subscribe<RequestEvent::InitSession>(selfIndex,
 		[this](const RequestEvent::InitSession &event) {
 			this->loadSceneFromFile(event.simulationFilePath);
-		}
-	);
-
-
-	m_eventDispatcher->subscribe<InitEvent::OffscreenPipeline>(selfIndex,
-		[this](const InitEvent::OffscreenPipeline &event) {
-			// This event is just an alias for InitEvent::OffscreenPipeline for the sake of readability.
-			// Services that don't have a direct tie to the offscreen pipeline should listen to this event.
-			m_eventDispatcher->dispatch(InitEvent::Scene{});
-
-			// Signal all managers that the newly initialized resources are safe to use
-			m_eventDispatcher->dispatch(UpdateEvent::SessionStatus{
-				.sessionStatus = UpdateEvent::SessionStatus::Status::INITIALIZED
-			});
 		}
 	);
 
@@ -82,13 +70,13 @@ void Session::init() {
 
 
 void Session::reset() {
-	vkDeviceWaitIdle(m_coreResources->getLogicalDevice());
+	vkDeviceWaitIdle(m_renderDeviceCtx->logicalDevice);
 
 	m_eventDispatcher->dispatch(UpdateEvent::SessionStatus{
 		.sessionStatus = UpdateEvent::SessionStatus::Status::PREPARE_FOR_RESET
 	});
 
-	vkDeviceWaitIdle(m_coreResources->getLogicalDevice());
+	vkDeviceWaitIdle(m_renderDeviceCtx->logicalDevice);
 
 	m_eventDispatcher->dispatch(UpdateEvent::SessionStatus{
 		.sessionStatus = UpdateEvent::SessionStatus::Status::RESET
@@ -96,7 +84,7 @@ void Session::reset() {
 }
 
 
-void Session::update() {
+void Session::tick() {
 	// Update physics
 	if (m_sessionIsValid && !m_physicsWorker->isRunning()) {
 		m_physicsWorker->set([this](std::stop_token stopToken) {
@@ -123,6 +111,13 @@ void Session::update() {
 	
 		m_renderWorker->start();
 	}
+
+
+	// Update other session-specific data
+	
+		// Camera linear interpolation
+	static Camera *camera = m_inputManager->getCamera();
+	camera->tick(m_physicsSystem->getDeltaTick());
 }
 
 
@@ -141,8 +136,11 @@ void Session::loadSceneFromFile(const std::string &filePath) {
 	auto sceneLoadThread = ThreadManager::CreateThread("SCENE_INIT");
 	sceneLoadThread->set([this, filePath](std::stop_token stopToken) {
 		try {
-			m_sceneManager->loadSceneFromFile(filePath);
-			m_eventDispatcher->dispatch(RequestEvent::InitSceneResources{});
+			auto fileData = m_sceneLoader->loadSceneFromFile(filePath);		// NOTE: GeometryLoader owns Geometry::GeometryData
+
+			m_physicsSystem->init(fileData.fileConfig, fileData.simulationConfig);
+			m_renderSystem->init(fileData.geometryData, m_offscreenData);
+
 
 			// Propagate scene initialization status to GUI
 			m_eventDispatcher->dispatch(UpdateEvent::SceneLoadProgress{
@@ -153,9 +151,16 @@ void Session::loadSceneFromFile(const std::string &filePath) {
 				.loadSuccessful = true,
 				.finalMessage = "Scene initialization complete."
 			});
+
+			// Signal all managers that the newly initialized resources are safe to use
+			m_eventDispatcher->dispatch(UpdateEvent::SessionStatus{
+				.sessionStatus = UpdateEvent::SessionStatus::Status::INITIALIZED
+			});
+			m_eventDispatcher->dispatch(UpdateEvent::SessionStatus{
+				.sessionStatus = UpdateEvent::SessionStatus::Status::POST_INITIALIZATION
+			});
 		}
 		catch (const std::exception &e) {
-			// Catch any exceptions during the worker thread's CPU-bound execution.
 			Log::Print(Log::T_ERROR, __FUNCTION__, std::string(e.what()));
 			m_eventDispatcher->dispatch(UpdateEvent::SceneLoadComplete{
 				.loadSuccessful = false,

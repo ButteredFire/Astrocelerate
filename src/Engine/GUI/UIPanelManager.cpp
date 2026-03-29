@@ -74,13 +74,13 @@ void UIPanelManager::initStaticTextures() {
 	std::shared_ptr<TextureManager> textureManager = ServiceLocator::GetService<TextureManager>(__FUNCTION__);
 
 	// App logo
-	Geometry::Texture texture = textureManager->createIndependentTexture(ResourcePath::App.LOGO_ASTRO, VK_FORMAT_R8G8B8A8_SRGB);
+	Geometry::Texture texture = textureManager->createTexture(ResourcePath::App.LOGO_ASTRO, VK_FORMAT_R8G8B8A8_SRGB);
 	
 	m_appLogoTexProps.size = ImVec2(texture.size.x, texture.size.y);
 	m_appLogoTexProps.textureID = TextureUtils::GenerateImGuiTextureID(texture.imageLayout, texture.imageView, texture.sampler);
 
 	// Oriviet Aerospace logo
-	//texture = textureManager->createIndependentTexture(ResourcePath::App.LOGO_ORIVIET, VK_FORMAT_R8G8B8A8_SRGB);
+	//texture = textureManager->createTexture(ResourcePath::App.LOGO_ORIVIET, VK_FORMAT_R8G8B8A8_SRGB);
 	//
 	//m_companyLogoTexProps.size = ImVec2(texture.size.x, texture.size.y);
 	//m_companyLogoTexProps.textureID = TextureUtils::GenerateImGuiTextureID(texture.imageLayout, texture.imageView, texture.sampler);

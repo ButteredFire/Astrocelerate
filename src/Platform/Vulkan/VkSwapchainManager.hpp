@@ -19,8 +19,9 @@
 
 #include <Engine/Registry/Event/EventDispatcher.hpp>
 
-#include <Platform/Vulkan/VkImageManager.hpp>
+#include <Platform/Vulkan/Contexts.hpp>
 #include <Platform/Vulkan/VkCoreResourcesManager.hpp>
+#include <Platform/Vulkan/Utils/VkImageUtils.hpp>
 #include <Platform/External/GLFWVulkan.hpp>
 
 
@@ -47,29 +48,29 @@ public:
 
 	inline const std::vector<VkImageLayout> &getImageLayouts() const { return m_imageLayouts; }
 
-	inline VkSwapchainKHR getSwapChain() const { return m_swapChain; }
-	inline VkExtent2D getSwapChainExtent() const { return m_swapChainExtent; }
+	inline VkSwapchainKHR getSwapChain() const { return m_swapchain; }
+	inline VkExtent2D getSwapChainExtent() const { return m_swapchainExtent; }
 	inline VkSurfaceFormatKHR getSurfaceFormat() const { return m_surfaceFormat; }
 	inline VkPresentModeKHR getPresentMode() const { return m_presentMode; }
 	inline uint32_t getMinImageCount() const { return m_minImageCount; }
 
-	inline CleanupID getSwapchainCleanupID() const { return m_swapchainCleanupID; }
+	inline ResourceID getSwapchainResourceID() const { return m_swapchainID; }
 
 
 	/* Initializes the swap-chain manager. */
 	void init();
 
 
-	/* Creates a framebuffer for each image in the swap-chain. Only call this after the graphics pipeline has been initialized. */
-	void createFrameBuffers();
-
-
-	/* Recreates the swap-chain.
-		@param newWindowPtr: The pointer to the new GLFW window. If the swapchain is to be recreated in the same window, leave this as a null pointer.
-		@param imageIndex: The index at which a VkFence is currently in flight.
-		@param inFlightFences: The array of VkFences in flight.
+	/* Creates a framebuffer for each image in the swap-chain. Only call this after the graphics pipeline has been initialized.
+		@param presentRenderPass: The render pass handle for the presentation pipeline.
 	*/
-	void recreateSwapchain(GLFWwindow *newWindowPtr, uint32_t imageIndex, std::vector<VkFence> &inFlightFences);
+	void createFrameBuffers(VkRenderPass presentRenderPass);
+
+
+	/* Recreates the swapchain.
+		@param newWindowPtr (Default: nullptr): The pointer to the new GLFW window. If the swapchain is to be recreated in the same window, leave this as a null pointer.
+	*/
+	void recreateSwapchain(GLFWwindow *newWindowPtr = nullptr);
 
 
 	/* Queries the properties of a GPU's swap-chain.
@@ -83,20 +84,18 @@ public:
 private:
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 	std::shared_ptr<CleanupManager> m_cleanupManager;
-	std::vector<CleanupID> m_cleanupTaskIDs; // Stores cleanup task IDs (used exclusively in the swap-chain recreation process)
-	CleanupID m_swapchainCleanupID{};	// The swapchain cleanup task ID. This is to explicitly remove this ID from the destruction list in `recreateSwapchain` because, by setting VkSwapchainCreateInfoKHR::oldSwapchain to the old swapchain handle, it is implicitly destroyed by being "consumed" by the new swapchain, and thus any vkDestroySwapchain call on the old swapchain would mean destroying the new one instead.
+
+	ResourceID m_swapchainID{};
 
 	VkCoreResourcesManager *m_coreResources;
+	const Ctx::VkRenderDevice *m_renderDeviceCtx;
 
 	GLFWwindow *m_window;
 
-	VkSurfaceKHR m_surface, m_oldSurface;
-	VkPhysicalDevice m_physicalDevice;
-	VkDevice m_logicalDevice;
-	QueueFamilyIndices m_queueFamilies;
+	VkSurfaceKHR m_surface;
 
-	VkSwapchainKHR m_swapChain;
-	VkExtent2D m_swapChainExtent;
+	VkSwapchainKHR m_swapchain;
+	VkExtent2D m_swapchainExtent;
 	VkSurfaceFormatKHR m_surfaceFormat;
 	VkPresentModeKHR m_presentMode;
 	uint32_t m_minImageCount;
@@ -110,10 +109,9 @@ private:
 	std::vector<VkImageLayout> m_imageLayouts;
 
 
-	void bindEvents();
 
-	/* Creates a swap-chain. */
-	void createSwapChain(VkSwapchainKHR oldSwapchain = VK_NULL_HANDLE);
+	/* Creates a swapchain. */
+	void createSwapchain(VkSwapchainKHR oldSwapchain = VK_NULL_HANDLE);
 
 
 	/* Creates an array of image views, each element corresponding to a VkImage object in the passed-in vector.

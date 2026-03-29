@@ -8,7 +8,7 @@
 #include <Core/Application/Resources/CleanupManager.hpp>
 #include <Core/Application/Resources/ServiceLocator.hpp>
 
-#include <Platform/Vulkan/VkBufferManager.hpp>
+#include <Platform/Vulkan/Contexts.hpp>
 
 #include <Engine/Registry/Event/EventDispatcher.hpp>
 #include <Engine/Rendering/Pipelines/PipelineBuilder.hpp>
@@ -16,7 +16,7 @@
 
 class PresentPipeline {
 public:
-	PresentPipeline(VkCoreResourcesManager *coreResources, VkSwapchainManager *swapchainMgr);
+	PresentPipeline(const Ctx::VkRenderDevice *renderDeviceCtx, const Ctx::VkWindow *windowCtx);
 	~PresentPipeline() = default;
 
 
@@ -28,11 +28,9 @@ public:
 private:
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 	std::shared_ptr<CleanupManager> m_cleanupManager;
-	std::shared_ptr<VkBufferManager> m_bufferManager;
 
-	VkDevice m_logicalDevice;
-	VkSurfaceFormatKHR m_swapchainSurfaceFormat;
-	VkExtent2D m_swapchainExtent;
+	const Ctx::VkRenderDevice *m_renderDeviceCtx;
+	const Ctx::VkWindow *m_windowCtx;
 
 	VkPipeline m_graphicsPipeline = VK_NULL_HANDLE;
 

@@ -32,9 +32,9 @@ const int WIN_WIDTH = AppConst::DEFAULT_WINDOW_WIDTH;
 const int WIN_HEIGHT = AppConst::DEFAULT_WINDOW_HEIGHT;
 
 
-void processCleanupStack() {
+void cleanupAll() {
     std::shared_ptr<CleanupManager> cleanupManager = ServiceLocator::GetService<CleanupManager>(__FUNCTION__);
-    cleanupManager->processCleanupStack();
+    cleanupManager->cleanupAll();
 }
 
 
@@ -122,7 +122,7 @@ int main(int argc, char *argv[]) {
     catch (const Log::RuntimeException &e) {
         Log::Print(e.severity(), e.origin(), e.what());
         
-        processCleanupStack();
+        cleanupAll();
         Log::Print(Log::T_ERROR, APP_NAME, "Program exited with errors.");
 
         std::string title = "Fatal Exception";
@@ -154,7 +154,7 @@ int main(int argc, char *argv[]) {
 #endif
 
 
-    processCleanupStack();
+    cleanupAll();
     Log::Print(Log::T_SUCCESS, APP_NAME, "Program exited successfully.");
 
 

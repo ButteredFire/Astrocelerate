@@ -127,14 +127,10 @@ target_compile_options(Astrocelerate PRIVATE
 # Functions
     # Handles shader compilation
     function(CompileShaders)
-        # Set shader directories
-        set(SHADER_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/Shaders")
+        set(SHADER_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/Engine/Shaders")
         set(SHADER_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/bin/Shaders")
 
-        # Find all shader files in src/Shaders
         file(GLOB_RECURSE SHADER_FILES "${SHADER_SOURCE_DIR}/*.glsl.*")
-
-        # Create the output directory for compiled SPIR-V files
         file(MAKE_DIRECTORY ${SHADER_OUTPUT_DIR})
 
         # List to hold the generated SPIR-V files
@@ -148,7 +144,6 @@ target_compile_options(Astrocelerate PRIVATE
 
             set(CURRENT_SPIRV_FILE_PATH "${SHADER_OUTPUT_DIR}/${SHADER_NAME_WE}.spv")
 
-            # Add a custom command to compile the shader to SPIR-V bytecode
             add_custom_command(
                 OUTPUT "${CURRENT_SPIRV_FILE_PATH}"
                 COMMAND "${Vulkan_GLSLC_EXECUTABLE}" "${SHADER_SOURCE_DIR}/${SHADER_NAME}" -o "${CURRENT_SPIRV_FILE_PATH}"

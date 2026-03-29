@@ -1,16 +1,14 @@
 #include "OffscreenPipeline.hpp"
 
 
-OffscreenPipeline::OffscreenPipeline(VkCoreResourcesManager *coreResources, VkSwapchainManager *swapchainMgr) :
-	m_physicalDevice(coreResources->getPhysicalDevice()),
-	m_logicalDevice(coreResources->getLogicalDevice()),
-	m_deviceProperties(coreResources->getDeviceProperties()),
-
-	m_swapchainManager(swapchainMgr),
-	m_swapchainExtent(swapchainMgr->getSwapChainExtent()) {
+OffscreenPipeline::OffscreenPipeline(const Ctx::VkRenderDevice *renderDeviceCtx, const Ctx::VkWindow *windowCtx) :
+	m_renderDeviceCtx(renderDeviceCtx),
+	m_windowCtx(windowCtx) {
 
 	m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
 	m_cleanupManager = ServiceLocator::GetService<CleanupManager>(__FUNCTION__);
+
+	m_swapchainResourceGroup = m_cleanupManager->createCleanupGroup();
 
 	bindEvents();
 
@@ -21,50 +19,39 @@ OffscreenPipeline::OffscreenPipeline(VkCoreResourcesManager *coreResources, VkSw
 void OffscreenPipeline::bindEvents() {
 	static EventDispatcher::SubscriberIndex selfIndex = m_eventDispatcher->registerSubscriber<OffscreenPipeline>();
 
-	m_eventDispatcher->subscribe<RequestEvent::InitSceneResources>(selfIndex,
-		[this](const RequestEvent::InitSceneResources &event) {
-			this->init();
-			m_sessionReady = true;
-		}
-	);
 
-
-	m_eventDispatcher->subscribe<UpdateEvent::SessionStatus>(selfIndex,
-		[this](const UpdateEvent::SessionStatus &event) {
-			using enum UpdateEvent::SessionStatus::Status;
-
-			switch (event.sessionStatus) {
-			case RESET:
-				m_sessionReady = false;
-
-				for (auto &cleanupID : m_offscreenCleanupIDs)
-					m_cleanupManager->executeCleanupTask(cleanupID);
-				m_offscreenCleanupIDs.clear();
-
-				for (auto &cleanupID : m_sessionCleanupIDs)
-					m_cleanupManager->executeCleanupTask(cleanupID);
-				m_sessionCleanupIDs.clear();
-
-				break;
-			}
-		}
-	);
+	//m_eventDispatcher->subscribe<UpdateEvent::SessionStatus>(selfIndex,
+	//	[this](const UpdateEvent::SessionStatus &event) {
+	//		using enum UpdateEvent::SessionStatus::Status;
+	//
+	//		switch (event.sessionStatus) {
+	//		case RESET:
+	//			m_sessionReady = false;
+	//
+	//			for (auto &cleanupID : m_offscreenResourceIDs)
+	//				m_cleanupManager->executeCleanupTask(cleanupID);
+	//			m_offscreenResourceIDs.clear();
+	//
+	//			m_cleanupManager->executeCleanupTask(m_sessionResourceGroup);
+	//
+	//			break;
+	//		}
+	//	}
+	//);
 
 
 	m_eventDispatcher->subscribe<RecreationEvent::Swapchain>(selfIndex,
 		[this](const RecreationEvent::Swapchain& event) {
-			m_swapchainExtent = m_swapchainManager->getSwapChainExtent();
-
 			if (!m_sessionReady)
 				return;
-
-			recreateOffscreenResources(m_swapchainExtent.width, m_swapchainExtent.height);
+	
+			recreateOffscreenResources(event.newExtent.width, event.newExtent.height);
 		}
 	);
 }
 
 
-void OffscreenPipeline::init() {
+const Ctx::OffscreenPipeline *OffscreenPipeline::init() {
 	// Set up fixed-function states
 		// Dynamic states
 	m_dynamicStates = {
@@ -85,7 +72,7 @@ void OffscreenPipeline::init() {
 
 	initColorBlendingState();		// Blending state
 
-	initDepthBufferingResources();	// Depth buffering image and view
+	//initDepthBufferingResources();	// Depth buffering image and view
 
 	initTessellationState();		// Tessellation state
 
@@ -112,23 +99,12 @@ void OffscreenPipeline::init() {
 
 
 	// Initialize offscreen resources
-	recreateOffscreenResources(m_swapchainExtent.width, m_swapchainExtent.height);
+	recreateOffscreenResources(m_windowCtx->extent.width, m_windowCtx->extent.height);
 
 
-	m_eventDispatcher->dispatch(InitEvent::OffscreenPipeline{
-		.renderPass = m_renderPass,
-		.pipeline = m_graphicsPipeline,
-		.pipelineLayout = m_pipelineLayout,
+	m_sessionReady = true;
 
-		.perFrameDescriptorSets = m_perFrameDescriptorSets,
-		.pbrDescriptorSet = m_pbrDescriptorSet,
-		.texArrayDescriptorSet = m_texArrayDescriptorSet,
-
-		.offscreenImages = m_colorImages,
-		.offscreenImageViews = m_colorImgViews,
-		.offscreenImageSamplers = m_colorImgSamplers,
-		.offscreenFrameBuffers = m_colorImgFramebuffers
-	});
+	return &m_pipelineData;
 }
 
 
@@ -146,10 +122,10 @@ void OffscreenPipeline::createGraphicsPipeline() {
 
 	builder.shaderStages = m_shaderStages;
 
-	builder.renderPass = m_renderPass;
-	builder.pipelineLayout = m_pipelineLayout;
+	builder.renderPass = m_pipelineData.renderPass;
+	builder.pipelineLayout = m_pipelineData.pipelineLayout;
 
-	m_graphicsPipeline = builder.buildGraphicsPipeline(m_logicalDevice);
+	m_pipelineData.pipeline = builder.buildGraphicsPipeline(m_renderDeviceCtx->logicalDevice);
 }
 
 
@@ -163,17 +139,15 @@ void OffscreenPipeline::createPipelineLayout() {
 	createInfo.pushConstantRangeCount = 0;
 	createInfo.pPushConstantRanges = nullptr;
 
-	VkResult result = vkCreatePipelineLayout(m_logicalDevice, &createInfo, nullptr, &m_pipelineLayout);
+	VkResult result = vkCreatePipelineLayout(m_renderDeviceCtx->logicalDevice, &createInfo, nullptr, &m_pipelineData.pipelineLayout);
 
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
-	task.objectNames = { VARIABLE_NAME(m_pipelineLayout) };
-	task.vkHandles = { m_pipelineLayout };
-	task.cleanupFunc = [&]() { vkDestroyPipelineLayout(m_logicalDevice, m_pipelineLayout, nullptr); };
+	task.objectNames = { VARIABLE_NAME(m_pipelineData.pipelineLayout) };
+	task.vkHandles = { m_pipelineData.pipelineLayout };
+	task.cleanupFunc = [&]() { vkDestroyPipelineLayout(m_renderDeviceCtx->logicalDevice, m_pipelineData.pipelineLayout, nullptr); };
 
-	m_sessionCleanupIDs.push_back(
-		m_cleanupManager->createCleanupTask(task)
-	);
+	m_cleanupManager->createCleanupTask(task, m_sessionResourceGroup);
 
 
 	if (result != VK_SUCCESS) {
@@ -206,7 +180,7 @@ void OffscreenPipeline::createRenderPass() {
 
 	// Depth attachment
 	VkAttachmentDescription depthAttachment{};
-	depthAttachment.format = VkFormatUtils::GetBestDepthImageFormat(m_physicalDevice);
+	depthAttachment.format = VkFormatUtils::GetBestDepthImageFormat(m_renderDeviceCtx->physicalDevice);
 	depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 
 	depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -262,29 +236,27 @@ void OffscreenPipeline::createRenderPass() {
 		offscreenDependency
 	};
 
-	VkRenderPassCreateInfo m_renderPassCreateInfo{};
-	m_renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+	VkRenderPassCreateInfo renderPassCreateInfo{};
+	renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
 
-	m_renderPassCreateInfo.attachmentCount = static_cast<uint32_t>(sizeof(attachments) / sizeof(attachments[0]));
-	m_renderPassCreateInfo.pAttachments = attachments;
+	renderPassCreateInfo.attachmentCount = static_cast<uint32_t>(sizeof(attachments) / sizeof(attachments[0]));
+	renderPassCreateInfo.pAttachments = attachments;
 
-	m_renderPassCreateInfo.subpassCount = static_cast<uint32_t>(sizeof(subpasses) / sizeof(subpasses[0]));
-	m_renderPassCreateInfo.pSubpasses = subpasses;
+	renderPassCreateInfo.subpassCount = static_cast<uint32_t>(sizeof(subpasses) / sizeof(subpasses[0]));
+	renderPassCreateInfo.pSubpasses = subpasses;
 
-	m_renderPassCreateInfo.dependencyCount = static_cast<uint32_t>(sizeof(dependencies) / sizeof(dependencies[0]));
-	m_renderPassCreateInfo.pDependencies = dependencies;
+	renderPassCreateInfo.dependencyCount = static_cast<uint32_t>(sizeof(dependencies) / sizeof(dependencies[0]));
+	renderPassCreateInfo.pDependencies = dependencies;
 
-	VkResult result = vkCreateRenderPass(m_logicalDevice, &m_renderPassCreateInfo, nullptr, &m_renderPass);
+	VkResult result = vkCreateRenderPass(m_renderDeviceCtx->logicalDevice, &renderPassCreateInfo, nullptr, &m_pipelineData.renderPass);
 
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
-	task.objectNames = { VARIABLE_NAME(m_renderPass) };
-	task.vkHandles = { m_renderPass };
-	task.cleanupFunc = [this]() { vkDestroyRenderPass(m_logicalDevice, m_renderPass, nullptr); };
+	task.objectNames = { VARIABLE_NAME(m_pipelineData.renderPass) };
+	task.vkHandles = { m_pipelineData.renderPass };
+	task.cleanupFunc = [this]() { vkDestroyRenderPass(m_renderDeviceCtx->logicalDevice, m_pipelineData.renderPass, nullptr); };
 
-	m_sessionCleanupIDs.push_back(
-		m_cleanupManager->createCleanupTask(task)
-	);
+	m_cleanupManager->createCleanupTask(task, m_sessionResourceGroup);
 
 
 	if (result != VK_SUCCESS) {
@@ -305,7 +277,7 @@ void OffscreenPipeline::setUpDescriptors() {
 	globalUBOLayoutBinding.pImmutableSamplers = nullptr;			// Specifies descriptors handling image-sampling
 
 
-	// Per-object uniform buffer
+			// Per-object uniform buffer
 	VkDescriptorSetLayoutBinding objectUBOLayoutBinding{};
 	objectUBOLayoutBinding.binding = ShaderConst::VERT_BIND_OBJECT_UBO;
 	objectUBOLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;  // Allows the same descriptor to reference different offsets within a uniform buffer at draw time. That is, there will be a single big buffer with all object UBOs for each frame, and making this descriptor dynamic lets you bind this buffer once, and access it via offsets.
@@ -314,8 +286,8 @@ void OffscreenPipeline::setUpDescriptors() {
 	objectUBOLayoutBinding.pImmutableSamplers = nullptr;
 
 
-	// PBR textures
-		// Material parameters UBO
+			// PBR textures
+				// Material parameters UBO
 	VkDescriptorSetLayoutBinding pbrLayoutBinding{};
 	pbrLayoutBinding.binding = ShaderConst::FRAG_BIND_MATERIAL_PARAMETERS;
 	pbrLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
@@ -323,7 +295,7 @@ void OffscreenPipeline::setUpDescriptors() {
 	pbrLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 	pbrLayoutBinding.pImmutableSamplers = nullptr;
 
-		// Texture array
+			// Texture array
 	VkDescriptorSetLayoutBinding texArrayLayoutBinding{};
 	texArrayLayoutBinding.binding = ShaderConst::FRAG_BIND_TEXTURE_MAP;
 	texArrayLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -331,7 +303,7 @@ void OffscreenPipeline::setUpDescriptors() {
 	texArrayLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 	texArrayLayoutBinding.pImmutableSamplers = nullptr;
 
-			// Descriptor binding flags for the texture array
+				// Descriptor binding flags for the texture array
 	VkDescriptorBindingFlags texArrayBindingFlags =
 		VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |			// Allows descriptors to initially be null (as they'll be dynamically updated)
 		VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT |		// Allows updating descriptors after binding pipeline
@@ -344,14 +316,14 @@ void OffscreenPipeline::setUpDescriptors() {
 
 
 
-	// Data organization
-		// Layout bindings
+		// Data organization
+			// Layout bindings
 	VkDescriptorSetLayoutBinding perFrameLayoutBindings[] = {
 		globalUBOLayoutBinding,
 		objectUBOLayoutBinding
 	};
 
-		// Descriptor pool allocation
+			// Descriptor pool allocation
 	VkDescriptorPool perFrameDescriptorPool;
 	VkDescriptorPoolSize perFramePoolSizes[] = {
 		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, static_cast<uint32_t>(SimulationConst::MAX_FRAMES_IN_FLIGHT) },
@@ -377,9 +349,9 @@ void OffscreenPipeline::setUpDescriptors() {
 	// TODO: Modify CreateDescriptorPool to account for the actual number of maximum descriptor sets (not a fixed large value like 500)
 
 		// Descriptor pools
-	VkDescriptorUtils::CreateDescriptorPool(m_logicalDevice, perFrameDescriptorPool, SIZE_OF(perFramePoolSizes), perFramePoolSizes, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT, 500);
-	VkDescriptorUtils::CreateDescriptorPool(m_logicalDevice, pbrDescriptorPool, 1, &pbrPoolSize, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT, 10);
-	VkDescriptorUtils::CreateDescriptorPool(m_logicalDevice, texArrayDescriptorPool, 1, &texArrayPoolSize, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT | VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT, SimulationConst::MAX_GLOBAL_TEXTURES);
+	VkDescriptorUtils::CreateDescriptorPool(m_renderDeviceCtx->logicalDevice, perFrameDescriptorPool, SIZE_OF(perFramePoolSizes), perFramePoolSizes, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT, 500);
+	VkDescriptorUtils::CreateDescriptorPool(m_renderDeviceCtx->logicalDevice, pbrDescriptorPool, 1, &pbrPoolSize, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT, 10);
+	VkDescriptorUtils::CreateDescriptorPool(m_renderDeviceCtx->logicalDevice, texArrayDescriptorPool, 1, &texArrayPoolSize, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT | VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT, SimulationConst::MAX_GLOBAL_TEXTURES);
 	
 		// Descriptor set layouts
 	VkDescriptorSetLayout setLayout0 = createDescriptorSetLayout(SIZE_OF(perFrameLayoutBindings), perFrameLayoutBindings, 0, nullptr);
@@ -397,13 +369,13 @@ void OffscreenPipeline::setUpDescriptors() {
 	// Specific descriptor set creation
 		// Per-frame descriptor sets
 	std::vector<VkDescriptorSetLayout> descSetLayouts(SimulationConst::MAX_FRAMES_IN_FLIGHT, setLayout0);
-	m_perFrameDescriptorSets.resize(descSetLayouts.size());
+	m_pipelineData.perFrameDescriptorSets.resize(descSetLayouts.size());
 
-	createDescriptorSets(descSetLayouts.size(), m_perFrameDescriptorSets.data(), descSetLayouts.data(), perFrameDescriptorPool, nullptr);
+	createDescriptorSets(perFrameDescriptorPool, descSetLayouts.size(), m_pipelineData.perFrameDescriptorSets.data(), descSetLayouts.data(), nullptr);
 	
 		// Singular descriptor sets
 			// Material parameters UBO
-	createDescriptorSets(1, &m_pbrDescriptorSet, &setLayout1, pbrDescriptorPool, nullptr);
+	createDescriptorSets(pbrDescriptorPool, 1, &m_pipelineData.materialDescriptorSet, &setLayout1, nullptr);
 
 			// Textures array
 	const uint32_t initialDescriptorCount = 20;
@@ -412,7 +384,7 @@ void OffscreenPipeline::setUpDescriptors() {
 	variableDescSetAllocInfo.descriptorSetCount = 1;
 	variableDescSetAllocInfo.pDescriptorCounts = &initialDescriptorCount;
 
-	createDescriptorSets(1, &m_texArrayDescriptorSet, &setLayout2, texArrayDescriptorPool, &variableDescSetAllocInfo);
+	createDescriptorSets(texArrayDescriptorPool, 1, &m_pipelineData.texArrayDescriptorSet, &setLayout2, &variableDescSetAllocInfo);
 }
 
 
@@ -425,19 +397,17 @@ VkDescriptorSetLayout OffscreenPipeline::createDescriptorSetLayout(uint32_t bind
 	layoutCreateInfo.pNext = pNext;
 
 	VkDescriptorSetLayout descriptorSetLayout;
-	VkResult result = vkCreateDescriptorSetLayout(m_logicalDevice, &layoutCreateInfo, nullptr, &descriptorSetLayout);
+	VkResult result = vkCreateDescriptorSetLayout(m_renderDeviceCtx->logicalDevice, &layoutCreateInfo, nullptr, &descriptorSetLayout);
 	
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(descriptorSetLayout) };
 	task.vkHandles = { descriptorSetLayout };
 	task.cleanupFunc = [this, descriptorSetLayout]() {
-		vkDestroyDescriptorSetLayout(m_logicalDevice, descriptorSetLayout, nullptr);
+		vkDestroyDescriptorSetLayout(m_renderDeviceCtx->logicalDevice, descriptorSetLayout, nullptr);
 	};
 	
-	m_sessionCleanupIDs.push_back(
-		m_cleanupManager->createCleanupTask(task)
-	);
+	m_cleanupManager->createCleanupTask(task, m_sessionResourceGroup);
 
 	LOG_ASSERT(result == VK_SUCCESS, "Failed to create descriptor set layout!");
 
@@ -445,7 +415,7 @@ VkDescriptorSetLayout OffscreenPipeline::createDescriptorSetLayout(uint32_t bind
 }
 
 
-void OffscreenPipeline::createDescriptorSets(uint32_t descriptorSetCount, VkDescriptorSet *descriptorSets, VkDescriptorSetLayout *descriptorSetLayouts, VkDescriptorPool descriptorPool, const void *pNext) {
+void OffscreenPipeline::createDescriptorSets(VkDescriptorPool descriptorPool, uint32_t descriptorSetCount, VkDescriptorSet *descriptorSets, VkDescriptorSetLayout *descriptorSetLayouts, const void *pNext) {
 	VkDescriptorSetAllocateInfo descSetAllocInfo{};
 	descSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 	descSetAllocInfo.descriptorPool = descriptorPool;
@@ -453,20 +423,21 @@ void OffscreenPipeline::createDescriptorSets(uint32_t descriptorSetCount, VkDesc
 	descSetAllocInfo.pSetLayouts = descriptorSetLayouts;
 	descSetAllocInfo.pNext = pNext;
 
-	VkResult result = vkAllocateDescriptorSets(m_logicalDevice, &descSetAllocInfo, descriptorSets);
-	LOG_ASSERT(result == VK_SUCCESS, "Failed to create singular descriptor set!");
+	VkResult result = vkAllocateDescriptorSets(m_renderDeviceCtx->logicalDevice, &descSetAllocInfo, descriptorSets);
+	LOG_ASSERT(result == VK_SUCCESS, "Failed to create descriptor sets!");
 
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
-	task.objectNames = { VARIABLE_NAME(descriptorSets) };
-	task.vkHandles = { descriptorPool };
+	for (int i = 0; i < descriptorSetCount; i++) {
+		task.objectNames.push_back(VARIABLE_NAME(descriptorSets) + "[" + std::to_string(i) + "]");
+		task.vkHandles.push_back(descriptorSets[i]);
+	}
+
 	task.cleanupFunc = [this, descriptorSetCount, descriptorSets, descriptorPool]() {
-		vkFreeDescriptorSets(m_logicalDevice, descriptorPool, descriptorSetCount, descriptorSets);
+		vkFreeDescriptorSets(m_renderDeviceCtx->logicalDevice, descriptorPool, descriptorSetCount, descriptorSets);
 	};
 
-	m_sessionCleanupIDs.push_back(
-		m_cleanupManager->createCleanupTask(task)
-	);
+	m_cleanupManager->createCleanupTask(task, m_sessionResourceGroup);
 }
 
 
@@ -518,18 +489,16 @@ void OffscreenPipeline::initShaderStage() {
 	m_vertInputState.pVertexAttributeDescriptions = m_vertAttribDescriptions.data();
 
 
-	CleanupTask cleanupTask{};
-	cleanupTask.caller = __FUNCTION__;
-	cleanupTask.objectNames = { VARIABLE_NAME(m_vertShaderModule), VARIABLE_NAME(m_fragShaderModule) };
-	cleanupTask.vkHandles = { m_vertShaderModule, m_fragShaderModule };
-	cleanupTask.cleanupFunc = [&]() {
-		vkDestroyShaderModule(m_logicalDevice, m_vertShaderModule, nullptr);
-		vkDestroyShaderModule(m_logicalDevice, m_fragShaderModule, nullptr);
+	CleanupTask task{};
+	task.caller = __FUNCTION__;
+	task.objectNames = { VARIABLE_NAME(m_vertShaderModule), VARIABLE_NAME(m_fragShaderModule) };
+	task.vkHandles = { m_vertShaderModule, m_fragShaderModule };
+	task.cleanupFunc = [&]() {
+		vkDestroyShaderModule(m_renderDeviceCtx->logicalDevice, m_vertShaderModule, nullptr);
+		vkDestroyShaderModule(m_renderDeviceCtx->logicalDevice, m_fragShaderModule, nullptr);
 		};
 
-	m_sessionCleanupIDs.push_back(
-		m_cleanupManager->createCleanupTask(cleanupTask)
-	);
+	m_cleanupManager->createCleanupTask(task, m_sessionResourceGroup);
 }
 
 
@@ -549,15 +518,15 @@ void OffscreenPipeline::initInputAssemblyState() {
 
 void OffscreenPipeline::initViewportState() {
 	m_viewport.x = m_viewport.y = 0.0f;
-	m_viewport.width = static_cast<float>(m_swapchainExtent.width);
-	m_viewport.height = static_cast<float>(m_swapchainExtent.height);
+	m_viewport.width = static_cast<float>(m_windowCtx->extent.width);
+	m_viewport.height = static_cast<float>(m_windowCtx->extent.height);
 	m_viewport.minDepth = 0.0f;
 	m_viewport.maxDepth = 1.0f;
 
 	// Since we want to draw the entire framebuffer, we'll specify a scissor rectangle that covers it entirely (i.e., that has the same extent as the swap chain's)
 	// If we want to (re)draw only a partial part of the framebuffer from (a, b) to (x, y), we'll specify the offset as {a, b} and extent as {x, y}
 	m_scissorRectangle.offset = { 0, 0 };
-	m_scissorRectangle.extent = m_swapchainExtent;
+	m_scissorRectangle.extent = m_windowCtx->extent;
 
 	// NOTE: We don't need to specify pViewports and pScissors since the m_viewport was set as a dynamic state. Therefore, we only need to specify the m_viewport and scissor counts at pipeline creation time. The actual objects can be set up later at drawing time.
 	m_viewportStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -671,17 +640,26 @@ void OffscreenPipeline::initTessellationState() {
 }
 
 
-void OffscreenPipeline::initDepthBufferingResources() {
+void OffscreenPipeline::recreateOffscreenResources(uint32_t width, uint32_t height) {
+	m_cleanupManager->executeCleanupTask(m_swapchainResourceGroup);
+
+	initDepthBufferingResources(width, height);
+	initOffscreenColorResources(width, height);
+	initOffscreenSampler();
+	initOffscreenFramebuffer(width, height);
+
+	m_eventDispatcher->dispatch(RecreationEvent::OffscreenResources{});
+}
+
+
+void OffscreenPipeline::initDepthBufferingResources(uint32_t width, uint32_t height) {
 	// Specifies depth image data
 	VkImageTiling imgTiling = VK_IMAGE_TILING_OPTIMAL;
 	VkImageUsageFlags imgUsage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 	VkImageAspectFlags imgAspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
 
-	uint32_t imgWidth = m_swapchainExtent.width;
-	uint32_t imgHeight = m_swapchainExtent.height;
 	uint32_t imgDepth = 1;
-
-	VkFormat depthFormat = VkFormatUtils::GetBestDepthImageFormat(m_physicalDevice);
+	VkFormat depthFormat = VkFormatUtils::GetBestDepthImageFormat(m_renderDeviceCtx->physicalDevice);
 
 	bool hasStencilComponent = VkFormatUtils::FormatHasStencilComponent(depthFormat);
 
@@ -691,11 +669,11 @@ void OffscreenPipeline::initDepthBufferingResources() {
 	imgAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
 	imgAllocInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 
-	VkImageManager::CreateImage(m_depthImage, m_depthImgAllocation, imgAllocInfo, imgWidth, imgHeight, imgDepth, depthFormat, imgTiling, imgUsage, VK_IMAGE_TYPE_2D);
+	VkImageUtils::CreateImage(m_renderDeviceCtx, m_depthImage, m_depthImgAllocation, imgAllocInfo, width, height, imgDepth, depthFormat, imgTiling, imgUsage, VK_IMAGE_TYPE_2D);
 
 
 	// Creates a depth image view
-	VkImageManager::CreateImageView(m_depthImgView, m_depthImage, depthFormat, imgAspectFlags, VK_IMAGE_VIEW_TYPE_2D, 1, 1);
+	VkImageUtils::CreateImageView(m_renderDeviceCtx->logicalDevice, m_depthImgView, m_depthImage, depthFormat, imgAspectFlags, VK_IMAGE_VIEW_TYPE_2D, 1, 1);
 
 
 	// Explicitly transitions the layout of the depth image to a depth attachment.
@@ -704,36 +682,18 @@ void OffscreenPipeline::initDepthBufferingResources() {
 
 	VkCommandBufferInheritanceInfo inheritanceInfo{};
 	inheritanceInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
-	inheritanceInfo.renderPass = m_renderPass;
+	inheritanceInfo.renderPass = m_pipelineData.renderPass;
 	inheritanceInfo.subpass = 0;	// Offscreen subpass
 
-	TextureManager::SwitchImageLayout(m_depthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, true, &secondaryCmdBuf, &inheritanceInfo);
-}
-
-
-void OffscreenPipeline::recreateOffscreenResources(uint32_t width, uint32_t height) {
-	for (auto& cleanupID : m_offscreenCleanupIDs)
-		m_cleanupManager->executeCleanupTask(cleanupID);
-
-	m_offscreenCleanupIDs.clear();
-
-	initOffscreenColorResources(width, height);
-	initOffscreenSampler();
-	initOffscreenFramebuffer(width, height);
-
-	m_eventDispatcher->dispatch(RecreationEvent::OffscreenResources{
-		.imageViews = m_colorImgViews,
-		.samplers = m_colorImgSamplers,
-		.framebuffers = m_colorImgFramebuffers
-	});
+	TextureManager::SwitchImageLayout(m_renderDeviceCtx, m_depthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, true, &secondaryCmdBuf, &inheritanceInfo);
 }
 
 
 void OffscreenPipeline::initOffscreenColorResources(uint32_t width, uint32_t height) {
-	m_colorImages.resize(m_OFFSCREEN_RESOURCE_COUNT);
-	m_colorImgViews.resize(m_OFFSCREEN_RESOURCE_COUNT);
-	m_colorImgSamplers.resize(m_OFFSCREEN_RESOURCE_COUNT);
-	m_colorImgFramebuffers.resize(m_OFFSCREEN_RESOURCE_COUNT);
+	m_pipelineData.images.resize(m_OFFSCREEN_RESOURCE_COUNT);
+	m_pipelineData.imageViews.resize(m_OFFSCREEN_RESOURCE_COUNT);
+	m_pipelineData.imageSamplers.resize(m_OFFSCREEN_RESOURCE_COUNT);
+	m_pipelineData.frameBuffers.resize(m_OFFSCREEN_RESOURCE_COUNT);
 
 
 	// Image
@@ -759,12 +719,12 @@ void OffscreenPipeline::initOffscreenColorResources(uint32_t width, uint32_t hei
 
 
 	for (size_t i = 0; i < m_OFFSCREEN_RESOURCE_COUNT; i++) {
-		uint32_t imageCleanupID = VkImageManager::CreateImage(m_colorImages[i], m_colorImgAlloc, imgAllocInfo, width, height, depth, imgFormat, imgTiling, imgUsageFlags, imgType);
+		uint32_t imageResourceID = VkImageUtils::CreateImage(m_renderDeviceCtx, m_pipelineData.images[i], m_colorImgAlloc, imgAllocInfo, width, height, depth, imgFormat, imgTiling, imgUsageFlags, imgType);
 
-		uint32_t imageViewCleanupID = VkImageManager::CreateImageView(m_colorImgViews[i], m_colorImages[i], imgFormat, imgAspectFlags, viewType, levelCount, layerCount);
+		uint32_t imageViewResourceID = VkImageUtils::CreateImageView(m_renderDeviceCtx->logicalDevice, m_pipelineData.imageViews[i], m_pipelineData.images[i], imgFormat, imgAspectFlags, viewType, levelCount, layerCount);
 
-		m_offscreenCleanupIDs.push_back(imageCleanupID);
-		m_offscreenCleanupIDs.push_back(imageViewCleanupID);
+		m_cleanupManager->addTaskDependency(imageResourceID, m_swapchainResourceGroup);
+		m_cleanupManager->addTaskDependency(imageViewResourceID, m_swapchainResourceGroup);
 	}
 }
 
@@ -778,7 +738,7 @@ void OffscreenPipeline::initOffscreenSampler() {
 	samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 	samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 	samplerInfo.anisotropyEnable = VK_TRUE;
-	samplerInfo.maxAnisotropy = m_deviceProperties.limits.maxSamplerAnisotropy;
+	samplerInfo.maxAnisotropy = m_renderDeviceCtx->chosenDevice.properties.limits.maxSamplerAnisotropy;
 	samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK; // Color for clamp_to_border
 	samplerInfo.unnormalizedCoordinates = VK_FALSE; // UVs are [0, 1]
 	samplerInfo.compareEnable = VK_FALSE;
@@ -790,20 +750,20 @@ void OffscreenPipeline::initOffscreenSampler() {
 
 	for (size_t i = 0; i < m_OFFSCREEN_RESOURCE_COUNT; i++) {
 
-		VkResult result = vkCreateSampler(m_logicalDevice, &samplerInfo, nullptr, &m_colorImgSamplers[i]);
+		VkResult result = vkCreateSampler(m_renderDeviceCtx->logicalDevice, &samplerInfo, nullptr, &m_pipelineData.imageSamplers[i]);
 		
-		VkSampler& sampler = m_colorImgSamplers[i];
+		VkSampler& sampler = m_pipelineData.imageSamplers[i];
 		CleanupTask task{};
 		task.caller = __FUNCTION__;
 		task.objectNames = { VARIABLE_NAME(m_colorImgSampler) };
 		task.vkHandles = { sampler };
 
 		task.cleanupFunc = [this, sampler]() {
-			vkDestroySampler(m_logicalDevice, sampler, nullptr);
+			vkDestroySampler(m_renderDeviceCtx->logicalDevice, sampler, nullptr);
 		};
 
-		uint32_t samplerCleanupID = m_cleanupManager->createCleanupTask(task);
-		m_offscreenCleanupIDs.push_back(samplerCleanupID);
+		uint32_t samplerResourceID = m_cleanupManager->createCleanupTask(task);
+		m_cleanupManager->addTaskDependency(samplerResourceID, m_swapchainResourceGroup);
 
 
 		LOG_ASSERT(result == VK_SUCCESS, "Failed to create offscreen sampler!");
@@ -814,13 +774,13 @@ void OffscreenPipeline::initOffscreenSampler() {
 void OffscreenPipeline::initOffscreenFramebuffer(uint32_t width, uint32_t height) {
 	for (size_t i = 0; i < m_OFFSCREEN_RESOURCE_COUNT; i++) {
 		std::vector<VkImageView> attachments = {
-			m_colorImgViews[i],
+			m_pipelineData.imageViews[i],
 			m_depthImgView
 		};
 
-		uint32_t framebufferCleanupID = VkImageManager::CreateFramebuffer(m_colorImgFramebuffers[i], m_renderPass, attachments, width, height);
+		uint32_t framebufferResourceID = VkImageUtils::CreateFramebuffer(m_renderDeviceCtx->logicalDevice, m_pipelineData.frameBuffers[i], m_pipelineData.renderPass, attachments, width, height);
 
-		m_offscreenCleanupIDs.push_back(framebufferCleanupID);
+		m_cleanupManager->addTaskDependency(framebufferResourceID, m_swapchainResourceGroup);
 	}
 }
 
@@ -832,7 +792,7 @@ VkShaderModule OffscreenPipeline::createShaderModule(const std::vector<char>& by
 	moduleCreateInfo.pCode = reinterpret_cast<const uint32_t*>(bytecode.data());
 
 	VkShaderModule shaderModule;
-	VkResult result = vkCreateShaderModule(m_logicalDevice, &moduleCreateInfo, nullptr, &shaderModule);
+	VkResult result = vkCreateShaderModule(m_renderDeviceCtx->logicalDevice, &moduleCreateInfo, nullptr, &shaderModule);
 	if (result != VK_SUCCESS) {
 		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create shader module!");
 	}

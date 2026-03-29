@@ -10,7 +10,8 @@
 #include <Core/Application/Resources/CleanupManager.hpp>
 #include <Core/Application/Resources/ServiceLocator.hpp>
 
-#include <Platform/Vulkan/VkImageManager.hpp>
+#include <Platform/Vulkan/Contexts.hpp>
+#include <Platform/Vulkan/Utils/VkImageUtils.hpp>
 #include <Platform/Vulkan/Utils/VkFormatUtils.hpp>
 #include <Platform/Vulkan/Utils/VkDescriptorUtils.hpp>
 
@@ -20,33 +21,25 @@
 
 class OffscreenPipeline {
 public:
-	OffscreenPipeline(VkCoreResourcesManager *coreResources, VkSwapchainManager *swapchainMgr);
+	OffscreenPipeline(const Ctx::VkRenderDevice *renderDeviceCtx, const Ctx::VkWindow *windowCtx);
 	~OffscreenPipeline() = default;
 
-	void init();
+	const Ctx::OffscreenPipeline *init();
 
 
-	inline VkPipelineLayout getPipelineLayout() const { return m_pipelineLayout; }
-	inline VkPipeline getPipeline() const { return m_graphicsPipeline; }
+	inline VkPipelineLayout getPipelineLayout() const { return m_pipelineData.pipelineLayout; }
+	inline VkPipeline getPipeline() const { return m_pipelineData.pipeline; }
 	
-	inline VkRenderPass getRenderPass() const { return m_renderPass; }
+	inline VkRenderPass getRenderPass() const { return m_pipelineData.renderPass; }
 
 private:
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 	std::shared_ptr<CleanupManager> m_cleanupManager;
 
-	VkSwapchainManager *m_swapchainManager;
+	const Ctx::VkRenderDevice *m_renderDeviceCtx;
+	const Ctx::VkWindow *m_windowCtx;
 
-	VkPhysicalDevice m_physicalDevice;
-	VkPhysicalDeviceProperties m_deviceProperties;
-	VkDevice m_logicalDevice;
-
-	VkExtent2D m_swapchainExtent;
-
-	
-	// Pipeline
-	VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
-	VkPipeline m_graphicsPipeline = VK_NULL_HANDLE;
+	Ctx::OffscreenPipeline m_pipelineData;
 
 
 	// Shaders
@@ -104,7 +97,7 @@ private:
 	std::vector<VkDescriptorSetLayout> m_descriptorSetLayouts;
 	std::vector<VkDescriptorSet> m_perFrameDescriptorSets;
 
-	VkDescriptorSet m_pbrDescriptorSet;
+	VkDescriptorSet m_materialDescriptorSet;
 	VkDescriptorSet m_texArrayDescriptorSet;
 
 	// Offscreen resources
@@ -116,11 +109,11 @@ private:
 	std::vector<VkSampler> m_colorImgSamplers;
 	std::vector<VkFramebuffer> m_colorImgFramebuffers;
 
-	std::vector<uint32_t> m_offscreenCleanupIDs;
+	ResourceID m_swapchainResourceGroup;
 
 
 	// Session data
-	std::vector<CleanupID> m_sessionCleanupIDs;	// Used to execute old cleanup tasks on new session initialization
+	ResourceID m_sessionResourceGroup;
 	bool m_sessionReady = false;
 
 
@@ -147,13 +140,13 @@ private:
 
 
 	/* Creates descriptor sets.
-		@param descriptorSetCount: The number of descriptor sets to create.
-		@param descriptorSets: A pointer to the descriptor sets (or an array of descriptor sets).
-		@param descriptorSetLayouts: A pointer to the descriptor set layouts (or an array of descriptor set layouts).
 		@param descriptorPool: The descriptor pool to allocate the sets from.
+		@param descriptorSetCount: The number of descriptor sets to create.
+		@param descriptorSets: The descriptor sets to be allocated.
+		@param descriptorSetLayouts: The descriptor set layouts used in the allocation process.
 		@param pNext: Vulkan struct chain for the descriptor set allocation info.
 	*/
-	void createDescriptorSets(uint32_t descriptorSetCount, VkDescriptorSet *descriptorSets, VkDescriptorSetLayout *descriptorSetLayouts, VkDescriptorPool descriptorPool, const void *pNext);
+	void createDescriptorSets(VkDescriptorPool descriptorPool, uint32_t descriptorSetCount, VkDescriptorSet *descriptorSets, VkDescriptorSetLayout *descriptorSetLayouts, const void *pNext);
 
 
 	/* Creates the shader stage of the graphics pipeline from compiled SPIR-V shader files. */
@@ -230,7 +223,7 @@ private:
 	*/
 	void initTessellationState();
 
-	void initDepthBufferingResources();
+	void initDepthBufferingResources(uint32_t width, uint32_t height);
 	
 	void recreateOffscreenResources(uint32_t width, uint32_t height);
 	void initOffscreenColorResources(uint32_t width, uint32_t height);

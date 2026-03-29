@@ -1,12 +1,13 @@
 #include "OrbitalWorkspace.hpp"
 
 
-OrbitalWorkspace::OrbitalWorkspace() {
+OrbitalWorkspace::OrbitalWorkspace(const Ctx::VkRenderDevice *renderDeviceCtx, const Ctx::OffscreenPipeline *pipelineData, std::shared_ptr<InputManager> inputManager):
+	m_renderDeviceCtx(renderDeviceCtx),
+	m_pipelineData(pipelineData),
+	m_inputManager(inputManager) {
+
 	m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
 	m_ecsRegistry = ServiceLocator::GetService<ECSRegistry>(__FUNCTION__);
-
-	m_coreResources = ServiceLocator::GetService<VkCoreResourcesManager>(__FUNCTION__);
-	m_swapchainManager = ServiceLocator::GetService<VkSwapchainManager>(__FUNCTION__);
 
 	m_windowFlags = ImGuiWindowFlags_NoCollapse;
 	m_popupWindowFlags = ImGuiWindowFlags_NoDocking;
@@ -26,17 +27,7 @@ void OrbitalWorkspace::bindEvents() {
 				ImGui_ImplVulkan_RemoveTexture((VkDescriptorSet)m_viewportRenderTextureIDs[i]);
 			}
 
-			m_offscreenImageViews = event.imageViews;
-			m_offscreenSamplers = event.samplers;
 			initPerFrameTextures();
-		}
-	);
-
-
-	m_eventDispatcher->subscribe<InitEvent::OffscreenPipeline>(selfIndex, 
-		[this](const InitEvent::OffscreenPipeline &event) {
-			m_offscreenImageViews = event.offscreenImageViews;
-			m_offscreenSamplers = event.offscreenImageSamplers;
 		}
 	);
 
@@ -65,11 +56,11 @@ void OrbitalWorkspace::bindEvents() {
 	);
 
 
-	m_eventDispatcher->subscribe<InitEvent::InputManager>(selfIndex,
-		[this](const InitEvent::InputManager &event) {
-			m_inputManager = ServiceLocator::GetService<InputManager>(__FUNCTION__);
-		}
-	);
+	//m_eventDispatcher->subscribe<InitEvent::InputManager>(selfIndex,
+	//	[this](const InitEvent::InputManager &event) {
+	//		m_inputManager = ServiceLocator::GetService<InputManager>(__FUNCTION__);
+	//	}
+	//);
 }
 
 
@@ -210,14 +201,14 @@ void OrbitalWorkspace::initStaticTextures() {
 
 void OrbitalWorkspace::initPerFrameTextures() {
 	// Simulation scene (sampled as a texture for the viewport)
-	const size_t OFFSCREEN_RESOURCE_COUNT = m_offscreenImageViews.size();
+	const size_t OFFSCREEN_RESOURCE_COUNT = m_pipelineData->imageViews.size();
 	m_viewportRenderTextureIDs.resize(OFFSCREEN_RESOURCE_COUNT);
 
 	for (size_t i = 0; i < OFFSCREEN_RESOURCE_COUNT; i++) {
 		m_viewportRenderTextureIDs[i] = TextureUtils::GenerateImGuiTextureID(
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-			m_offscreenImageViews[i],
-			m_offscreenSamplers[i]
+			m_pipelineData->imageViews[i],
+			m_pipelineData->imageSamplers[i]
 		);
 	}
 }
@@ -227,8 +218,8 @@ void OrbitalWorkspace::updatePerFrameTextures(uint32_t currentFrame) {
 	// Simulation scene
 	if (m_sceneSampleReady) {
 		VkDescriptorImageInfo imageInfo{};
-		imageInfo.imageView = m_offscreenImageViews[currentFrame];
-		imageInfo.sampler = m_offscreenSamplers[currentFrame];
+		imageInfo.imageView = m_pipelineData->imageViews[currentFrame];
+		imageInfo.sampler = m_pipelineData->imageSamplers[currentFrame];
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 		VkWriteDescriptorSet imageDescSetWrite{};
@@ -239,7 +230,7 @@ void OrbitalWorkspace::updatePerFrameTextures(uint32_t currentFrame) {
 		imageDescSetWrite.dstSet = (VkDescriptorSet)m_viewportRenderTextureIDs[currentFrame];
 		imageDescSetWrite.pImageInfo = &imageInfo;
 
-		vkUpdateDescriptorSets(m_coreResources->getLogicalDevice(), 1, &imageDescSetWrite, 0, nullptr);
+		vkUpdateDescriptorSets(m_renderDeviceCtx->logicalDevice, 1, &imageDescSetWrite, 0, nullptr);
 	}
 }
 
@@ -798,6 +789,7 @@ void OrbitalWorkspace::renderSimulationControlPanel() {
 			ImGui::SeparatorText("Camera");
 
 			static Camera *camera = m_inputManager->getCamera();
+			static Camera::Configuration camConfig = camera->getConfig();
 
 			// Speed magnitude
 			{
@@ -805,7 +797,9 @@ void OrbitalWorkspace::renderSimulationControlPanel() {
 
 				static bool initialCameraLoad = true;
 				if (initialCameraLoad) {
-					camera->movementSpeed = std::powf(10.0f, speedMagnitude);
+					camConfig.movementSpeed = std::powf(10.0f, speedMagnitude);
+					camera->setConfig(camConfig);
+
 					initialCameraLoad = false;
 				}
 
@@ -813,7 +807,8 @@ void OrbitalWorkspace::renderSimulationControlPanel() {
 				ImGui::SameLine();
 				ImGui::SetNextItemWidth(ImGuiUtils::GetAvailableWidth());
 				if (ImGui::DragFloat("##CameraSpeedDragFloat", &speedMagnitude, 0.25f, 1.0f, 12.0f, "1e+%.0f", ImGuiSliderFlags_AlwaysClamp)) {
-					camera->movementSpeed = std::powf(10.0f, speedMagnitude);
+					camConfig.movementSpeed = std::powf(10.0f, speedMagnitude);
+					camera->setConfig(camConfig);
 				}
 				ImGuiUtils::CursorOnHover();
 			}

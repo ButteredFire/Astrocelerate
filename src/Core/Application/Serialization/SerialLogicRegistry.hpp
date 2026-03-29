@@ -8,8 +8,7 @@
 #include <yaml-cpp/yaml.h>
 
 
-#include <Engine/Registry/ECS/ECS.hpp>
-#include <Engine/Serialization/ParseContexts.hpp>
+#include "ParseContexts.hpp"
 
 
 /* Stores the deserialization and serialization logic for file parsing/saving. */

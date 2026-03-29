@@ -236,10 +236,10 @@ void AssimpParser::processMeshMaterials(const aiScene *scene, const aiMaterial *
 		aiMat->GetTexture(aiTextureType_DIFFUSE, 0, &texturePath) == AI_SUCCESS
 		) {
 		textureAbsPath = FilePathUtils::JoinPaths(parentDir, texturePath.C_Str());
-		meshMat.albedoMapIndex = m_textureManager->createIndexedTexture(textureAbsPath, VK_FORMAT_R8G8B8A8_SRGB);
+		meshMat.albedoMapIndex = m_textureManager->reserveTexture(textureAbsPath, VK_FORMAT_R8G8B8A8_SRGB);
 	}
 	else {
-		meshMat.albedoMapIndex = m_textureManager->createIndexedTexture(fallbackPlaceholder, VK_FORMAT_R8G8B8A8_SRGB);
+		meshMat.albedoMapIndex = m_textureManager->reserveTexture(fallbackPlaceholder, VK_FORMAT_R8G8B8A8_SRGB);
 	}
 
 
@@ -261,14 +261,14 @@ void AssimpParser::processMeshMaterials(const aiScene *scene, const aiMaterial *
 		aiMat->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, 0, &texturePath) == AI_SUCCESS
 		) {
 		textureAbsPath = FilePathUtils::JoinPaths(parentDir, texturePath.C_Str());
-		meshMat.metallicRoughnessMapIndex = m_textureManager->createIndexedTexture(textureAbsPath, VK_FORMAT_R8G8B8A8_UNORM);
+		meshMat.metallicRoughnessMapIndex = m_textureManager->reserveTexture(textureAbsPath, VK_FORMAT_R8G8B8A8_UNORM);
 	}
 
 
 	// Height/Topography map index
 	if (aiMat->GetTexture(aiTextureType_DISPLACEMENT, 0, &texturePath) == AI_SUCCESS) {
 		textureAbsPath = FilePathUtils::JoinPaths(parentDir, texturePath.C_Str());
-		meshMat.heightMapIndex = m_textureManager->createIndexedTexture(textureAbsPath, VK_FORMAT_R8G8B8A8_UNORM);
+		meshMat.heightMapIndex = m_textureManager->reserveTexture(textureAbsPath, VK_FORMAT_R8G8B8A8_UNORM);
 	}
 
 
@@ -277,7 +277,7 @@ void AssimpParser::processMeshMaterials(const aiScene *scene, const aiMaterial *
 		// Map index
 	if (aiMat->GetTexture(aiTextureType_NORMALS, 0, &texturePath) == AI_SUCCESS) {
 		textureAbsPath = FilePathUtils::JoinPaths(parentDir, texturePath.C_Str());
-		meshMat.normalMapIndex = m_textureManager->createIndexedTexture(textureAbsPath, VK_FORMAT_R8G8B8A8_UNORM);
+		meshMat.normalMapIndex = m_textureManager->reserveTexture(textureAbsPath, VK_FORMAT_R8G8B8A8_UNORM);
 	}
 
 
@@ -285,7 +285,7 @@ void AssimpParser::processMeshMaterials(const aiScene *scene, const aiMaterial *
 		// Map index
 	if (aiMat->GetTexture(aiTextureType_AMBIENT_OCCLUSION, 0, &texturePath) == AI_SUCCESS) {
 		textureAbsPath = FilePathUtils::JoinPaths(parentDir, texturePath.C_Str());
-		meshMat.aoMapIndex = m_textureManager->createIndexedTexture(textureAbsPath, VK_FORMAT_R8G8B8A8_SRGB);
+		meshMat.aoMapIndex = m_textureManager->reserveTexture(textureAbsPath, VK_FORMAT_R8G8B8A8_SRGB);
 	}
 
 
@@ -300,7 +300,7 @@ void AssimpParser::processMeshMaterials(const aiScene *scene, const aiMaterial *
 		// Map index
 	if (aiMat->GetTexture(aiTextureType_EMISSIVE, 0, &texturePath) == AI_SUCCESS) {
 		textureAbsPath = FilePathUtils::JoinPaths(parentDir, texturePath.C_Str());
-		meshMat.emissiveMapIndex = m_textureManager->createIndexedTexture(textureAbsPath, VK_FORMAT_R8G8B8A8_SRGB);
+		meshMat.emissiveMapIndex = m_textureManager->reserveTexture(textureAbsPath, VK_FORMAT_R8G8B8A8_SRGB);
 	}
 
 

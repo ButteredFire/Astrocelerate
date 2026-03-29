@@ -144,9 +144,13 @@ namespace Geometry {
 		float metallicFactor = 0.0f;									// Metallic factor
 		float roughnessFactor = 1.0f;									// Roughness factor
 		int32_t metallicRoughnessMapIndex = -1;							// Metallic and Roughness packed into one texture (e.g., R=metallic, G=roughness, B=AO). NOTE: Alternatively, the map can be split into metallicMap and roughnessMap indices.
-
+		
 		// Displacement
 		int32_t heightMapIndex = -1;									// Height/Displacement map for topography textures
+
+		// Emissive
+		alignas(16) glm::vec3 emissiveColor = glm::vec3(0.0f);			// Emissive color
+		int32_t emissiveMapIndex = -1;									// Emissive texture (for glowing objects)
 
 		// Normals
 		int32_t normalMapIndex = -1;									// Tangent-space normal map
@@ -154,16 +158,11 @@ namespace Geometry {
 		// Ambient occlusion
 		int32_t aoMapIndex = -1;										// Ambient occlusion texture
 
-		// Emissive
-		alignas(16) glm::vec3 emissiveColor = glm::vec3(0.0f);			// Emissive color
-		int32_t emissiveMapIndex = -1;									// Emissive texture (for glowing objects)
-
 		// Opacity/Transparency (Alpha blending/masking)
 			// NOTE: If different transparency types are needed, consider adding a `MaterialAlphaMode` enum (OPAQUE, MASK, BLEND)
 		float opacity = 1.0f;											// Opacity/Transparency
 
-
-		float _pad0[3] = {};
+		float _pad0 = 0.0f;
 	};
 
 
@@ -188,6 +187,8 @@ namespace Geometry {
 	// Processed geometry data.
 	struct GeometryData {
 		size_t meshCount;
+		std::vector<Vertex> meshVertices;
+		std::vector<uint32_t> meshVertexIndices;
 		std::vector<MeshOffset> meshOffsets;
 		std::vector<Material> meshMaterials;
 	};
@@ -195,10 +196,10 @@ namespace Geometry {
 
 	// Processed texture.
 	struct Texture {
-		glm::vec2 size;												// The texture's dimensions.
-		VkImageLayout imageLayout;									// The texture's image layout.
-		VkImageView imageView;										// The texture's image view.
-		VkSampler sampler;											// The texture's image sampler.
+		glm::vec2 size;					// The texture's dimensions.
+		VkImageLayout imageLayout;		// The texture's image layout.
+		VkImageView imageView;			// The texture's image view.
+		VkSampler sampler;				// The texture's image sampler.
 	};
 }
 

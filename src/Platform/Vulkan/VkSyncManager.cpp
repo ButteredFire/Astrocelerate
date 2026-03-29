@@ -4,10 +4,9 @@
 #include "VkSyncManager.hpp"
 
 
-VkSyncManager::VkSyncManager(VkCoreResourcesManager *coreResources, VkSwapchainManager *swapchainMgr) :
-	m_coreResources(coreResources),
-	m_swapchainManager(swapchainMgr),
-	m_logicalDevice(coreResources->getLogicalDevice()) {
+VkSyncManager::VkSyncManager(const Ctx::VkRenderDevice *renderDeviceCtx, const Ctx::VkWindow *windowCtx) :
+	m_renderDeviceCtx(renderDeviceCtx),
+	m_windowCtx(windowCtx) {
 
 	m_cleanupManager = ServiceLocator::GetService<CleanupManager>(__FUNCTION__);
 
@@ -55,7 +54,7 @@ void VkSyncManager::WaitForSingleUseFence(VkDevice logicalDevice, VkFence& fence
 
 
 void VkSyncManager::createPerImageSemaphores() {
-	size_t swapchainImgCount = m_swapchainManager->getImages().size();
+	size_t swapchainImgCount = m_windowCtx->images.size();
 	m_renderFinishedSemaphores.resize(swapchainImgCount);
 
 
@@ -64,7 +63,7 @@ void VkSyncManager::createPerImageSemaphores() {
 
 
 	for (size_t i = 0; i < swapchainImgCount; i++) {
-		VkResult renderSemaphoreCreateResult = vkCreateSemaphore(m_logicalDevice, &semaphoreCreateInfo, nullptr, &m_renderFinishedSemaphores[i]);
+		VkResult renderSemaphoreCreateResult = vkCreateSemaphore(m_renderDeviceCtx->logicalDevice, &semaphoreCreateInfo, nullptr, &m_renderFinishedSemaphores[i]);
 		LOG_ASSERT(renderSemaphoreCreateResult == VK_SUCCESS, "Failed to create semaphores for frame " + std::to_string(i) + "!");
 
 		CleanupTask syncObjTask{};
@@ -72,10 +71,10 @@ void VkSyncManager::createPerImageSemaphores() {
 		syncObjTask.objectNames = { VARIABLE_NAME(m_renderFinishedSemaphore) };
 		syncObjTask.vkHandles = { m_renderFinishedSemaphores[i] };
 		syncObjTask.cleanupFunc = [this, semaphores = m_renderFinishedSemaphores, i]() {
-			vkDestroySemaphore(m_logicalDevice, semaphores[i], nullptr);
+			vkDestroySemaphore(m_renderDeviceCtx->logicalDevice, semaphores[i], nullptr);
 		};
 
-		m_cleanupManager->createCleanupTask(syncObjTask, m_swapchainManager->getSwapchainCleanupID());
+		m_cleanupManager->createCleanupTask(syncObjTask, m_windowCtx->swapchainResourceID);
 	}
 }
 
@@ -115,7 +114,7 @@ void VkSyncManager::createPerFrameSemaphores() {
 	
 
 	for (size_t i = 0; i < SimulationConst::MAX_FRAMES_IN_FLIGHT; i++) {
-		VkResult imageSemaphoreCreateResult = vkCreateSemaphore(m_logicalDevice, &semaphoreCreateInfo, nullptr, &m_imageReadySemaphores[i]);
+		VkResult imageSemaphoreCreateResult = vkCreateSemaphore(m_renderDeviceCtx->logicalDevice, &semaphoreCreateInfo, nullptr, &m_imageReadySemaphores[i]);
 		LOG_ASSERT(imageSemaphoreCreateResult == VK_SUCCESS, "Failed to create semaphores for frame " + std::to_string(i) + "!");
 
 		CleanupTask syncObjTask{};
@@ -123,10 +122,10 @@ void VkSyncManager::createPerFrameSemaphores() {
 		syncObjTask.objectNames = { VARIABLE_NAME(m_imageReadySemaphores) };
 		syncObjTask.vkHandles = { m_imageReadySemaphores[i] };
 		syncObjTask.cleanupFunc = [this, i]() {
-			vkDestroySemaphore(m_logicalDevice, m_imageReadySemaphores[i], nullptr);
+			vkDestroySemaphore(m_renderDeviceCtx->logicalDevice, m_imageReadySemaphores[i], nullptr);
 		};
 
-		m_cleanupManager->createCleanupTask(syncObjTask, m_swapchainManager->getSwapchainCleanupID());
+		m_cleanupManager->createCleanupTask(syncObjTask, m_windowCtx->swapchainResourceID);
 	}
 }
 
@@ -144,7 +143,7 @@ void VkSyncManager::createPerFrameFences() {
 
 
 	for (size_t i = 0; i < SimulationConst::MAX_FRAMES_IN_FLIGHT; i++) {
-		VkResult inFlightFenceCreateResult = vkCreateFence(m_logicalDevice, &fenceCreateInfo, nullptr, &m_inFlightFences[i]);
+		VkResult inFlightFenceCreateResult = vkCreateFence(m_renderDeviceCtx->logicalDevice, &fenceCreateInfo, nullptr, &m_inFlightFences[i]);
 		LOG_ASSERT(inFlightFenceCreateResult == VK_SUCCESS, "Failed to create in-flight fence for frame " + std::to_string(i) + "!");
 
 		CleanupTask syncObjTask{};
@@ -152,7 +151,7 @@ void VkSyncManager::createPerFrameFences() {
 		syncObjTask.objectNames = { VARIABLE_NAME(m_inFlightFences) };
 		syncObjTask.vkHandles = { m_inFlightFences[i] };
 		syncObjTask.cleanupFunc = [this, i]() {
-			vkDestroyFence(m_logicalDevice, m_inFlightFences[i], nullptr);
+			vkDestroyFence(m_renderDeviceCtx->logicalDevice, m_inFlightFences[i], nullptr);
 		};
 
 		m_cleanupManager->createCleanupTask(syncObjTask);

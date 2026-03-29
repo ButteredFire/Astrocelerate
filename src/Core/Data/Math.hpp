@@ -158,7 +158,7 @@ namespace Math {
 
         inline Number operator[](const uint32_t idx) const {
             LOG_ASSERT(idx < size, "Cannot access nonexistent coefficient of degree " + idx + ".");
-            return m_cfs[size];
+            return m_cfs[idx];
         }
 
     private:

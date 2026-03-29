@@ -53,7 +53,7 @@ private:
 	bool m_isInitialLoad = false;
 
 
-	std::vector<CleanupID> m_sessionCleanupIDs;
+	std::vector<ResourceID> m_sessionResourceIDs;
 
 	void bindEvents();
 };

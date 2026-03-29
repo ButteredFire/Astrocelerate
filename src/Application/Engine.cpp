@@ -13,7 +13,7 @@ Engine::Engine(GLFWwindow *w):
 
     bindEvents();
 
-    LOG_ASSERT(m_window != nullptr, "Engine crashed: Invalid window context!");
+    LOG_ASSERT(m_window != nullptr, "Invalid window context!");
 
     Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
@@ -43,6 +43,7 @@ void Engine::bindEvents() {
 
 void Engine::init() {
     initComponents();
+    initRenderResources();
     initCoreManagers();
     initEngine();
 
@@ -76,59 +77,44 @@ void Engine::initCoreServices() {
 }
 
 
-void Engine::initCoreManagers() {
-    // Vulkan resources manager (to hold persistent Vulkan handles)
+void Engine::initRenderResources() {
     m_instanceManager = std::make_shared<VkInstanceManager>();
     m_deviceManager = std::make_shared<VkDeviceManager>();
 
+    // TODO: Make VkCoreResourcesManager own VkInstanceManager and VkDeviceManager instead of the Engine
     m_coreResourcesManager = std::make_shared<VkCoreResourcesManager>(m_window, m_instanceManager.get(), m_deviceManager.get(), m_cleanupManager.get());
-    ServiceLocator::RegisterService(m_coreResourcesManager);
-
-    m_vmaAllocator = m_coreResourcesManager->getVmaAllocator();
-    //m_surface = m_coreResourcesManager->getSurface();
-
-    m_physicalDevice = m_coreResourcesManager->getPhysicalDevice();
-    m_deviceProperties = m_coreResourcesManager->getDeviceProperties();
-
-    m_logicalDevice = m_coreResourcesManager->getLogicalDevice();
-    m_queueFamilies = m_coreResourcesManager->getQueueFamilyIndices();
+    m_windowManager = std::make_shared<VkWindowManager>(m_window, m_coreResourcesManager.get());
 
 
-    // Swap-chain manager
-    m_swapchainManager = std::make_shared<VkSwapchainManager>(m_window, m_coreResourcesManager.get());
-    ServiceLocator::RegisterService(m_swapchainManager);
+    m_renderDeviceCtx = m_coreResourcesManager->getCoreContext();
+    m_windowCtx = m_windowManager->getContext();
+}
 
 
+void Engine::initCoreManagers() {
     // Texture manager
-    m_textureManager = std::make_shared<TextureManager>(m_coreResourcesManager.get());
+    m_textureManager = std::make_shared<TextureManager>(m_renderDeviceCtx);
     ServiceLocator::RegisterService(m_textureManager);
 
 
     // Scene manager
-    m_sceneManager = std::make_shared<SceneLoader>();
-    ServiceLocator::RegisterService(m_sceneManager);
-    m_sceneManager->init();
+    m_sceneLoader = std::make_shared<SceneLoader>();
+    ServiceLocator::RegisterService(m_sceneLoader);
+    m_sceneLoader->init();
 
 
     // GUI management
         // Workspaces
         // TODO: Create plugin manager and workspace systems to allow for dynamic workspace discovery and swapping at runtime
     m_splashScreen = std::make_unique<SplashScreen>();
-    m_orbitalWorkspace = std::make_unique<OrbitalWorkspace>();
 
-    // Manager
+        // Manager
     m_uiPanelManager = std::make_shared<UIPanelManager>(m_splashScreen.get());
-    ServiceLocator::RegisterService(m_uiPanelManager);
 
 
     // Camera
-    //glm::dvec3 cameraPosition = glm::vec3(8e8, (PhysicsConst::AU + 10e8), 1e7);
     glm::dvec3 cameraPosition = glm::vec3(0.0, 1.3e8, 0.0);
-
-    m_camera = std::make_shared<Camera>(
-        cameraPosition,
-        glm::quat()
-    );
+    m_camera = std::make_shared<Camera>(cameraPosition, glm::quat());
     ServiceLocator::RegisterService(m_camera);
 
 
@@ -142,56 +128,41 @@ void Engine::initCoreManagers() {
 
 
 void Engine::initEngine() {
-    // Command manager
-    m_commandManager = std::make_shared<VkCommandManager>(m_coreResourcesManager.get(), m_swapchainManager.get());
-    ServiceLocator::RegisterService(m_commandManager);
-
-
-
-    // Buffer manager
-    m_bufferManager = std::make_shared<VkBufferManager>(m_coreResourcesManager.get(), m_swapchainManager.get());
-    ServiceLocator::RegisterService(m_bufferManager);
-
-
-
     // Pipelines
-    m_offscreenPipeline = std::make_shared<OffscreenPipeline>(m_coreResourcesManager.get(), m_swapchainManager.get());
-    ServiceLocator::RegisterService(m_offscreenPipeline);
+    m_offscreenPipeline = std::make_shared<OffscreenPipeline>(m_renderDeviceCtx, m_windowCtx);
+    m_presentPipeline = std::make_shared<PresentPipeline>(m_renderDeviceCtx, m_windowCtx);
+
+    m_offscreenData = m_offscreenPipeline->init();
+
+    m_textureManager->setTextureArray(m_offscreenData->texArrayDescriptorSet, m_offscreenData->renderPass);
 
 
-    m_presentPipeline = std::make_shared<PresentPipeline>(m_coreResourcesManager.get(), m_swapchainManager.get());
-    ServiceLocator::RegisterService(m_presentPipeline);
+    // Managers
+    m_commandManager = std::make_shared<VkCommandManager>(m_renderDeviceCtx, m_windowCtx, m_offscreenData);
+    m_bufferManager = std::make_shared<VkBufferManager>(m_renderDeviceCtx);
+    m_syncManager = std::make_shared<VkSyncManager>(m_renderDeviceCtx, m_windowCtx);
 
 
-
-    // Synchronization manager
-    m_syncManager = std::make_shared<VkSyncManager>(m_coreResourcesManager.get(), m_swapchainManager.get());
-    ServiceLocator::RegisterService(m_syncManager);
-
+    // Workspaces
+    m_orbitalWorkspace = std::make_unique<OrbitalWorkspace>(m_renderDeviceCtx, m_offscreenData, m_inputManager);
 
 
     // Renderers
-    m_uiRenderer = std::make_shared<UIRenderer>(m_window, m_presentPipeline->getRenderPass(), m_coreResourcesManager.get(), m_swapchainManager.get());
-    ServiceLocator::RegisterService(m_uiRenderer);
+    m_uiRenderer = std::make_shared<UIRenderer>(m_window, m_renderDeviceCtx, m_windowCtx, m_uiPanelManager);
+    m_renderSystem = std::make_shared<RenderSystem>(m_renderDeviceCtx, m_windowCtx, m_bufferManager, m_uiRenderer, m_camera);
+    m_renderer = std::make_shared<Renderer>(m_renderDeviceCtx, m_windowCtx, m_commandManager, m_syncManager, m_uiRenderer, m_renderSystem);
 
-
-    m_renderer = std::make_shared<Renderer>(m_coreResourcesManager.get(), m_swapchainManager.get(), m_commandManager.get(), m_syncManager.get(), m_uiRenderer.get());
-    ServiceLocator::RegisterService(m_renderer);
-
-
-
-    // Systems
-    m_renderSystem = std::make_shared<RenderSystem>(m_coreResourcesManager.get(), m_swapchainManager.get(), m_uiRenderer.get());
-    ServiceLocator::RegisterService(m_renderSystem);
 
     m_physicsSystem = std::make_shared<PhysicsSystem>();
-    ServiceLocator::RegisterService(m_physicsSystem);
-
 
     
     // Create new session
-    m_currentSession = std::make_shared<Session>(m_coreResourcesManager.get(), m_sceneManager.get(), m_physicsSystem.get(), m_renderSystem.get());
-    ServiceLocator::RegisterService(m_currentSession);
+    m_currentSession = std::make_shared<Session>(
+        m_renderDeviceCtx, m_windowCtx, m_offscreenData,
+        m_inputManager,
+        m_sceneLoader,
+        m_physicsSystem, m_renderSystem
+    );
 }
 
 
@@ -205,7 +176,6 @@ void Engine::initComponents() {
     m_ecsRegistry->initComponentArray<ModelComponent::Material>();
 
     /* Rendering */
-    m_ecsRegistry->initComponentArray<RenderComponent::SceneData>();
     m_ecsRegistry->initComponentArray<RenderComponent::PointLight>();
     m_ecsRegistry->initComponentArray<RenderComponent::MeshRenderable>();
 
@@ -229,8 +199,10 @@ void Engine::initComponents() {
 void Engine::setWindowPtr(GLFWwindow *w) {
     m_window = w;
 
-    if (m_renderer != nullptr)
-        m_renderer->recreateSwapchain(m_window);
+    //if (m_renderer != nullptr)
+    //    m_renderer->recreateSwapchain(m_window);
+
+    m_windowCtx = m_windowManager->recreateSwapchain(m_window);
 
     //m_uiRenderer->reInitImGui(m_window);
     m_eventDispatcher->dispatch(RequestEvent::ReInitImGui{
@@ -240,9 +212,28 @@ void Engine::setWindowPtr(GLFWwindow *w) {
 
 
 void Engine::run() {
-    // Initialize watchdog thread
+    startThreadMonitor();
+
+    try {
+        while (!glfwWindowShouldClose(m_window))
+            tick();
+    }
+    catch (...) {
+        shutdown();
+        throw;  // Propagate to higher-level catch (main)
+    }
+
+    shutdown();
+}
+
+
+void Engine::startThreadMonitor() {
     m_watchdogThread = ThreadManager::CreateThread("WATCHDOG");
+
     m_watchdogThread->set([this](std::stop_token stopToken) {
+        const uint32_t HALT_ELAPSE_INTERVAL = 10; // seconds
+        uint32_t haltElapseCnt = 1;
+
         while (!m_watchdogThread->stopRequested()) {
             /*
                 By default, std::atomic::load uses std::memory_order_seq_cst (sequentially consistent). It's the safest but slowest memory ordering as it enforces a total global ordering operation across all threads.
@@ -261,6 +252,12 @@ void Engine::run() {
 
                     ThreadManager::SignalMainThreadHalt();
                 }
+                
+
+                if (now - lastHeartbeat >= std::chrono::seconds(haltElapseCnt * HALT_ELAPSE_INTERVAL)) {
+                    Log::Print(Log::T_WARNING, __FUNCTION__, "Main thread has been blocked for " + std::to_string(haltElapseCnt * HALT_ELAPSE_INTERVAL) + " seconds.");
+                    haltElapseCnt++;
+                }
             }
             else {
                 // Else (time elapsed < max. timeout threshold), signal that the main thread has resumed
@@ -270,6 +267,7 @@ void Engine::run() {
                     }, false, true);
 
                     ThreadManager::SignalMainThreadResume();
+                    haltElapseCnt = 1;
                 }
             }
 
@@ -278,76 +276,44 @@ void Engine::run() {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
     });
+
     m_watchdogThread->start();
-
-
-    // Main loop
-    try {
-        while (!glfwWindowShouldClose(m_window))
-            tick();
-    }
-    catch (const Log::EngineExitException &e) {
-        shutdown();
-        throw;  // Propagate to higher-level catch (main)
-    }
-
-
-    shutdown();
 }
 
 
 void Engine::prerun() {
-    m_inputManager = ServiceLocator::GetService<InputManager>(__FUNCTION__);
-    m_currentSession = ServiceLocator::GetService<Session>(__FUNCTION__);
-    m_renderer = ServiceLocator::GetService<Renderer>(__FUNCTION__);
-
     for (int i = 0; i < SimulationConst::MAX_FRAMES_IN_FLIGHT; i++)
         tick();
 
-
-    // All of the operations in Renderer::drawFrame are asynchronous. That means that when we exit the main loop, drawing and presentation operations may still be going on. Cleaning up resources while that is happening is a bad idea.
-    // To fix that problem, we should wait for the logical device to finish operations before exiting mainLoop and destroying the window:
-    vkDeviceWaitIdle(m_logicalDevice);
+    vkDeviceWaitIdle(m_renderDeviceCtx->logicalDevice);
 }
 
 
 void Engine::tick() {
     // Update main thread heartbeat
-        // NOTE: See note in watchdog thread callable for std::memory_order_relaxed justification
     g_appCtx.MainThread.heartbeatTimePoint.store(std::chrono::steady_clock::now(), std::memory_order_relaxed);
-
 
     // Polling
     glfwPollEvents();
     m_eventDispatcher->pollQueuedEvents();
+
+    // Tick
+    Buffer::FramePacket framePacket{};
+
     m_inputManager->tick();
 
+    m_currentSession->tick();
 
-    // Update per-session data & threads
-    m_currentSession->update();
-
-
-    // Update rendering
-    static Camera *camera = m_inputManager->getCamera();
-
-        // Update camera 
-    camera->tick(m_physicsSystem->getDeltaTick());
-
-        // Get current camera position
-    static glm::dvec3 floatingOrigin;
-    if (camera->inFreeFlyMode())    floatingOrigin = camera->getAbsoluteTransform().position;
-    else                            floatingOrigin = camera->getOrbitedEntityPosition();
-
-    m_renderer->update(floatingOrigin);
+    m_renderer->tick();
 }
 
 
 void Engine::shutdown() {
-    vkDeviceWaitIdle(m_logicalDevice);
+    vkDeviceWaitIdle(m_renderDeviceCtx->logicalDevice);
 
     m_eventDispatcher->dispatch(UpdateEvent::ApplicationStatus{
       .appState = Application::State::SHUTDOWN
-        });
+    });
 
     m_watchdogThread->requestStop();
     m_watchdogThread->waitForStop();

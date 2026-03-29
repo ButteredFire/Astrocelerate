@@ -41,17 +41,17 @@ void VkDeviceManager::createPhysicalDevice(VkPhysicalDevice &physDevice, Physica
     std::vector<PhysicalDeviceProperties> availableGPUs = rateGPUSuitability(physicalDevices, surface);
     PhysicalDeviceProperties bestDevice = *std::max_element(availableGPUs.begin(), availableGPUs.end(), ScoreComparator);
 
-    physicalDevice = bestDevice.device;
+    physicalDevice = bestDevice.handle;
     bool isDeviceCompatible = bestDevice.isCompatible;
     uint32_t physicalDeviceScore = bestDevice.optionalScore;
 
-    Log::Print(Log::T_INFO, __FUNCTION__, ("Out of " + std::to_string(physDeviceCount) + " GPU(s), GPU " + enquote(bestDevice.deviceName) + " was selected with the highest grading score of " + std::to_string(physicalDeviceScore) + "."));
+    Log::Print(Log::T_INFO, __FUNCTION__, ("Out of " + std::to_string(physDeviceCount) + " GPU(s), GPU " + enquote(bestDevice.name) + " was selected with the highest grading score of " + std::to_string(physicalDeviceScore) + "."));
 
     if (physicalDevice == nullptr || !isDeviceCompatible) {
         throw Log::RuntimeException(__FUNCTION__, __LINE__, "No GPU on this machine supports the required features to run Astrocelerate!\nPlease ensure your GPUs have their drivers updated to support Vulkan " VULKAN_VERSION_STR ".");
     }
 
-    physDevice = bestDevice.device;
+    physDevice = bestDevice.handle;
     chosenDevice = bestDevice;
     availableDevices = availableGPUs;
 }
@@ -192,9 +192,9 @@ std::vector<PhysicalDeviceProperties> VkDeviceManager::rateGPUSuitability(std::v
 
         // Create a device rating profile
         PhysicalDeviceProperties deviceRating;
-        deviceRating.device = device;
-        deviceRating.deviceName = deviceProperties.deviceName;
-        deviceRating.deviceProperties = deviceProperties;
+        deviceRating.handle = device;
+        deviceRating.name = deviceProperties.deviceName;
+        deviceRating.properties = deviceProperties;
 
 
         // Creates a list of indices of device-supported queue families for later checking

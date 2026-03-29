@@ -158,7 +158,7 @@ void VkInstanceManager::initVulkan() {
     // Sets validation layers to be bound to a Vulkan instance
     addVulkanValidationLayers({
         "VK_LAYER_KHRONOS_validation",
-        "VK_LAYER_LUNARG_screenshot"
+        //"VK_LAYER_LUNARG_screenshot"
     });
 
     if (g_appCtx.Config.debugging_VkAPIDump)

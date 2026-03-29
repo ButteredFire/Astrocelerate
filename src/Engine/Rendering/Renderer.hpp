@@ -1,6 +1,4 @@
-/* Renderer.hpp - Handles Vulkan-based rendering.
-*
-* Defines the Renderer class, which manages Vulkan rendering logic.
+/* Renderer.hpp - Handles the main application rendering loop.
 */
 
 
@@ -22,42 +20,42 @@
 #include <Core/Application/Resources/ServiceLocator.hpp>
 
 #include <Platform/External/GLM.hpp>
+#include <Platform/Vulkan/Contexts.hpp>
 #include <Platform/Vulkan/VkSyncManager.hpp>
+#include <Platform/Vulkan/VkBufferManager.hpp>
 #include <Platform/Vulkan/VkCommandManager.hpp>
-#include <Platform/Vulkan/VkSwapchainManager.hpp>
-#include <Platform/Vulkan/VkCoreResourcesManager.hpp>
 
+#include <Engine/Scene/Camera.hpp>
+#include <Engine/Systems/RenderSystem.hpp>
 #include <Engine/Registry/ECS/ECS.hpp>
 #include <Engine/Registry/ECS/Components/RenderComponents.hpp>
 #include <Engine/Rendering/UIRenderer.hpp>
+#include <Engine/Rendering/Data/Buffer.hpp>
 
 
 class Renderer {
 public:
-	Renderer(VkCoreResourcesManager *coreResources, VkSwapchainManager *swapchainMgr, VkCommandManager *commandMgr, VkSyncManager *syncMgr, UIRenderer *uiRenderer);
+	Renderer(const Ctx::VkRenderDevice *renderDeviceCtx, const Ctx::VkWindow *windowCtx, std::shared_ptr<VkCommandManager> commandMgr, std::shared_ptr<VkSyncManager> syncMgr, std::shared_ptr<UIRenderer> uiRenderer, std::shared_ptr<RenderSystem> renderSystem);
 	~Renderer();
 
-	void preRenderUpdate(uint32_t currentFrame, glm::dvec3 &renderOrigin);
-
-	/* Updates the rendering. */
-	void update(glm::dvec3& renderOrigin);
-
-	/* Recreates the swap-chain. */
-	void recreateSwapchain(GLFWwindow *newWindowPtr = nullptr);
-	void recreateSwapchain(GLFWwindow *newWindowPtr, uint32_t imageIndex, std::vector<VkFence> &inFlightFences);
+	void tick();
 
 private:
+	std::shared_ptr<ECSRegistry> m_ecsRegistry;
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 	std::shared_ptr<CleanupManager> m_cleanupManager;
 
-	VkCoreResourcesManager *m_coreResources;
-	VkSwapchainManager *m_swapchainManager;
-	VkCommandManager *m_commandManager;
-	VkSyncManager *m_syncManager;
-	UIRenderer *m_uiRenderer;
+	const Ctx::VkRenderDevice *m_renderDeviceCtx;
+	const Ctx::VkWindow *m_windowCtx;
+
+	std::shared_ptr<VkCommandManager> m_commandManager;
+	std::shared_ptr<VkSyncManager> m_syncManager;
+	std::shared_ptr<UIRenderer> m_uiRenderer;
+	std::shared_ptr<RenderSystem> m_renderSystem;
 
 
-	std::optional<CleanupID> m_swapchainCleanupID;
+
+	std::optional<ResourceID> m_swapchainResourceID;
 
 	std::vector<VkSemaphore> m_imageReadySemaphores;
 	std::vector<VkSemaphore> m_renderFinishedSemaphores;
@@ -74,10 +72,19 @@ private:
 	const uint32_t RENDERER_THREAD_COUNT = 1 + 1; // + 1 to count the main thread, which also participates in rendering
 	std::shared_ptr<std::barrier<>> m_renderThreadBarrier;
 
+	std::vector<VkCommandBuffer> m_secondaryCmdBufsStageNONE{};
+	std::vector<VkCommandBuffer> m_secondaryCmdBufsStageOFFSCREEN{};
+	std::vector<VkCommandBuffer> m_secondaryCmdBufsStagePRESENT{};
+
 
 	void bindEvents();
 
 	void init();
+
+
+	/* Performs any updates prior to command buffer recording. */
+	void preRenderTick();
+
 
 	/* Renders a frame. 
 		At a high level, rendering a frame in Vulkan consists of a common set of steps:
@@ -87,5 +94,5 @@ private:
 			- Submit the recorded command buffer
 			- Present the swap chain image
 	*/
-	void drawFrame(glm::dvec3& renderOrigin);
+	void drawFrame();
 };

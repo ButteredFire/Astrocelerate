@@ -38,8 +38,3 @@ namespace ShaderConst {
 	const std::string VERTEX		= FilePathUtils::JoinPaths(ROOT_DIR, std::string("bin/Shaders/VertexShader.spv"));
 	const std::string FRAGMENT		= FilePathUtils::JoinPaths(ROOT_DIR, std::string("bin/Shaders/FragmentShader.spv"));
 }
-
-
-namespace SimulationConst {
-	int MAX_FRAMES_IN_FLIGHT = 3;	// Placeholder value. This will be dynamically updated by VkSwapchainManager to store the number of supported swapchain images (SwapChainProperties::surfaceCapabilities.minImageCount + 1)
-}

@@ -51,8 +51,9 @@ namespace std {
 }
 
 
-TextureManager::TextureManager(VkCoreResourcesManager *coreResources) :
-	m_coreResources(coreResources) {
+TextureManager::TextureManager(const Ctx::VkRenderDevice *renderDeviceCtx) :
+	m_renderDeviceCtx(renderDeviceCtx) {
+
 	m_cleanupManager = ServiceLocator::GetService<CleanupManager>(__FUNCTION__);
 	m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
 
@@ -71,35 +72,27 @@ void TextureManager::bindEvents() {
 
 			switch (event.sessionStatus) {
 			case PREPARE_FOR_RESET:
-				m_sceneReady = false;
+				m_deferredTextureProps.clear();
+				break;
+
+			case INITIALIZED:
+				flushReservedTextures();
 				break;
 			}
-		}
-	);
-
-
-	m_eventDispatcher->subscribe<InitEvent::OffscreenPipeline>(selfIndex,
-		[this](const InitEvent::OffscreenPipeline &event) {
-			m_sceneReady = true;
-			m_offscreenPipelineRenderPass = event.renderPass;
-			m_texArrayDescriptorSet = event.texArrayDescriptorSet;
-
-			// Process deferred textures
-			for (const auto &prop : m_deferredTextureProps)
-				createIndexedTexture(prop.texSource, prop.texImgFormat, prop.channels);
-
-			// Populate texture array
-			for (size_t i = 0; i < m_textureDescriptorInfos.size(); i++)
-				updateTextureArrayDescriptorSet(i, m_textureDescriptorInfos[i].value());
 		}
 	);
 }
 
 
-Geometry::Texture TextureManager::createIndependentTexture(const std::string &texSource, VkFormat texImgFormat, int channels) {
-	LOG_ASSERT(texImgFormat != VK_FORMAT_UNDEFINED, "Cannot create independent texture: The texture's image format must be defined!");
+Geometry::Texture TextureManager::createTexture(const std::string &texSource, VkFormat texImgFormat, int channels) {
+	LOG_ASSERT(texImgFormat != VK_FORMAT_UNDEFINED, "Cannot create texture: The texture's image format must be defined!");
+	LOG_ASSERT(
+		std::this_thread::get_id() == ThreadManager::GetMainThreadID(),
+		"Cannot create normal texture in a worker thread! Defer texture creation to the main thread by pre-allocating it via reserveTexture in the worker thread and flush via flushReservedTextures in the main thread instead."
+	);
 
-	TextureInfo imageProperties = createTextureImage(texImgFormat, texSource.c_str(), channels);
+
+	_TextureInfo imageProperties = createTextureImage(texImgFormat, texSource.c_str(), channels);
 	VkImageView imageView = createTextureImageView(imageProperties.image, texImgFormat);
 	VkSampler sampler = createTextureSampler(
 		VK_FILTER_LINEAR, VK_FILTER_LINEAR,
@@ -119,92 +112,74 @@ Geometry::Texture TextureManager::createIndependentTexture(const std::string &te
 }
 
 
-uint32_t TextureManager::createIndexedTexture(const std::string& texSource, VkFormat texImgFormat, int channels) {
-	LOG_ASSERT(texImgFormat != VK_FORMAT_UNDEFINED, "Cannot create independent texture: The texture's image format must be defined!");
-
-	if (!m_sceneReady) {
-		// Defer indexed texture creation until the scene initialization worker thread is done (since it involves the creation and destruction of Vulkan handles, which must be done on the main thread).
-		// The new index will still be returned, but until the worker thread is done, the index will not be mapped to an actual texture.
-
-		auto it = m_texturePathToIndexMap.find(texSource);
-		if (it != m_texturePathToIndexMap.end())
-			return it->second;
-
-		uint32_t newIndex = static_cast<uint32_t>(m_textureDescriptorInfos.size());
-		m_textureDescriptorInfos.push_back(std::nullopt);
-		m_texturePathToIndexMap[texSource] = newIndex;
-
-		m_deferredTextureProps.push_back(_IndexedTextureProps{
-			.texSource = texSource,
-			.texImgFormat = texImgFormat,
-			.channels = channels
-		});
-
-		return newIndex;
-	}
+uint32_t TextureManager::reserveTexture(const std::string &texSource, VkFormat texImgFormat, int channels) {
+	if (std::this_thread::get_id() == ThreadManager::GetMainThreadID())
+		Log::Print(Log::T_WARNING, __FUNCTION__, "Attempting to reserve a texture in the main thread. Use createTexture instead.");
 
 
 	auto it = m_texturePathToIndexMap.find(texSource);
-	if (it != m_texturePathToIndexMap.end() && m_textureDescriptorInfos[m_texturePathToIndexMap[texSource]].has_value())
+	if (it != m_texturePathToIndexMap.end())
 		return it->second;
 
+	uint32_t newIndex = static_cast<uint32_t>(m_textureDescriptorInfos.size());
+	m_textureDescriptorInfos.push_back(std::nullopt);
+	m_texturePathToIndexMap[texSource] = newIndex;
 
-	// Create texture
-	TextureInfo imageProperties = createTextureImage(texImgFormat, texSource.c_str(), channels);
-	VkImageView imageView = createTextureImageView(imageProperties.image, texImgFormat);
-	VkSampler sampler = createTextureSampler(
-		VK_FILTER_LINEAR, VK_FILTER_LINEAR,
-		VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT,
-		VK_BORDER_COLOR_INT_OPAQUE_BLACK, 
-		VK_TRUE, FLT_MAX,
-		VK_FALSE, VK_FALSE, VK_COMPARE_OP_ALWAYS,
-		VK_SAMPLER_MIPMAP_MODE_LINEAR, 0.0f, 0.0f, 0.0f
+	m_deferredTextureProps.push_back(_IndexedTextureProps{
+		.index = newIndex,
+		.texSource = texSource,
+		.texImgFormat = texImgFormat,
+		.channels = channels
+	});
+
+	return newIndex;
+}
+
+
+void TextureManager::flushReservedTextures() {
+	LOG_ASSERT(
+		std::this_thread::get_id() == ThreadManager::GetMainThreadID(),
+		"Cannot flush reserved textures in a worker thread!"
+	);
+
+	LOG_ASSERT(
+		m_texArrayDescriptorSet != VK_NULL_HANDLE || m_renderPass != VK_NULL_HANDLE,
+		"Cannot flush reserved textures: no texture array and/or its render pass has been set! Please bind them via setTextureArray."
 	);
 
 
-	// Creates descriptor image info and binds it to the global texture array
-	VkDescriptorImageInfo descInfo{};
-	descInfo.imageLayout = imageProperties.imageLayout;
-	descInfo.imageView = imageView;
-	descInfo.sampler = sampler;
+	for (const auto &prop : m_deferredTextureProps) {
+		// Create texture
+		Geometry::Texture tex = createTexture(prop.texSource, prop.texImgFormat, prop.channels);
 
-	// If the texture does not exist yet, create a new index for it.
-	if (m_texturePathToIndexMap.count(texSource) == 0) {
-		uint32_t newIndex = static_cast<uint32_t>(m_textureDescriptorInfos.size());
-		m_textureDescriptorInfos.push_back(descInfo);
-		m_texturePathToIndexMap[texSource] = newIndex;
-		
-		return newIndex;
+		VkDescriptorImageInfo descInfo{};
+		descInfo.imageLayout = tex.imageLayout;
+		descInfo.imageView = tex.imageView;
+		descInfo.sampler = tex.sampler;
+
+		m_textureDescriptorInfos[prop.index] = descInfo;
+
+
+		// Update texture array
+		VkWriteDescriptorSet descriptorWrite{};
+		descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrite.dstSet = m_texArrayDescriptorSet;
+		descriptorWrite.dstBinding = ShaderConst::FRAG_BIND_TEXTURE_MAP;
+		descriptorWrite.dstArrayElement = prop.index; // The specific index in the array where this texture belongs
+		descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptorWrite.descriptorCount = 1;
+		descriptorWrite.pImageInfo = &descInfo;
+
+		vkUpdateDescriptorSets(m_renderDeviceCtx->logicalDevice, 1, &descriptorWrite, 0, nullptr);
 	}
 
-	// If the texture already exists, it can only mean that it was already created before in the scene initialization worker thread, and its index points to an empty element within m_textureDescriptorInfos.
-	// In that case, we must map its index to its actual texture.
-	uint32_t texIndex = m_texturePathToIndexMap[texSource];
-	m_textureDescriptorInfos[texIndex] = descInfo;
-	return texIndex;
+	m_deferredTextureProps.clear();
 }
 
 
-void TextureManager::updateTextureArrayDescriptorSet(uint32_t texIndex, const VkDescriptorImageInfo &texImageInfo) {
-	if (!m_sceneReady)
-		return;
-
-	VkWriteDescriptorSet descriptorWrite{};
-	descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	descriptorWrite.dstSet = m_texArrayDescriptorSet;
-	descriptorWrite.dstBinding = ShaderConst::FRAG_BIND_TEXTURE_MAP;
-	descriptorWrite.dstArrayElement = texIndex; // The specific index in the array where this texture belongs
-	descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	descriptorWrite.descriptorCount = 1;
-	descriptorWrite.pImageInfo = &texImageInfo;
-
-	vkUpdateDescriptorSets(m_coreResources->getLogicalDevice(), 1, &descriptorWrite, 0, nullptr);
-}
-
-
-TextureInfo TextureManager::createTextureImage(VkFormat imgFormat, const char* texSource, int channels) {
+TextureManager::_TextureInfo TextureManager::createTextureImage(VkFormat imgFormat, const char* texSource, int channels) {
 	// See documentation in `stb_image.h`
-	static std::unordered_set<std::string> supportedTextureFormats = {
+	static const std::unordered_set<std::string> supportedTextureFormats = {
 		".jpeg", ".jpg", ".png", ".tga", ".bmp", ".psd", ".gif", ".hdr", ".pic", ".pnm"
 	};
 
@@ -238,13 +213,13 @@ TextureInfo TextureManager::createTextureImage(VkFormat imgFormat, const char* t
 	bufAllocInfo.requiredFlags = (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 	bufAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT; // Specify CPU access since we will be mapping the buffer allocation to CPU memory
 
-	uint32_t stagingBufTaskID = VkBufferManager::CreateBuffer(stagingBuffer, imageSize, stagingBufUsageFlags, stagingBufAllocation, bufAllocInfo);
+	uint32_t stagingBufTaskID = VkBufferUtils::CreateBuffer(m_renderDeviceCtx, stagingBuffer, imageSize, stagingBufUsageFlags, stagingBufAllocation, bufAllocInfo);
 
 		// Copy pixel data to the buffer
 	void* pixelData;
-	vmaMapMemory(m_coreResources->getVmaAllocator(), stagingBufAllocation, &pixelData);
+	vmaMapMemory(m_renderDeviceCtx->vmaAllocator, stagingBufAllocation, &pixelData);
 		memcpy(pixelData, pixels, static_cast<size_t>(imageSize));
-	vmaUnmapMemory(m_coreResources->getVmaAllocator(), stagingBufAllocation);
+	vmaUnmapMemory(m_renderDeviceCtx->vmaAllocator, stagingBufAllocation);
 
 
 	// Clean up the `pixels` array
@@ -263,26 +238,26 @@ TextureInfo TextureManager::createTextureImage(VkFormat imgFormat, const char* t
 	imgAllocCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
 	imgAllocCreateInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 
-	VkImageManager::CreateImage(image, imgAllocation, imgAllocCreateInfo, textureWidth, textureHeight, 1, imgFormat, imgTiling, imgUsageFlags, VK_IMAGE_TYPE_2D);
+	VkImageUtils::CreateImage(m_renderDeviceCtx, image, imgAllocation, imgAllocCreateInfo, textureWidth, textureHeight, 1, imgFormat, imgTiling, imgUsageFlags, VK_IMAGE_TYPE_2D);
 
 	// Copy the staging buffer to the texture image
 	bool inMainThread = (std::this_thread::get_id() == ThreadManager::GetMainThreadID());
 
 	VkCommandBufferInheritanceInfo inheritanceInfo{};
 	inheritanceInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
-	inheritanceInfo.renderPass = m_offscreenPipelineRenderPass;
+	inheritanceInfo.renderPass = m_renderPass;
 	inheritanceInfo.subpass = 0;	// Offscreen subpass
 
 
 		// Transition the image layout to TRANSFER_DST (staging buffer (TRANSFER_SRC) -> image (TRANSFER_DST))
 	if (inMainThread) {
 		// If in main thread, record to and submit primary command buffer
-		SwitchImageLayout(image, imgFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+		SwitchImageLayout(m_renderDeviceCtx, image, imgFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 	}
 	else {
 		// If in worker thread, record to secondary command buffer and defer submission
 		VkCommandBuffer secondaryCmdBuf;
-		SwitchImageLayout(image, imgFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, true, &secondaryCmdBuf, &inheritanceInfo);
+		SwitchImageLayout(m_renderDeviceCtx, image, imgFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, true, &secondaryCmdBuf, &inheritanceInfo);
 	}
 
 	copyBufferToImage(stagingBuffer, image, static_cast<uint32_t>(textureWidth), static_cast<uint32_t>(textureHeight));
@@ -290,11 +265,11 @@ TextureInfo TextureManager::createTextureImage(VkFormat imgFormat, const char* t
 
 		// Transition the image layout to the final SHADER_READ_ONLY layout so that it can be read by the shader for sampling
 	if (inMainThread) {
-		SwitchImageLayout(image, imgFormat, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		SwitchImageLayout(m_renderDeviceCtx, image, imgFormat, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 	}
 	else {
 		VkCommandBuffer secondaryCmdBuf;
-		SwitchImageLayout(image, imgFormat, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, true, &secondaryCmdBuf, &inheritanceInfo);
+		SwitchImageLayout(m_renderDeviceCtx, image, imgFormat, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, true, &secondaryCmdBuf, &inheritanceInfo);
 	}
 
 
@@ -302,7 +277,7 @@ TextureInfo TextureManager::createTextureImage(VkFormat imgFormat, const char* t
 	m_cleanupManager->executeCleanupTask(stagingBufTaskID);
 
 
-	return TextureInfo{
+	return _TextureInfo{
 		.width = textureWidth,
 		.height = textureHeight,
 		.image = image,
@@ -313,7 +288,7 @@ TextureInfo TextureManager::createTextureImage(VkFormat imgFormat, const char* t
 
 VkImageView TextureManager::createTextureImageView(VkImage image, VkFormat imgFormat) {
 	VkImageView imageView;
-	VkImageManager::CreateImageView(imageView, image, imgFormat, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_VIEW_TYPE_2D, 1, 1);
+	VkImageUtils::CreateImageView(m_renderDeviceCtx->logicalDevice, imageView, image, imgFormat, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_VIEW_TYPE_2D, 1, 1);
 
 	return imageView;
 }
@@ -359,7 +334,7 @@ VkSampler TextureManager::createTextureSampler(
 	// However, it may impact performance (although that depends on the filtering level, e.g., 2x, 4x, 8x, 16x)
 	samplerCreateInfo.anisotropyEnable = anisotropyEnable;
 
-	samplerCreateInfo.maxAnisotropy = (maxAnisotropy == FLT_MAX)? m_coreResources->getDeviceProperties().limits.maxSamplerAnisotropy : maxAnisotropy;
+	samplerCreateInfo.maxAnisotropy = (maxAnisotropy == FLT_MAX)? m_renderDeviceCtx->chosenDevice.properties.limits.maxSamplerAnisotropy : maxAnisotropy;
 
 	
 	// Use normalized texture coordinates <=> coordinates are clamped in the [0, 1) range instead of [0, textureWidth) and [0, textureHeight)
@@ -389,13 +364,13 @@ VkSampler TextureManager::createTextureSampler(
 
 	// If not, create it, and add it to the list of unique samplers.
 	VkSampler textureSampler;
-	VkResult result = vkCreateSampler(m_coreResources->getLogicalDevice(), &samplerCreateInfo, nullptr, &textureSampler);
+	VkResult result = vkCreateSampler(m_renderDeviceCtx->logicalDevice, &samplerCreateInfo, nullptr, &textureSampler);
 	
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
 	task.objectNames = { VARIABLE_NAME(textureSampler) };
 	task.vkHandles = { textureSampler };
-	task.cleanupFunc = [this, textureSampler]() { vkDestroySampler(m_coreResources->getLogicalDevice(), textureSampler, nullptr); };
+	task.cleanupFunc = [this, textureSampler]() { vkDestroySampler(m_renderDeviceCtx->logicalDevice, textureSampler, nullptr); };
 	m_cleanupManager->createCleanupTask(task);
 
 	m_uniqueSamplers[samplerInfoHash] = textureSampler;
@@ -408,18 +383,17 @@ VkSampler TextureManager::createTextureSampler(
 }
 
 
-void TextureManager::SwitchImageLayout(VkImage image, VkFormat imgFormat, VkImageLayout oldLayout, VkImageLayout newLayout, bool useSecondaryCmdBuf, VkCommandBuffer *pSecondaryCmdBuf, VkCommandBufferInheritanceInfo *pInheritanceInfo) {
+void TextureManager::SwitchImageLayout(const Ctx::VkRenderDevice *renderDevice, VkImage image, VkFormat imgFormat, VkImageLayout oldLayout, VkImageLayout newLayout, bool useSecondaryCmdBuf, VkCommandBuffer *pSecondaryCmdBuf, VkCommandBufferInheritanceInfo *pInheritanceInfo) {
 
-	std::shared_ptr<VkCoreResourcesManager> coreResources = ServiceLocator::GetService<VkCoreResourcesManager>(__FUNCTION__);
 	std::shared_ptr<EventDispatcher> eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
 
 
-	const VkDevice &logicalDevice = coreResources->getLogicalDevice();
-	const QueueFamilyIndices &queueFamilies = coreResources->getQueueFamilyIndices();
+	const VkDevice &logicalDevice = renderDevice->logicalDevice;
+	const QueueFamilyIndices &queueFamilies = renderDevice->queueFamilies;
 
 
 	SingleUseCommandBufferInfo cmdInfo{};
-	cmdInfo.commandPool = VkCommandManager::CreateCommandPool(logicalDevice, queueFamilies.graphicsFamily.index.value(), VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
+	cmdInfo.commandPool = VkCommandUtils::CreateCommandPool(logicalDevice, queueFamilies.graphicsFamily.index.value(), VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
 	cmdInfo.queue = queueFamilies.graphicsFamily.deviceQueue;
 
 		// Since the texture manager will be used in a worker thread, we must use a secondary command buffer.
@@ -442,7 +416,7 @@ void TextureManager::SwitchImageLayout(VkImage image, VkFormat imgFormat, VkImag
 	}
 
 	
-	VkCommandBuffer cmdBuf = VkCommandManager::BeginSingleUseCommandBuffer(logicalDevice, &cmdInfo);
+	VkCommandBuffer cmdBuf = VkCommandUtils::BeginSingleUseCommandBuffer(logicalDevice, &cmdInfo);
 
 	/* Perform layout transition using an image memory barrier.
 		It is part of Vulkan barriers, which are used for processes like:
@@ -501,7 +475,7 @@ void TextureManager::SwitchImageLayout(VkImage image, VkFormat imgFormat, VkImag
 	vkCmdPipelineBarrier(cmdBuf, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &imgMemBarrier);
 
 	// End recording
-	VkCommandManager::EndSingleUseCommandBuffer(logicalDevice, &cmdInfo, cmdBuf);
+	VkCommandUtils::EndSingleUseCommandBuffer(logicalDevice, &cmdInfo, cmdBuf);
 
 	if (pSecondaryCmdBuf) {
 		*pSecondaryCmdBuf = cmdBuf;
@@ -563,12 +537,12 @@ void TextureManager::DefineImageLayoutTransitionStages(VkAccessFlags* srcAccessM
 
 
 void TextureManager::copyBufferToImage(VkBuffer& buffer, VkImage& image, uint32_t width, uint32_t height) {
-	const VkDevice &logicalDevice = m_coreResources->getLogicalDevice();
-	const QueueFamilyIndices &queueFamilies = m_coreResources->getQueueFamilyIndices();
+	const VkDevice &logicalDevice = m_renderDeviceCtx->logicalDevice;
+	const QueueFamilyIndices &queueFamilies = m_renderDeviceCtx->queueFamilies;
 
 
 	SingleUseCommandBufferInfo cmdInfo{};
-	cmdInfo.commandPool = VkCommandManager::CreateCommandPool(logicalDevice, queueFamilies.graphicsFamily.index.value(), VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
+	cmdInfo.commandPool = VkCommandUtils::CreateCommandPool(logicalDevice, queueFamilies.graphicsFamily.index.value(), VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
 	cmdInfo.queue = queueFamilies.graphicsFamily.deviceQueue;
 
 	bool inMainThread = (std::this_thread::get_id() == ThreadManager::GetMainThreadID());
@@ -584,7 +558,7 @@ void TextureManager::copyBufferToImage(VkBuffer& buffer, VkImage& image, uint32_
 		cmdInfo.fence = VkSyncManager::CreateSingleUseFence(logicalDevice);
 	}
 
-	VkCommandBuffer secondaryCmdBuf = VkCommandManager::BeginSingleUseCommandBuffer(logicalDevice, &cmdInfo);
+	VkCommandBuffer secondaryCmdBuf = VkCommandUtils::BeginSingleUseCommandBuffer(logicalDevice, &cmdInfo);
 
 
 	// Specifies the region of the buffer to copy to the image
@@ -618,7 +592,7 @@ void TextureManager::copyBufferToImage(VkBuffer& buffer, VkImage& image, uint32_
 	);
 
 
-	VkCommandManager::EndSingleUseCommandBuffer(logicalDevice, &cmdInfo, secondaryCmdBuf);
+	VkCommandUtils::EndSingleUseCommandBuffer(logicalDevice, &cmdInfo, secondaryCmdBuf);
 
 	if (!inMainThread)
 		m_eventDispatcher->dispatch(RequestEvent::ProcessSecondaryCommandBuffers{

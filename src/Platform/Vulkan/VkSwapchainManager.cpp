@@ -6,65 +6,65 @@
 VkSwapchainManager::VkSwapchainManager(GLFWwindow *window, VkCoreResourcesManager *coreResources) :
     m_window(window),
     m_coreResources(coreResources),
-    m_surface(coreResources->getSurface()),
-    m_physicalDevice(coreResources->getPhysicalDevice()),
-    m_logicalDevice(coreResources->getLogicalDevice()),
-    m_queueFamilies(coreResources->getQueueFamilyIndices()) {
+    m_renderDeviceCtx(coreResources->getCoreContext()) {
 
     m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
     m_cleanupManager = ServiceLocator::GetService<CleanupManager>(__FUNCTION__);
-
-    bindEvents();
-    init();
 
     Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
 
 
-void VkSwapchainManager::bindEvents() {
-    static EventDispatcher::SubscriberIndex selfIndex = m_eventDispatcher->registerSubscriber<VkSwapchainManager>();
-
-    m_eventDispatcher->subscribe<InitEvent::PresentPipeline>(selfIndex,
-        [this](const InitEvent::PresentPipeline& event) {
-            m_presentPipelineRenderPass = event.renderPass;
-
-            this->createFrameBuffers();
-
-            // At this point, all resources in the swapchain are ready.
-            m_eventDispatcher->dispatch(InitEvent::SwapchainManager{});
-        }
-    );
-
-
-    m_eventDispatcher->subscribe<UpdateEvent::CoreResources>(selfIndex, 
-        [this](const UpdateEvent::CoreResources &event) {
-            if (event.surface != VK_NULL_HANDLE) {
-                m_oldSurface = m_surface;
-                m_surface = event.surface;
-            }
-        }
-    );
-}
-
-
 void VkSwapchainManager::init() {
+    m_surface = m_coreResources->getSurface();
+
     // Initializes swap-chain
-    createSwapChain();
+    createSwapchain();
 
     // Parses data for each image
     createImageViews();
-
-    SimulationConst::MAX_FRAMES_IN_FLIGHT = m_images.size();
 }
 
 
+void VkSwapchainManager::recreateSwapchain(GLFWwindow *newWindowPtr) {
+    vkDeviceWaitIdle(m_renderDeviceCtx->logicalDevice);
+
+    // If the window is minimized (i.e., (width, height) = (0, 0), pause the window until it is in the foreground again
+    int width = 0, height = 0;
+    glfwGetFramebufferSize(m_window, &width, &height);
+    while (width == 0 || height == 0) {
+        glfwGetFramebufferSize(m_window, &width, &height);
+        glfwWaitEvents();
+    }
+    
+    if (m_swapchain != VK_NULL_HANDLE) {
+        m_cleanupManager->executeCleanupTask(m_swapchainID);
+    }
+
+    if (newWindowPtr) {
+        m_surface = m_coreResources->recreateSurface(newWindowPtr);
+    }
+
+    createSwapchain();
+
+    createImageViews();
+    createFrameBuffers(m_presentPipelineRenderPass);
+
+    m_eventDispatcher->dispatch(RecreationEvent::Swapchain{
+        .swapchainResourceID = m_swapchainID,
+        .newExtent = m_swapchainExtent
+    });
+}
+
+
+/*
 void VkSwapchainManager::recreateSwapchain(GLFWwindow *newWindowPtr, uint32_t imageIndex, std::vector<VkFence> &inFlightFences) {
     m_eventDispatcher->dispatch(UpdateEvent::ApplicationStatus{
         .appState = Application::State::RECREATING_SWAPCHAIN    
     });
 
     // Wait for the host to be idle, and all frames to be processed
-    vkWaitForFences(m_logicalDevice, static_cast<uint32_t>(inFlightFences.size()), inFlightFences.data(), VK_TRUE, UINT64_MAX);
+    vkWaitForFences(m_renderDeviceCtx->logicalDevice, static_cast<uint32_t>(inFlightFences.size()), inFlightFences.data(), VK_TRUE, UINT64_MAX);
 
     {
         // If the window is minimized (i.e., (width, height) = (0, 0), pause the window until it is in the foreground again
@@ -81,25 +81,25 @@ void VkSwapchainManager::recreateSwapchain(GLFWwindow *newWindowPtr, uint32_t im
         if (newWindowPtr != nullptr)
             m_coreResources->recreateSurface(newWindowPtr);
 
-        VkSwapchainKHR oldSwapchain = m_swapChain;
-        CleanupID oldSwapchainCleanupID = m_swapchainCleanupID;
-        createSwapChain(oldSwapchain);
+        VkSwapchainKHR oldSwapchain = m_swapchain;
+        ResourceID oldSwapchainResourceID = m_swapchainID;
+        createSwapchain(oldSwapchain);
 
             // Re-initialize resources
         createImageViews();
-        createFrameBuffers();
+        createFrameBuffers(m_presentPipelineRenderPass);
 
         //m_imageLayouts[imageIndex] = VK_IMAGE_LAYOUT_UNDEFINED;
 
         // Destroy the old swapchain.
         // If the new swapchain is for a different window, we must also destroy the corresponding old VkSurface AFTER swapchain destruction.
-        //vkDestroySwapchainKHR(m_logicalDevice, oldSwapchain, nullptr);
+        //vkDestroySwapchainKHR(m_renderDeviceCtx->logicalDevice, oldSwapchain, nullptr);
         //if (newWindowPtr != nullptr)
         //    vkDestroySurfaceKHR(m_coreResources->getInstance(), m_oldSurface, nullptr);
 
         m_eventDispatcher->dispatch(RecreationEvent::Swapchain{
             .imageIndex = imageIndex,
-            .swapchainCleanupID = oldSwapchainCleanupID,
+            .swapchainResourceID = oldSwapchainResourceID,
             .imageLayouts = m_imageLayouts
         });
     }
@@ -108,123 +108,134 @@ void VkSwapchainManager::recreateSwapchain(GLFWwindow *newWindowPtr, uint32_t im
         .appState = Application::State::IDLE
     });
 }
+*/
 
 
-void VkSwapchainManager::createSwapChain(VkSwapchainKHR oldSwapchain) {
-    SwapChainProperties swapChainProperties = GetSwapChainProperties(m_physicalDevice, m_surface);
+void VkSwapchainManager::createSwapchain(VkSwapchainKHR oldSwapchain) {
+    SwapChainProperties swapchainProperties = GetSwapChainProperties(m_renderDeviceCtx->physicalDevice, m_surface);
 
-    m_swapChainExtent = getBestSwapExtent(swapChainProperties.surfaceCapabilities);
-    m_surfaceFormat = getBestSurfaceFormat(swapChainProperties.surfaceFormats);
-    m_presentMode = getBestPresentMode(swapChainProperties.presentModes);
+    m_swapchainExtent = getBestSwapExtent(swapchainProperties.surfaceCapabilities);
+    m_surfaceFormat = getBestSurfaceFormat(swapchainProperties.surfaceFormats);
+    m_presentMode = getBestPresentMode(swapchainProperties.presentModes);
 
     // Specifies the number of m_images to be had in the swap-chain
     // It is recommended to request at least 1 more image than the minimum
-    m_minImageCount = swapChainProperties.surfaceCapabilities.minImageCount + 1;
+    m_minImageCount = swapchainProperties.surfaceCapabilities.minImageCount + 1;
 
     // If the swap chain's image count has a maximum value (0 is a special value that means there is no maximum)
     // and if the desired image count exceeds that maximum,
     // default the image count to the maximum value.
-    if (swapChainProperties.surfaceCapabilities.maxImageCount > 0 && m_minImageCount > swapChainProperties.surfaceCapabilities.maxImageCount) {
-        m_minImageCount = swapChainProperties.surfaceCapabilities.maxImageCount;
+    if (swapchainProperties.surfaceCapabilities.maxImageCount > 0 && m_minImageCount > swapchainProperties.surfaceCapabilities.maxImageCount) {
+        m_minImageCount = swapchainProperties.surfaceCapabilities.maxImageCount;
     }
 
     // Creates the swap-chain structure
-    VkSwapchainCreateInfoKHR swapChainCreateInfo{};
-    swapChainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    swapChainCreateInfo.surface = m_surface;
+    VkSwapchainCreateInfoKHR swapchainCreateInfo{};
+    swapchainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+    swapchainCreateInfo.surface = m_surface;
 
-    swapChainCreateInfo.imageExtent = m_swapChainExtent;
-    swapChainCreateInfo.imageFormat = m_surfaceFormat.format;
-    swapChainCreateInfo.imageColorSpace = m_surfaceFormat.colorSpace;
-    swapChainCreateInfo.presentMode = m_presentMode;
-    swapChainCreateInfo.clipped = VK_TRUE;
+    swapchainCreateInfo.imageExtent = m_swapchainExtent;
+    swapchainCreateInfo.imageFormat = m_surfaceFormat.format;
+    swapchainCreateInfo.imageColorSpace = m_surfaceFormat.colorSpace;
+    swapchainCreateInfo.presentMode = m_presentMode;
+    swapchainCreateInfo.clipped = VK_TRUE;
 
-    swapChainCreateInfo.minImageCount = m_minImageCount;
+    swapchainCreateInfo.minImageCount = m_minImageCount;
 
     // imageArrayLayers specifies the number of layers each image consists of. Its value is almost always 1,
     // unless you're developing a stereoscopic 3D application.
-    swapChainCreateInfo.imageArrayLayers = 1;
+    swapchainCreateInfo.imageArrayLayers = 1;
 
     // imageUsage is a bitfield that specifies the type of operations the swap-chain m_images are used for.
     // NOTE:
     // - VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT means that the swap-chain m_images are used as color attachment. In other words, we will render directly to them.
     // If you want to render to a separate image first (for post-processing, etc.) before passing it to the swap-chain image via memory operations,
     // use other bits like VK_IMAGE_USAGE_TRANSFER_DST_BIT.
-    swapChainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    swapchainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-    std::vector<uint32_t> familyIndices = m_queueFamilies.getAvailableIndices();
+    QueueFamilyIndices queueFamilies = m_renderDeviceCtx->queueFamilies;
+    std::vector<uint32_t> familyIndices = queueFamilies.getAvailableIndices();
 
     // If the graphics family supports presentation (i.e., the presentation family is not separate),
     // set the image sharing mode to exclusive mode. MODE_EXCLUSIVE means that m_images are owned
     // by only 1 queue family at a time, and using them from another family requires ownership transference.
-    if (m_queueFamilies.graphicsFamily.supportsPresentation) {
-        swapChainCreateInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        swapChainCreateInfo.queueFamilyIndexCount = 0;
-        swapChainCreateInfo.pQueueFamilyIndices = nullptr;
+    if (queueFamilies.graphicsFamily.supportsPresentation) {
+        swapchainCreateInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        swapchainCreateInfo.queueFamilyIndexCount = 0;
+        swapchainCreateInfo.pQueueFamilyIndices = nullptr;
     }
 
     // Else (i.e., the graphics family does not support presentation / the graphics and presentation families are separate),
     // set the image sharing mode to concurrent mode. MODE_CONCURRENT means that m_images can be used across different families.
     else {
-        swapChainCreateInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-        swapChainCreateInfo.queueFamilyIndexCount = 2;
-        swapChainCreateInfo.pQueueFamilyIndices = familyIndices.data();
+        swapchainCreateInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+        swapchainCreateInfo.queueFamilyIndexCount = 2;
+        swapchainCreateInfo.pQueueFamilyIndices = familyIndices.data();
     }
 
     // Specifies a transform applied to swap-chain m_images (e.g., rotation) (in this case, none, i.e., the current transform)
-    swapChainCreateInfo.preTransform = swapChainProperties.surfaceCapabilities.currentTransform;
+    swapchainCreateInfo.preTransform = swapchainProperties.surfaceCapabilities.currentTransform;
 
     // Specifies if the alpha channel should be used for blending with other windows in the window system.
     // In this case, we will ignore the alpha channel.
-    swapChainCreateInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    swapchainCreateInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 
     // References the old swap-chain
-    swapChainCreateInfo.oldSwapchain = oldSwapchain;
+    swapchainCreateInfo.oldSwapchain = oldSwapchain;
 
     // Creates a VkSwapchainKHR object
-    VkResult result = vkCreateSwapchainKHR(m_logicalDevice, &swapChainCreateInfo, nullptr, &m_swapChain);
+    VkResult result = vkCreateSwapchainKHR(m_renderDeviceCtx->logicalDevice, &swapchainCreateInfo, nullptr, &m_swapchain);
     
     LOG_ASSERT(result == VK_SUCCESS, "Failed to create swap-chain!");
     
+
+    vkGetSwapchainImagesKHR(m_renderDeviceCtx->logicalDevice, m_swapchain, &m_minImageCount, nullptr);
+    {
+        m_images.resize(m_minImageCount);
+    }
+    vkGetSwapchainImagesKHR(m_renderDeviceCtx->logicalDevice, m_swapchain, &m_minImageCount, m_images.data());
+
+    m_imageLayouts.resize(m_images.size(), VK_IMAGE_LAYOUT_UNDEFINED);
+    
+    
     CleanupTask task;
     task.caller = __FUNCTION__;
-    task.objectNames = { VARIABLE_NAME(m_swapChain) };
-    task.vkHandles = { m_swapChain };
-    task.cleanupFunc = [this, swapChain = m_swapChain]() { vkDestroySwapchainKHR(m_logicalDevice, swapChain, nullptr); };
+    task.objectNames = { VARIABLE_NAME(m_swapchain) };
+    task.vkHandles = { m_swapchain };
+    task.cleanupFunc = [this, swapchain = m_swapchain]() {
+        vkDestroySwapchainKHR(m_renderDeviceCtx->logicalDevice, swapchain, nullptr);
+    };
 
-    m_swapchainCleanupID = m_cleanupManager->createCleanupTask(task);
-    //m_cleanupTaskIDs.push_back(m_cleanupManager->createCleanupTask(task));
-
-
-    // Fills swapChainImages with a set of VkImage objects provided after swap-chain creation
-    vkGetSwapchainImagesKHR(m_logicalDevice, m_swapChain, &m_minImageCount, nullptr);
-        m_images.resize(m_minImageCount);
-    vkGetSwapchainImagesKHR(m_logicalDevice, m_swapChain, &m_minImageCount, m_images.data());
-
-        // (Re-)Initializes per-frame swapchain image layouts
-    m_imageLayouts.resize(m_images.size(), VK_IMAGE_LAYOUT_UNDEFINED);
+    m_swapchainID = m_cleanupManager->createCleanupTask(task);
 }
 
 
 void VkSwapchainManager::createImageViews() {
 	if (m_images.empty()) {
-		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Cannot create image views: Swap-chain contains no m_images to process!");
+		throw Log::RuntimeException(__FUNCTION__, __LINE__, "Cannot create image views: Swapchain contains no m_images to process!");
 	}
 
     m_imageViews.clear();
     m_imageViews.resize(m_images.size());
 
     for (size_t i = 0; i < m_images.size(); i++) {
-        uint32_t viewCleanupID = VkImageManager::CreateImageView(m_imageViews[i], m_images[i], m_surfaceFormat.format, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_VIEW_TYPE_2D, 1, 1);
+        ResourceID viewResourceID = VkImageUtils::CreateImageView(
+            m_renderDeviceCtx->logicalDevice,
+            m_imageViews[i], m_images[i],
+            m_surfaceFormat.format,
+            VK_IMAGE_ASPECT_COLOR_BIT,
+            VK_IMAGE_VIEW_TYPE_2D,
+            1, 1
+        );
 
-        m_cleanupManager->addTaskDependency(viewCleanupID, m_swapchainCleanupID);
-        //m_cleanupTaskIDs.push_back(viewCleanupID);
+        m_cleanupManager->addTaskDependency(viewResourceID, m_swapchainID);
     }
 }
 
 
-void VkSwapchainManager::createFrameBuffers() {
+void VkSwapchainManager::createFrameBuffers(VkRenderPass presentRenderPass) {
     m_imageFrameBuffers.resize(m_imageViews.size());
+    m_presentPipelineRenderPass = presentRenderPass;
 
     for (size_t i = 0; i < m_imageFrameBuffers.size(); i++) {
         LOG_ASSERT((m_imageViews[i] != VK_NULL_HANDLE), "Cannot read null image view!");
@@ -232,43 +243,48 @@ void VkSwapchainManager::createFrameBuffers() {
         std::vector<VkImageView> attachments = {
             m_imageViews[i]
         };
-        uint32_t framebufferCleanupID = VkImageManager::CreateFramebuffer(m_imageFrameBuffers[i], m_presentPipelineRenderPass, attachments, m_swapChainExtent.width, m_swapChainExtent.height);
 
-        m_cleanupManager->addTaskDependency(framebufferCleanupID, m_swapchainCleanupID);
-        //m_cleanupTaskIDs.push_back(framebufferCleanupID);
+        ResourceID framebufferResourceID = VkImageUtils::CreateFramebuffer(
+            m_renderDeviceCtx->logicalDevice,
+            m_imageFrameBuffers[i],
+            presentRenderPass, attachments,
+            m_swapchainExtent.width, m_swapchainExtent.height
+        );
+
+        m_cleanupManager->addTaskDependency(framebufferResourceID, m_swapchainID);
     }
 }
 
 
 SwapChainProperties VkSwapchainManager::GetSwapChainProperties(VkPhysicalDevice device, VkSurfaceKHR surface) {
-    SwapChainProperties swapChain;
+    SwapChainProperties swapchain;
 
     // Queries swap-chain properties
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &swapChain.surfaceCapabilities);
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &swapchain.surfaceCapabilities);
 
     // Queries surface formats
     uint32_t numOfSurfaceFormats = 0;
     vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &numOfSurfaceFormats, nullptr);
 
-    swapChain.surfaceFormats.resize(numOfSurfaceFormats);
-    vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &numOfSurfaceFormats, swapChain.surfaceFormats.data());
+    swapchain.surfaceFormats.resize(numOfSurfaceFormats);
+    vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &numOfSurfaceFormats, swapchain.surfaceFormats.data());
 
     // Queries surface present modes
     uint32_t numOfPresentModes = 0;
     vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &numOfPresentModes, nullptr);
 
-    swapChain.presentModes.resize(numOfPresentModes);
-    vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &numOfPresentModes, swapChain.presentModes.data());
+    swapchain.presentModes.resize(numOfPresentModes);
+    vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &numOfPresentModes, swapchain.presentModes.data());
 
 
-    if (swapChain.surfaceFormats.empty()) {
+    if (swapchain.surfaceFormats.empty()) {
         Log::Print(Log::T_WARNING, __FUNCTION__, "GPU does not support any surface formats for the given window surface!");
     }
-    if (swapChain.presentModes.empty()) {
+    if (swapchain.presentModes.empty()) {
         Log::Print(Log::T_WARNING, __FUNCTION__, "GPU does not support any presentation modes for the given window surface!");
     }
 
-    return swapChain;
+    return swapchain;
 }
 
 

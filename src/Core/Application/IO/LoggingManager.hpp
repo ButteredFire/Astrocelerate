@@ -38,11 +38,8 @@ class ThreadManager;
     } while (0)
 
 
-namespace Log {
-	inline std::recursive_mutex _printMutex;
-	inline std::ofstream _logFile;
-	inline std::string _logFilePath;
-
+class Log {
+public:
 	/* Purpose of each message type:
 	* - INFO: Used to log general information about the application's operation. This includes high-level events that are part of the normal operation.
 	*		Examples: Service initialization/stopping, user actions, configuration changes
@@ -77,7 +74,7 @@ namespace Log {
 		T_SUCCESS
 	};
 
-	inline MsgType MsgTypes[] = {
+	const inline static MsgType MsgTypes[] = {
 		T_ALL_TYPES, T_VERBOSE, T_DEBUG, T_INFO, T_WARNING, T_ERROR, T_FATAL, T_SUCCESS
 	};
 
@@ -92,15 +89,15 @@ namespace Log {
 
 
 	// The log buffer (used for logging to the GUI console)
-	extern std::deque<LogMessage> LogBuffer;
-	extern int MaxLogLines;
+	inline static std::deque<LogMessage> LogBuffer;
+	inline static int MaxLogLines = 1000;
 
 
 	/* Adds a message to the log buffer.
 		@param logMsg: The message to be added to the log buffer.
 	*/
-	inline void AddToLogBuffer(LogMessage& logMsg) {
-		LogBuffer.push_back(logMsg);
+	inline static void AddToLogBuffer(LogMessage& logMsg) {
+		LogBuffer.emplace_back(logMsg);
 		if (LogBuffer.size() > MaxLogLines)
 			LogBuffer.pop_front();
 	}
@@ -109,7 +106,7 @@ namespace Log {
 	/* Outputs a color to the output stream based on message type.
 		Optionally, set outputColor to False to get the message type (as a string).
 	*/
-	inline void LogColor(MsgType type, std::string& msgType, bool outputColor = true) {
+	inline static void LogColor(MsgType type, std::string& msgType, bool outputColor = true) {
 		switch (type) {
 		case T_ALL_TYPES:
 			msgType = "ALL TYPES";
@@ -157,7 +154,7 @@ namespace Log {
 
 
 	/* Gets the information of the current thread as a string. */
-	extern void LogThreadInfo(std::string &output);
+	static void LogThreadInfo(std::string &output);
 
 
 	/* Logs a message. 
@@ -166,11 +163,11 @@ namespace Log {
 		@param message: The message to be logged.
 		@param newline (default: true): A boolean determining whether the message ends with a newline character (true), or not (false).
 	*/
-	extern void Print(MsgType type, const char *caller, const std::string &message, bool newline = true);
+	static void Print(MsgType type, const char *caller, const std::string &message, bool newline = true);
 
 
 	/* Logs application information to the console. */
-	inline void PrintAppInfo() {
+	inline static void PrintAppInfo() {
 		std::cout << termcolor::reset;
 
 		std::cout << "Project " << APP_NAME << " (version: " << APP_VERSION << ").\n";
@@ -206,13 +203,13 @@ namespace Log {
 
 
 	/* Starts directing output to an external log file. */
-	extern void BeginLogging();
+	static void BeginLogging();
 
 
 	/* Stops logging to a log file. */
-	inline void EndLogging() {
-		if (_logFile.is_open()) {
-			_logFile.close();
+	inline static void EndLogging() {
+		if (m_logFile.is_open()) {
+			m_logFile.close();
 		}
 	}
 	
@@ -271,4 +268,10 @@ namespace Log {
 	public:
 		EngineExitException() {};
 	};
-}
+
+
+private:
+	inline static std::mutex m_printMutex;
+	inline static std::ofstream m_logFile;
+	inline static std::string m_logFilePath;
+};

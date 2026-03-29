@@ -10,6 +10,19 @@ Camera::Camera(glm::dvec3 position, glm::quat orientation):
 	m_inFreeFlyMode(true) {
 
 	m_ecsRegistry = ServiceLocator::GetService<ECSRegistry>(__FUNCTION__);
+	m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
+
+
+	m_config = {
+		.movementSpeed = 1e6f,
+		.mouseSensitivity = 0.1f,
+
+		.zoom = 60.0f,
+		.aspectRatio = 0.0f,
+		.nearClipPlane = 0.01f,
+		.farClipPlane = 1e8f
+	};
+
 
 	m_keyToCamMovementBindings = {
 		{GLFW_KEY_W,					Input::CameraMovement::FORWARD},
@@ -23,7 +36,33 @@ Camera::Camera(glm::dvec3 position, glm::quat orientation):
 	reset();
 	tick();
 
+	bindEvents();
+
 	Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
+}
+
+
+void Camera::bindEvents() {
+	static EventDispatcher::SubscriberIndex selfIndex = m_eventDispatcher->registerSubscriber<Camera>();
+
+	m_eventDispatcher->subscribe<UpdateEvent::SessionStatus>(selfIndex,
+		[this](const UpdateEvent::SessionStatus &event) {
+			using enum UpdateEvent::SessionStatus::Status;
+
+			switch (event.sessionStatus) {
+			case PREPARE_FOR_INIT:
+				reset();
+				break;
+			}
+		}
+	);
+
+
+	m_eventDispatcher->subscribe<UpdateEvent::ViewportSize>(selfIndex,
+		[this](const UpdateEvent::ViewportSize &event) {
+			m_config.aspectRatio = static_cast<float>(event.sceneDimensions.x) / static_cast<float>(event.sceneDimensions.y);
+		}
+	);
 }
 
 
@@ -36,37 +75,6 @@ void Camera::reset() {
 	m_inFreeFlyMode = true;
 	m_revertPosition = false;
 	m_attachedEntityID = m_camEntity.id;
-}
-
-
-void Camera::resetCameraQuatRoll(const glm::vec3 &forwardVector) {
-	// TODO: Fix logic
-	// Projects the camera forward vector onto the horizontal (X-Y) plane.
-	glm::vec3 horizontalForward = glm::normalize(glm::vec3(forwardVector.x, forwardVector.y, 0.0f));
-
-	// If the horizontal forward vector is near zero (e.g., looking straight up or down),
-	// use the original forward vector to prevent a singularity.
-	if (glm::length(horizontalForward) < 0.0001f) {
-		m_orientation = glm::quatLookAt(forwardVector, m_worldUp);
-	}
-	else {
-		// Reconstruct the quaternion without roll
-		m_orientation = glm::quatLookAt(horizontalForward, m_worldUp);
-	}
-
-	/*
-	glm::vec3 cameraForwardVector = m_orientation * forwardVector;
-
-	// Projects the camera forward vector onto the horizontal (X-Y) plane (because our up axis is Z).
-	// This zeros out the Z-component, which effectively removes roll.
-	glm::vec3 horizontalForward = glm::normalize(glm::vec3(cameraForwardVector.x, cameraForwardVector.y, 0.0f));
-
-	if (glm::length(horizontalForward) < 0.0001f)
-		// If the horizontal forward vector is (0, 0, 0), use a default orientation
-		m_orientation = glm::quatLookAt(forwardVector, m_worldUp);
-	else
-		m_orientation = glm::quatLookAt(horizontalForward, m_worldUp);
-	*/
 }
 
 
@@ -88,15 +96,9 @@ void Camera::setOrbitRadii(EntityID orbitEntityID) {
 
 
 void Camera::tick(double deltaUpdate) {
-	/* In a +Z-up coordinate system:
-		* +Z is Up
-		* -Y is Front: The negative Y-axis points forward (the direction the camera looks by default).
-	*/
-	static const glm::vec3 forward = glm::vec3(0.0, -1.0, 0.0);
-
-
-	// Update camera's position if currently attached to an entity
 	if (!m_inFreeFlyMode) {
+		// Update camera's orbital position if currently attached to an entity
+		
 		CoreComponent::Transform &entityTransform = m_ecsRegistry->getComponent<CoreComponent::Transform>(m_attachedEntityID);
 		m_orbitedEntityPosition = entityTransform.position;
 		
@@ -144,9 +146,11 @@ void Camera::tick(double deltaUpdate) {
 		m_right = glm::normalize(glm::cross(m_front, m_localUp));
 	}
 	else {
+		// Else, update the camera's free-fly position
+
 		m_orbitedEntityPosition = m_position;
 
-		m_front = m_orientation * forward;
+		m_front = m_orientation * m_camForward;
 		m_localUp = m_orientation * m_worldUp;
 		m_right = glm::normalize(glm::cross(m_front, m_localUp));
 	}
@@ -224,7 +228,7 @@ void Camera::processKeyboardInput(int key, double dt) {
 
 	Input::CameraMovement direction = m_keyToCamMovementBindings[key];
 
-	float velocity = movementSpeed * dt;
+	float velocity = m_config.movementSpeed * dt;
 
 	switch (direction) {
 	case CameraMovement::FORWARD:
@@ -255,8 +259,8 @@ void Camera::processKeyboardInput(int key, double dt) {
 
 
 void Camera::processMouseInput(float deltaX, float deltaY) {
-	float angleX = glm::radians(deltaX * mouseSensitivity);
-	float angleY = glm::radians(deltaY * mouseSensitivity);
+	float angleX = glm::radians(deltaX * m_config.mouseSensitivity);
+	float angleY = glm::radians(deltaY * m_config.mouseSensitivity);
 
 	clampPitch(angleY, 90.0f);
 
@@ -293,19 +297,19 @@ void Camera::clampPitch(float& angleY, const float pitchLimit) {
 void Camera::processMouseScroll(float deltaY) {
 	if (m_inFreeFlyMode) {
 		// Free-fly mode
-		static const float maxFOV = zoom;  // Set initial zoom value as upper bound to disallow zooming from exceeding original FOV
+		static const float maxFOV = m_config.zoom;  // Set initial zoom value as upper bound to disallow zooming from exceeding original FOV
 		
-		zoom -= deltaY;
-		if (zoom < 1.0f)
-			zoom = 1.0f;
-		if (zoom > maxFOV)
-			zoom = maxFOV;
+		m_config.zoom -= deltaY;
+		if (m_config.zoom < 1.0f)
+			m_config.zoom = 1.0f;
+		if (m_config.zoom > maxFOV)
+			m_config.zoom = maxFOV;
 	}
 	else {
 		// Attached/Orbital mode
 		const float expZoom = m_orbitRadius * 1.5f;	// Exponential zoom multiplier
 
-		m_orbitRadius -= (deltaY * expZoom) * mouseSensitivity;
+		m_orbitRadius -= (deltaY * expZoom) * m_config.mouseSensitivity;
 		m_orbitRadius = glm::clamp(m_orbitRadius, m_minOrbitRadius, m_maxOrbitRadius);
 	}
 }

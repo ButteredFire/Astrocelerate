@@ -8,29 +8,24 @@ layout(set = 0, binding = 0) uniform GlobalUBO {
     mat4 view;
     mat4 projection;
     vec3 cameraPosition;
+    float ambientStrength;
     vec3 lightPosition;
-    vec3 lightColor;
     float radiantFlux;
+    vec3 lightColor;
 } globalUBO;
 
 // Samplers for PBR Textures
 layout(set = 1, binding = 0) uniform pbrMaterialParameters {
     vec3 albedoColor;
 	int albedoMapIndex;
-
 	float metallicFactor;
 	float roughnessFactor;
 	int metallicRoughnessMapIndex;
-
     int heightMapIndex;
-
-	int normalMapIndex;
-
-	int aoMapIndex;
-
 	vec3 emissiveColor;
 	int emissiveMapIndex;
-
+	int normalMapIndex;
+	int aoMapIndex;
 	float opacity;
 } material;
 
@@ -209,7 +204,7 @@ vec3 computePBRFragment() {
     // --- Ambient Lighting (Simple Approximation) ---
     // TODO: Implement a fully functioning ambient lighting model
     // NOTE: In a full PBR setup, this would be IBL (irradiance map + prefiltered env map)
-    vec3 ambientColor = vec3(0.0001); // TODO: This should be editable via globalUBO.ambientStrength
+    vec3 ambientColor = vec3(globalUBO.ambientStrength);
     vec3 ambient = ambientColor * albedo * ao;
 
 

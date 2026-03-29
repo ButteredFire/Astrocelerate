@@ -63,8 +63,10 @@ public:
 	*/
 	void attachToEntity(EntityID entityID);
 
+
 	/* Detaches the camera from any entity and revert back to free-fly mode. */
 	void detachFromEntity();
+
 
 	/* Is the camera in free-fly mode (i.e., not orbiting an entity)? */
 	inline bool inFreeFlyMode() const { return m_inFreeFlyMode; }
@@ -75,14 +77,22 @@ public:
 	/* Gets the orbited entity's position. */
 	inline glm::dvec3 getOrbitedEntityPosition() const { return m_orbitedEntityPosition; }
 
-
 	/* Should the camera revert back to its original free-fly position (True), or not (False)? */
 	inline void revertPositionOnFreeFlySwitch(bool enabled) { m_revertPosition = enabled; }
 
 
-	float movementSpeed = 1e6f;				// Movement speed in simulation space (m/s)
-	float mouseSensitivity = 0.1f;			// Mouse sensitivity
-	float zoom = 60.0f;						// Zoom (degrees)
+	struct Configuration {
+		float movementSpeed;		// Movement speed in simulation space (m/s)
+		float mouseSensitivity;		// Mouse sensitivity
+	
+		float zoom;					// Camera zoom (degrees)
+		float aspectRatio;			// Aspect ratio (dynamically set)
+		float nearClipPlane;		// Near-clip plane
+		float farClipPlane;			// Far-clip plane
+	};
+
+	inline void				setConfig(const Configuration &config) { m_config = config; }
+	inline Configuration	getConfig() const { return m_config; }
 
 private:
 	std::shared_ptr<ECSRegistry> m_ecsRegistry;
@@ -90,8 +100,16 @@ private:
 
 	std::unordered_map<int, Input::CameraMovement> m_keyToCamMovementBindings;
 
+	Configuration m_config;
+
 	// Camera orientation
+		/* In a +Z-up coordinate system:
+			* +Z is Up
+			* -Y is Front: The negative Y-axis points forward (the direction the camera looks by default).
+		*/
 	const glm::vec3 m_worldUp = SimulationConst::UP_AXIS;
+	const glm::vec3 m_camForward = SimulationConst::FORWARD_AXIS;
+	
 	glm::dvec3 m_position;
 	glm::quat m_orientation;
 	
@@ -123,11 +141,10 @@ private:
 	glm::dvec3 m_orbitedEntityPosition{};	// The position of the entity currently being orbited
 
 
+	void bindEvents();
+
+	/* Resets the current camera state. Persistent data such as configuration and control bindings will NOT be reset. */
 	void reset();
-
-
-	/* Resets the camera quaternion's roll. */
-	void resetCameraQuatRoll(const glm::vec3 &forwardVector);
 
 
 	/* Sets orbit radius values for the camera's Orbital mode.

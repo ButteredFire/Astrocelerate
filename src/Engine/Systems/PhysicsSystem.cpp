@@ -7,53 +7,33 @@
 PhysicsSystem::PhysicsSystem() {
 
 	m_ecsRegistry = ServiceLocator::GetService<ECSRegistry>(__FUNCTION__);
-	m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
-
-	bindEvents();
 
 	Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
 
 
-void PhysicsSystem::bindEvents() {
-	const EventDispatcher::SubscriberIndex selfIndex = m_eventDispatcher->registerSubscriber<PhysicsSystem>();
+void PhysicsSystem::init(const Application::YAMLFileConfig &fileCfg, const Application::SimulationConfig &simCfg) {
+	// Create absolute kernel paths and initialize coordinate system
+	std::vector<std::string> kernelPaths = simCfg.kernelPaths;
+	for (size_t i = 0; i < kernelPaths.size(); i++)
+		kernelPaths[i] = FilePathUtils::JoinPaths(ROOT_DIR, kernelPaths[i]);
 
-	m_eventDispatcher->subscribe<UpdateEvent::SessionStatus>(selfIndex,
-		[this](const UpdateEvent::SessionStatus &event) {
-			using enum UpdateEvent::SessionStatus::Status;
-
-			switch (event.sessionStatus) {
-			case INITIALIZED:
-				m_simulationTime = 0.0;
-
-				cacheECSData();
-
-				this->homogenizeCoordinateSystems();
-				this->update(Time::GetDeltaTime());
-
-				syncECSData();
-
-				break;
-			}
-		}
+	this->configureCoordSys(
+		simCfg.frameType, simCfg.frame,
+		kernelPaths,
+		simCfg.epoch, simCfg.epochFormat
 	);
 
 
-	m_eventDispatcher->subscribe<ConfigEvent::SimulationFileParsed>(selfIndex, 
-		[this](const ConfigEvent::SimulationFileParsed &event) {
-			// Create absolute kernel paths and furnish SPICE
-			std::vector<std::string> kernelPaths = event.simulationConfig.kernelPaths;
-			for (size_t i = 0; i < kernelPaths.size(); i++)
-				kernelPaths[i] = FilePathUtils::JoinPaths(ROOT_DIR, kernelPaths[i]);
-			
+	// Initial update
+	m_simulationTime = 0.0;
 
-			this->configureCoordSys(
-				event.simulationConfig.frameType, event.simulationConfig.frame,
-				kernelPaths,
-				event.simulationConfig.epoch, event.simulationConfig.epochFormat
-			);
-		}
-	);
+	cacheECSData();
+	{
+		this->homogenizeCoordinateSystems();
+		this->update(Time::GetDeltaTime());
+	}
+	syncECSData();
 }
 
 
@@ -97,7 +77,7 @@ void PhysicsSystem::tick(WorkerThread *worker) {
 
 	// TODO: Implement adaptive timestepping instead of a constant TIME_STEP
 	if (timeScale > 1000.0f) {
-		// For high time scales, do one big jump
+		// For high time scales, do big jumps
 		update(localAccumulator);
 		localAccumulator = 0.0;
 	}

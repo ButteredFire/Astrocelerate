@@ -17,6 +17,7 @@
 #include <Core/Application/Resources/CleanupManager.hpp>
 #include <Core/Application/Resources/ServiceLocator.hpp>
 
+#include <Platform/Vulkan/Contexts.hpp>
 #include <Platform/Vulkan/Utils/VkDescriptorUtils.hpp>
 
 #include <Engine/GUI/UIPanelManager.hpp>
@@ -24,7 +25,6 @@
 #include <Engine/Utils/ColorUtils.hpp>
 #include <Engine/Contexts/GUIContext.hpp>
 #include <Engine/Registry/ECS/ECS.hpp>
-#include <Engine/Rendering/Pipelines/OffscreenPipeline.hpp>
 
 
 class UIPanelManager;
@@ -32,7 +32,7 @@ class UIPanelManager;
 
 class UIRenderer {
 public:
-	UIRenderer(GLFWwindow *window, VkRenderPass presentPipelineRenderPass, VkCoreResourcesManager *coreResources, VkSwapchainManager *swapchainMgr);
+	UIRenderer(GLFWwindow *window, const Ctx::VkRenderDevice *renderDeviceCtx, const Ctx::VkWindow *windowCtx, std::shared_ptr<UIPanelManager> uiPanelManager);
 	~UIRenderer() = default;
 
 	/* Initializes ImGui. */
@@ -64,10 +64,12 @@ private:
 
 	std::shared_ptr<UIPanelManager> m_uiPanelManager;
 
-	CleanupID m_imguiCleanupID{};
+	const Ctx::VkRenderDevice *m_renderDeviceCtx;
+	const Ctx::VkWindow *m_windowCtx;
+
+	ResourceID m_imguiResourceID{};
 
 	GLFWwindow *m_window;
-	VkRenderPass m_presentPipelineRenderPass;
 	VkInstance m_instance;
 	QueueFamilyIndices m_queueFamilies;
 	VkPhysicalDevice m_physicalDevice;

@@ -1,8 +1,9 @@
 #include "CleanupManager.hpp"
 
 
-CleanupManager::CleanupManager() :
-	m_nextID(0) {
+CleanupManager::CleanupManager() {
+
+	m_treeResourceGroup = m_taskTree.addNode(CleanupTask{});
 
 	Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
@@ -36,125 +37,143 @@ VmaAllocator CleanupManager::createVMAllocator(VkInstance &instance, VkPhysicalD
 }
 
 
-CleanupID CleanupManager::createCleanupTask(CleanupTask task) {
-	std::lock_guard<std::recursive_mutex> lock(m_cleanupMutex);
-
-	std::optional<NodeID> parentingID = (m_rootNodeID.has_value()) ? m_rootNodeID : m_currentNodeID;
-
-	task._id = m_nextID++;
-	m_currentNodeID = m_taskTree.addNode(task, parentingID);
-
+ResourceID CleanupManager::createCleanupTask(CleanupTask task, std::optional<ResourceID> parentTaskID) {
+	ResourceID taskID = createTask(task, parentTaskID);
 	Log::Print(Log::T_VERBOSE, task.caller.c_str(), "Pushed " + getObjectNamesString(task) + " to cleanup tree.");
 
-	return task._id;
+	return taskID;
 }
 
 
-CleanupID CleanupManager::createCleanupTask(CleanupTask childTask, CleanupID parentTaskID) {
-	CleanupID id = createCleanupTask(childTask);
-	addTaskDependency(id, parentTaskID);
+ResourceID CleanupManager::createCleanupGroup(std::optional<ResourceID> parentTaskID) {
+	ResourceID taskID = createTask(CleanupTask{}, parentTaskID);
+	m_taskMetadata[taskID].isGroup = true;
 
-	return id;
+	return taskID;
 }
 
 
-CleanupID CleanupManager::createRootCleanupTask(CleanupTask task) {
+ResourceID CleanupManager::createRootCleanupTask(CleanupTask task) {
+	if (m_rootNodeID.has_value()) {
+		Log::Print(Log::T_WARNING, __FUNCTION__, "Cannot make cleanup task the root node: it can only be set once.");
+		return createCleanupTask(task);
+	}
+
 	m_rootNodeID = createCleanupTask(task);
 
 	return m_rootNodeID.value();
 }
 
 
-void CleanupManager::addTaskDependency(CleanupID childTaskID, CleanupID parentTaskID) {
+ResourceID CleanupManager::createTask(CleanupTask task, std::optional<ResourceID> parentTaskID) {
+	std::lock_guard<std::recursive_mutex> lock(m_cleanupMutex);
+
+	std::optional<NodeID> parentingID = (m_rootNodeID.has_value()) ? m_rootNodeID : m_treeResourceGroup;
+
+	NodeID taskID = m_taskTree.addNode(task, parentingID);
+	m_taskMetadata[taskID] = _TaskMetadata{};
+
+	if (parentTaskID.has_value())
+		addTaskDependency(taskID, parentTaskID.value());
+
+	return taskID;
+}
+
+
+void CleanupManager::addTaskDependency(ResourceID childTaskID, ResourceID parentTaskID) {
 	m_taskTree.attachNodeToParent(childTaskID, parentTaskID);
 }
 
 
-CleanupTask &CleanupManager::modifyCleanupTask(CleanupID taskID) {
+CleanupTask &CleanupManager::modifyCleanupTask(ResourceID taskID) {
 	std::lock_guard<std::recursive_mutex> lock(m_cleanupMutex);
 	return m_taskTree.getNode(taskID).data;
 }
 
 
-void CleanupManager::executeCleanupTask(CleanupID taskID, bool executeParent) {
+void CleanupManager::executeCleanupTask(ResourceID taskID, bool executeParent) {
 	executeTask(taskID, executeParent);
 }
 
 
-void CleanupManager::processCleanupStack() {
+void CleanupManager::cleanupAll() {
 	size_t stackSize = m_taskTree.size();
 
-	Log::Print(Log::T_VERBOSE, __FUNCTION__, "Executing " + std::to_string(stackSize) + " " + PLURAL(stackSize, "task", "tasks") + " in the cleanup tree...");
+	Log::Print(Log::T_INFO, __FUNCTION__, std::to_string(stackSize) + " task " + PLURAL(stackSize, "node", "nodes") + " total. Cleaning up...");
 
-	executeTask(m_rootNodeID.value(), true);
+	executeTask(m_treeResourceGroup, true);
 }
 
 
-void CleanupManager::executeTask(CleanupID taskID, bool executeParent) {
-	/* Executes a cleanup task in isolation. */
-	static const std::function<void(CleanupTask &)> execute = [this](CleanupTask &task) {
-		std::string objectNamesStr = getObjectNamesString(task);
-
-		// Checks whether the task is already invalid
-		if (!task._validTask) {
-			Log::Print(Log::T_WARNING, __FUNCTION__, "Skipped cleanup of " + objectNamesStr + ".");
-			return;
-		}
-
-		// Checks the validity of all Vulkan objects involved in the task
-		bool proceedCleanup = true;
-		for (const auto &object : task.vkHandles) {
-			if (!vkIsValid(object)) {
-				proceedCleanup = false;
-				break;
-			}
-		}
-
-		if (!task.cleanupConditions.empty()) {
-			for (const auto &cond : task.cleanupConditions) {
-				if (!cond) {
-					proceedCleanup = false;
-					break;
-				}
-			}
-		}
-
-		if (!proceedCleanup) {
-			Log::Print(Log::T_WARNING, __FUNCTION__, "Skipped cleanup of " + objectNamesStr + " due to an invalid Vulkan object used in their destroy/free callback function.");
-			return;
-		}
-
-		// Executes the task and invalidates it to prevent future executions
-		try {
-			task.cleanupFunc();
-		}
-		catch (const std::bad_function_call &e) {
-			Log::Print(Log::T_ERROR, __FUNCTION__, "Cannot clean up " + objectNamesStr + ": Bad function call!");
-		}
-#ifdef NDEBUG
-		catch (...) {
-			Log::Print(Log::T_ERROR, __FUNCTION__, "An unknown exception prevented cleanup task " + objectNamesStr + " from being executed!");
-		}
-#endif
-
-		Log::Print(Log::T_VERBOSE, __FUNCTION__, "Executed cleanup task for " + objectNamesStr + ".");
-
-		task._validTask = false;
-	};
-
-
+void CleanupManager::executeTask(ResourceID taskID, bool executeParent) {
 	std::lock_guard<std::recursive_mutex> lock(m_cleanupMutex);
 
 
 	// To safely do clean ups, we must execute tasks from children to parent.
-	CleanupTask &task = m_taskTree.getNode(taskID).data;
-	auto tasks = m_taskTree.getNodes(task._id);
+	auto tasks = m_taskTree.getNodes(taskID);
 
 	int highestLevel = (executeParent) ? 0 : 1;
 
+		// Execute tasks in depth level order (lowest to highest), then chronological order (latest to oldest)
 	for (int i = tasks.size() - 1; i >= highestLevel; i--)
-		for (int j = tasks[i].size() - 1; j >= 0; j--)
-			execute(tasks[i][j]->data);
+		for (int j = tasks[i].size() - 1; j >= 0; j--) {
+			ResourceID taskID = tasks[i][j]->id;
+			CleanupTask &task = tasks[i][j]->data;
+
+
+			// Skip task if it is actually a cleanup group/virtual node
+			if (m_taskMetadata[taskID].isGroup)
+				continue;
+
+
+			std::string objectNamesStr = getObjectNamesString(task);
+
+			// Checks whether the task is already invalid
+			if (!m_taskMetadata[taskID].isValid) {
+				Log::Print(Log::T_WARNING, __FUNCTION__, "Skipped cleanup of " + objectNamesStr + ".");
+				return;
+			}
+
+			// Checks the validity of all Vulkan objects involved in the task
+			bool proceedCleanup = true;
+			for (const auto &object : task.vkHandles) {
+				if (!vkIsValid(object)) {
+					proceedCleanup = false;
+					break;
+				}
+			}
+
+			if (!task.cleanupConditions.empty()) {
+				for (const auto &cond : task.cleanupConditions) {
+					if (!cond) {
+						proceedCleanup = false;
+						break;
+					}
+				}
+			}
+
+			if (!proceedCleanup) {
+				Log::Print(Log::T_WARNING, __FUNCTION__, "Skipped cleanup of " + objectNamesStr + " due to an invalid Vulkan object used in their destroy/free callback function.");
+				return;
+			}
+
+			// Executes the task and invalidates it to prevent future executions
+			try {
+				task.cleanupFunc();
+			}
+			catch (const std::bad_function_call &e) {
+				Log::Print(Log::T_ERROR, __FUNCTION__, "Cannot clean up " + objectNamesStr + ": Bad function call!");
+			}
+#ifdef NDEBUG
+			catch (...) {
+				Log::Print(Log::T_ERROR, __FUNCTION__, "An unknown exception prevented cleanup task " + objectNamesStr + " from being executed!");
+			}
+#endif
+
+			Log::Print(Log::T_VERBOSE, __FUNCTION__, "Executed cleanup task for " + objectNamesStr + ".");
+
+			m_taskMetadata[taskID].isValid = false;
+		}
 }
 
 
@@ -175,10 +194,16 @@ std::string CleanupManager::getObjectNamesString(CleanupTask &task) {
 		ss << "(" << task.objectNames[0];
 		for (size_t i = 1; i < task.objectNames.size(); i++)
 			ss << ", " << task.objectNames[i];
-		ss << ")";
 	}
 	else
-		ss << "empty cleanup task";
+		ss << "(UNKNOWN_TASK";
+
+	if (!task.caller.empty())
+		ss << " @ " << task.caller;
+	else
+		ss << " @ UNKNOWN_CALLER";
+
+	ss << ")";
 
 
 	if (!task.vkHandles.empty()) {

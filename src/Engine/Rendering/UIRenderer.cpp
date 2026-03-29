@@ -4,22 +4,15 @@
 #include "UIRenderer.hpp"
 
 
-UIRenderer::UIRenderer(GLFWwindow *window, VkRenderPass presentPipelineRenderPass, VkCoreResourcesManager *coreResources, VkSwapchainManager *swapchainMgr) :
+UIRenderer::UIRenderer(GLFWwindow *window, const Ctx::VkRenderDevice *renderDeviceCtx, const Ctx::VkWindow *windowCtx, std::shared_ptr<UIPanelManager> uiPanelManager) :
     m_window(window),
-    m_presentPipelineRenderPass(presentPipelineRenderPass),
-
-    m_instance(coreResources->getInstance()),
-    m_queueFamilies(coreResources->getQueueFamilyIndices()),
-    m_physicalDevice(coreResources->getPhysicalDevice()),
-    m_logicalDevice(coreResources->getLogicalDevice()),
-
-    m_minImageCount(swapchainMgr->getMinImageCount()) {
+    m_renderDeviceCtx(renderDeviceCtx),
+    m_windowCtx(windowCtx),
+    m_uiPanelManager(uiPanelManager) {
 
     m_ecsRegistry = ServiceLocator::GetService<ECSRegistry>(__FUNCTION__);
     m_cleanupManager = ServiceLocator::GetService<CleanupManager>(__FUNCTION__);
     m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
-
-    m_uiPanelManager = ServiceLocator::GetService<UIPanelManager>(__FUNCTION__);
 
     bindEvents();
     initImGui();
@@ -77,13 +70,13 @@ void UIRenderer::initImGui() {
 
     // Initialization info
     ImGui_ImplVulkan_InitInfo vkInitInfo{};
-    vkInitInfo.Instance = m_instance;
-    vkInitInfo.PhysicalDevice = m_physicalDevice;
-    vkInitInfo.Device = m_logicalDevice;
+    vkInitInfo.Instance = m_renderDeviceCtx->instance;
+    vkInitInfo.PhysicalDevice = m_renderDeviceCtx->physicalDevice;
+    vkInitInfo.Device = m_renderDeviceCtx->logicalDevice;
 
     // Queue
-    vkInitInfo.QueueFamily = m_queueFamilies.graphicsFamily.index.value();
-    vkInitInfo.Queue = m_queueFamilies.graphicsFamily.deviceQueue;
+    vkInitInfo.QueueFamily = m_renderDeviceCtx->queueFamilies.graphicsFamily.index.value();
+    vkInitInfo.Queue = m_renderDeviceCtx->queueFamilies.graphicsFamily.deviceQueue;
 
     // Pipeline cache
     vkInitInfo.PipelineCache = VK_NULL_HANDLE;
@@ -97,17 +90,17 @@ void UIRenderer::initImGui() {
         { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, static_cast<uint32_t>(SimulationConst::MAX_FRAMES_IN_FLIGHT) }
     };
     VkDescriptorPoolCreateFlags imgui_DescPoolCreateFlags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-    VkDescriptorUtils::CreateDescriptorPool(m_logicalDevice, m_descriptorPool, imgui_PoolSizes.size(), imgui_PoolSizes.data(), imgui_DescPoolCreateFlags);
+    VkDescriptorUtils::CreateDescriptorPool(m_renderDeviceCtx->logicalDevice, m_descriptorPool, imgui_PoolSizes.size(), imgui_PoolSizes.data(), imgui_DescPoolCreateFlags);
     vkInitInfo.DescriptorPool = m_descriptorPool;
 
 
     // Render pass & subpass
-    vkInitInfo.RenderPass = m_presentPipelineRenderPass;
+    vkInitInfo.RenderPass = m_windowCtx->presentRenderPass;
     vkInitInfo.Subpass = 0;
 
     // Image count
-    vkInitInfo.MinImageCount = m_minImageCount; // For some reason, ImGui does not actually use this property
-    vkInitInfo.ImageCount = m_minImageCount;
+    vkInitInfo.MinImageCount = m_windowCtx->minImageCount; // For some reason, ImGui does not actually use this property
+    vkInitInfo.ImageCount = m_windowCtx->minImageCount;
 
     // Other
     vkInitInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
@@ -131,7 +124,7 @@ void UIRenderer::initImGui() {
         ImGui_ImplGlfw_Shutdown();
     };
 
-    m_imguiCleanupID = m_cleanupManager->createCleanupTask(task);
+    m_imguiResourceID = m_cleanupManager->createCleanupTask(task);
 
 
     ImGui_ImplVulkan_Init(&vkInitInfo);
@@ -256,7 +249,7 @@ void UIRenderer::updateDockspace() {
         ImGui::PopStyleVar(2);
 
         ImGui::PushFont(g_guiCtx.primaryFont);
-        m_uiPanelManager->renderMenuBar();
+            m_uiPanelManager->renderMenuBar();
         ImGui::PopFont();
 
         ImGuiID dockspaceID = ImGui::GetID("Dockspace");
@@ -269,7 +262,7 @@ void UIRenderer::updateDockspace() {
 
 
 void UIRenderer::reInitImGui(GLFWwindow *window) {
-    m_cleanupManager->executeCleanupTask(m_imguiCleanupID);
+    m_cleanupManager->executeCleanupTask(m_imguiResourceID);
 
     if (window != nullptr)
         m_window = window;
@@ -281,7 +274,7 @@ void UIRenderer::reInitImGui(GLFWwindow *window) {
 void UIRenderer::refreshImGui() {
     int width = 0, height = 0;
     glfwGetFramebufferSize(m_window, &width, &height);
-    ImGui_ImplVulkan_SetMinImageCount(m_minImageCount);
+    ImGui_ImplVulkan_SetMinImageCount(m_windowCtx->minImageCount);
 }
 
 
@@ -294,7 +287,7 @@ void UIRenderer::renderFrames(uint32_t currentFrame) {
         updateDockspace();
 
         ImGui::PushFont(g_guiCtx.primaryFont);
-        m_uiPanelManager->renderWorkspace(currentFrame);
+            m_uiPanelManager->renderWorkspace(currentFrame);
         ImGui::PopFont();
 
         // Multi-viewport support

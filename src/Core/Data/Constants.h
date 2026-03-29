@@ -153,10 +153,11 @@ namespace PhysicsConst {
 // Simulation settings
 namespace SimulationConst {
 	constexpr int MAX_SIMULATION_STEPS = 10000;
-	extern int MAX_FRAMES_IN_FLIGHT;								// How many frames should be processed concurrently
+	constexpr int MAX_FRAMES_IN_FLIGHT = 3;							// How many frames should be processed concurrently
 	constexpr int MAX_GLOBAL_TEXTURES = 128;						// The maximum number of textures in the global texture array
 	constexpr double TIME_STEP = 1.0 / 60.0;						// 60 Hz
 	constexpr double SIMULATION_SCALE = 1e6;						// 1 world unit = 1,000,000 meters (1000 km)
 
-	constexpr glm::vec3 UP_AXIS = glm::vec3(0.0f, 0.0f, 1.0f);		// Z-up
+	constexpr glm::vec3 UP_AXIS			= glm::vec3(0.0f, 0.0f, 1.0f);		// (+Z)-up (World-up)
+	constexpr glm::vec3 FORWARD_AXIS	= glm::vec3(0.0f, -1.0f, 0.0f);		// (-Y)-forward (Camera direction)
 }

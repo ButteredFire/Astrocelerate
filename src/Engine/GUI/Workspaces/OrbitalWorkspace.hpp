@@ -19,6 +19,7 @@
 #include <Core/Utils/SpaceUtils.hpp>
 #include <Core/Utils/SystemUtils.hpp>
 
+#include <Platform/Vulkan/Contexts.hpp>
 #include <Platform/Vulkan/Utils/VkDescriptorUtils.hpp>
 
 #include <Engine/GUI/Data/GUI.hpp>
@@ -49,7 +50,7 @@ struct PairHash {
 
 class OrbitalWorkspace : public IWorkspace {
 public:
-	OrbitalWorkspace();
+	OrbitalWorkspace(const Ctx::VkRenderDevice *renderDeviceCtx, const Ctx::OffscreenPipeline *pipelineData, std::shared_ptr<InputManager> inputManager);
 	~OrbitalWorkspace() override = default;
 
 	void init() override;
@@ -74,9 +75,10 @@ private:
 	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 	std::shared_ptr<ECSRegistry> m_ecsRegistry;
 
-	std::shared_ptr<VkCoreResourcesManager> m_coreResources;
-	std::shared_ptr<VkSwapchainManager> m_swapchainManager;
 	std::shared_ptr<InputManager> m_inputManager;
+
+	const Ctx::VkRenderDevice *m_renderDeviceCtx;
+	const Ctx::OffscreenPipeline *m_pipelineData;
 
 
 	// Panel IDs & masks

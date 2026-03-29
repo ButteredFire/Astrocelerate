@@ -11,14 +11,13 @@
 #include <Core/Application/Resources/CleanupManager.hpp>
 #include <Core/Application/Resources/ServiceLocator.hpp>
 
-#include <Platform/Vulkan/VkSwapchainManager.hpp>
-#include <Platform/Vulkan/VkCoreResourcesManager.hpp>
+#include <Platform/Vulkan/Contexts.hpp>
 #include <Platform/External/GLFWVulkan.hpp>
 
 
 class VkSyncManager {
 public:
-	VkSyncManager(VkCoreResourcesManager *coreResources, VkSwapchainManager *swapchainMgr);
+	VkSyncManager(const Ctx::VkRenderDevice *renderDeviceCtx, const Ctx::VkWindow *windowCtx);
 	~VkSyncManager();
 
 
@@ -55,8 +54,8 @@ public:
 private:
 	std::shared_ptr<CleanupManager> m_cleanupManager;
 
-	VkCoreResourcesManager *m_coreResources;
-	VkSwapchainManager *m_swapchainManager;
+	const Ctx::VkRenderDevice *m_renderDeviceCtx;
+	const Ctx::VkWindow *m_windowCtx;
 
 	VkDevice m_logicalDevice;
 

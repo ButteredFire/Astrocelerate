@@ -23,36 +23,35 @@ enum EventFlag {
 	EVENT_FLAG_INIT_OFFSCREEN_PIPELINE_BIT				= 1 << 0,
 	EVENT_FLAG_INIT_PRESENT_PIPELINE_BIT				= 1 << 1,
 	EVENT_FLAG_INIT_GEOMETRY_BIT						= 1 << 2,
-	EVENT_FLAG_INIT_SCENE_BIT							= 1 << 3,
-	EVENT_FLAG_INIT_IMGUI_BIT							= 1 << 4,
-	EVENT_FLAG_INIT_INPUT_MANAGER_BIT					= 1 << 5,
-	EVENT_FLAG_INIT_BUFFER_MANAGER_BIT					= 1 << 6,
-	EVENT_FLAG_INIT_SWAPCHAIN_MANAGER_BIT				= 1 << 7,
+	EVENT_FLAG_INIT_IMGUI_BIT							= 1 << 3,
+	EVENT_FLAG_INIT_INPUT_MANAGER_BIT					= 1 << 4,
+	EVENT_FLAG_INIT_BUFFER_MANAGER_BIT					= 1 << 5,
+	EVENT_FLAG_INIT_SWAPCHAIN_MANAGER_BIT				= 1 << 6,
 
-	EVENT_FLAG_RECREATION_SWAPCHAIN_BIT					= 1 << 8,
-	EVENT_FLAG_RECREATION_OFFSCREEN_RESOURCES_BIT		= 1 << 9,
+	EVENT_FLAG_RECREATION_SWAPCHAIN_BIT					= 1 << 7,
+	EVENT_FLAG_RECREATION_OFFSCREEN_RESOURCES_BIT		= 1 << 8,
 
-	EVENT_FLAG_UPDATE_APPLICATION_STATUS_BIT			= 1 << 10,
-	EVENT_FLAG_UPDATE_INPUT_BIT							= 1 << 11,
-	EVENT_FLAG_UPDATE_RENDERABLES_BIT					= 1 << 12,
-	EVENT_FLAG_UPDATE_SESSION_STATUS_BIT				= 1 << 13,
-	EVENT_FLAG_UPDATE_PHYSICS_BIT						= 1 << 14,
-	EVENT_FLAG_UPDATE_PER_FRAME_BUFFERS_BIT				= 1 << 15,
-	EVENT_FLAG_UPDATE_APP_IS_STABLE_BIT					= 1 << 16,
-	EVENT_FLAG_UPDATE_REGISTRY_RESET_BIT				= 1 << 17,
-	EVENT_FLAG_UPDATE_SCENE_LOAD_PROGRESS_BIT			= 1 << 18,
-	EVENT_FLAG_UPDATE_SCENE_LOAD_COMPLETE_BIT			= 1 << 19,
-	EVENT_FLAG_UPDATE_VIEWPORT_SIZE_BIT					= 1 << 20,
-	EVENT_FLAG_UPDATE_CORE_RESOURCES_BIT				= 1 << 21,
+	EVENT_FLAG_UPDATE_APPLICATION_STATUS_BIT			= 1 << 9,
+	EVENT_FLAG_UPDATE_INPUT_BIT							= 1 << 10,
+	EVENT_FLAG_UPDATE_RENDERABLES_BIT					= 1 << 11,
+	EVENT_FLAG_UPDATE_SESSION_STATUS_BIT				= 1 << 12,
+	EVENT_FLAG_UPDATE_PHYSICS_BIT						= 1 << 13,
+	EVENT_FLAG_UPDATE_PER_FRAME_BUFFERS_BIT				= 1 << 14,
+	EVENT_FLAG_UPDATE_APP_IS_STABLE_BIT					= 1 << 15,
+	EVENT_FLAG_UPDATE_REGISTRY_RESET_BIT				= 1 << 16,
+	EVENT_FLAG_UPDATE_SCENE_LOAD_PROGRESS_BIT			= 1 << 17,
+	EVENT_FLAG_UPDATE_SCENE_LOAD_COMPLETE_BIT			= 1 << 18,
+	EVENT_FLAG_UPDATE_VIEWPORT_SIZE_BIT					= 1 << 19,
+	EVENT_FLAG_UPDATE_CORE_RESOURCES_BIT				= 1 << 20,
 
-	EVENT_FLAG_REQUEST_INIT_SESSION_BIT					= 1 << 22,
-	EVENT_FLAG_REQUEST_PROCESS_SECONDARY_COMMAND_BUFFERS_BIT = 1 << 23,
-	EVENT_FLAG_REQUEST_INIT_SCENE_RESOURCES_BIT			= 1 << 24,
-	EVENT_FLAG_REQUEST_REINIT_IMGUI_BIT					= 1 << 25,
+	EVENT_FLAG_REQUEST_INIT_SESSION_BIT					= 1 << 21,
+	EVENT_FLAG_REQUEST_PROCESS_SECONDARY_COMMAND_BUFFERS_BIT = 1 << 22,
+	EVENT_FLAG_REQUEST_INIT_SCENE_RESOURCES_BIT			= 1 << 23,
+	EVENT_FLAG_REQUEST_REINIT_IMGUI_BIT					= 1 << 24,
 
-	EVENT_FLAG_CONFIG_SIMULATION_FILE_PARSED			= 1 << 26
+	EVENT_FLAG_CONFIG_SIMULATION_FILE_PARSED_BIT		= 1 << 25
 };
-constexpr size_t EVENT_FLAG_COUNT = 26 + 1; // Highest bit position + 1
+constexpr size_t EVENT_FLAG_COUNT = 25 + 1; // Highest bit position + 1
 
 
 namespace InitEvent {
@@ -100,15 +99,6 @@ namespace InitEvent {
 	};
 
 
-	/* Used when the scene is initialized (most often emitted to signal the end of the scene initialization worker thread).
-		This event is just an alias for InitEvent::OffscreenPipeline for the sake of readability.
-		Services that don't have a direct tie to the offscreen pipeline should listen to this event.
-	*/
-	struct Scene {
-		const EventFlag eventFlag = EVENT_FLAG_INIT_SCENE_BIT;
-	};
-
-
 	/* Used when the ImGui context is available. */
 	struct ImGui {
 		const EventFlag eventFlag = EVENT_FLAG_INIT_IMGUI_BIT;
@@ -144,9 +134,8 @@ namespace RecreationEvent {
 	struct Swapchain {
 		const EventFlag eventFlag = EVENT_FLAG_RECREATION_SWAPCHAIN_BIT;
 
-		uint32_t imageIndex;
-		CleanupID swapchainCleanupID;
-		std::vector<VkImageLayout> imageLayouts;
+		ResourceID swapchainResourceID;
+		VkExtent2D newExtent;
 	};
 
 
@@ -335,7 +324,7 @@ namespace RequestEvent {
 namespace ConfigEvent {
 	/* Used when a simulation file has been successfully read. */
 	struct SimulationFileParsed {
-		const EventFlag eventFlag = EVENT_FLAG_CONFIG_SIMULATION_FILE_PARSED;
+		const EventFlag eventFlag = EVENT_FLAG_CONFIG_SIMULATION_FILE_PARSED_BIT;
 
 		Application::YAMLFileConfig fileConfig;
 		Application::SimulationConfig simulationConfig;

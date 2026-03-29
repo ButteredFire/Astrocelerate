@@ -1,27 +1,28 @@
-/* RenderSystem.cpp - Render system implementation.
-*/
-
 #include "RenderSystem.hpp"
 #include <cstddef> // For offsetof
 
 
-RenderSystem::RenderSystem(VkCoreResourcesManager *coreResources, VkSwapchainManager *swapchainMgr, UIRenderer *uiRenderer) :
-	m_coreResources(coreResources),
-	m_swapchainManager(swapchainMgr),
-	m_uiRenderer(uiRenderer) {
+RenderSystem::RenderSystem(const Ctx::VkRenderDevice *renderDeviceCtx, const Ctx::VkWindow *windowCtx, std::shared_ptr<VkBufferManager> bufferMgr, std::shared_ptr<UIRenderer> uiRenderer, std::shared_ptr<Camera> camera) :
+	m_renderDeviceCtx(renderDeviceCtx),
+	m_windowCtx(windowCtx),
+
+	m_bufferManager(bufferMgr),
+	m_uiRenderer(uiRenderer),
+	m_camera(camera) {
 
 	m_ecsRegistry = ServiceLocator::GetService<ECSRegistry>(__FUNCTION__);
 	m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
 	m_cleanupManager = ServiceLocator::GetService<CleanupManager>(__FUNCTION__);
 
-	m_logicalDevice = m_coreResources->getLogicalDevice();
-	m_queueFamilies = m_coreResources->getQueueFamilyIndices();
+	m_logicalDevice = m_renderDeviceCtx->logicalDevice;
+	m_queueFamilies = m_renderDeviceCtx->queueFamilies;
 
 	m_sceneReady.store(false);
 	m_hasNewData.store(false);
 
 	bindEvents();
-	init();
+
+	initGUICmdBufSets();
 
 	Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
@@ -33,58 +34,6 @@ RenderSystem::~RenderSystem() {}
 void RenderSystem::bindEvents() {
 	static EventDispatcher::SubscriberIndex selfIndex = m_eventDispatcher->registerSubscriber<RenderSystem>();
 
-	m_eventDispatcher->subscribe<InitEvent::BufferManager>(selfIndex,
-		[this](const InitEvent::BufferManager &event) {
-			m_globalVertexBuffer = event.globalVertexBuffer;
-			m_globalIndexBuffer = event.globalIndexBuffer;
-			m_perFrameDescriptorSets = event.perFrameDescriptorSets;
-		}
-	);
-
-
-	m_eventDispatcher->subscribe<InitEvent::OffscreenPipeline>(selfIndex,
-		[this](const InitEvent::OffscreenPipeline &event) {
-			m_texArrayDescriptorSet = event.texArrayDescriptorSet;
-			m_pbrDescriptorSet = event.pbrDescriptorSet;
-
-			m_offscreenPipeline = event.pipeline;
-			m_offscreenPipelineLayout = event.pipelineLayout;
-			m_offscreenRenderPass = event.renderPass;
-			m_offscreenFrameBuffers = event.offscreenFrameBuffers;
-		}
-	);
-
-
-	m_eventDispatcher->subscribe<RecreationEvent::Swapchain>(selfIndex,
-		[this](const RecreationEvent::Swapchain &event) {
-			m_swapchainExtent = m_swapchainManager->getSwapChainExtent();
-		}
-	);
-
-
-	m_eventDispatcher->subscribe<UpdateEvent::Renderables>(selfIndex,
-		[this](const UpdateEvent::Renderables& event) {
-			using enum UpdateEvent::Renderables::Type;
-
-			switch (event.renderableType) {
-			case GUI:
-				// The GUI rendering runs on the main thread
-				renderGUI(event.commandBuffer, event.currentFrame);
-				break;
-
-			default:
-				// All other renderable types are assumed to run on a worker RENDERER thread
-				m_renderThreadBarrier = event.barrier;
-				m_currentFrame.store(event.currentFrame);
-				m_hasNewData.store(true);
-
-				m_tickCondVar.notify_one();
-
-				break;
-			}
-		}
-	);
-
 
 	m_eventDispatcher->subscribe<UpdateEvent::SessionStatus>(selfIndex, 
 		[this](const UpdateEvent::SessionStatus &event) {
@@ -93,7 +42,6 @@ void RenderSystem::bindEvents() {
 			switch (event.sessionStatus) {
 			case PREPARE_FOR_INIT:
 				m_sceneReady.store(false);
-				//waitForResources(selfIndex);
 
 				break;
 
@@ -106,36 +54,156 @@ void RenderSystem::bindEvents() {
 }
 
 
-void RenderSystem::init() {
-	// Pre-allocate secondary command buffers for scene rendering
-	m_sceneSecondaryCmdBufs.resize(SimulationConst::MAX_FRAMES_IN_FLIGHT);
+void RenderSystem::init(const Geometry::GeometryData *geomData, const Ctx::OffscreenPipeline *offscreenData) {
+	// Destroy previous per-session resources if RenderSystem is being re-initialized
+	if (m_geomData != nullptr)
+		m_cleanupManager->executeCleanupTask(m_sessionResourceID);
 
-	for (int i = 0; i < SimulationConst::MAX_FRAMES_IN_FLIGHT; i++) {
+	m_geomData = geomData;
+	m_offscreenData = offscreenData;
+
+	m_sessionResourceID = m_cleanupManager->createCleanupGroup();
+
+	initGlobalBuffers();
+	createVisualizers();
+	initVisualizerCmdBufSets();
+	initVisualizers();
+}
+
+
+void RenderSystem::initGlobalBuffers() {
+	// Global vertex & index buffers
+	{
+		VkDeviceSize vertBufSize	= sizeof(m_geomData->meshVertices[0]) * m_geomData->meshVertices.size();
+		VkDeviceSize idxBufSize		= sizeof(m_geomData->meshVertexIndices[0]) * m_geomData->meshVertexIndices.size();
+		VkBufferUsageFlags commonBufUsage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+
+		m_globalVertBufAlloc	= m_bufferManager->allocate(vertBufSize, commonBufUsage | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, Buffer::MemIntent::VRAM);
+		m_globalIdxBufAlloc		= m_bufferManager->allocate(idxBufSize, commonBufUsage | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, Buffer::MemIntent::VRAM);
+
+		VkBufferUtils::WriteToGPUBuffer(m_renderDeviceCtx, m_geomData->meshVertices.data(), m_globalVertBufAlloc.buffer, vertBufSize);
+		VkBufferUtils::WriteToGPUBuffer(m_renderDeviceCtx, m_geomData->meshVertexIndices.data(), m_globalIdxBufAlloc.buffer, idxBufSize);
+	}
+
+
+
+	// Global UBOs (1 per frame for MAX_FRAMES_IN_FLIGHT frames total)
+	{
+		VkDeviceSize alignment = m_renderDeviceCtx->chosenDevice.properties.limits.minUniformBufferOffsetAlignment;
+		VkDeviceSize alignedSize = SystemUtils::Align(sizeof(Buffer::GlobalUBO), alignment);
+		for (int i = 0; i < SimulationConst::MAX_FRAMES_IN_FLIGHT; i++) {
+			// Create UBO
+			m_globalUBOs[i].bufAlloc		= m_bufferManager->allocate(alignedSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, Buffer::MemIntent::RAM_SEQ_ACCESS);
+			m_globalUBOs[i].descriptorSet	= m_offscreenData->perFrameDescriptorSets[i];
+
+			m_cleanupManager->addTaskDependency(m_globalUBOs[i].bufAlloc.resourceID, m_sessionResourceID);
+
+			// Update UBO descriptor set
+			VkDescriptorBufferInfo uboInfo{};
+			uboInfo.buffer = m_globalUBOs[i].bufAlloc.buffer;
+			uboInfo.offset = 0;
+			uboInfo.range = alignedSize;
+
+			VkWriteDescriptorSet uboDescWrite{};
+			uboDescWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			uboDescWrite.dstSet = m_globalUBOs[i].descriptorSet;
+			uboDescWrite.dstBinding = ShaderConst::VERT_BIND_GLOBAL_UBO;
+			uboDescWrite.dstArrayElement = 0;
+			uboDescWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			uboDescWrite.descriptorCount = 1;
+			uboDescWrite.pBufferInfo = &uboInfo;
+
+			vkUpdateDescriptorSets(m_renderDeviceCtx->logicalDevice, 1, &uboDescWrite, 0, nullptr);
+		}
+	}
+}
+
+
+void RenderSystem::createVisualizers() {
+	m_visualizers.clear();
+
+	// Geometry Visualizer
+	m_visualizers.push_back(
+		std::make_unique<GeometryVisualizer>(
+			m_renderDeviceCtx, m_windowCtx,
+			m_offscreenData, m_geomData,
+			&m_globalVertBufAlloc, &m_globalIdxBufAlloc,
+			m_bufferManager
+		)
+	);
+
+	m_visualizerCount = m_visualizers.size();
+}
+
+
+void RenderSystem::initVisualizerCmdBufSets() {
+	m_visualizerCmdBufs.resize(m_visualizerCount);
+	m_visualizerCommandPools.resize(m_visualizerCount);
+
+	for (int i = 0; i < m_visualizerCount; i++) {
+		// NOTE: For the Visualizers to record to secondary command buffers in parallel, their set of buffers MUST be allocated from their own command pool.
+		m_visualizerCommandPools[i] = VkCommandUtils::CreateCommandPool(m_logicalDevice, m_queueFamilies.graphicsFamily.index.value(), VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, m_sessionResourceID);
+
 		VkCommandBufferAllocateInfo cmdBufAllocInfo{};
 		cmdBufAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 		cmdBufAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_SECONDARY;
-		cmdBufAllocInfo.commandPool = VkCommandManager::CreateCommandPool(m_logicalDevice, m_queueFamilies.graphicsFamily.index.value(), VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
-		cmdBufAllocInfo.commandBufferCount = 1;
+		cmdBufAllocInfo.commandPool = m_visualizerCommandPools[i];
+        // Allocate all frame command buffers at once into the array storage
+		cmdBufAllocInfo.commandBufferCount = SimulationConst::MAX_FRAMES_IN_FLIGHT;
 
-		VkResult bufAllocResult = vkAllocateCommandBuffers(m_logicalDevice, &cmdBufAllocInfo, &m_sceneSecondaryCmdBufs[i]);
+		VkResult bufAllocResult = vkAllocateCommandBuffers(m_logicalDevice, &cmdBufAllocInfo, m_visualizerCmdBufs[i].data());
+		LOG_ASSERT(bufAllocResult == VK_SUCCESS, "Failed to allocate secondary command buffers for Visualizers!");
 
-		LOG_ASSERT(bufAllocResult == VK_SUCCESS, "Failed to allocate single-use command buffer!");
+		// Create individual cleanup tasks for each allocated command buffer
+		for (int j = 0; j < cmdBufAllocInfo.commandBufferCount; j++) {
+			CleanupTask task{};
+			task.caller = __FUNCTION__;
+			task.objectNames = { VARIABLE_NAME(m_visualizerCmdBufs[i][j]) };
+			task.cleanupFunc = [this, cmdBuf = m_visualizerCmdBufs[i][j], commandPool = m_visualizerCommandPools[i]]() {
+				vkFreeCommandBuffers(m_logicalDevice, commandPool, 1, &cmdBuf);
+			};
+			ResourceID taskID = m_cleanupManager->createCleanupTask(task);
+			m_cleanupManager->addTaskDependency(taskID, m_sessionResourceID);
+		}
+	}
+}
 
+
+void RenderSystem::initGUICmdBufSets() {
+	m_guiCommandPool = VkCommandUtils::CreateCommandPool(m_logicalDevice, m_queueFamilies.graphicsFamily.index.value(), VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
+
+	VkCommandBufferAllocateInfo cmdBufAllocInfo{};
+	cmdBufAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	cmdBufAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_SECONDARY;
+	cmdBufAllocInfo.commandPool = m_guiCommandPool;
+    // Allocate all GUI secondary command buffers at once
+	cmdBufAllocInfo.commandBufferCount = SimulationConst::MAX_FRAMES_IN_FLIGHT;
+	VkResult bufAllocResult = vkAllocateCommandBuffers(m_logicalDevice, &cmdBufAllocInfo, m_guiCmdBufs.data());
+	LOG_ASSERT(bufAllocResult == VK_SUCCESS, "Failed to allocate secondary command buffers for GUI!");
+
+	for (size_t i = 0; i < m_guiCmdBufs.size(); i++) {
 		CleanupTask task{};
 		task.caller = __FUNCTION__;
-		task.objectNames = { VARIABLE_NAME(m_sceneSecondaryCmdBufs) };
-		task.vkHandles = { m_sceneSecondaryCmdBufs[i] };
-		task.cleanupFunc = [this, cmdBuf = m_sceneSecondaryCmdBufs[i], commandPool = cmdBufAllocInfo.commandPool]() {
-			vkFreeCommandBuffers(m_logicalDevice, commandPool, 1, &cmdBuf);
+		task.objectNames = { VARIABLE_NAME(m_guiCmdBufs[i]) };
+		task.cleanupFunc = [this, cmdBuf = m_guiCmdBufs[i]]() {
+			vkFreeCommandBuffers(m_logicalDevice, m_guiCommandPool, 1, &cmdBuf);
 		};
-		m_cleanupManager->createCleanupTask(task);
+		ResourceID taskID = m_cleanupManager->createCleanupTask(task);
+		(void)taskID;
 	}
+}
+
+
+void RenderSystem::initVisualizers() {
+	for (int i = 0; i < m_visualizerCount; i++)
+		m_visualizers[i]->init(m_visualizerCmdBufs[i]);
 }
 
 
 void RenderSystem::tick(std::stop_token stopToken) {
 	std::unique_lock<std::mutex> lock(m_tickMutex);
 	m_tickCondVar.wait(lock, stopToken, [this, stopToken]() { return m_hasNewData.load(); });
+
 	m_hasNewData.store(false);
 
 	if (stopToken.stop_requested())
@@ -143,13 +211,11 @@ void RenderSystem::tick(std::stop_token stopToken) {
 
 	// Scene
 	if (m_sceneReady.load()) {
-		uint32_t currentFrame = m_currentFrame.load();
-		renderScene(currentFrame);
+		Buffer::FramePacket packet{};
+		packet.frameIndex = m_currentFrame.load();
 
-		m_eventDispatcher->dispatch(RequestEvent::ProcessSecondaryCommandBuffers{
-			.buffers = { m_sceneSecondaryCmdBufs[currentFrame] },
-			.targetStage = RequestEvent::ProcessSecondaryCommandBuffers::Stage::OFFSCREEN
-		}, true, true);
+		buildFramePacket(&packet);
+		renderScene(&packet);
 	}
 
 
@@ -160,26 +226,106 @@ void RenderSystem::tick(std::stop_token stopToken) {
 }
 
 
-void RenderSystem::waitForResources(const EventDispatcher::SubscriberIndex &selfIndex) {
-	auto thread = ThreadManager::CreateThread("WAIT_RENDER_RESOURCES");
-	thread->set([this, selfIndex](std::stop_token stopToken) {
-		EventFlags eventFlags = EVENT_FLAG_INIT_BUFFER_MANAGER_BIT;
+void RenderSystem::beginWork(uint32_t currentFrame, std::weak_ptr<std::barrier<>> barrier) {
+	m_renderThreadBarrier = barrier;
+	m_currentFrame.store(currentFrame);
+	m_hasNewData.store(true);
 
-		m_eventDispatcher->waitForEventCallbacks(selfIndex, eventFlags);
-
-		m_sceneReady.store(true);
-	});
-	thread->start();
+	m_tickCondVar.notify_one();
 }
 
 
-void RenderSystem::renderScene(uint32_t currentFrame) {
-	vkResetCommandBuffer(m_sceneSecondaryCmdBufs[currentFrame], 0);
+std::vector<VkCommandBuffer> RenderSystem::getSceneCommandBuffers(uint32_t currentFrame) {
+	std::unique_lock<std::mutex> lock(m_cmdBufProcessMutex);
+	m_cmdBufProcessCV.wait(lock, [this, currentFrame]() { return m_finishedRecording[currentFrame]; });
+
+	std::vector<VkCommandBuffer> commandBufs;
+	commandBufs.reserve(m_visualizerCount);
+	for (int i = 0; i < m_visualizerCount; i++)
+		commandBufs.push_back(m_visualizerCmdBufs[i][currentFrame]);
+
+	return commandBufs;
+}
+
+
+VkCommandBuffer RenderSystem::getGUICommandBuffer(uint32_t currentFrame) {
+	return m_guiCmdBufs[currentFrame];
+}
+
+
+void RenderSystem::buildFramePacket(Buffer::FramePacket *packet) {
+	if (m_camera->inFreeFlyMode())  packet->camFloatingOrigin = m_camera->getAbsoluteTransform().position;
+	else                            packet->camFloatingOrigin = m_camera->getOrbitedEntityPosition();
+
+	Camera::Configuration camConfig = m_camera->getConfig();
+
+
+	/* ----- GLOBAL UBO ----- */
+	{
+		auto pointLights = m_ecsRegistry->getView<RenderComponent::PointLight>();
+
+		packet->globalUBO.viewMatrix = m_camera->getRenderSpaceViewMatrix();
+		packet->globalUBO.cameraPos = SpaceUtils::ToRenderSpace_Position(
+			m_camera->getRelativeTransform().position
+		);
+
+		if (pointLights.size() > 0) {
+			const auto &[entityWithPointLight, pointLight] = pointLights[0];
+
+			packet->globalUBO.lightPos = glm::dvec3(pointLight.position) - SpaceUtils::ToRenderSpace_Position(packet->camFloatingOrigin);
+			packet->globalUBO.lightColor = pointLight.color;
+			packet->globalUBO.lightRadiantFlux = pointLight.radiantFlux;
+		}
+
+		packet->globalUBO.ambientStrength = 0.0;
+
+		packet->globalUBO.projMatrix = glm::perspectiveRH_ZO(glm::radians(camConfig.zoom),
+															 camConfig.aspectRatio,
+															 camConfig.farClipPlane,
+															 camConfig.nearClipPlane);
+		/*
+			GLM was originally designed for OpenGL, and because of that, the Y-coordinate of the clip coordinates is flipped.
+			If this behavior is left as is, then images will be flipped upside down.
+			One way to change this behavior is to flip the sign on the Y-axis scaling factor in the projection matrix.
+		*/
+		packet->globalUBO.projMatrix[1][1] *= -1; // Flip y-axis
+
+		memcpy(m_globalUBOs[packet->frameIndex].bufAlloc.mappedData, &packet->globalUBO, sizeof(packet->globalUBO));
+	}
+
+
+	/* VISUALIZER WORK */
+	const Buffer::FramePacket &framePacket = *packet;
+
+	for (int i = 0; i < m_visualizerCount; i++)
+		m_visualizers[i]->prepareFrame(packet->frameIndex, framePacket);
+}
+
+
+void RenderSystem::renderScene(Buffer::FramePacket *packet) {
+	// Reset all visualizer command buffers for this frame
+	for (int i = 0; i < m_visualizerCount; i++)
+		vkResetCommandBuffer(m_visualizerCmdBufs[i][packet->frameIndex], 0);
+
+	// Record & let conditional variable evaluate predicate
+	m_finishedRecording[packet->frameIndex] = false;
+	{
+		for (int i = 0; i < m_visualizerCount; i++)
+			m_visualizers[i]->render(packet->frameIndex);
+	}
+	m_finishedRecording[packet->frameIndex] = true;
+
+	m_cmdBufProcessCV.notify_one();
+}
+
+
+void RenderSystem::renderGUI(uint32_t currentFrame, uint32_t imageIndex) {
+	vkResetCommandBuffer(m_guiCmdBufs[currentFrame], 0);
 
 	VkCommandBufferInheritanceInfo inheritanceInfo{};
 	inheritanceInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
-	inheritanceInfo.renderPass = m_offscreenRenderPass;
-	inheritanceInfo.framebuffer = m_offscreenFrameBuffers[currentFrame];
+	inheritanceInfo.renderPass = m_windowCtx->presentRenderPass;
+	inheritanceInfo.framebuffer = m_windowCtx->framebuffers[imageIndex];
 	inheritanceInfo.subpass = 0;
 
 	VkCommandBufferBeginInfo cmdBufBeginInfo{};
@@ -187,129 +333,11 @@ void RenderSystem::renderScene(uint32_t currentFrame) {
 	cmdBufBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT; // RENDER_PASS_CONTINUE_BIT signals that the entire (secondary) command buffer will be executed within a single render pass instance
 	cmdBufBeginInfo.pInheritanceInfo = &inheritanceInfo;
 
-	vkBeginCommandBuffer(m_sceneSecondaryCmdBufs[currentFrame], &cmdBufBeginInfo);
+
+	vkBeginCommandBuffer(m_guiCmdBufs[currentFrame], &cmdBufBeginInfo);
 	{
-		vkCmdBindPipeline(m_sceneSecondaryCmdBufs[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, m_offscreenPipeline);
-
-
-		// Specify viewport and scissor states (since they're dynamic states)
-			// Viewport
-		VkViewport viewport{};
-		viewport.x = 0.0f;
-		viewport.y = 0.0f;
-		viewport.width = static_cast<float>(m_swapchainExtent.width);
-		viewport.height = static_cast<float>(m_swapchainExtent.height);
-		viewport.minDepth = 0.0f;
-		viewport.maxDepth = 1.0f;
-		vkCmdSetViewport(m_sceneSecondaryCmdBufs[currentFrame], 0, 1, &viewport);
-
-			// Scissor
-		VkRect2D scissor{};
-		scissor.offset = { 0, 0 };
-		scissor.extent = m_swapchainExtent;
-		vkCmdSetScissor(m_sceneSecondaryCmdBufs[currentFrame], 0, 1, &scissor);
-
-
-		// Compute dynamic alignments
-		const size_t minUBOAlignment = static_cast<size_t>(m_coreResources->getDeviceProperties().limits.minUniformBufferOffsetAlignment);
-		const size_t objectUBOAlignment = SystemUtils::Align(sizeof(Buffer::ObjectUBO), minUBOAlignment);
-		const size_t pbrMaterialAlignment = SystemUtils::Align(sizeof(Geometry::Material), minUBOAlignment);
-
-
-		// Bind vertex and index buffers
-			// Vertex buffers
-		VkBuffer vertexBuffers[] = {
-			m_globalVertexBuffer
-		};
-		VkDeviceSize vertexBufferOffsets[] = { 0 };
-		vkCmdBindVertexBuffers(m_sceneSecondaryCmdBufs[currentFrame], 0, 1, vertexBuffers, vertexBufferOffsets);
-
-			// Index buffer (note: you can only have 1 index buffer)
-		VkBuffer indexBuffer = m_globalIndexBuffer;
-		vkCmdBindIndexBuffer(m_sceneSecondaryCmdBufs[currentFrame], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-
-
-		// Updates the PBR material parameters uniform buffer and draws the meshes
-		Geometry::GeometryData *geomData = nullptr;
-
-		auto sceneDataView = m_ecsRegistry->getView<RenderComponent::SceneData>(); // Every scene has exactly 1 SceneData
-		for (const auto &[entity, data] : sceneDataView)
-			geomData = data.pGeomData;
-
-		LOG_ASSERT(geomData, "Cannot process mesh renderable: Scene geometry data is invalid!");
-
-#ifndef NDEBUG
-			static bool printedOnce = false;
-			if (!printedOnce) {
-				printedOnce = true;
-				printf("Mesh count: %d\n", (int)geomData->meshCount);
-				printf("Mesh offsets:\n");
-				for (int i = 0; i < geomData->meshOffsets.size(); i++) {
-					Geometry::MeshOffset &offset = geomData->meshOffsets[i];
-					printf("\t[%d]:\n", i);
-					printf("\t\tIndex count: %d\n", offset.indexCount);
-					printf("\t\tIndex offset: %d\n", offset.indexOffset);
-					printf("\t\tVertex offset: %d\n", offset.vertexOffset);
-					printf("\t\tMaterial index: %d\n", offset.materialIndex);
-				}
-				printf("\nMesh materials:\n");
-				for (int i = 0; i < geomData->meshMaterials.size(); i++) {
-					Geometry::Material &mat = geomData->meshMaterials[i];
-					printf("\t[%d]\n", i);
-					printf("\t\tAlbedo color:\n\t\t\t[0, 1]: (%.3f, %.3f, %.3f)\n\t\t\t[0, 255]: (%.3f, %.3f, %.3f)\n", mat.albedoColor.x, mat.albedoColor.y, mat.albedoColor.z, (mat.albedoColor.x * 255), (mat.albedoColor.y * 255), (mat.albedoColor.z * 255));
-					printf("\t\tAlbedo map index: %d\n", mat.albedoMapIndex);
-					printf("\t\tAO map index: %d\n", mat.aoMapIndex);
-					printf("\t\tEmissive color: (%.3f, %.3f, %.3f)\n", mat.emissiveColor.x, mat.emissiveColor.y, mat.emissiveColor.z);
-					printf("\t\tEmissive map index: %d\n", mat.emissiveMapIndex);
-					printf("\t\tHeight map index: %d\n", mat.heightMapIndex);
-					printf("\t\tMetallic factor: %.3f\n", mat.metallicFactor);
-					printf("\t\tNormal map index: %.3f\n", mat.roughnessFactor);
-					printf("\t\tMetallic-Roughness map index: %d\n", mat.metallicRoughnessMapIndex);
-					printf("\t\tNormal map index: %d\n", mat.normalMapIndex);
-					printf("\t\tOpacity: %.3f\n", mat.opacity);
-
-				}
-			}
-#endif
-
-
-		// Update global data
-			// Textures array
-		vkCmdBindDescriptorSets(m_sceneSecondaryCmdBufs[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, m_offscreenPipelineLayout, 2, 1, &m_texArrayDescriptorSet, 0, nullptr);
-
-
-		// Update each mesh's UBOs
-		auto uboView = m_ecsRegistry->getView<RenderComponent::MeshRenderable>();
-		uint32_t vertexOffset = 0;
-
-		const VkDescriptorSet &currentDescriptorSet = m_perFrameDescriptorSets[currentFrame];
-
-		for (const auto &[entity, meshRenderable] : uboView) {
-			vertexOffset = geomData->meshOffsets[meshRenderable.meshRange.left].vertexOffset;
-
-			for (uint32_t meshIndex : meshRenderable.meshRange) {
-				// Object UBO
-				uint32_t objectUBOOffset = static_cast<uint32_t>(meshIndex * objectUBOAlignment);
-				vkCmdBindDescriptorSets(m_sceneSecondaryCmdBufs[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, m_offscreenPipelineLayout, 0, 1, &currentDescriptorSet, 1, &objectUBOOffset);
-
-
-				// Material parameters UBO
-				Geometry::MeshOffset &meshOffset = geomData->meshOffsets[meshIndex];
-				uint32_t meshMaterialOffset = static_cast<uint32_t>(meshOffset.materialIndex * pbrMaterialAlignment);
-
-				vkCmdBindDescriptorSets(m_sceneSecondaryCmdBufs[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, m_offscreenPipelineLayout, 1, 1, &m_pbrDescriptorSet, 1, &meshMaterialOffset);
-
-
-				// Draw call
-				vkCmdDrawIndexed(m_sceneSecondaryCmdBufs[currentFrame], meshOffset.indexCount, 1, meshOffset.indexOffset, vertexOffset, 0);
-			}
-		}
+		m_uiRenderer->renderFrames(currentFrame);
+		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), m_guiCmdBufs[currentFrame]);
 	}
-	vkEndCommandBuffer(m_sceneSecondaryCmdBufs[currentFrame]);
-}
-
-
-void RenderSystem::renderGUI(VkCommandBuffer cmdBuffer, uint32_t currentFrame) {
-	m_uiRenderer->renderFrames(currentFrame);
-	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmdBuffer);
+	vkEndCommandBuffer(m_guiCmdBufs[currentFrame]);
 }

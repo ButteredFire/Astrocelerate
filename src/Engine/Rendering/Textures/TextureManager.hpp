@@ -11,53 +11,69 @@
 
 #include <Core/Data/Constants.h>
 #include <Core/Utils/SystemUtils.hpp>
+#include <Core/Utils/FilePathUtils.hpp>
 #include <Core/Application/IO/LoggingManager.hpp>
 #include <Core/Application/Threading/ThreadManager.hpp>
 #include <Core/Application/Resources/CleanupManager.hpp>
 
-#include <Platform/Vulkan/VkBufferManager.hpp>
+#include <Platform/Vulkan/Contexts.hpp>
+#include <Platform/Vulkan/Utils/VkImageUtils.hpp>
 #include <Platform/Vulkan/Utils/VkFormatUtils.hpp>
+#include <Platform/Vulkan/Utils/VkBufferUtils.hpp>
+#include <Platform/Vulkan/Utils/VkCommandUtils.hpp>
 
-#include <Engine/Rendering/Data/Geometry.hpp>
 #include <Engine/Registry/Event/EventDispatcher.hpp>
+#include <Engine/Rendering/Data/Geometry.hpp>
 
-
-// Texture information. Intended for internal use within TextureManager only!
-struct TextureInfo {
-    int width;
-    int height;
-    VkImage image;
-    VkImageLayout imageLayout;
-};
 
 
 class TextureManager {
 public:
-	TextureManager(VkCoreResourcesManager *coreResources);
+	TextureManager(const Ctx::VkRenderDevice *renderDeviceCtx);
 	~TextureManager() = default;
 
 
-    /* Creates an independent texture.
+    /* Sets the global texture array.
+		@param texArrayDescriptorSet: The descriptor set for the global texture array.
+		@param renderPass: The render pass for which the texture array will be used (used to determine the appropriate image layout for the textures in the array).
+    */
+    inline void setTextureArray(VkDescriptorSet texArrayDescriptorSet, VkRenderPass renderPass) {
+		m_texArrayDescriptorSet = texArrayDescriptorSet;
+		renderPass = renderPass;
+    }
+
+
+    /* Creates a normal texture (a texture that is not part of the global texture array, and thus is not used in shaders).
     	@param texSource: The source path of the texture.
         @param texImgFormat (Default: Surface format): The texture's image format.
 		@param channels (Default: STBI_rgb_alpha): The channels the texture to be created is expected to have.
     
         @return The created texture's properties.
     */
-    Geometry::Texture createIndependentTexture(const std::string &texSource, VkFormat texImgFormat = VK_FORMAT_UNDEFINED, int channels = STBI_rgb_alpha);
+    Geometry::Texture createTexture(const std::string &texSource, VkFormat texImgFormat = VK_FORMAT_UNDEFINED, int channels = STBI_rgb_alpha);
 
 
-    /* Creates a texture that is a part of the global texture array. 
-		@param texSource: The source path of the texture.
+    /* Reserves a texture for the global texture array (bindless texture descriptor set).
+        @note: This function only allocates a blank slot for this texture. Actual texture creation happens when flushReservedTextures is called.
+        @note: Use reserveTexture only in worker threads. To create a texture in the main thread, use createTexture instead.
+
+        @param texSource: The source path of the texture.
         @param texImgFormat (Default: Surface format): The texture's image format.
-		@param channels (Default: STBI_rgb_alpha): The channels the texture to be created is expected to have.
+        @param channels (Default: STBI_rgb_alpha): The channels the texture to be created is expected to have.
     
-        @return The created texture's index into an internally managed global texture array.
+        @return The reserved texture's index into the global texture array.
     */
-    uint32_t createIndexedTexture(const std::string& texSource, VkFormat texImgFormat = VK_FORMAT_UNDEFINED, int channels = STBI_rgb_alpha);
+    uint32_t reserveTexture(const std::string &texSource, VkFormat texImgFormat = VK_FORMAT_UNDEFINED, int channels = STBI_rgb_alpha);
+
+
+    /* Flushes all reserved textures by creating them and updating the global texture array descriptor set accordingly.
+        @note: This should be called after all reserved textures are created (e.g., when the worker thread calling reserveTexture joins).
+    */
+    void flushReservedTextures();
 
 
     /* Handles image layout transition.
+		@param renderDevice: The current render device context.
         @param image: The image to be used in the image memory barrier.
         @param imgFormat: The format of the image.
         @param oldLayout: The old image layout.
@@ -66,7 +82,7 @@ public:
         @param pSecondaryCmdBuf: The secondary command buffer to be recorded to.
         @param pInheritanceInfo: The secondary command buffer's inheritance info.
     */
-    static void SwitchImageLayout(VkImage image, VkFormat imgFormat, VkImageLayout oldLayout, VkImageLayout newLayout, bool useSecondaryCmdBuf = false, VkCommandBuffer *pSecondaryCmdBuf = nullptr, VkCommandBufferInheritanceInfo *pInheritanceInfo = nullptr);
+    static void SwitchImageLayout(const Ctx::VkRenderDevice *renderDevice, VkImage image, VkFormat imgFormat, VkImageLayout oldLayout, VkImageLayout newLayout, bool useSecondaryCmdBuf = false, VkCommandBuffer *pSecondaryCmdBuf = nullptr, VkCommandBufferInheritanceInfo *pInheritanceInfo = nullptr);
 
 
     /* Defines the pipeline source and destination stages as image layout transition rules.
@@ -83,14 +99,12 @@ private:
     std::shared_ptr<CleanupManager> m_cleanupManager;
     std::shared_ptr<EventDispatcher> m_eventDispatcher;
 
-    VkCoreResourcesManager *m_coreResources;
+    const Ctx::VkRenderDevice *m_renderDeviceCtx;
     
 
     // Texture data
-    VkRenderPass m_offscreenPipelineRenderPass;
     VkDescriptorSet m_texArrayDescriptorSet;
-
-    uint32_t m_placeholderTextureIndex = 0;
+    VkRenderPass m_renderPass;
 
         // Maps path to its index in the descriptor infos vector.
     std::unordered_map<std::string, uint32_t> m_texturePathToIndexMap;
@@ -101,12 +115,15 @@ private:
         // Keeps track of unique samplers for reuse when new textures are loaded (keyed by sampler create info hash).
     std::unordered_map<size_t, VkSampler> m_uniqueSamplers;
 
-
-    // Session data
-        // If the scene is not ready (i.e., its resources are not initialized yet), indexed textures should not be updated.
-    bool m_sceneReady = false;
+    struct _TextureInfo {
+        int width;
+        int height;
+        VkImage image;
+        VkImageLayout imageLayout;
+    };
 
     struct _IndexedTextureProps {
+        uint32_t index;
         std::string texSource;
         VkFormat texImgFormat;
         int channels;
@@ -116,13 +133,6 @@ private:
 
     void bindEvents();
 
-
-    /* Updates the global texture array descriptor set.
-        @param texIndex: The index of the texture to be updated.
-        @param texImageInfo: The descriptor image info containing the image view and sampler for the texture.
-    */
-    void updateTextureArrayDescriptorSet(uint32_t texIndex, const VkDescriptorImageInfo &texImageInfo);
-
     
     /* Creates a texture image.
         @param imgFormat: The texture's image format.
@@ -131,7 +141,7 @@ private:
 
         @return The texture information.
     */
-    TextureInfo createTextureImage(VkFormat imgFormat, const char* texSource, int channels = STBI_rgb_alpha);
+    _TextureInfo createTextureImage(VkFormat imgFormat, const char* texSource, int channels = STBI_rgb_alpha);
 
 
     /* Creates a texture image view.

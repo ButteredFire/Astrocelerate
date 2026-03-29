@@ -1,9 +1,9 @@
-/* PhysicsSystem.hpp - Manages the physics.
+/* PhysicsSystem - Manages the physics.
 */
 
 #pragma once
 
-#define NOMINMAX	// minwindef.h keeps overriding std::min and std::max definitions provided by the algorithms header for some reason, so we have to define this macro to disable minwindef.h definitions.
+#define NOMINMAX	// minwindef.h keeps overriding std::min and std::max definitions provided by the algorithms header for some reason, so we have to define this macro to disable minwindef.h definitions. Why, Microsoft??
 
 #include <mutex>
 #include <algorithm>
@@ -20,7 +20,6 @@
 #include <Engine/Registry/ECS/ECS.hpp>
 #include <Engine/Registry/ECS/Components/PhysicsComponents.hpp>
 #include <Engine/Registry/ECS/Components/RenderComponents.hpp>
-#include <Engine/Registry/Event/EventDispatcher.hpp>
 
 #include <Simulation/ODEs.hpp>
 #include <Simulation/Systems/Time.hpp>
@@ -34,6 +33,9 @@ class PhysicsSystem {
 public:
 	PhysicsSystem();
 	~PhysicsSystem() = default;
+
+	void init(const Application::YAMLFileConfig &fileCfg, const Application::SimulationConfig &simCfg);
+
 
 	void configureCoordSys(CoordSys::FrameType frameType, CoordSys::Frame frame, const std::vector<std::string> &kernelPaths, CoordSys::Epoch epoch, const std::string &epochFormat);
 
@@ -73,7 +75,6 @@ public:
 
 private:
 	std::shared_ptr<ECSRegistry> m_ecsRegistry;
-	std::shared_ptr<EventDispatcher> m_eventDispatcher;
 	std::shared_ptr<CoordinateSystem> m_coordSystem;
 
 	// Cached ECS view data for efficient updating (i.e., less ECS view calls)
@@ -87,8 +88,6 @@ private:
 
 	double m_currentEpoch = 0.0;		// Current epoch (seconds past J2000) in ET
 	double m_simulationTime = 0.0;		// Simulation time (a.k.a. RELATIVE seconds elapsed since epoch; ABSOLUTE seconds is `epoch + m_simulationTime`)
-
-	void bindEvents();
 
 
 	/* Caches physics data from the ECS registry.

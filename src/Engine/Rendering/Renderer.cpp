@@ -5,13 +5,15 @@
 #include "Renderer.hpp"
 
 
-Renderer::Renderer(VkCoreResourcesManager *coreResources, VkSwapchainManager *swapchainMgr, VkCommandManager *commandMgr, VkSyncManager *syncMgr, UIRenderer *uiRenderer):
-    m_coreResources(coreResources),
-    m_swapchainManager(swapchainMgr),
+Renderer::Renderer(const Ctx::VkRenderDevice *renderDeviceCtx, const Ctx::VkWindow *windowCtx, std::shared_ptr<VkCommandManager> commandMgr, std::shared_ptr<VkSyncManager> syncMgr, std::shared_ptr<UIRenderer> uiRenderer, std::shared_ptr<RenderSystem> renderSystem):
+    m_renderDeviceCtx(renderDeviceCtx),
+    m_windowCtx(windowCtx),
     m_commandManager(commandMgr),
     m_syncManager(syncMgr),
-    m_uiRenderer(uiRenderer) {
+    m_uiRenderer(uiRenderer),
+    m_renderSystem(renderSystem) {
 
+    m_ecsRegistry = ServiceLocator::GetService<ECSRegistry>(__FUNCTION__);
     m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
     m_cleanupManager = ServiceLocator::GetService<CleanupManager>(__FUNCTION__);
 
@@ -52,8 +54,8 @@ void Renderer::bindEvents() {
 
 
             case POST_INITIALIZATION:
-                vkWaitForFences(m_coreResources->getLogicalDevice(), static_cast<uint32_t>(m_inFlightFences.size()), m_inFlightFences.data(), VK_TRUE, UINT64_MAX);
-                vkDeviceWaitIdle(m_coreResources->getLogicalDevice());
+                vkWaitForFences(m_renderDeviceCtx->logicalDevice, static_cast<uint32_t>(m_inFlightFences.size()), m_inFlightFences.data(), VK_TRUE, UINT64_MAX);
+                vkDeviceWaitIdle(m_renderDeviceCtx->logicalDevice);
 
                 m_pauseUpdateLoop = false;
                 m_sessionReady = true;
@@ -63,9 +65,35 @@ void Renderer::bindEvents() {
     );
 
 
+    m_eventDispatcher->subscribe<RequestEvent::ProcessSecondaryCommandBuffers>(selfIndex,
+        [this](const RequestEvent::ProcessSecondaryCommandBuffers &event) {
+        using enum RequestEvent::ProcessSecondaryCommandBuffers::Stage;
+
+        switch (event.targetStage) {
+        case OFFSCREEN:
+            for (const auto buffer : event.buffers)
+                m_secondaryCmdBufsStageOFFSCREEN.emplace_back(buffer);
+            break;
+
+        case PRESENT:
+            for (const auto buffer : event.buffers)
+                m_secondaryCmdBufsStagePRESENT.emplace_back(buffer);
+            break;
+
+        case NONE:
+        default:
+            for (const auto buffer : event.buffers)
+                m_secondaryCmdBufsStageNONE.emplace_back(buffer);
+            break;
+        }
+    }
+    );
+
+
+
     m_eventDispatcher->subscribe<RecreationEvent::Swapchain>(selfIndex, 
         [this](const RecreationEvent::Swapchain &event) {
-            m_swapchainCleanupID = event.swapchainCleanupID;
+            m_swapchainResourceID = event.swapchainResourceID;
         }
     );
 }
@@ -85,35 +113,21 @@ void Renderer::init() {
 }
 
 
-void Renderer::update(glm::dvec3& renderOrigin) {
-    drawFrame(renderOrigin);
+void Renderer::tick() {
+    drawFrame();
 }
 
 
-void Renderer::recreateSwapchain(GLFWwindow *newWindowPtr) {
-    m_swapchainManager->recreateSwapchain(newWindowPtr, m_currentFrame, m_inFlightFences);
-}
-void Renderer::recreateSwapchain(GLFWwindow *newWindowPtr, uint32_t imageIndex, std::vector<VkFence> &inFlightFences) {
-    m_swapchainManager->recreateSwapchain(newWindowPtr, imageIndex, inFlightFences);
-}
-
-
-void Renderer::preRenderUpdate(uint32_t currentFrame, glm::dvec3 &renderOrigin) {
+void Renderer::preRenderTick() {
     if (!m_sessionReady)
         return;
-
-    // Updates the uniform buffers
-    m_eventDispatcher->dispatch(UpdateEvent::PerFrameBuffers{
-        .currentFrame = m_currentFrame,
-        .renderOrigin = renderOrigin
-    }, true);
 
     // GUI updates
     m_uiRenderer->preRenderUpdate(m_currentFrame);
 }
 
 
-void Renderer::drawFrame(glm::dvec3& renderOrigin) {
+void Renderer::drawFrame() {
     if (m_pauseUpdateLoop)
         return;
 
@@ -134,26 +148,20 @@ void Renderer::drawFrame(glm::dvec3& renderOrigin) {
 
     // VK_TRUE: Indicates that the vkWaitForFences should wait for all fences.
     // UINT64_MAX: The maximum time to wait (timeout) (in nanoseconds). UINT64_MAX means to wait indefinitely (i.e., to disable the timeout)
-    VkResult waitResult = vkWaitForFences(m_coreResources->getLogicalDevice(), 1, &m_inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
+    VkResult waitResult = vkWaitForFences(m_renderDeviceCtx->logicalDevice, 1, &m_inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
     LOG_ASSERT(waitResult == VK_SUCCESS, "Failed to wait for in-flight fence!");
 
 
     // Update worker threads with new data
     if (m_sessionReady)
-        m_eventDispatcher->dispatch(UpdateEvent::Renderables{
-            .currentFrame = m_currentFrame,
-            .barrier = m_renderThreadBarrier
-        }, true);
+        m_renderSystem->beginWork(m_currentFrame, m_renderThreadBarrier);
 
-    
+
     // If the swapchain has been resized, destroy the old swapchain and dependencies, then renew per-image semaphores.
-    if (m_swapchainCleanupID.has_value()) {
-        vkDeviceWaitIdle(m_coreResources->getLogicalDevice());
+    if (m_swapchainResourceID.has_value()) {
+        vkDeviceWaitIdle(m_renderDeviceCtx->logicalDevice);
         if (lastQueue != VK_NULL_HANDLE)
             vkQueueWaitIdle(lastQueue);
-
-        // Destroy old swapchain and dependent resources
-        m_cleanupManager->executeCleanupTask(m_swapchainCleanupID.value());
 
         // Create new such semaphores
         m_syncManager->createPerFrameSemaphores();
@@ -161,26 +169,19 @@ void Renderer::drawFrame(glm::dvec3& renderOrigin) {
         m_imageReadySemaphores = m_syncManager->getImageReadySemaphores();
         m_renderFinishedSemaphores = m_syncManager->getRenderFinishedSemaphores();
 
-        m_swapchainCleanupID = std::nullopt;
+        m_swapchainResourceID = std::nullopt;
     }
 
 
-        // Perform any updates prior to command buffer recording
-    preRenderUpdate(m_currentFrame, renderOrigin);
-
-
-    // After waiting, reset in-flight fence to unsignaled
-    VkResult resetFenceResult = vkResetFences(m_coreResources->getLogicalDevice(), 1, &m_inFlightFences[m_currentFrame]);
-    LOG_ASSERT(resetFenceResult == VK_SUCCESS, "Failed to reset fence!");
-
+    // Perform any updates prior to command buffer recording
+    preRenderTick();
 
 
     // Acquire an image from the swap-chain
     uint32_t imageIndex;
-    VkResult imgAcquisitionResult = vkAcquireNextImageKHR(m_coreResources->getLogicalDevice(), m_swapchainManager->getSwapChain(), UINT64_MAX, m_imageReadySemaphores[m_currentFrame], VK_NULL_HANDLE, &imageIndex);
+    VkResult imgAcquisitionResult = vkAcquireNextImageKHR(m_renderDeviceCtx->logicalDevice, m_windowCtx->swapchain, UINT64_MAX, m_imageReadySemaphores[m_currentFrame], VK_NULL_HANDLE, &imageIndex);
     if (imgAcquisitionResult != VK_SUCCESS) {
         if (imgAcquisitionResult == VK_ERROR_OUT_OF_DATE_KHR || imgAcquisitionResult == VK_SUBOPTIMAL_KHR) {
-            recreateSwapchain();
             m_uiRenderer->refreshImGui();
             return;
         }
@@ -190,15 +191,56 @@ void Renderer::drawFrame(glm::dvec3& renderOrigin) {
         }
     }
 
+    // Only reset the fence after we've successfully acquired an image and intend to submit work that will signal the fence.
+    VkResult resetFenceResult = vkResetFences(m_renderDeviceCtx->logicalDevice, 1, &m_inFlightFences[m_currentFrame]);
+    LOG_ASSERT(resetFenceResult == VK_SUCCESS, "Failed to reset fence!");
 
 
-    // Records the command buffer
+    // Record the command buffer
         // Resets the command buffer first to ensure it is able to be recorded
     VkResult cmdBufResetResult = vkResetCommandBuffer(m_graphicsCommandBuffers[m_currentFrame], 0);
     LOG_ASSERT(cmdBufResetResult == VK_SUCCESS, "Failed to reset command buffer!");
-    
-        // Records commands
-    m_commandManager->recordRenderingCommandBuffer(m_renderThreadBarrier, m_graphicsCommandBuffers[m_currentFrame], imageIndex, m_currentFrame);
+
+        // Record commands
+        // TODO: Implement render graph + more robust data flow for secondary command buffers
+    auto renderBuf = m_commandManager->beginRenderBuffer(m_currentFrame, imageIndex, m_graphicsCommandBuffers[m_currentFrame]);
+    {
+        // Offscreen
+        if (m_sessionReady) {
+            m_renderThreadBarrier->arrive_and_wait();
+
+            std::vector<VkCommandBuffer> secondaryBuffers = m_renderSystem->getSceneCommandBuffers(m_currentFrame);
+
+            if (!m_secondaryCmdBufsStageNONE.empty()) {
+                for (const auto &buf : m_secondaryCmdBufsStageNONE)
+                    secondaryBuffers.emplace_back(buf);
+                m_secondaryCmdBufsStageNONE.clear();
+            }
+
+            if (!m_secondaryCmdBufsStageOFFSCREEN.empty()) {
+                for (const auto &buf : m_secondaryCmdBufsStageOFFSCREEN)
+                    secondaryBuffers.emplace_back(buf);
+                m_secondaryCmdBufsStageOFFSCREEN.clear();
+            }
+
+            m_commandManager->executeOffscreenPass(renderBuf, secondaryBuffers);
+        }
+
+        // Present
+        m_renderSystem->renderGUI(m_currentFrame, imageIndex);
+
+        std::vector<VkCommandBuffer> secondaryBuffers{}; 
+        secondaryBuffers.push_back(m_renderSystem->getGUICommandBuffer(m_currentFrame));
+
+        if (!m_secondaryCmdBufsStagePRESENT.empty()) {
+            for (const auto &buf : m_secondaryCmdBufsStagePRESENT)
+                secondaryBuffers.emplace_back(buf);
+            m_secondaryCmdBufsStagePRESENT.clear();
+        }
+
+        m_commandManager->executePresentPass(renderBuf, secondaryBuffers);
+    }
+    m_commandManager->endRenderBuffer(renderBuf);
 
 
     // Submits the buffer to the queue
@@ -232,12 +274,11 @@ void Renderer::drawFrame(glm::dvec3& renderOrigin) {
     submitInfo.pSignalSemaphores = signalSemaphores;
 
 
-    VkQueue graphicsQueue = m_coreResources->getQueueFamilyIndices().graphicsFamily.deviceQueue;
+    VkQueue graphicsQueue = m_renderDeviceCtx->queueFamilies.graphicsFamily.deviceQueue;
     lastQueue = graphicsQueue;
 
     VkResult submitResult = vkQueueSubmit(graphicsQueue, 1, &submitInfo, m_inFlightFences[m_currentFrame]);
     LOG_ASSERT(submitResult == VK_SUCCESS, "Failed to submit draw command buffer!");
-
 
 
     // To finally draw the frame, we submit the result back to the swap-chain to have it eventually show up on screen
@@ -251,7 +292,7 @@ void Renderer::drawFrame(glm::dvec3& renderOrigin) {
 
         // Specifies the swap-chains to present images to, and the image index for each swap-chain (this will almost always be a single one)
     VkSwapchainKHR swapChains[] = {
-        m_swapchainManager->getSwapChain()
+        m_windowCtx->swapchain
     };
     presentationInfo.swapchainCount = SIZE_OF(swapChains);
     presentationInfo.pSwapchains = swapChains;
@@ -264,7 +305,6 @@ void Renderer::drawFrame(glm::dvec3& renderOrigin) {
     VkResult presentResult = vkQueuePresentKHR(graphicsQueue, &presentationInfo);
     if (presentResult != VK_SUCCESS) {
         if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR) {
-            recreateSwapchain(nullptr, imageIndex, m_inFlightFences);
             m_uiRenderer->refreshImGui();
             return;
         }

@@ -26,7 +26,7 @@ namespace VkFormatUtils {
 
         @return The most suitable supported image format.
     */
-    inline VkFormat FindSuppportedImageFormat(VkPhysicalDevice& physicalDevice, const std::vector<VkFormat>& formats, VkImageTiling imgTiling, VkFormatFeatureFlagBits formatFeatures) {
+    inline VkFormat FindSuppportedImageFormat(VkPhysicalDevice physicalDevice, const std::vector<VkFormat>& formats, VkImageTiling imgTiling, VkFormatFeatureFlagBits formatFeatures) {
         for (const auto& format : formats) {
             VkFormatProperties formatProperties{};
             vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &formatProperties);
@@ -48,7 +48,7 @@ namespace VkFormatUtils {
     /* Gets the most suitable image format for depth images.
         @return The most suitable image format.
     */
-    inline VkFormat GetBestDepthImageFormat(VkPhysicalDevice& physicalDevice) {
+    inline VkFormat GetBestDepthImageFormat(VkPhysicalDevice physicalDevice) {
         std::vector<VkFormat> candidates = {
             VK_FORMAT_D32_SFLOAT,
             VK_FORMAT_D32_SFLOAT_S8_UINT,

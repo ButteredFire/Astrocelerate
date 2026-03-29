@@ -11,6 +11,7 @@
 #include <Core/Utils/StringUtils.hpp>
 #include <Core/Utils/FilePathUtils.hpp>
 #include <Core/Application/Resources/ServiceLocator.hpp>
+#include <Core/Application/Serialization/SerialLogicRegistry.hpp>
 
 #include <Engine/Registry/ECS/ECS.hpp>
 #include <Engine/Registry/ECS/Components/RenderComponents.hpp>
@@ -19,7 +20,6 @@
 #include <Engine/Registry/Event/EventDispatcher.hpp>
 #include <Engine/Rendering/Data/Geometry.hpp>
 #include <Engine/Rendering/Geometry/GeometryLoader.hpp>
-#include <Engine/Serialization/SerialLogicRegistry.hpp>
 
 #include <Simulation/Data/Bodies.hpp>
 
@@ -28,6 +28,14 @@ class SceneLoader {
 public:
 	SceneLoader();
 	~SceneLoader() = default;
+
+
+	struct FileData {
+		Application::YAMLFileConfig fileConfig;
+		Application::SimulationConfig simulationConfig;
+		Geometry::GeometryData *geometryData;
+	};
+
 
 	void init();
 
@@ -42,8 +50,10 @@ public:
 
 	/* Loads the scene from a YAML simulation configuration file.
 		@param filePath: The path to the YAML file.
+		
+		@returns Scene and simulation data.
 	*/
-	void loadSceneFromFile(const std::string &filePath);
+	FileData loadSceneFromFile(const std::string &filePath);
 
 
 	/* Saves the current scene to a YAML simulation configuration file.
@@ -61,25 +71,13 @@ private:
 
 	SerialLogicRegistry m_serialRegistry;
 
+	Entity m_renderSpace{};
+	Math::Interval<uint32_t> m_sphereMesh{};
 
 	std::string m_fileName;
-
-
-	Entity m_renderSpace{};
-
-
 	GeometryLoader m_geometryLoader;
 	Geometry::GeometryData *m_geomData = nullptr;
 	uint32_t m_meshCount{};
-
-	Math::Interval<uint32_t> m_sphereMesh{};
-
-	struct m_WorkerData {
-		float entityProcessPercentage;
-		std::string entityName;
-		std::thread worker;
-	};
-	std::vector<m_WorkerData> m_geomLoadWorkers;
 
 
 	void bindEvents();
@@ -94,7 +92,7 @@ private:
 
 
 	/* Processes the simulation initial states.
-		@params currentEntity, currentComponent: The current entity/component being processed. If, during this function's execution, a YAML-CPP exception is thrown, the caller will know precisely where in which component belonging to which entity the error occurred.
+		@param [currentEntity, currentComponent]: The current entity/component being processed. If, during this function's execution, a YAML-CPP exception is thrown, the caller will know precisely where in which component belonging to which entity the error occurred.
 	*/
 	void processScene(const YAML::Node &rootNode, std::string &currentEntity, std::string &currentComponent);
 };

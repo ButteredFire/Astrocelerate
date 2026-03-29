@@ -10,111 +10,109 @@ namespace LogSpacing {
 }
 
 
-namespace Log {
-	std::deque<LogMessage> LogBuffer;
-	int MaxLogLines = 1000;
+void Log::LogThreadInfo(std::string &output) {
+	std::thread::id currentThread = std::this_thread::get_id();
+	std::stringstream ss;
+	ss << "[THREAD " << currentThread << ", ";
+	if (currentThread == ThreadManager::GetMainThreadID())
+		ss << "MAIN]";
+	else
+		ss << "WORKER]";
+		//ss << ThreadManager::GetThreadNameFromID(currentThread) << "]";
+
+	output = ss.str();
+}
 
 
-	void LogThreadInfo(std::string &output) {
-		std::thread::id currentThread = std::this_thread::get_id();
-		std::stringstream ss;
-		ss << "[THREAD " << currentThread << ", ";
-		if (currentThread == ThreadManager::GetMainThreadID())
-			ss << "MAIN]";
-		else
-			ss << "WORKER]";
-			//ss << ThreadManager::GetThreadNameFromID(currentThread) << "]";
+void Log::Print(MsgType type, const char *caller, const std::string &message, bool newline) {
+	std::lock_guard<std::mutex> lock(m_printMutex);
 
-		output = ss.str();
+	// Get message type
+	std::string displayType = "Unknown message type";
+	LogColor(type, displayType);
+
+	// Get thread info
+	std::string threadInfo = "";
+	LogThreadInfo(threadInfo);
+
+	// Log
+	std::stringstream ss;
+	ss << std::left << std::setw(LogSpacing::THREAD_INFO_MAX_WIDTH_OS) << threadInfo
+		<< std::left << std::setw(LogSpacing::DISPLAY_TYPE_WIDTH) << ("[" + displayType + "]")
+		<< "[ " << std::left << std::setw(LogSpacing::CALLER_WIDTH) << caller << "]: "
+		<< message << ((newline) ? "\n" : "");
+
+	if (type == MsgType::T_ERROR || type == MsgType::T_FATAL)
+		std::cerr << ss.str() << termcolor::reset;
+	else
+		std::cout << ss.str() << termcolor::reset;
+
+		// Write to file
+	if (m_logFile.is_open()) {
+		m_logFile << ss.str();
+		m_logFile.flush();
 	}
 
 
-	void Print(MsgType type, const char *caller, const std::string &message, bool newline) {
-		std::lock_guard<std::recursive_mutex> lock(_printMutex);
+	// Push to log buffer
+	LogMessage msg{};
+	msg.type = type;
+	msg.displayType = displayType;
+	msg.threadInfo = threadInfo;
+	msg.caller = caller;
+	msg.message = ss.str();
 
-		// Get message type
-		std::string displayType = "Unknown message type";
-		LogColor(type, displayType);
+	AddToLogBuffer(msg);
+}
 
-		// Get thread info
-		std::string threadInfo = "";
-		LogThreadInfo(threadInfo);
 
-		// Log
-		std::stringstream ss;
-		ss << std::left << std::setw(LogSpacing::THREAD_INFO_MAX_WIDTH_OS) << threadInfo
-			<< std::left << std::setw(LogSpacing::DISPLAY_TYPE_WIDTH) << ("[" + displayType + "]")
-			<< "[ " << std::left << std::setw(LogSpacing::CALLER_WIDTH) << caller << "]: "
-			<< message << ((newline) ? "\n" : "");
+void Log::BeginLogging() {
+	// Create log file
+	auto now = std::chrono::system_clock::now();
+	std::time_t currentTime = std::chrono::system_clock::to_time_t(now);
+	char buffer[80];
+	std::strftime(buffer, sizeof(buffer), "%Y%m%d_%H%M%S", std::localtime(&currentTime));
 
-		if (type == MsgType::T_ERROR || type == MsgType::T_FATAL)
-			std::cerr << ss.str() << termcolor::reset;
-		else
-			std::cout << ss.str() << termcolor::reset;
+	std::string logName = std::string(buffer) + ".log";
 
-			// Write to file
-		if (_logFile.is_open()) {
-			_logFile << ss.str();
-			_logFile.flush();
+	std::filesystem::path p1 = ROOT_DIR;
+	std::filesystem::path p2 = "logs";
+	std::filesystem::path logDir = p1 / p2;
+
+	m_logFilePath = (logDir / std::filesystem::path(logName)).string();
+
+		// Ensure the log directory exists
+	try {
+		if (!std::filesystem::exists(logDir)) {
+			std::filesystem::create_directories(logDir); // Creates the directory (and any parent directories)
 		}
-
-
-		// Push to log buffer
-		LogMessage msg{};
-		msg.type = type;
-		msg.displayType = displayType;
-		msg.threadInfo = threadInfo;
-		msg.caller = caller;
-		msg.message = ss.str();
-
-		AddToLogBuffer(msg);
+	}
+	catch (const std::filesystem::filesystem_error &e) {
+		std::cerr << "Error creating log directory '" << logDir << "': " << e.what() << std::endl;
+		m_logFile.setstate(std::ios_base::failbit); // Indicates that the file stream is in a bad state
+		return;
 	}
 
 
-	void BeginLogging() {
-		// Create log file
-		auto now = std::chrono::system_clock::now();
-		std::time_t currentTime = std::chrono::system_clock::to_time_t(now);
-		char buffer[80];
-		std::strftime(buffer, sizeof(buffer), "%Y%m%d_%H%M%S", std::localtime(&currentTime));
-
-		std::string logName = std::string(buffer) + ".log";
-
-		std::filesystem::path p1 = ROOT_DIR;
-		std::filesystem::path p2 = "logs";
-		std::filesystem::path logDir = p1 / p2;
-
-		_logFilePath = (logDir / std::filesystem::path(logName)).string();
-
-			// Ensure the log directory exists
-		try {
-			if (!std::filesystem::exists(logDir)) {
-				std::filesystem::create_directories(logDir); // Creates the directory (and any parent directories)
-			}
-		}
-		catch (const std::filesystem::filesystem_error &e) {
-			std::cerr << "Error creating log directory '" << logDir << "': " << e.what() << std::endl;
-			_logFile.setstate(std::ios_base::failbit); // Indicates that the file stream is in a bad state
-			return;
-		}
-
-
-		// Open log file and direct output to it
-		_logFile.open(_logFilePath, std::ios::out | std::ios::app);
-		if (!_logFile.is_open()) {
-			std::cerr << "Error: Could not open log file: " << _logFilePath << std::endl;
-		}
+	// Open log file and direct output to it
+	m_logFile.open(m_logFilePath, std::ios::out | std::ios::app);
+	if (!m_logFile.is_open()) {
+		std::cerr << "Error: Could not open log file: " << m_logFilePath << std::endl;
 	}
+}
 
 
-	RuntimeException::RuntimeException(const std::string &functionName, const int errLine, const std::string &message, MsgType severity) : m_funcName(functionName), m_errLine(errLine), m_exceptionMessage(message), m_msgType(severity) {
+Log::RuntimeException::RuntimeException(const std::string &functionName, const int errLine, const std::string &message, MsgType severity) : m_funcName(functionName), m_errLine(errLine), m_exceptionMessage(message), m_msgType(severity) {
 
-		std::thread::id currentThread = std::this_thread::get_id();
-		std::string threadName = " " + STD_STR(
-			(currentThread == ThreadManager::GetMainThreadID()) ? "(Main)" :
-			("(Worker " + enquote(ThreadManager::GetThreadNameFromID(currentThread)) + ")")
-		);
-		m_threadInfo = ThreadManager::ThreadIDToString(currentThread) + threadName;
+	std::thread::id currentThread = std::this_thread::get_id();
+	std::string threadName = " " + STD_STR(
+		(currentThread == ThreadManager::GetMainThreadID()) ? "(Main)" :
+		("(Worker " + enquote(ThreadManager::GetThreadNameFromID(currentThread)) + ")")
+	);
+	m_threadInfo = ThreadManager::ThreadIDToString(currentThread) + threadName;
+
+	{
+		std::lock_guard<std::mutex> lock(m_printMutex);
 
 		std::string displayType = "Unknown message type";
 		LogColor(m_msgType, displayType);

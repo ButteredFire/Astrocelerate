@@ -21,7 +21,7 @@ void GeometryLoader::bindEvents() {
 			switch (event.sessionStatus) {
 			case PREPARE_FOR_INIT:
 				m_meshes.clear();
-				m_leftEndpoint = -1;	// Cancels out the +1 addition above
+				m_leftEndpoint = -1;	// Cancels out the +1 addition
 				m_rightEndpoint = -1;	// Accounts for 0-indexed mesh-offset range
 				break;
 			}
@@ -105,9 +105,11 @@ Geometry::GeometryData* GeometryLoader::bakeGeometry() {
 
 	// NOTE: geomData is heap-allocated so that it's accessible throughout the session lifetime
 	Geometry::GeometryData *geomData = new Geometry::GeometryData();
-	geomData->meshCount = globalMeshOffsets.size();
-	geomData->meshOffsets = globalMeshOffsets;
-	geomData->meshMaterials = globalMaterialData;
+	geomData->meshCount			= globalMeshOffsets.size();
+	geomData->meshVertices		= globalVertexData;
+	geomData->meshVertexIndices = globalIndexData;
+	geomData->meshOffsets		= globalMeshOffsets;
+	geomData->meshMaterials		= globalMaterialData;
 
 	CleanupTask geomDataTask{};
 	geomDataTask.caller = __FUNCTION__;
@@ -118,14 +120,6 @@ Geometry::GeometryData* GeometryLoader::bakeGeometry() {
 	m_cleanupManager->createCleanupTask(geomDataTask);
 
 	LOG_ASSERT(geomData, "Cannot bake geometry: Unable to allocate enough memory for geometry data!");
-
-
-	InitEvent::Geometry event{};
-	event.vertexData = globalVertexData;
-	event.indexData = globalIndexData;
-	event.pGeomData = geomData;
-
-	m_eventDispatcher->dispatch(event);
 
 	Log::Print(Log::T_SUCCESS, __FUNCTION__, "Baked " + std::to_string(m_meshes.size()) + " meshes.");
 

@@ -35,7 +35,7 @@ public:
     VkRenderPass renderPass = VK_NULL_HANDLE;
 	
 
-	inline VkPipeline buildGraphicsPipeline(VkDevice& logicalDevice) {
+	inline VkPipeline buildGraphicsPipeline(VkDevice logicalDevice) {
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo{};
 		pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO; // Specify the pipeline as the graphics pipeline
 

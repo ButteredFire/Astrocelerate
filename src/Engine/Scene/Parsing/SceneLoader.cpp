@@ -24,7 +24,6 @@ void SceneLoader::bindEvents() {
 void SceneLoader::init() {
     m_renderSpace = m_ecsRegistry->getRenderSpaceEntity();
 
-    // Model preloading
     loadModels();
 
     loadDeserialBindings();
@@ -235,9 +234,7 @@ void SceneLoader::loadModels() {
 }
 
 
-void SceneLoader::loadSceneFromFile(const std::string &filePath) {
-    m_geomLoadWorkers.clear();
-
+SceneLoader::FileData SceneLoader::loadSceneFromFile(const std::string &filePath) {
     m_fileName = FilePathUtils::GetFileName(filePath);
 
 
@@ -253,17 +250,19 @@ void SceneLoader::loadSceneFromFile(const std::string &filePath) {
     std::string currentEntity;
     std::string currentComponent;
 
+    Application::YAMLFileConfig fileConfig;
+    Application::SimulationConfig simulationConfig;
+
 	try {
         YAML::Node rootNode = YAML::LoadFile(filePath);
         
+
         // ----- PROCESS FILE & SIMULATION CONFIGURATIONS -----
         m_eventDispatcher->dispatch(UpdateEvent::SceneLoadProgress{
             .progress = 0.1f,
             .message = "Processing scene metadata..."
         });
 
-        Application::YAMLFileConfig fileConfig;
-        Application::SimulationConfig simulationConfig;
         processMetadata(&fileConfig, &simulationConfig, rootNode);
 
         m_eventDispatcher->dispatch(ConfigEvent::SimulationFileParsed{
@@ -292,20 +291,22 @@ void SceneLoader::loadSceneFromFile(const std::string &filePath) {
 		m_geomData = m_geometryLoader.bakeGeometry();
 		m_meshCount = m_geomData->meshCount;
 
-		RenderComponent::SceneData globalSceneData{};
-		globalSceneData.pGeomData = m_geomData;
-		m_ecsRegistry->addComponent(m_renderSpace.id, globalSceneData);
 
 
+        // ----- Initialize resources -----
         m_eventDispatcher->dispatch(UpdateEvent::SceneLoadProgress{
             .progress = 0.95f,
             .message = "Initializing resources..."
         });
+
+
 	}
 
 	catch (const YAML::BadFile &e) {
         std::string msg = e.what();
-        msg[0] = std::toupper(msg[0]);
+
+        if (msg.size() > 0)
+            msg[0] = std::toupper(msg[0]);
 
 		throw Log::RuntimeException(__FUNCTION__, __LINE__, msg);
 
@@ -337,6 +338,14 @@ void SceneLoader::loadSceneFromFile(const std::string &filePath) {
 
 
 	Log::Print(Log::T_SUCCESS, __FUNCTION__, "Successfully loaded scene from simulation file " + enquote(m_fileName) + ".");
+
+
+    FileData fileData{};
+    fileData.fileConfig = std::move(fileConfig);
+    fileData.simulationConfig = std::move(simulationConfig);
+    fileData.geometryData = m_geomData;
+
+    return fileData;
 }
 
 

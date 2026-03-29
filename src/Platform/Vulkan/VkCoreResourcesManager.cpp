@@ -12,24 +12,26 @@ VkCoreResourcesManager::VkCoreResourcesManager(GLFWwindow *window, VkInstanceMan
 
     // Create persistent Vulkan resources
     CleanupTask task;
+    m_renderDeviceCtx = std::make_unique<Ctx::VkRenderDevice>();
 
-    task = instanceManager->createVulkanInstance(m_instance);
+    task = instanceManager->createVulkanInstance(m_renderDeviceCtx->instance);
     gc->createCleanupTask(task);
 
     if (IN_DEBUG_MODE || g_appCtx.Config.debugging_VkValidationLayers) {
-        task = instanceManager->createDebugMessenger(m_dbgMessenger, m_instance);
+        task = instanceManager->createDebugMessenger(m_renderDeviceCtx->dbgMessenger, m_renderDeviceCtx->instance);
         gc->createCleanupTask(task);
     }
 
-    task = instanceManager->createSurface(m_surface, m_instance, window);
-    gc->createCleanupTask(task);
+    task = instanceManager->createSurface(m_surface, m_renderDeviceCtx->instance, window);
+    m_surfaceID = gc->createCleanupTask(task);
 
-    deviceManager->createPhysicalDevice(m_physicalDevice, m_chosenDevice, m_availableDevices, m_instance, m_surface);
-
-    task = deviceManager->createLogicalDevice(m_logicalDevice, m_familyIndices, m_physicalDevice, m_surface);
+    deviceManager->createPhysicalDevice(m_renderDeviceCtx->physicalDevice, m_renderDeviceCtx->chosenDevice, m_renderDeviceCtx->availableDevices, m_renderDeviceCtx->instance, m_surface);
+    task = deviceManager->createLogicalDevice(m_renderDeviceCtx->logicalDevice, m_renderDeviceCtx->queueFamilies, m_renderDeviceCtx->physicalDevice, m_surface);
     gc->createRootCleanupTask(task); // Create a root cleanup task for the logical device because it is the latest essential Vulkan resource
 
-    m_vmaAllocator = gc->createVMAllocator(m_instance, m_physicalDevice, m_logicalDevice);
+    // Henceforth, everything will implicitly have VkDevice as a parent resource
+
+    m_renderDeviceCtx->vmaAllocator = gc->createVMAllocator(m_renderDeviceCtx->instance, m_renderDeviceCtx->physicalDevice, m_renderDeviceCtx->logicalDevice);
 
 
     bindEvents();

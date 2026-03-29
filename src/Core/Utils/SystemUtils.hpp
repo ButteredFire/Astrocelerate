@@ -3,11 +3,11 @@
 
 #pragma once
 
-#include <xhash>
-#include <concepts>
 #include <vector>
 #include <random>
 #include <chrono>
+#include <concepts>
+#include <functional>
 
 #include <Platform/External/GLFWVulkan.hpp>
 

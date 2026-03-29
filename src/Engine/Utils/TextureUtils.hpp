@@ -44,7 +44,7 @@ namespace TextureUtils {
 	//inline TextureProps CreateImGuiTexture(const std::string &texturePath, VkFormat textureFormat = VK_FORMAT_R8G8B8A8_SRGB) {
 	//	std::shared_ptr<TextureManager> textureManager = ServiceLocator::GetService<TextureManager>(__FUNCTION__);
 	//	
-	//	Geometry::Texture texture = textureManager->createIndependentTexture(texturePath, textureFormat);
+	//	Geometry::Texture texture = textureManager->createTexture(texturePath, textureFormat);
 	//	
 	//	return TextureProps{
 	//		.size = ImVec2(texture.size.x, texture.size.y),

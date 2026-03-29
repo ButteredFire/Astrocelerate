@@ -22,27 +22,6 @@ void InputManager::init() {
 void InputManager::bindEvents() {
 	static EventDispatcher::SubscriberIndex selfIndex = m_eventDispatcher->registerSubscriber<InputManager>();
 
-	//m_eventDispatcher->subscribe<UpdateEvent::Input>(selfIndex,
-	//	[this](const UpdateEvent::Input& event) {
-	//		this->processKeyboardInput(event.deltaTime);
-	//
-	//		this->m_camera->update(event.timeSinceLastPhysicsUpdate);
-	//	}
-	//);
-
-
-	m_eventDispatcher->subscribe<UpdateEvent::SessionStatus>(selfIndex,
-		[this](const UpdateEvent::SessionStatus &event) {
-			using enum UpdateEvent::SessionStatus::Status;
-
-			switch (event.sessionStatus) {
-			case PREPARE_FOR_INIT:
-				this->m_camera->reset();
-			}
-		}
-	);
-
-
 	m_eventDispatcher->subscribe<UpdateEvent::CoreResources>(selfIndex,
 		[this](const UpdateEvent::CoreResources &event) {
 			if (event.window != nullptr)
