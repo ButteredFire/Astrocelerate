@@ -4,6 +4,7 @@
 GeometryVisualizer::GeometryVisualizer(const Ctx::VkRenderDevice *renderDeviceCtx, const Ctx::VkWindow *windowCtx, const Ctx::OffscreenPipeline *offscreenData, const Geometry::GeometryData *geomData, const Buffer::BufferAlloc *globalVertBuffer, const Buffer::BufferAlloc *globalIdxBuffer, std::shared_ptr<VkBufferManager> bufMgr):
 	m_renderDeviceCtx(renderDeviceCtx),
 	m_windowCtx(windowCtx),
+	m_offscreenData(offscreenData),
 	m_geomData(geomData),
 	m_globalVertBufAlloc(globalVertBuffer),
 	m_globalIdxBufAlloc(globalIdxBuffer),
@@ -12,13 +13,12 @@ GeometryVisualizer::GeometryVisualizer(const Ctx::VkRenderDevice *renderDeviceCt
 	m_cleanupManager	= ServiceLocator::GetService<CleanupManager>(__FUNCTION__);
 	m_ecsRegistry		= ServiceLocator::GetService<ECSRegistry>(__FUNCTION__);
 
-	m_offscreenPipeline			= offscreenData->pipeline;
-	m_offscreenPipelineLayout	= offscreenData->pipelineLayout;
-	m_offscreenRenderPass		= offscreenData->renderPass;
-	m_offscreenFrameBuffers		= offscreenData->frameBuffers;
-	m_materialDescriptorSet		= offscreenData->materialDescriptorSet;
-	m_texArrayDescriptorSet		= offscreenData->texArrayDescriptorSet;
-	m_perFrameDescriptorSets	= offscreenData->perFrameDescriptorSets;
+	m_offscreenPipeline			= m_offscreenData->pipeline;
+	m_offscreenPipelineLayout	= m_offscreenData->pipelineLayout;
+	m_offscreenRenderPass		= m_offscreenData->renderPass;
+	m_materialDescriptorSet		= m_offscreenData->materialDescriptorSet;
+	m_texArrayDescriptorSet		= m_offscreenData->texArrayDescriptorSet;
+	m_perFrameDescriptorSets	= m_offscreenData->perFrameDescriptorSets;
 
 	m_minUBOAlignment		= m_renderDeviceCtx->chosenDevice.properties.limits.minUniformBufferOffsetAlignment;
 	m_alignedObjectUBOSize	= SystemUtils::Align(sizeof(Buffer::ObjectUBO), m_minUBOAlignment);
@@ -90,7 +90,7 @@ void GeometryVisualizer::render(uint32_t frameIdx) {
 	VkCommandBufferInheritanceInfo inheritanceInfo{};
 	inheritanceInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
 	inheritanceInfo.renderPass = m_offscreenRenderPass;
-	inheritanceInfo.framebuffer = m_offscreenFrameBuffers[frameIdx];
+	inheritanceInfo.framebuffer = m_offscreenData->frameBuffers[frameIdx];
 	inheritanceInfo.subpass = 0;
 
 	VkCommandBufferBeginInfo cmdBufBeginInfo{};

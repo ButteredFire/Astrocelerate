@@ -49,17 +49,17 @@
 
 class Engine {
 public:
-	Engine(GLFWwindow *w);
+	Engine();
 	~Engine();
 
 	void init();
 
-	void setWindowPtr(GLFWwindow *w);
-
 	void run();
 
 private:
-	GLFWwindow *m_window;
+	std::unique_ptr<Window> m_glfwWindow;
+	GLFWwindow *m_oldWindow;
+	GLFWwindow *m_currentWindow;
 
 	Application::State m_currentAppState = Application::State::IDLE;
 
@@ -103,6 +103,8 @@ private:
 	// Threads
 	std::shared_ptr<WorkerThread> m_watchdogThread;
 
+
+	void setMainWindow(GLFWwindow *oldWindow, GLFWwindow *currentWindow);
 
 	void bindEvents();
 

@@ -24,12 +24,12 @@ public:
 	~Window();
 
 	/* Initializes the window for the splash screen. */
-	void initSplashScreen();
+	GLFWwindow* initSplashScreen();
 
 	/* Initializes the window for the primary/main screen.
 		NOTE: It is assumed that the Event Dispatcher service has been initialized.
 	*/
-	void initPrimaryScreen(CallbackContext *context);
+	GLFWwindow* initPrimaryScreen(CallbackContext *context);
 
 	void loadDefaultHints();
 

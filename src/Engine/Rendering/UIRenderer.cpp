@@ -32,6 +32,42 @@ void UIRenderer::bindEvents() {
 }
 
 
+void UIRenderer::refreshImGui() {
+    int width = 0, height = 0;
+    glfwGetFramebufferSize(m_window, &width, &height);
+    ImGui_ImplVulkan_SetMinImageCount(m_windowCtx->minImageCount);
+}
+
+
+void UIRenderer::renderFrames(uint32_t currentFrame) {
+    ImGui_ImplVulkan_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+
+    ImGui::NewFrame();
+    {
+        updateDockspace();
+
+        ImGui::PushFont(g_guiCtx.primaryFont);
+            m_uiPanelManager->renderWorkspace(currentFrame);
+        ImGui::PopFont();
+
+        // Multi-viewport support
+        if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+            ImGui::UpdatePlatformWindows();
+            ImGui::RenderPlatformWindowsDefault();
+        }
+    }
+    ImGui::EndFrame();
+
+    ImGui::Render();
+}
+
+
+void UIRenderer::preRenderUpdate(uint32_t currentFrame) {
+    m_uiPanelManager->preRenderUpdate(currentFrame);
+}
+
+
 void UIRenderer::initImGui() {
     ImGuiTheme::Appearance defaultAppearance = ImGuiTheme::Appearance::IMGUI_APPEARANCE_DARK_MODE;
 
@@ -227,6 +263,16 @@ void UIRenderer::initFonts() {
 }
 
 
+void UIRenderer::reInitImGui(GLFWwindow *window) {
+    m_cleanupManager->executeCleanupTask(m_imguiResourceID);
+
+    if (window != nullptr)
+        m_window = window;
+
+    initImGui();
+}
+
+
 void UIRenderer::updateDockspace() {
     ImGuiViewport* windowViewport = ImGui::GetMainViewport();
 
@@ -258,50 +304,4 @@ void UIRenderer::updateDockspace() {
 
         ImGui::End();
     }
-}
-
-
-void UIRenderer::reInitImGui(GLFWwindow *window) {
-    m_cleanupManager->executeCleanupTask(m_imguiResourceID);
-
-    if (window != nullptr)
-        m_window = window;
-
-    initImGui();
-}
-
-
-void UIRenderer::refreshImGui() {
-    int width = 0, height = 0;
-    glfwGetFramebufferSize(m_window, &width, &height);
-    ImGui_ImplVulkan_SetMinImageCount(m_windowCtx->minImageCount);
-}
-
-
-void UIRenderer::renderFrames(uint32_t currentFrame) {
-    ImGui_ImplVulkan_NewFrame();
-    ImGui_ImplGlfw_NewFrame();
-
-    ImGui::NewFrame();
-    {
-        updateDockspace();
-
-        ImGui::PushFont(g_guiCtx.primaryFont);
-            m_uiPanelManager->renderWorkspace(currentFrame);
-        ImGui::PopFont();
-
-        // Multi-viewport support
-        if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
-            ImGui::UpdatePlatformWindows();
-            ImGui::RenderPlatformWindowsDefault();
-        }
-    }
-    ImGui::EndFrame();
-
-    ImGui::Render();
-}
-
-
-void UIRenderer::preRenderUpdate(uint32_t currentFrame) {
-    m_uiPanelManager->preRenderUpdate(currentFrame);
 }

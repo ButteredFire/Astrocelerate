@@ -22,6 +22,7 @@
 #include <Platform/External/GLM.hpp>
 #include <Platform/Vulkan/Contexts.hpp>
 #include <Platform/Vulkan/VkSyncManager.hpp>
+#include <Platform/Vulkan/VkWindowManager.hpp>
 #include <Platform/Vulkan/VkBufferManager.hpp>
 #include <Platform/Vulkan/VkCommandManager.hpp>
 
@@ -35,7 +36,7 @@
 
 class Renderer {
 public:
-	Renderer(const Ctx::VkRenderDevice *renderDeviceCtx, const Ctx::VkWindow *windowCtx, std::shared_ptr<VkCommandManager> commandMgr, std::shared_ptr<VkSyncManager> syncMgr, std::shared_ptr<UIRenderer> uiRenderer, std::shared_ptr<RenderSystem> renderSystem);
+	Renderer(const Ctx::VkRenderDevice *renderDeviceCtx, const Ctx::VkWindow *windowCtx, std::shared_ptr<VkWindowManager> windowMgr, std::shared_ptr<VkCommandManager> commandMgr, std::shared_ptr<VkSyncManager> syncMgr, std::shared_ptr<UIRenderer> uiRenderer, std::shared_ptr<RenderSystem> renderSystem);
 	~Renderer();
 
 	void tick();
@@ -48,14 +49,12 @@ private:
 	const Ctx::VkRenderDevice *m_renderDeviceCtx;
 	const Ctx::VkWindow *m_windowCtx;
 
+	std::shared_ptr<VkWindowManager> m_windowManager;
 	std::shared_ptr<VkCommandManager> m_commandManager;
 	std::shared_ptr<VkSyncManager> m_syncManager;
 	std::shared_ptr<UIRenderer> m_uiRenderer;
 	std::shared_ptr<RenderSystem> m_renderSystem;
 
-
-
-	std::optional<ResourceID> m_swapchainResourceID;
 
 	std::vector<VkSemaphore> m_imageReadySemaphores;
 	std::vector<VkSemaphore> m_renderFinishedSemaphores;
@@ -80,6 +79,8 @@ private:
 	void bindEvents();
 
 	void init();
+
+	void recreateSwapchainResources();
 
 
 	/* Performs any updates prior to command buffer recording. */

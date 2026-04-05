@@ -39,10 +39,10 @@ private:
 	const Geometry::GeometryData *m_geomData;
 
 	// Pipeline data
+	const Ctx::OffscreenPipeline *m_offscreenData;
 	VkPipeline m_offscreenPipeline;
 	VkPipelineLayout m_offscreenPipelineLayout;
 	VkRenderPass m_offscreenRenderPass;
-	std::vector<VkFramebuffer> m_offscreenFrameBuffers;
 
 
 	// Buffers & descriptor sets

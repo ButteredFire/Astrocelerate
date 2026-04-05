@@ -11,13 +11,10 @@
 #include <Application/Engine.hpp>
 #include <Application/Session.hpp>
 
-
 #include <Core/Data/Constants.h>
 #include <Core/Data/Contexts/AppContext.hpp>
 #include <Core/Data/Contexts/CallbackContext.hpp>
 #include <Core/Application/Resources/ServiceLocator.hpp>
-
-#include <Platform/Windowing/AppWindow.hpp>
 
 
 #if _WIN32
@@ -26,10 +23,6 @@
 
 
 using json = nlohmann::json;
-
-
-const int WIN_WIDTH = AppConst::DEFAULT_WINDOW_WIDTH;
-const int WIN_HEIGHT = AppConst::DEFAULT_WINDOW_HEIGHT;
 
 
 void cleanupAll() {
@@ -108,14 +101,7 @@ int main(int argc, char *argv[]) {
         Log::BeginLogging();
         Log::PrintAppInfo();
 
-        Window window(WIN_WIDTH, WIN_HEIGHT, APP_NAME);
-        window.initSplashScreen();
-
-        Engine engine(window.getGLFWwindowPtr()); // Engine initializes core services on creation
-
-        engine.init();
-        std::this_thread::sleep_for(std::chrono::seconds(3)); // Simulates background loading during the splash screen
-        window.initPrimaryScreen(&g_glfwCallbackCtx);
+        Engine engine;
         engine.run();
     }
 

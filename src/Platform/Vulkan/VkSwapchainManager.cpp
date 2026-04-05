@@ -26,9 +26,7 @@ void VkSwapchainManager::init() {
 }
 
 
-void VkSwapchainManager::recreateSwapchain(GLFWwindow *newWindowPtr) {
-    vkDeviceWaitIdle(m_renderDeviceCtx->logicalDevice);
-
+void VkSwapchainManager::recreateSwapchain(GLFWwindow *oldWindow, GLFWwindow *newWindow) {
     // If the window is minimized (i.e., (width, height) = (0, 0), pause the window until it is in the foreground again
     int width = 0, height = 0;
     glfwGetFramebufferSize(m_window, &width, &height);
@@ -41,8 +39,9 @@ void VkSwapchainManager::recreateSwapchain(GLFWwindow *newWindowPtr) {
         m_cleanupManager->executeCleanupTask(m_swapchainID);
     }
 
-    if (newWindowPtr) {
-        m_surface = m_coreResources->recreateSurface(newWindowPtr);
+    if (oldWindow && newWindow) {
+        m_surface = m_coreResources->recreateSurface(oldWindow, newWindow);
+        m_window = newWindow;
     }
 
     createSwapchain();
@@ -187,6 +186,10 @@ void VkSwapchainManager::createSwapchain(VkSwapchainKHR oldSwapchain) {
     VkResult result = vkCreateSwapchainKHR(m_renderDeviceCtx->logicalDevice, &swapchainCreateInfo, nullptr, &m_swapchain);
     
     LOG_ASSERT(result == VK_SUCCESS, "Failed to create swap-chain!");
+
+    if (oldSwapchain != VK_NULL_HANDLE) {
+        m_cleanupManager->executeCleanupTask(m_swapchainID);
+    }
     
 
     vkGetSwapchainImagesKHR(m_renderDeviceCtx->logicalDevice, m_swapchain, &m_minImageCount, nullptr);

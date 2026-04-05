@@ -32,10 +32,11 @@ public:
 	inline VkSurfaceKHR getSurface() const                      { return m_surface; }
 
 
-    inline VkSurfaceKHR recreateSurface(GLFWwindow *w) {
+    inline VkSurfaceKHR recreateSurface(GLFWwindow *oldWindow, GLFWwindow *newWindow) {
         m_cleanupManager->executeCleanupTask(m_surfaceID);
+        glfwDestroyWindow(oldWindow);
 
-        CleanupTask task = m_instanceManager->createSurface(m_surface, m_renderDeviceCtx->instance, w);
+        CleanupTask task = m_instanceManager->createSurface(m_surface, m_renderDeviceCtx->instance, newWindow);
         m_surfaceID = m_cleanupManager->createCleanupTask(task);
 
         return m_surface;

@@ -68,9 +68,12 @@ public:
 
 
 	/* Recreates the swapchain.
-		@param newWindowPtr (Default: nullptr): The pointer to the new GLFW window. If the swapchain is to be recreated in the same window, leave this as a null pointer.
+		@note If the swapchain is to be recreated in the same window, set both the old and new window arguments to null pointers.
+		
+		@param oldWindow: The pointer to the old GLFW window.
+		@param newWindow: The pointer to the new GLFW window.
 	*/
-	void recreateSwapchain(GLFWwindow *newWindowPtr = nullptr);
+	void recreateSwapchain(GLFWwindow *oldWindow, GLFWwindow *newWindow);
 
 
 	/* Queries the properties of a GPU's swap-chain.

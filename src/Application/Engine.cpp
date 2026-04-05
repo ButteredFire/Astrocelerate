@@ -4,16 +4,25 @@
 #include "Engine.hpp"
 
 
-Engine::Engine(GLFWwindow *w):
-    m_window(w) {
-
+Engine::Engine() {
     ThreadManager::SetMainThreadID(std::this_thread::get_id());
-
     initCoreServices();
-
     bindEvents();
 
-    LOG_ASSERT(m_window != nullptr, "Invalid window context!");
+    m_glfwWindow = std::make_unique<Window>(AppConst::DEFAULT_WINDOW_WIDTH, AppConst::DEFAULT_WINDOW_HEIGHT, APP_NAME);
+    m_currentWindow = m_glfwWindow->initSplashScreen();
+
+    init();
+    std::this_thread::sleep_for(std::chrono::seconds(3)); // Sleep for enough time for the user to see the splash screen
+
+    m_oldWindow = m_currentWindow;
+    m_currentWindow = m_glfwWindow->initPrimaryScreen(&g_glfwCallbackCtx);
+    setMainWindow(m_oldWindow, m_currentWindow);
+
+    m_eventDispatcher->dispatch(UpdateEvent::AppIsStable{});
+    m_eventDispatcher->dispatch(UpdateEvent::ApplicationStatus{
+        .appState = Application::State::IDLE
+    });
 
     Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
@@ -30,14 +39,6 @@ void Engine::bindEvents() {
             this->initComponents();
         }
     );
-
-
-    m_eventDispatcher->subscribe<UpdateEvent::CoreResources>(selfIndex,
-        [this](const UpdateEvent::CoreResources &event) {
-            if (event.window != nullptr)
-                this->setWindowPtr(event.window);
-        }
-    );
 }
 
 
@@ -49,14 +50,17 @@ void Engine::init() {
 
     prerun();
 
-    m_eventDispatcher->dispatch(UpdateEvent::AppIsStable{});
-    m_eventDispatcher->dispatch(UpdateEvent::ApplicationStatus{
-        .appState = Application::State::IDLE
-    });
-
-
     // Switch workspace from splash screen to actual GUI
     m_uiPanelManager->switchWorkspace(m_orbitalWorkspace.get());
+}
+
+
+void Engine::setMainWindow(GLFWwindow *oldWindow, GLFWwindow *currentWindow) {
+    m_windowCtx = m_windowManager->recreateSwapchain(oldWindow, currentWindow);
+
+    m_eventDispatcher->dispatch(RequestEvent::ReInitImGui{
+        .newWindowPtr = m_currentWindow
+    });
 }
 
 
@@ -82,8 +86,8 @@ void Engine::initRenderResources() {
     m_deviceManager = std::make_shared<VkDeviceManager>();
 
     // TODO: Make VkCoreResourcesManager own VkInstanceManager and VkDeviceManager instead of the Engine
-    m_coreResourcesManager = std::make_shared<VkCoreResourcesManager>(m_window, m_instanceManager.get(), m_deviceManager.get(), m_cleanupManager.get());
-    m_windowManager = std::make_shared<VkWindowManager>(m_window, m_coreResourcesManager.get());
+    m_coreResourcesManager = std::make_shared<VkCoreResourcesManager>(m_currentWindow, m_instanceManager.get(), m_deviceManager.get(), m_cleanupManager.get());
+    m_windowManager = std::make_shared<VkWindowManager>(m_currentWindow, m_coreResourcesManager.get());
 
 
     m_renderDeviceCtx = m_coreResourcesManager->getCoreContext();
@@ -148,9 +152,16 @@ void Engine::initEngine() {
 
 
     // Renderers
-    m_uiRenderer = std::make_shared<UIRenderer>(m_window, m_renderDeviceCtx, m_windowCtx, m_uiPanelManager);
+    m_uiRenderer = std::make_shared<UIRenderer>(m_currentWindow, m_renderDeviceCtx, m_windowCtx, m_uiPanelManager);
     m_renderSystem = std::make_shared<RenderSystem>(m_renderDeviceCtx, m_windowCtx, m_bufferManager, m_uiRenderer, m_camera);
-    m_renderer = std::make_shared<Renderer>(m_renderDeviceCtx, m_windowCtx, m_commandManager, m_syncManager, m_uiRenderer, m_renderSystem);
+    m_renderer = std::make_shared<Renderer>(
+        m_renderDeviceCtx, m_windowCtx,
+        m_windowManager,
+        m_commandManager,
+        m_syncManager,
+        m_uiRenderer,
+        m_renderSystem
+    );
 
 
     m_physicsSystem = std::make_shared<PhysicsSystem>();
@@ -196,26 +207,11 @@ void Engine::initComponents() {
 }
 
 
-void Engine::setWindowPtr(GLFWwindow *w) {
-    m_window = w;
-
-    //if (m_renderer != nullptr)
-    //    m_renderer->recreateSwapchain(m_window);
-
-    m_windowCtx = m_windowManager->recreateSwapchain(m_window);
-
-    //m_uiRenderer->reInitImGui(m_window);
-    m_eventDispatcher->dispatch(RequestEvent::ReInitImGui{
-        .newWindowPtr = m_window
-    });
-}
-
-
 void Engine::run() {
     startThreadMonitor();
 
     try {
-        while (!glfwWindowShouldClose(m_window))
+        while (!glfwWindowShouldClose(m_currentWindow))
             tick();
     }
     catch (...) {

@@ -35,24 +35,11 @@ public:
 	UIRenderer(GLFWwindow *window, const Ctx::VkRenderDevice *renderDeviceCtx, const Ctx::VkWindow *windowCtx, std::shared_ptr<UIPanelManager> uiPanelManager);
 	~UIRenderer() = default;
 
-	/* Initializes ImGui. */
-	void initImGui();
-
-	void initFonts();
-
-	void updateDockspace();
-
-
-	/* Re-initializes ImGui. Call this when changes have occurred to core resources (e.g., GLFW window pointer). */
-	void reInitImGui(GLFWwindow *window = nullptr);
-
 	/* Refreshes ImGui. Call this when, for instance, the swap-chain is recreated. */
 	void refreshImGui();
 
-
 	/* Renders ImGui windows. */
 	void renderFrames(uint32_t currentFrame);
-
 
 	/* Any updates that cannot happen while the command buffer is currently being processed (e.g., updating descriptor sets) must happen here. */
 	void preRenderUpdate(uint32_t currentFrame);
@@ -82,4 +69,15 @@ private:
 
 
 	void bindEvents();
+
+
+	/* Initializes ImGui. */
+	void initImGui();
+
+	void initFonts();
+
+	/* Re-initializes ImGui. Call this when changes have occurred to core resources (e.g., GLFW window pointer). */
+	void reInitImGui(GLFWwindow *window = nullptr);
+
+	void updateDockspace();
 };

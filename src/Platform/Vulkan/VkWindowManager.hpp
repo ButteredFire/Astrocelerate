@@ -6,6 +6,7 @@
 #include <Platform/Vulkan/Contexts.hpp>
 #include <Platform/Vulkan/VkSwapchainManager.hpp>
 #include <Platform/Vulkan/VkCoreResourcesManager.hpp>
+#include <Platform/Windowing/AppWindow.hpp>
 
 #include <Core/Application/Resources/ServiceLocator.hpp>
 
@@ -19,11 +20,14 @@ public:
 	
 
 	/* Recreates the swapchain.
-		@param newWindowPtr (Default: nullptr): The pointer to the new GLFW window. If the swapchain is to be recreated in the same window, leave this as a null pointer.
+		@note If the swapchain is to be recreated in the same window, set both the old and new window arguments to null pointers.
+
+		@param oldWindow: The pointer to the old GLFW window.
+		@param newWindow: The pointer to the new GLFW window.
 
 		@return The updated VkWindow context.
 	*/
-	const Ctx::VkWindow *recreateSwapchain(GLFWwindow *newWindowPtr = nullptr);
+	const Ctx::VkWindow *recreateSwapchain(GLFWwindow *oldWindow, GLFWwindow *newWindow);
 
 
 	/* Gets a pointer to the (read-only) window context.  */

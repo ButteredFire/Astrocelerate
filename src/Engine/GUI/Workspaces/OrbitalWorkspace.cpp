@@ -23,9 +23,10 @@ void OrbitalWorkspace::bindEvents() {
 
 	m_eventDispatcher->subscribe<RecreationEvent::OffscreenResources>(selfIndex,
 		[this](const RecreationEvent::OffscreenResources &event) {
-			for (size_t i = 0; i < m_viewportRenderTextureIDs.size(); i++) {
-				ImGui_ImplVulkan_RemoveTexture((VkDescriptorSet)m_viewportRenderTextureIDs[i]);
-			}
+			if (m_sceneSampleReady)
+				for (size_t i = 0; i < m_viewportRenderTextureIDs.size(); i++) {
+					ImGui_ImplVulkan_RemoveTexture((VkDescriptorSet)m_viewportRenderTextureIDs[i]);
+				}
 
 			initPerFrameTextures();
 		}

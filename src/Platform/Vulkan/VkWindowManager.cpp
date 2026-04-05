@@ -34,10 +34,11 @@ void VkWindowManager::bindEvents() {
 }
 
 
-const Ctx::VkWindow *VkWindowManager::recreateSwapchain(GLFWwindow *newWindowPtr) {
-    vkDeviceWaitIdle(m_renderDeviceCtx->logicalDevice);
+const Ctx::VkWindow *VkWindowManager::recreateSwapchain(GLFWwindow *oldWindow, GLFWwindow *newWindow) {
+    LOG_ASSERT((oldWindow && newWindow) || (!oldWindow && !newWindow), "Cannot recreate swapchain: pointers to the old and new GLFW windows can only either be both null (for same-window swapchain recreation) or both valid (for swapchain recreation + transition to new window)!");
 
-    m_swapchainMgr.recreateSwapchain(newWindowPtr);
+    vkDeviceWaitIdle(m_renderDeviceCtx->logicalDevice);
+    m_swapchainMgr.recreateSwapchain(oldWindow, newWindow);
 
     updateCtx();
 

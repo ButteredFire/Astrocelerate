@@ -20,7 +20,7 @@ Window::~Window() {
     glfwTerminate();
 }
 
-void Window::initSplashScreen() {
+GLFWwindow* Window::initSplashScreen() {
     loadDefaultHints();
 
     // Make window borderless
@@ -43,14 +43,13 @@ void Window::initSplashScreen() {
     const uint32_t X = (CURRENT_SCREEN_WIDTH - SPLASH_WIDTH) / 2;
     const uint32_t Y = (CURRENT_SCREEN_HEIGHT - SPLASH_HEIGHT) / 2;
     glfwSetWindowPos(m_splashWindow, X, Y);
+
+    return m_splashWindow;
 }
 
 
-void Window::initPrimaryScreen(CallbackContext *context) {
+GLFWwindow* Window::initPrimaryScreen(CallbackContext *context) {
     // Initialize window
-    glfwDestroyWindow(m_splashWindow);
-    m_splashWindow = nullptr;
-
     loadDefaultHints();
 
         // Fullscreen:
@@ -82,6 +81,9 @@ void Window::initPrimaryScreen(CallbackContext *context) {
     glfwSetCursorPosCallback(m_mainWindow, MouseCallback);
     glfwSetMouseButtonCallback(m_mainWindow, MouseBtnCallback);
     glfwSetScrollCallback(m_mainWindow, ScrollCallback);
+
+
+    return m_mainWindow;
 }
 
 
