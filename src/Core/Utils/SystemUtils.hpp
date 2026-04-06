@@ -6,12 +6,20 @@
 #include <vector>
 #include <random>
 #include <chrono>
+#include <cstdlib>
 #include <concepts>
 #include <functional>
 
 #include <Platform/External/GLFWVulkan.hpp>
 
 #include <Core/Application/IO/LoggingManager.hpp>
+
+
+#ifdef _WIN32
+#include <windows.h>
+#elif defined(__linux__) || defined(__APPLE__)
+#include <dlfcn.h>
+#endif
 
 
 namespace SystemUtils {
@@ -92,5 +100,56 @@ namespace SystemUtils {
         size_t offset = alignedBufSize * stride;
 
         return static_cast<void*>(base + offset);
+    }
+
+
+    struct VkLoaderDiag {
+        enum ErrorType {
+            NONE,
+            CANNOT_BE_LOCATED,
+            CANNOT_BE_LOADED
+        };
+
+        bool present;
+        ErrorType errType = NONE;
+    };
+    /* Checks if the Vulkan loader exists on the current system.
+        @return The operation's result and metadata.
+    */
+    inline VkLoaderDiag VulkanLoaderExists() {
+#ifdef _WIN32
+        HMODULE handle = LoadLibraryA(VULKAN_LOADER);
+        if (!handle)
+            return { false, VkLoaderDiag::CANNOT_BE_LOCATED };
+
+        auto procAddr = (void *)GetProcAddress(handle, "vkGetInstanceProcAddr");
+        FreeLibrary(handle);
+
+        if (!procAddr)
+            return { false,VkLoaderDiag::CANNOT_BE_LOADED };
+
+        return { true };
+
+
+#elif defined(__linux__) || defined(__APPLE)
+        void *handle = dlopen(VULKAN_LOADER, RTLD_NOW | RTLD_LOCAL);
+        if (!handle) {
+#ifdef __linux__
+            handle = dlopen(VULKAN_LOADER_LINUX_FALLBACK, RTLD_NOW | RTLD_LOCAL);
+#elif __APPLE__
+            handle = dlopen(VULKAN_LOADER_APPLE_FALLBACK, RTLD_NOW | RTLD_LOCAL);
+#endif
+            if (!handle)
+                return { false, VkLoaderDiag::CANNOT_BE_LOCATED };
+        }
+
+        auto procAddr = dlsym(handle, "vkGetInstanceProcAddr");
+        dlclose(handle);
+
+        if (!procAddr)
+            return { false,VkLoaderDiag::CANNOT_BE_LOADED };
+
+        return { true };
+#endif
     }
 }

@@ -90,18 +90,40 @@ void tryOpenConsole() {
 }
 
 
+void checkVulkanLoader() {
+    SystemUtils::VkLoaderDiag vkLoaderDiag = SystemUtils::VulkanLoaderExists();
+    std::string vkLoader = VULKAN_LOADER;
+    std::string vkLoaderErrMsg;
+
+    switch (vkLoaderDiag.errType) {
+    case SystemUtils::VkLoaderDiag::CANNOT_BE_LOCATED:
+        vkLoaderErrMsg = vkLoader + " could not be located! This file is distributed as part of your GPU driver. Please reinstall your GPU drivers from your manufacturer and ensure that " + vkLoader + " is available in C:/Windows/System32 or in the application's bin/ directory.";
+        break;
+
+    case SystemUtils::VkLoaderDiag::CANNOT_BE_LOADED:
+    default:
+        vkLoaderErrMsg = vkLoader + " appears to be damaged or incompatible. Please perform a clean reinstallation of your GPU drivers from your manufacturer.";
+        break;
+    }
+
+    LOG_ASSERT(vkLoaderDiag.present, vkLoaderErrMsg);
+}
+
+
 int main(int argc, char *argv[]) {
     int processStat = processAppConfig(argc, argv);
     if (processStat != EXIT_SUCCESS) return processStat;
 
     tryOpenConsole();
 
+    Engine engine;
 
     try {
         Log::BeginLogging();
         Log::PrintAppInfo();
 
-        Engine engine;
+        checkVulkanLoader();
+
         engine.run();
     }
 
