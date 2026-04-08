@@ -20,7 +20,17 @@ inline std::string DEFAULT_WORKING_DIR = std::filesystem::current_path().string(
 #endif
 
 
-// Vulkan version
+// Vulkan
+#ifdef _WIN32
+	#define VULKAN_LOADER "vulkan-1.dll"
+#elif __linux__
+	#define VULKAN_LOADER "libvulkan.so.1"
+	#define VULKAN_LOADER_LINUX_FALLBACK "libvulkan.so"
+#elif __APPLE__
+	#define VULKAN_LOADER "libvulkan.1.dylib"
+	#define VULKAN_LOADER_APPLE_FALLBACK "libvulkan.dylib"
+#endif
+
 #define VULKAN_VERSION VK_API_VERSION_1_2 // If you decide to change VULKAN_VERSION, also change VMA_VULKAN_VERSION defined in CMakeLists.txt
 #define VULKAN_VERSION_STR "1.2"
 

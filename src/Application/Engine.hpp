@@ -54,6 +54,8 @@ public:
 
 	void init();
 
+	void loadMainWindow();
+
 	void run();
 
 private:
