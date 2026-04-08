@@ -106,11 +106,12 @@ namespace SystemUtils {
     struct VkLoaderDiag {
         enum ErrorType {
             NONE,
+            UNSUPPORTED,
             CANNOT_BE_LOCATED,
             CANNOT_BE_LOADED
         };
 
-        bool present;
+        bool present = false;
         ErrorType errType = NONE;
     };
     /* Checks if the Vulkan loader exists on the current system.
@@ -131,14 +132,14 @@ namespace SystemUtils {
         return { true };
 
 
-#elif defined(__linux__) || defined(__APPLE)
+#elif defined(__linux__) || defined(__APPLE__)
         void *handle = dlopen(VULKAN_LOADER, RTLD_NOW | RTLD_LOCAL);
         if (!handle) {
-#ifdef __linux__
+    #ifdef __linux__
             handle = dlopen(VULKAN_LOADER_LINUX_FALLBACK, RTLD_NOW | RTLD_LOCAL);
-#elif __APPLE__
+    #elif __APPLE__
             handle = dlopen(VULKAN_LOADER_APPLE_FALLBACK, RTLD_NOW | RTLD_LOCAL);
-#endif
+    #endif
             if (!handle)
                 return { false, VkLoaderDiag::CANNOT_BE_LOCATED };
         }
@@ -150,6 +151,9 @@ namespace SystemUtils {
             return { false,VkLoaderDiag::CANNOT_BE_LOADED };
 
         return { true };
+
+#else
+        return { false, VkLoaderDiag::UNSUPPORTED };
 #endif
     }
 }

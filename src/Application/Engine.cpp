@@ -11,20 +11,6 @@ Engine::Engine() {
 
     m_glfwWindow = std::make_unique<Window>(AppConst::DEFAULT_WINDOW_WIDTH, AppConst::DEFAULT_WINDOW_HEIGHT, APP_NAME);
     m_currentWindow = m_glfwWindow->initSplashScreen();
-
-    init();
-    std::this_thread::sleep_for(std::chrono::seconds(3)); // Sleep for enough time for the user to see the splash screen
-
-    m_oldWindow = m_currentWindow;
-    m_currentWindow = m_glfwWindow->initPrimaryScreen(&g_glfwCallbackCtx);
-    setMainWindow(m_oldWindow, m_currentWindow);
-
-    m_eventDispatcher->dispatch(UpdateEvent::AppIsStable{});
-    m_eventDispatcher->dispatch(UpdateEvent::ApplicationStatus{
-        .appState = Application::State::IDLE
-    });
-
-    Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
 
 
@@ -52,6 +38,18 @@ void Engine::init() {
 
     // Switch workspace from splash screen to actual GUI
     m_uiPanelManager->switchWorkspace(m_orbitalWorkspace.get());
+}
+
+
+void Engine::loadMainWindow() {
+    m_oldWindow = m_currentWindow;
+    m_currentWindow = m_glfwWindow->initPrimaryScreen(&g_glfwCallbackCtx);
+    setMainWindow(m_oldWindow, m_currentWindow);
+
+    m_eventDispatcher->dispatch(UpdateEvent::AppIsStable{});
+    m_eventDispatcher->dispatch(UpdateEvent::ApplicationStatus{
+        .appState = Application::State::IDLE
+    });
 }
 
 

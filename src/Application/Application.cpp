@@ -97,12 +97,22 @@ void checkVulkanLoader() {
 
     switch (vkLoaderDiag.errType) {
     case SystemUtils::VkLoaderDiag::CANNOT_BE_LOCATED:
+#if _WIN32
         vkLoaderErrMsg = vkLoader + " could not be located! This file is distributed as part of your GPU driver. Please reinstall your GPU drivers from your manufacturer and ensure that " + vkLoader + " is available in C:/Windows/System32 or in the application's bin/ directory.";
+#elif defined(__linux__)
+        vkLoaderErrMsg = vkLoader + " could not be located! Please reinstall your GPU driver package and ensure that " + vkLoader + " is available in your runtime linker search path (e.g., /usr/lib, /usr/lib64).";
+#elif defined(__APPLE__)
+        vkLoaderErrMsg = vkLoader + " could not be located! Please reinstall your Vulkan runtime/MoltenVK package and ensure that " + vkLoader + " is available in your dynamic library search path.";
+#endif
         break;
 
     case SystemUtils::VkLoaderDiag::CANNOT_BE_LOADED:
-    default:
         vkLoaderErrMsg = vkLoader + " appears to be damaged or incompatible. Please perform a clean reinstallation of your GPU drivers from your manufacturer.";
+        break;
+
+    case SystemUtils::VkLoaderDiag::UNSUPPORTED:
+    default:
+        vkLoaderErrMsg = "Failed to locate " + vkLoader + ": failed to identify operating system!";
         break;
     }
 
@@ -124,6 +134,9 @@ int main(int argc, char *argv[]) {
 
         checkVulkanLoader();
 
+        engine.init();
+        std::this_thread::sleep_for(std::chrono::seconds(3)); // Sleep for enough time for the user to see the splash screen
+        engine.loadMainWindow();
         engine.run();
     }
 
