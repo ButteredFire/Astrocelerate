@@ -94,8 +94,9 @@ const Ctx::OffscreenPipeline *OffscreenPipeline::init() {
 	createRenderPass();
 
 
-	// Create the graphics pipeline
+	// Create the graphics pipelines
 	createGraphicsPipeline();
+	createOrbitGraphicsPipeline();
 
 
 	// Initialize offscreen resources
@@ -129,6 +130,27 @@ void OffscreenPipeline::createGraphicsPipeline() {
 }
 
 
+void OffscreenPipeline::createOrbitGraphicsPipeline() {
+	PipelineBuilder builder;
+	builder.dynamicStateCreateInfo = &m_dynamicStateCreateInfo;
+	builder.viewportStateCreateInfo = &m_viewportStateCreateInfo;
+	builder.multisampleStateCreateInfo = &m_multisampleStateCreateInfo;
+	builder.colorBlendStateCreateInfo = &m_colorBlendCreateInfo;
+	builder.tessellationStateCreateInfo = &m_tessStateCreateInfo;
+
+	builder.inputAssemblyCreateInfo = &m_orbitIACreateInfo;
+	builder.depthStencilStateCreateInfo = &m_orbitDepthStencilStateCreateInfo;
+	builder.rasterizerCreateInfo = &m_orbitRasterizerCreateInfo;
+	builder.vertexInputStateCreateInfo = &m_orbitVertInputState;
+	builder.shaderStages = m_orbitShaderStages;
+
+	builder.renderPass = m_pipelineData.renderPass;
+	builder.pipelineLayout = m_pipelineData.pipelineLayout;
+
+	m_pipelineData.orbitPipeline = builder.buildGraphicsPipeline(m_renderDeviceCtx->logicalDevice);
+}
+
+
 void OffscreenPipeline::createPipelineLayout() {
 	VkPipelineLayoutCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -136,8 +158,17 @@ void OffscreenPipeline::createPipelineLayout() {
 	createInfo.pSetLayouts = m_descriptorSetLayouts.data();
 
 	// Push constants are a way of passing dynamic values to shaders
-	createInfo.pushConstantRangeCount = 0;
-	createInfo.pPushConstantRanges = nullptr;
+		// Orbit geometry: trajectory color
+	m_orbitPushRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	m_orbitPushRange.offset = 0;
+	m_orbitPushRange.size = sizeof(glm::vec4);
+
+		// Write
+	VkPushConstantRange pushConstants[] = {
+		m_orbitPushRange
+	};
+	createInfo.pushConstantRangeCount = SIZE_OF(pushConstants);
+	createInfo.pPushConstantRanges = pushConstants;
 
 	VkResult result = vkCreatePipelineLayout(m_renderDeviceCtx->logicalDevice, &createInfo, nullptr, &m_pipelineData.pipelineLayout);
 
@@ -443,30 +474,57 @@ void OffscreenPipeline::createDescriptorSets(VkDescriptorPool descriptorPool, ui
 
 void OffscreenPipeline::initShaderStage() {
 	// Loads shader bytecode onto buffers
-		// Vertex shader
-	m_vertShaderBytecode = FilePathUtils::ReadFile(ShaderConst::VERTEX);
-	Log::Print(Log::T_SUCCESS, __FUNCTION__, ("Loaded vertex shader! SPIR-V bytecode file size is " + std::to_string(m_vertShaderBytecode.size()) + " (bytes)."));
-	m_vertShaderModule = createShaderModule(m_vertShaderBytecode);
+	static std::function<void(VkShaderModule &, const std::string &, const std::string)> loadShader = [this](VkShaderModule &module, const std::string &shaderPath, const std::string shaderPurpose) {
+		const std::vector<char> buf = FilePathUtils::ReadFile(shaderPath);
+		Log::Print(Log::T_SUCCESS, __FUNCTION__, ("Loaded " + shaderPurpose + ". SPIR-V bytecode file size is " + std::to_string(buf.size()) + " (bytes)."));
+		module = createShaderModule(buf);
+	};
 
-	// Fragment shader
-	m_fragShaderBytecode = FilePathUtils::ReadFile(ShaderConst::FRAGMENT);
-	Log::Print(Log::T_SUCCESS, __FUNCTION__, ("Loaded fragment shader! SPIR-V bytecode file size is " + std::to_string(m_fragShaderBytecode.size()) + " (bytes)."));
-	m_fragShaderModule = createShaderModule(m_fragShaderBytecode);
+		// Opaque geometry
+	loadShader(m_vertShaderModule, ShaderConst::OPAQUE_GEOM_VERTEX, "opaque geometry shader (vertex)");
+	loadShader(m_fragShaderModule, ShaderConst::OPAQUE_GEOM_FRAGMENT, "opaque geometry shader (fragment)");
+
+		// Orbit geometry
+	loadShader(m_orbitVertShaderModule, ShaderConst::ORBIT_GEOM_VERTEX, "orbit geometry shader (vertex)");
+	loadShader(m_orbitFragShaderModule, ShaderConst::ORBIT_GEOM_FRAGMENT, "orbit geometry shader (fragment)");
+
 
 	// Creates shader stages
-		// Vertex shader
+		// Opaque geometry - Vertex shader
 	VkPipelineShaderStageCreateInfo vertStageInfo{};
-	vertStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-	vertStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT; // Used to identify the create info's shader as the Vertex shader
-	vertStageInfo.module = m_vertShaderModule;
-	vertStageInfo.pName = "main"; // pName specifies the function to invoke, known as the entry point. This means that it is possible to combine multiple fragment shaders into a single shader module and use different entry points to differentiate between their behaviors. In this case we’ll stick to the standard `main`, however.
+	{
+		vertStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		vertStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT; // Used to identify the create info's shader as the Vertex shader
+		vertStageInfo.module = m_vertShaderModule;
+		vertStageInfo.pName = "main"; // pName specifies the function to invoke, known as the entry point. This means that it is possible to combine multiple fragment shaders into a single shader module and use different entry points to differentiate between their behaviors. In this case we’ll stick to the standard `main`, however.
+	}
 
-	// Fragment shader
+		// Opaque geometry - Fragment shader
 	VkPipelineShaderStageCreateInfo fragStageInfo{};
-	fragStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-	fragStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-	fragStageInfo.module = m_fragShaderModule;
-	fragStageInfo.pName = "main";
+	{
+		fragStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		fragStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+		fragStageInfo.module = m_fragShaderModule;
+		fragStageInfo.pName = "main";
+	}
+	
+		// Orbit geometry - Vertex shader
+	VkPipelineShaderStageCreateInfo orbitVertStageInfo{};
+	{
+		orbitVertStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		orbitVertStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+		orbitVertStageInfo.module = m_orbitVertShaderModule;
+		orbitVertStageInfo.pName = "main";
+	}
+
+		// Orbit geometry - Fragment shader
+	VkPipelineShaderStageCreateInfo orbitFragStageInfo{};
+	{
+		orbitFragStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		orbitFragStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+		orbitFragStageInfo.module = m_orbitFragShaderModule;
+		orbitFragStageInfo.pName = "main";
+	}
 
 
 	m_shaderStages = {
@@ -474,29 +532,58 @@ void OffscreenPipeline::initShaderStage() {
 		fragStageInfo
 	};
 
+	m_orbitShaderStages = {
+		orbitVertStageInfo,
+		orbitFragStageInfo
+	};
 
-	// Specifies the format of the vertex data to be passed to the vertex buffer.
-	m_vertInputState.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-	// Describes binding, i.e., spacing between the data and whether the data is per-vertex or per-instance
-		// Gets vertex input binding and attribute descriptions
-	m_vertBindingDescription = Geometry::Vertex::getVertexInputBindingDescription();
-	m_vertAttribDescriptions = Geometry::Vertex::getVertexAttributeDescriptions();
 
-	m_vertInputState.vertexBindingDescriptionCount = 1;
-	m_vertInputState.pVertexBindingDescriptions = &m_vertBindingDescription;
+	// Specifies the format of the vertex data to be passed to the vertex buffer
+		// Opaque geometry
+	{
+		m_vertInputState.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+		// Describes binding, i.e., spacing between the data and whether the data is per-vertex or per-instance
+			// Gets vertex input binding and attribute descriptions
+		m_vertBindingDescription = Geometry::Vertex::getVertexInputBindingDescription();
+		m_vertAttribDescriptions = Geometry::Vertex::getVertexAttributeDescriptions();
 
-	m_vertInputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(m_vertAttribDescriptions.size());
-	m_vertInputState.pVertexAttributeDescriptions = m_vertAttribDescriptions.data();
+		m_vertInputState.vertexBindingDescriptionCount = 1;
+		m_vertInputState.pVertexBindingDescriptions = &m_vertBindingDescription;
+
+		m_vertInputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(m_vertAttribDescriptions.size());
+		m_vertInputState.pVertexAttributeDescriptions = m_vertAttribDescriptions.data();
+	}
+
+		// Orbit geometry
+	{
+		m_orbitVertBindingDescription.binding = 0;
+		m_orbitVertBindingDescription.stride = sizeof(glm::vec3);
+		m_orbitVertBindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+		m_orbitVertAttribDescription.binding = 0;
+		m_orbitVertAttribDescription.location = 0;
+		m_orbitVertAttribDescription.format = VK_FORMAT_R32G32B32_SFLOAT;
+		m_orbitVertAttribDescription.offset = 0;
+
+		m_orbitVertInputState.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+		m_orbitVertInputState.vertexBindingDescriptionCount = 1;
+		m_orbitVertInputState.pVertexBindingDescriptions = &m_orbitVertBindingDescription;
+		m_orbitVertInputState.vertexAttributeDescriptionCount = 1;
+		m_orbitVertInputState.pVertexAttributeDescriptions = &m_orbitVertAttribDescription;
+	}
 
 
 	CleanupTask task{};
 	task.caller = __FUNCTION__;
-	task.objectNames = { VARIABLE_NAME(m_vertShaderModule), VARIABLE_NAME(m_fragShaderModule) };
-	task.vkHandles = { m_vertShaderModule, m_fragShaderModule };
+	task.objectNames = { VARIABLE_NAME(m_vertShaderModule), VARIABLE_NAME(m_fragShaderModule), VARIABLE_NAME(m_orbitVertShaderModule), VARIABLE_NAME(m_orbitFragShaderModule) };
+	task.vkHandles = { m_vertShaderModule, m_fragShaderModule, m_orbitVertShaderModule, m_orbitFragShaderModule };
 	task.cleanupFunc = [&]() {
 		vkDestroyShaderModule(m_renderDeviceCtx->logicalDevice, m_vertShaderModule, nullptr);
 		vkDestroyShaderModule(m_renderDeviceCtx->logicalDevice, m_fragShaderModule, nullptr);
-		};
+
+		vkDestroyShaderModule(m_renderDeviceCtx->logicalDevice, m_orbitVertShaderModule, nullptr);
+		vkDestroyShaderModule(m_renderDeviceCtx->logicalDevice, m_orbitFragShaderModule, nullptr);
+	};
 
 	m_cleanupManager->createCleanupTask(task, m_sessionResourceGroup);
 }
@@ -510,9 +597,16 @@ void OffscreenPipeline::initDynamicStates() {
 
 
 void OffscreenPipeline::initInputAssemblyState() {
+	// Opaque geometry
 	m_inputAssemblyCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
 	m_inputAssemblyCreateInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST; // Use PATCH_LIST instead of TRIANGLE_LIST for tessellation
 	m_inputAssemblyCreateInfo.primitiveRestartEnable = VK_FALSE;
+
+	
+	// Orbit trajectory geometry
+	m_orbitIACreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+	m_orbitIACreateInfo.topology = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
+	m_orbitIACreateInfo.primitiveRestartEnable = VK_FALSE;
 }
 
 
@@ -538,30 +632,40 @@ void OffscreenPipeline::initViewportState() {
 
 
 void OffscreenPipeline::initRasterizationState() {
-	m_rasterizerCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+	// Opaque geometry
+	{
+		m_rasterizerCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
 
-	// If depth clamp is enabled, then fragments that are beyond the near and far planes are clamped to them rather than discarded.
-	// This is useful in some cases like shadow maps, but using this requires enabling a GPU feature.
-	m_rasterizerCreateInfo.depthClampEnable = VK_FALSE;
+		// If depth clamp is enabled, then fragments that are beyond the near and far planes are clamped to them rather than discarded.
+		// This is useful in some cases like shadow maps, but using this requires enabling a GPU feature.
+		m_rasterizerCreateInfo.depthClampEnable = VK_FALSE;
 
-	// If rasterizerDiscardEnable is set to TRUE, then geometry will never be passed through the rasterizer stage. This effectively disables any output to the framebuffer.
-	m_rasterizerCreateInfo.rasterizerDiscardEnable = VK_FALSE;
+		// If rasterizerDiscardEnable is set to TRUE, then geometry will never be passed through the rasterizer stage. This effectively disables any output to the framebuffer.
+		m_rasterizerCreateInfo.rasterizerDiscardEnable = VK_FALSE;
 
-	// NOTE: Using any mode other than FILL requires enabling a GPU feature.
-	m_rasterizerCreateInfo.polygonMode = VK_POLYGON_MODE_FILL; // Use VK_POLYGON_MODE_LINE for wireframe rendering
+		// NOTE: Using any mode other than FILL requires enabling a GPU feature.
+		m_rasterizerCreateInfo.polygonMode = VK_POLYGON_MODE_FILL; // Use VK_POLYGON_MODE_LINE for wireframe rendering
 
-	m_rasterizerCreateInfo.lineWidth = 1.0f;
+		m_rasterizerCreateInfo.lineWidth = 1.0f;
 
-	m_rasterizerCreateInfo.cullMode = VK_CULL_MODE_BACK_BIT; // Determines the type of culling to use
+		m_rasterizerCreateInfo.cullMode = VK_CULL_MODE_BACK_BIT; // Determines the type of culling to use
 
-	// Specifies the vertex order for faces to be considered front-facing (can be clockwise/counter-clockwise)
-	// Since we flipped the Y-coordinate of the clip coordinates in `VkBufferManager::updateUniformBuffer` to prevent images from being rendered upside-down, we must also specify that the vertex order should be counter-clockwise. If we keep it as clockwise, in our Y-flip case, backface culling will appear and prevent any geometry from being drawn.
-	m_rasterizerCreateInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+		// Specifies the vertex order for faces to be considered front-facing (can be clockwise/counter-clockwise)
+		// Since we flipped the Y-coordinate of the clip coordinates in `VkBufferManager::updateUniformBuffer` to prevent images from being rendered upside-down, we must also specify that the vertex order should be counter-clockwise. If we keep it as clockwise, in our Y-flip case, backface culling will appear and prevent any geometry from being drawn.
+		m_rasterizerCreateInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
-	m_rasterizerCreateInfo.depthBiasEnable = VK_FALSE;
-	m_rasterizerCreateInfo.depthBiasConstantFactor = 0.0f;
-	m_rasterizerCreateInfo.depthBiasClamp = 0.0f;
-	m_rasterizerCreateInfo.depthBiasSlopeFactor = 0.0f;
+		m_rasterizerCreateInfo.depthBiasEnable = VK_FALSE;
+		m_rasterizerCreateInfo.depthBiasConstantFactor = 0.0f;
+		m_rasterizerCreateInfo.depthBiasClamp = 0.0f;
+		m_rasterizerCreateInfo.depthBiasSlopeFactor = 0.0f;
+	}
+
+
+	// Orbit geometry
+	{
+		m_orbitRasterizerCreateInfo = m_rasterizerCreateInfo;
+		m_orbitRasterizerCreateInfo.cullMode = VK_CULL_MODE_NONE;
+	}
 }
 
 
@@ -577,33 +681,40 @@ void OffscreenPipeline::initMultisamplingState() {
 
 
 void OffscreenPipeline::initDepthStencilState() {
-	m_depthStencilStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+	// Opaque geometry
+	{
+		m_depthStencilStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
 
-	// Specifies if the depth of new fragments should be compared to the depth buffer to see if they should be discarded
-	m_depthStencilStateCreateInfo.depthTestEnable = VK_TRUE;
+		// Specifies if the depth of new fragments should be compared to the depth buffer to see if they should be discarded
+		m_depthStencilStateCreateInfo.depthTestEnable = VK_TRUE;
 
-	// Specifies if the new depth of fragments that pass the depth test should actually be written to the depth buffer
-	m_depthStencilStateCreateInfo.depthWriteEnable = VK_TRUE;
-
-
-	// Specifies the depth comparison operator that is performed to determine whether to keep or discard a fragment.
-	// VK_COMPARE_OP_LESS means "lower depth = closer". In other words, the depth value of new fragments should be LESS since they are closer to the camera, and thus they will overwrite the existing fragments.
-	// However, since we are using inverted Z-depth mapping (i.e., reverse-Z), we must use VK_COMPARE_OP_GREATER.
-	m_depthStencilStateCreateInfo.depthCompareOp = VK_COMPARE_OP_GREATER;
+		// Specifies if the new depth of fragments that pass the depth test should actually be written to the depth buffer
+		m_depthStencilStateCreateInfo.depthWriteEnable = VK_TRUE;
 
 
-	// Configures depth bound testing (optional). It allows you to only keep fragments that fall within the specified depth range.
-	// We won't be using this for now.
-	m_depthStencilStateCreateInfo.depthBoundsTestEnable = VK_FALSE;
-	m_depthStencilStateCreateInfo.minDepthBounds = 0.0f;
-	m_depthStencilStateCreateInfo.maxDepthBounds = 1.0f;
+		// Specifies the depth comparison operator that is performed to determine whether to keep or discard a fragment.
+		// VK_COMPARE_OP_LESS means "lower depth = closer". In other words, the depth value of new fragments should be LESS since they are closer to the camera, and thus they will overwrite the existing fragments.
+		// However, since we are using inverted Z-depth mapping (i.e., reverse-Z), we must use VK_COMPARE_OP_GREATER.
+		m_depthStencilStateCreateInfo.depthCompareOp = VK_COMPARE_OP_GREATER;
+
+		// Configures depth bound testing (optional). It allows you to only keep fragments that fall within the specified depth range.
+		// We won't be using this for now.
+		m_depthStencilStateCreateInfo.depthBoundsTestEnable = VK_FALSE;
+		m_depthStencilStateCreateInfo.minDepthBounds = 0.0f;
+		m_depthStencilStateCreateInfo.maxDepthBounds = 1.0f;
+
+		// Stencil buffer operations
+		m_depthStencilStateCreateInfo.stencilTestEnable = VK_FALSE;
+		m_depthStencilStateCreateInfo.front = {};
+		m_depthStencilStateCreateInfo.back = {};
+	}
 
 
-
-	// Configures stencil buffer operations.
-	m_depthStencilStateCreateInfo.stencilTestEnable = VK_FALSE;
-	m_depthStencilStateCreateInfo.front = {};
-	m_depthStencilStateCreateInfo.back = {};
+	// Orbit trajectory geometry: read depth but don't write
+	{
+		m_orbitDepthStencilStateCreateInfo = m_depthStencilStateCreateInfo;
+		m_orbitDepthStencilStateCreateInfo.depthWriteEnable = VK_FALSE;
+	}
 }
 
 

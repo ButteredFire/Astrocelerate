@@ -23,9 +23,10 @@ struct JSONParseCtx : public IParseCtx {
 
 
 struct YAMLParseCtx : public IParseCtx {
+	std::unordered_map<std::string, EntityID> *sceneEntities;
+	std::unordered_map<std::string, YAML::Node> *selfComponents;
+
 	EntityID entityID;
 	std::string entityName;
-
-	std::string componentType;
-	YAML::Node *componentNode;
+	std::string currentComponentType;
 };

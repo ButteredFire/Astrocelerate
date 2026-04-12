@@ -17,6 +17,8 @@
 #include <Core/Application/Threading/WorkerThread.hpp>
 #include <Core/Application/Resources/ServiceLocator.hpp>
 
+#include <Engine/Systems/Subsystems/PhysicsRenderBridge.hpp>
+#include <Engine/Systems/Subsystems/Physics/OrbitPointGen.hpp>
 #include <Engine/Registry/ECS/ECS.hpp>
 #include <Engine/Registry/ECS/Components/PhysicsComponents.hpp>
 #include <Engine/Registry/ECS/Components/RenderComponents.hpp>
@@ -24,6 +26,7 @@
 #include <Simulation/ODEs.hpp>
 #include <Simulation/Systems/Time.hpp>
 #include <Simulation/Systems/CoordinateSystem.hpp>
+#include <Simulation/Algorithms/COE/RV2COE.hpp>
 #include <Simulation/Integrators/RK4.hpp>
 #include <Simulation/Integrators/SymplecticEuler.hpp>
 #include <Simulation/Propagators/SGP4/TLE.hpp>
@@ -31,7 +34,7 @@
 
 class PhysicsSystem {
 public:
-	PhysicsSystem();
+	PhysicsSystem(std::shared_ptr<PhysicsRenderBridge> physRendBridge);
 	~PhysicsSystem() = default;
 
 	void init(const Application::YAMLFileConfig &fileCfg, const Application::SimulationConfig &simCfg);
@@ -77,6 +80,8 @@ private:
 	std::shared_ptr<ECSRegistry> m_ecsRegistry;
 	std::shared_ptr<CoordinateSystem> m_coordSystem;
 
+	std::shared_ptr<PhysicsRenderBridge> m_physRendBridge;
+
 	// Cached ECS view data for efficient updating (i.e., less ECS view calls)
 	std::vector<std::tuple<EntityID, CoreComponent::Transform, PhysicsComponent::RigidBody>> m_generalData;
 	std::vector<std::tuple<EntityID, PhysicsComponent::Propagator, CoreComponent::Transform, PhysicsComponent::RigidBody>> m_propData;
@@ -89,6 +94,12 @@ private:
 	double m_currentEpoch = 0.0;		// Current epoch (seconds past J2000) in ET
 	double m_simulationTime = 0.0;		// Simulation time (a.k.a. RELATIVE seconds elapsed since epoch; ABSOLUTE seconds is `epoch + m_simulationTime`)
 
+	struct _OrbitTrajectory {
+		std::vector<glm::dvec3> vertices;
+		bool dirty;
+	};
+	std::unordered_map<EntityID, _OrbitTrajectory> m_orbitTrajectories;
+
 
 	/* Caches physics data from the ECS registry.
 		The goal is to have update functions write to the cached data instead of querying views from the registry and updating the components directly, which can become a huge performance bottleneck with larger time scales.
@@ -99,6 +110,10 @@ private:
 	void syncECSData();
 
 
+	/* Writes to the current physics-render data snapshot. */
+	void publishSnapshot();
+
+
 	/* Performs a physics update.
 		@param dt: Delta-time.
 	*/
@@ -107,4 +122,8 @@ private:
 
 	/* "Homogenizes" coordinate systems by converting the state vectors of all bodies in different coordinate systems to corresponding state vectors in the primary coordinate system (specified in the `SimulationConfigs` YAML section). This should be done only once, at the start of every simulation. */
 	void homogenizeCoordinateSystems();
+
+
+	/* Creates orbit trajectory points for each entity (if applicable) for orbit visualization. */
+	void createTrajectoryPoints();
 };

@@ -119,8 +119,11 @@ namespace ShaderConst {
 
 
 	// Compiled shaders
-	extern const std::string VERTEX;
-	extern const std::string FRAGMENT;
+	extern const std::string OPAQUE_GEOM_VERTEX;
+	extern const std::string ORBIT_GEOM_VERTEX;
+
+	extern const std::string OPAQUE_GEOM_FRAGMENT;
+	extern const std::string ORBIT_GEOM_FRAGMENT;
 }
 
 

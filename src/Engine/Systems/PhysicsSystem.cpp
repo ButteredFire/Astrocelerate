@@ -4,7 +4,8 @@
 #include "PhysicsSystem.hpp"
 
 
-PhysicsSystem::PhysicsSystem() {
+PhysicsSystem::PhysicsSystem(std::shared_ptr<PhysicsRenderBridge> physRendBridge):
+	m_physRendBridge(physRendBridge) {
 
 	m_ecsRegistry = ServiceLocator::GetService<ECSRegistry>(__FUNCTION__);
 
@@ -14,26 +15,33 @@ PhysicsSystem::PhysicsSystem() {
 
 void PhysicsSystem::init(const Application::YAMLFileConfig &fileCfg, const Application::SimulationConfig &simCfg) {
 	// Create absolute kernel paths and initialize coordinate system
-	std::vector<std::string> kernelPaths = simCfg.kernelPaths;
-	for (size_t i = 0; i < kernelPaths.size(); i++)
-		kernelPaths[i] = FilePathUtils::JoinPaths(ROOT_DIR, kernelPaths[i]);
+	{
+		std::vector<std::string> kernelPaths = simCfg.kernelPaths;
+		for (size_t i = 0; i < kernelPaths.size(); i++)
+			kernelPaths[i] = FilePathUtils::JoinPaths(ROOT_DIR, kernelPaths[i]);
 
-	this->configureCoordSys(
-		simCfg.frameType, simCfg.frame,
-		kernelPaths,
-		simCfg.epoch, simCfg.epochFormat
-	);
+		configureCoordSys(
+			simCfg.frameType, simCfg.frame,
+			kernelPaths,
+			simCfg.epoch, simCfg.epochFormat
+		);
+	}
 
 
 	// Initial update
-	m_simulationTime = 0.0;
-
-	cacheECSData();
 	{
-		this->homogenizeCoordinateSystems();
-		this->update(Time::GetDeltaTime());
+		homogenizeCoordinateSystems();
+		
+		cacheECSData();
+		{
+			update(0.0);
+			m_simulationTime = 0.0;
+		}
+		syncECSData();
+
+		createTrajectoryPoints();
+		publishSnapshot();
 	}
-	syncECSData();
 }
 
 
@@ -98,9 +106,11 @@ void PhysicsSystem::tick(WorkerThread *worker) {
 			update(SimulationConst::TIME_STEP);
 			localAccumulator -= SimulationConst::TIME_STEP;
 
-			// Sync registry data every [SYNC_FREQUENCY] iterations to see frequent visual progress on high time scales
-			if (iterations++ % SYNC_FREQUENCY == 0)
+			// Sync registry & snapshot data every [SYNC_FREQUENCY] iterations to see frequent visual progress on high time scales
+			if (iterations++ % SYNC_FREQUENCY == 0) {
 				syncECSData();
+				publishSnapshot();
+			}
 		}
 	}
 	
@@ -111,8 +121,9 @@ void PhysicsSystem::tick(WorkerThread *worker) {
 	}
 
 
-	// Write cache to ECS registry
+	// Write cache to ECS registry & publish snapshot
 	syncECSData();
+	publishSnapshot();
 }
 
 
@@ -191,6 +202,37 @@ void PhysicsSystem::syncECSData() {
 		//atomic.store(std::string(buf));
 	}
 	m_ecsRegistry->updateComponent(id, coordSys);
+}
+
+
+void PhysicsSystem::publishSnapshot() {
+	Buffer::PhysRendFramePacket frame{};
+	frame.epoch = m_currentEpoch;
+	frame.simulationTime = m_simulationTime;
+
+	// General entities
+	for (auto &[entityID, transform, rigidBody] : m_generalData) {
+		Buffer::PhysRendFramePacket::EntityData data{};
+
+		data.entityID = entityID;
+
+		data.position = transform.position;
+		data.orientation = transform.rotation;
+		data.scale = transform.scale;
+
+		data.velocity = rigidBody.velocity;
+		data.acceleration = rigidBody.acceleration;
+		data.mass = rigidBody.mass;
+
+		if (m_orbitTrajectories.count(entityID) && m_orbitTrajectories.at(entityID).dirty) {
+			data.orbitVertices = m_orbitTrajectories.at(entityID).vertices;
+			m_orbitTrajectories.at(entityID).dirty = false;
+		}
+
+		frame.entities.push_back(std::move(data));
+	}
+
+	m_physRendBridge->publish(std::move(frame));
 }
 
 
@@ -363,11 +405,9 @@ void PhysicsSystem::propagateBodies(const double et) {
 
 void PhysicsSystem::homogenizeCoordinateSystems() {
 	// Convert TLE state vectors (TEME coordinate system)
-	//auto view = m_ecsRegistry->getView<PhysicsComponent::Propagator, CoreComponent::Transform, PhysicsComponent::RigidBody>();
+	auto view = m_ecsRegistry->getView<PhysicsComponent::Propagator, CoreComponent::Transform, PhysicsComponent::RigidBody>();
 
-	for (int i = 0; i < m_propData.size(); i++) {
-		auto &&[entityID, propagator, transform, rigidBody] = m_propData[i];
-
+	for (auto &&[entityID, propagator, transform, rigidBody] : view) {
 		// Compute TLE epoch
 		propagator.tleEpochET = SPICEUtils::tleEpochToET(propagator.tleLine1);
 
@@ -404,11 +444,51 @@ void PhysicsSystem::homogenizeCoordinateSystems() {
 		);
 
 
-		std::get<PhysicsComponent::Propagator>(m_propData[i]) = propagator;
-		std::get<CoreComponent::Transform>(m_propData[i]) = transform;
-		std::get<PhysicsComponent::RigidBody>(m_propData[i]) = rigidBody;
-		//m_ecsRegistry->updateComponent(entityID, propagator);
-		//m_ecsRegistry->updateComponent(entityID, transform);
-		//m_ecsRegistry->updateComponent(entityID, rigidBody);
+		m_ecsRegistry->updateComponent(entityID, propagator);
+		m_ecsRegistry->updateComponent(entityID, transform);
+		m_ecsRegistry->updateComponent(entityID, rigidBody);
+	}
+}
+
+
+void PhysicsSystem::createTrajectoryPoints() {
+	OrbitPointGen::GenerationConfig pointGenCfg{}; // Default values
+
+	auto view = m_ecsRegistry->getView<CoreComponent::Transform, PhysicsComponent::RigidBody, PhysicsComponent::OrbitalElements>();
+
+	m_orbitTrajectories.clear();
+	m_orbitTrajectories.reserve(view.size());
+
+	for (auto &&[entityID, transform, rigidBody, coe] : view) {
+		const auto &parentShapeParams = m_ecsRegistry->getComponent<PhysicsComponent::ShapeParameters>(coe.parentBody);
+		const auto &parentTransform = m_ecsRegistry->getComponent<CoreComponent::Transform>(coe.parentBody);
+		const auto &parentRigidBody = m_ecsRegistry->getComponent<PhysicsComponent::RigidBody>(coe.parentBody);
+
+
+		// Populate entity COEs
+		glm::dvec3 r_relative = transform.position - parentTransform.position;
+		glm::dvec3 v_relative = rigidBody.velocity - parentRigidBody.velocity;
+
+		COE::Elements elements = COE::rv2coe(r_relative, v_relative, parentShapeParams.gravParam);
+		coe.argPeriapsis = elements.argp;
+		coe.eccentricity = elements.e;
+		coe.inclination = elements.incl;
+		coe.raan = elements.omega;
+		coe.semiMajorAxis = elements.a;
+		coe.trueAnomaly = elements.nu;
+		coe.orbitGeom = elements.orbitGeom;
+		coe.orbitIncl = elements.orbitIncl;
+		m_ecsRegistry->updateComponent(entityID, coe);
+
+
+		// Generate trajectory points
+		m_orbitTrajectories[entityID] = _OrbitTrajectory{
+			OrbitPointGen::GenerateTrajectoryPoints(
+				elements,
+				parentShapeParams.equatRadius, parentTransform.position,
+				pointGenCfg
+			),
+			true
+		};
 	}
 }

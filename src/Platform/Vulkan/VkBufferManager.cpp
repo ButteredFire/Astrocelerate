@@ -10,6 +10,8 @@ VkBufferManager::~VkBufferManager() {}
 
 
 Buffer::BufferAlloc VkBufferManager::allocate(VkDeviceSize bufSize, VkBufferUsageFlags usage, Buffer::MemIntent memUsage) {
+	LOG_ASSERT(bufSize > 0, "Cannot allocate an empty (zero-byte) buffer!");
+
 	Buffer::BufferAlloc bufferAlloc{};
 	bufferAlloc.usageFlags = usage;
 	bufferAlloc.size = bufSize;

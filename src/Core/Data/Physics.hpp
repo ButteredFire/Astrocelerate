@@ -53,11 +53,24 @@ namespace Physics {
 	}
 
 
-	// Physics reference frame types
+	// Reference frame types
 	enum class FrameType {
 		Inertial,
 		Barycentric,
 		Rotating,
 		PlanetFixed
+	};
+
+
+	// Orbit types
+	enum class OrbitGeometry {
+		CIRCULAR,
+		ELLIPTICAL,
+		HYPERBOLIC,
+		PARABOLIC
+	};
+	enum class OrbitInclination {
+		EQUATORIAL,
+		INCLINED
 	};
 }

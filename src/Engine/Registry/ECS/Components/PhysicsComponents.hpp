@@ -42,6 +42,22 @@ namespace PhysicsComponent {
 	};
 
 
+	/* Classical orbital elements for Keplerian orbits. */
+	struct OrbitalElements {
+		double semiMajorAxis;			// a (m)
+		double eccentricity;			// e
+		double inclination;				// i (rad)
+		double raan;					// Ω (rad)
+		double argPeriapsis;			// ω (rad)
+		double trueAnomaly;				// ν (rad): current position on orbit
+
+		Physics::OrbitGeometry orbitGeom;   // Type of orbit geometry
+		Physics::OrbitInclination orbitIncl;// Type of orbit inclination
+		EntityID parentBody;				// Gravitational parent
+		std::string _parentBody_str;		// [INTERNAL] OrbitalElements::parentBody in YAML files MUST be a reference to another entity.
+	};
+
+
 	struct NutationAngles {
 		double deltaPsi;				// Nutation in longitude (radians). This is the change in the celestial longitude of a body caused by nutation.
 		double deltaEpsilon;			// Nutation in obliquity (radians). This is the change in the obliquity of the ecliptic (the tilt of a body's axis) caused by nutation.

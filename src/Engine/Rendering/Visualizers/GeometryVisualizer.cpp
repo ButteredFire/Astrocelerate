@@ -41,9 +41,10 @@ void GeometryVisualizer::init(std::array<VkCommandBuffer, SimulationConst::MAX_F
 
 
 void GeometryVisualizer::prepareFrame(uint32_t frameIdx, const Buffer::FramePacket &framePacket) {
-	m_objectUBOs[frameIdx].meshRanges.clear();
-
 	auto view = m_ecsRegistry->getView<CoreComponent::Transform, PhysicsComponent::RigidBody, RenderComponent::MeshRenderable>();
+
+	m_objectUBOs[frameIdx].meshRanges.clear();
+	m_objectUBOs[frameIdx].meshRanges.reserve(view.size());
 
 	for (auto &&[entity, transform, rigidBody, meshRenderable] : view) {
 		Buffer::ObjectUBO ubo{};
@@ -84,9 +85,6 @@ void GeometryVisualizer::prepareFrame(uint32_t frameIdx, const Buffer::FramePack
 
 
 void GeometryVisualizer::render(uint32_t frameIdx) {
-	//vkResetCommandBuffer(m_secondCmdBufs[frameIdx], 0);
-
-	
 	VkCommandBufferInheritanceInfo inheritanceInfo{};
 	inheritanceInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
 	inheritanceInfo.renderPass = m_offscreenRenderPass;
@@ -150,22 +148,26 @@ void GeometryVisualizer::render(uint32_t frameIdx) {
 			for (uint32_t meshIndex : indexRange) {
 				// Object UBO
 				uint32_t objectUBOOffset = static_cast<uint32_t>(meshIndex * m_alignedObjectUBOSize);
-				vkCmdBindDescriptorSets(m_secondCmdBufs[frameIdx],
+				vkCmdBindDescriptorSets(
+					m_secondCmdBufs[frameIdx],
 					VK_PIPELINE_BIND_POINT_GRAPHICS,
 					m_offscreenPipelineLayout,
 					0, 1, &m_objectUBOs[frameIdx].descriptorSet,
-					1, &objectUBOOffset);
+					1, &objectUBOOffset
+				);
 
 
 				// Material parameters UBO
 				const Geometry::MeshOffset &meshOffset = m_geomData->meshOffsets[meshIndex];
 				uint32_t meshMaterialOffset = static_cast<uint32_t>(meshOffset.materialIndex * m_alignedMaterialSize);
 
-				vkCmdBindDescriptorSets(m_secondCmdBufs[frameIdx],
+				vkCmdBindDescriptorSets(
+					m_secondCmdBufs[frameIdx],
 					VK_PIPELINE_BIND_POINT_GRAPHICS,
 					m_offscreenPipelineLayout,
 					1, 1, &m_materialDescriptorSet,
-					1, &meshMaterialOffset);
+					1, &meshMaterialOffset
+				);
 
 
 				// Draw call
