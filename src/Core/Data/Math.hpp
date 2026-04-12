@@ -5,6 +5,7 @@
 
 #include <array>
 #include <vector>
+#include <numbers>
 #include <climits>
 
 #include <Platform/External/GLM.hpp>
@@ -14,7 +15,9 @@
 #include <Core/Utils/SystemUtils.hpp>
 
 
-#define PI 3.14159265358979323846
+inline const double EPSILON = std::numeric_limits<double>::epsilon();
+inline const double PI = std::numbers::pi;
+inline const double TWOPI = 2.0 * PI;
 
 
 namespace Math {
@@ -164,4 +167,12 @@ namespace Math {
     private:
         std::array<Number, static_cast<size_t>(size)> m_cfs;   // Coefficients vector (in increasing degree)
     };
+
+
+
+    /* Returns the sign of a number. */
+    template<typename T>
+    inline int sign(T val) {
+        return (T(0) < val) - (val < T(0));
+    }
 }

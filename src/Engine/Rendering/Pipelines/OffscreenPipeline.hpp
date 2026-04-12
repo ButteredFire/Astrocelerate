@@ -43,18 +43,32 @@ private:
 
 
 	// Shaders
-		// Vertex shader
+		// Opaque geometry - Vertex shader
 	std::vector<char> m_vertShaderBytecode;
 	VkShaderModule m_vertShaderModule = VK_NULL_HANDLE;
 
 	VkPipelineVertexInputStateCreateInfo m_vertInputState{};
-	VkVertexInputBindingDescription m_vertBindingDescription = VkVertexInputBindingDescription();
+	VkVertexInputBindingDescription m_vertBindingDescription{};
 	std::vector<VkVertexInputAttributeDescription> m_vertAttribDescriptions{};
 
-		// Fragment shader
+		// Opaque geometry - Fragment shader
 	std::vector<char> m_fragShaderBytecode;
 	VkShaderModule m_fragShaderModule = VK_NULL_HANDLE;
 	std::vector<VkPipelineShaderStageCreateInfo> m_shaderStages;
+
+		// Orbit geometry - Vertex shader
+	std::vector<char> m_orbitVertShaderBytecode;
+	VkShaderModule m_orbitVertShaderModule = VK_NULL_HANDLE;
+
+	VkPipelineVertexInputStateCreateInfo m_orbitVertInputState{};
+	VkVertexInputBindingDescription m_orbitVertBindingDescription{};
+	VkVertexInputAttributeDescription m_orbitVertAttribDescription{}; // 1 description, corresponding to only the vertex position
+
+		// Orbit geometry - Fragment shader
+	std::vector<char> m_orbitFragShaderBytecode;
+	VkShaderModule m_orbitFragShaderModule = VK_NULL_HANDLE;
+	std::vector<VkPipelineShaderStageCreateInfo> m_orbitShaderStages;
+
 
 	// Render pass
 	VkRenderPass m_renderPass = VK_NULL_HANDLE;
@@ -112,6 +126,13 @@ private:
 	ResourceID m_swapchainResourceGroup;
 
 
+	// Orbit-specific resources
+	VkPipelineInputAssemblyStateCreateInfo m_orbitIACreateInfo{};
+	VkPipelineDepthStencilStateCreateInfo m_orbitDepthStencilStateCreateInfo{};
+	VkPipelineRasterizationStateCreateInfo m_orbitRasterizerCreateInfo{};
+	VkPushConstantRange m_orbitPushRange{};
+
+
 	// Session data
 	ResourceID m_sessionResourceGroup;
 	bool m_sessionReady = false;
@@ -120,6 +141,8 @@ private:
 	void bindEvents();
 
 	void createGraphicsPipeline();
+	void createOrbitGraphicsPipeline();
+
 	void createPipelineLayout();
 
 	void createRenderPass();

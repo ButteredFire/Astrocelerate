@@ -44,6 +44,7 @@ namespace Ctx {
 
 
     struct OffscreenPipeline {
+        // ----- OPAQUE GEOMETRY PIPELINE -----
         VkRenderPass renderPass;
         VkPipeline pipeline;
         VkPipelineLayout pipelineLayout;
@@ -56,5 +57,9 @@ namespace Ctx {
         std::vector<VkImageView> imageViews;
         std::vector<VkSampler> imageSamplers;
         std::vector<VkFramebuffer> frameBuffers;
+
+
+        // ----- ORBIT GEOMETRY PIPELINE -----
+        VkPipeline orbitPipeline;
     };
 }

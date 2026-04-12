@@ -426,6 +426,15 @@ void OrbitalWorkspace::renderViewportPanel() {
 		ImGuiUtils::PopStyleClearButton();
 
 
+		// ----- ORBIT VISUALIZATION INACCURACY WARNING -----
+		auto coeView = m_ecsRegistry->getView<PhysicsComponent::OrbitalElements>();
+		if (coeView.size() > 0) {
+			ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 255, 0, 255));
+			ImGuiUtils::AlignedText(ImGuiUtils::TEXT_ALIGN_MIDDLE, ImGuiUtils::IconString(ICON_FA_TRIANGLE_EXCLAMATION, "Visualized Keplerian orbits may differ from actual orbits due to accumulated drift.").c_str());
+			ImGui::PopStyleColor();
+		}
+
+
 
 		// ----- LARGE TIME SCALE WARNING -----
 		if (Time::GetTimeScale() >= 500.0f) {

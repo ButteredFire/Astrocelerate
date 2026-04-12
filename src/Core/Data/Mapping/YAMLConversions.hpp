@@ -301,7 +301,7 @@ namespace YAML {
             if (propagatorType == "SGP4")
                 rhs.propagatorType = PhysicsComponent::Propagator::Type::SGP4;
             else
-                throw Log::RuntimeException(__FUNCTION__, __LINE__, "Cannot deserialize data for component " + YAMLScene::Physics_Propagator + ": Cannot recognize propagator type " + enquote(propagatorType) + "!");
+                throw Log::RuntimeException(__FUNCTION__, __LINE__, "Cannot recognize propagator type " + enquote(propagatorType) + "!");
 
 
             rhs.tlePath = node[YAMLData::Physics_Propagator_TLEPath].as<std::string>();
@@ -337,6 +337,41 @@ namespace YAML {
             rhs.rotVelocity = node[YAMLData::Physics_ShapeParameters_RotVelocity].as<glm::dvec3>();
             rhs.j2 = node[YAMLData::Physics_ShapeParameters_J2].as<double>();
 
+            return true;
+        }
+    };
+}
+
+
+// ----- PhysicsComponent::OrbitalElements -----
+namespace YAML {
+    template<>
+    struct convert<PhysicsComponent::OrbitalElements> {
+        static Node encode(const PhysicsComponent::OrbitalElements &rhs) {
+            Node node;
+            node[YAMLData::Physics_OrbitalElements_SemiMajorAxis]   = rhs.semiMajorAxis;
+            node[YAMLData::Physics_OrbitalElements_Eccentricity]    = rhs.eccentricity;
+            node[YAMLData::Physics_OrbitalElements_Inclination]     = rhs.inclination;
+            node[YAMLData::Physics_OrbitalElements_RAAN]            = rhs.raan;
+            node[YAMLData::Physics_OrbitalElements_ArgPeriapsis]    = rhs.argPeriapsis;
+            node[YAMLData::Physics_OrbitalElements_TrueAnomaly]     = rhs.trueAnomaly;
+            node[YAMLData::Physics_OrbitalElements_ParentBody]      = rhs.parentBody;
+            return node;
+        }
+
+        static bool decode(const Node &node, PhysicsComponent::OrbitalElements &rhs) {
+            if (!node.IsMap()) return false;
+            rhs.semiMajorAxis   = node[YAMLData::Physics_OrbitalElements_SemiMajorAxis].as<double>();
+            rhs.eccentricity    = node[YAMLData::Physics_OrbitalElements_Eccentricity].as<double>();
+            rhs.inclination     = node[YAMLData::Physics_OrbitalElements_Inclination].as<double>();
+            rhs.raan            = node[YAMLData::Physics_OrbitalElements_RAAN].as<double>();
+            rhs.argPeriapsis    = node[YAMLData::Physics_OrbitalElements_ArgPeriapsis].as<double>();
+            rhs.trueAnomaly     = node[YAMLData::Physics_OrbitalElements_TrueAnomaly].as<double>();
+
+            // rhs.parentBody should be a string referring to another entity in the simulation file config.
+            // In this case, rhs.parentBody will be dynamically updated in the scene loader.
+            rhs._parentBody_str = node[YAMLData::Physics_OrbitalElements_ParentBody].as<std::string>();
+        
             return true;
         }
     };

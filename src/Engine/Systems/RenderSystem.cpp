@@ -2,10 +2,11 @@
 #include <cstddef> // For offsetof
 
 
-RenderSystem::RenderSystem(const Ctx::VkRenderDevice *renderDeviceCtx, const Ctx::VkWindow *windowCtx, std::shared_ptr<VkBufferManager> bufferMgr, std::shared_ptr<UIRenderer> uiRenderer, std::shared_ptr<Camera> camera) :
+RenderSystem::RenderSystem(const Ctx::VkRenderDevice *renderDeviceCtx, const Ctx::VkWindow *windowCtx, std::shared_ptr<PhysicsRenderBridge> physRendBridge, std::shared_ptr<VkBufferManager> bufferMgr, std::shared_ptr<UIRenderer> uiRenderer, std::shared_ptr<Camera> camera) :
 	m_renderDeviceCtx(renderDeviceCtx),
 	m_windowCtx(windowCtx),
 
+	m_physRendBridge(physRendBridge),
 	m_bufferManager(bufferMgr),
 	m_uiRenderer(uiRenderer),
 	m_camera(camera) {
@@ -64,10 +65,35 @@ void RenderSystem::init(const Geometry::GeometryData *geomData, const Ctx::Offsc
 
 	m_sessionResourceID = m_cleanupManager->createCleanupGroup();
 
+	initOrbitVertexArray();
 	initGlobalBuffers();
 	createVisualizers();
 	initVisualizerCmdBufSets();
 	initVisualizers();
+}
+
+
+void RenderSystem::initOrbitVertexArray() {
+	Buffer::PhysRendFramePacket frame{};
+	m_physRendBridge->consume(frame);
+
+	m_orbitWorldVertices.clear();
+	m_orbitVertexOffsets.clear();
+
+	for (const auto &entity : frame.entities) {
+		if (entity.orbitVertices.has_value()) {
+			uint32_t baseVertex = static_cast<uint32_t>(m_orbitWorldVertices.size());
+			uint32_t pointCount = static_cast<uint32_t>(entity.orbitVertices.value().size());
+
+			for (const auto &vertex : entity.orbitVertices.value()) {
+				m_orbitWorldVertices.emplace_back(
+					SpaceUtils::ToRenderSpace_Position(vertex)
+				);
+			}
+
+			m_orbitVertexOffsets[entity.entityID] = { baseVertex, pointCount };
+		}
+	}
 }
 
 
@@ -83,6 +109,21 @@ void RenderSystem::initGlobalBuffers() {
 
 		VkBufferUtils::WriteToGPUBuffer(m_renderDeviceCtx, m_geomData->meshVertices.data(), m_globalVertBufAlloc.buffer, vertBufSize);
 		VkBufferUtils::WriteToGPUBuffer(m_renderDeviceCtx, m_geomData->meshVertexIndices.data(), m_globalIdxBufAlloc.buffer, idxBufSize);
+	}
+
+
+
+	// Orbit trajectory vertex buffer
+	if (!m_orbitWorldVertices.empty()) {
+		VkDeviceSize bufSize = sizeof(glm::dvec3) * m_orbitWorldVertices.size();
+
+		m_orbitVertBufAlloc = m_bufferManager->allocate(
+			bufSize,
+			VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+			Buffer::MemIntent::VRAM
+		);
+
+		VkBufferUtils::WriteToGPUBuffer(m_renderDeviceCtx, m_orbitWorldVertices.data(), m_orbitVertBufAlloc.buffer, bufSize);
 	}
 
 
@@ -131,6 +172,19 @@ void RenderSystem::createVisualizers() {
 			m_bufferManager
 		)
 	);
+
+	// Orbit Visualizer (conditional)
+	if (!m_orbitWorldVertices.empty()) {
+		m_visualizers.push_back(
+			std::make_unique<OrbitVisualizer>(
+				m_renderDeviceCtx, m_windowCtx,
+				m_offscreenData,
+				&m_orbitVertBufAlloc,
+				m_orbitVertexOffsets
+			)
+		);
+	}
+
 
 	m_visualizerCount = m_visualizers.size();
 }
@@ -211,8 +265,12 @@ void RenderSystem::tick(std::stop_token stopToken) {
 
 	// Scene
 	if (m_sceneReady.load()) {
+		Buffer::PhysRendFramePacket frame{};
+		m_physRendBridge->consume(frame);
+
 		Buffer::FramePacket packet{};
 		packet.frameIndex = m_currentFrame.load();
+		packet.physRendFrame = &frame;
 
 		buildFramePacket(&packet);
 		renderScene(&packet);
@@ -268,6 +326,7 @@ void RenderSystem::buildFramePacket(Buffer::FramePacket *packet) {
 		packet->globalUBO.cameraPos = SpaceUtils::ToRenderSpace_Position(
 			m_camera->getRelativeTransform().position
 		);
+		packet->globalUBO.floatingOrigin = SpaceUtils::ToRenderSpace_Position(packet->camFloatingOrigin);
 
 		if (pointLights.size() > 0) {
 			const auto &[entityWithPointLight, pointLight] = pointLights[0];

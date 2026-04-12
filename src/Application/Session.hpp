@@ -56,4 +56,6 @@ private:
 	void bindEvents();
 
 	void reset();
+
+	void initScene(const std::string &filePath);
 };
