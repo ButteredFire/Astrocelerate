@@ -3,7 +3,7 @@
 
 <div align="center" class="grid cards" style="display: flex; align-items: center; justify-content: center; text-decoration: none;" markdown>
     <img src="assets/App/AstrocelerateLogo.png" alt="Logo" width="75%">
-    <p>Logo © 2024-2025 <a href="https://www.linkedin.com/in/minhduong-thechosenone/">Minh Duong</a>, D.B.A. <b>Oriviet Aerospace</b></p>
+    <p>Logo © 2024-2025 <a href="https://www.linkedin.com/in/minhduong-thechosenone/">Minh Duong</a>, D.B.A. <b>Oriviet Systems</b></p>
     </br>
     <p>Join our communities!</p>
     <a href="https://www.reddit.com/r/astrocelerate" target="_blank"><img alt="Reddit" src="https://img.shields.io/badge/Reddit-grey?style=flat&logo=reddit&logoColor=%23FF4500&logoSize=auto"></a>
@@ -38,7 +38,7 @@ Most aerospace software is either simplified and gamified (e.g., Kerbal Space Pr
 
 Astrocelerate is developed with the belief that humanity's greatest frontier should be open, modern, and independent of proprietary, high-cost ecosystems. It is a tool for students, researchers, and engineers to build the future of orbital infrastructure.
 
-*Astrocelerate is an initiative and first project of [Oriviet Aerospace](https://www.oriviet.org), an early-stage startup based in Vietnam aiming to build the next generation of spaceflight simulation tools for engineers, researchers, and space mission designers.*
+*Astrocelerate is an initiative and first project of [Oriviet Systems](https://www.oriviet.org), an early-stage startup based in Vietnam aiming to build the next generation of spaceflight simulation tools for engineers, researchers, and space mission designers.*
 
 # Features
 ## Currently implemented
