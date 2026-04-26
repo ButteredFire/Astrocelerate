@@ -83,6 +83,18 @@ private:
 	std::shared_ptr<PhysicsRenderBridge> m_physRendBridge;
 
 	// Cached ECS view data for efficient updating (i.e., less ECS view calls)
+	struct _EntityCache {
+		EntityID entityID;
+
+		CoreComponent::Identifiers identifiers;
+		CoreComponent::Transform transform;
+		
+		PhysicsComponent::RigidBody body;
+		PhysicsComponent::Propagator propagator;
+	};
+	std::vector<_EntityCache> m_ecsCache;
+	std::unordered_map<EntityID, uint32_t> m_entityToCacheIdx;
+
 	std::vector<std::tuple<EntityID, CoreComponent::Transform, PhysicsComponent::RigidBody>> m_generalData;
 	std::vector<std::tuple<EntityID, PhysicsComponent::Propagator, CoreComponent::Transform, PhysicsComponent::RigidBody>> m_propData;
 	std::vector<std::tuple<EntityID, CoreComponent::Identifiers>> m_identifierData;

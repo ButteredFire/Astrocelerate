@@ -13,6 +13,8 @@
 
 #include <Platform/External/GLM.hpp>
 
+#include <Core/Data/Math.hpp>
+
 
 namespace Kepler {
 	/* Solves Kepler's equation when the true anomaly is known.
@@ -27,13 +29,13 @@ namespace Kepler {
 		
 
 		// Circular orbit (e = 0)
-		if (glm::abs(e) < EPSILON) {
+		if (glm::abs(e) < R_EPSILON) {
 			e0 = nu;
 			m = nu;
 		}
 
 		// Elliptical orbit (0 < e < 1)
-		else if (e < 1.0 - EPSILON) {
+		else if (e < 1.0 - R_EPSILON) {
 			double sin_e = (glm::sin(nu) * glm::sqrt(1.0 - e * e)) / (1.0 + e * glm::cos(nu));
 			double cos_e = (e + glm::cos(nu)) / (1.0 + e * glm::cos(nu));
 
@@ -48,13 +50,13 @@ namespace Kepler {
 		}
 
 		// Parabolic orbit (e = 1)
-		else if (1.0 - EPSILON < e && e < 1.0 + EPSILON) {
+		else if (1.0 - R_EPSILON < e && e < 1.0 + R_EPSILON) {
 			e0 = glm::tan(nu * 0.5);
 			m = e0 + (e0 * e0 * e0) / 3.0;
 		}
 
 		// Hyperbolic orbit (e > 1)
-		else if (e > 1.0 + EPSILON) {
+		else if (e > 1.0 + R_EPSILON) {
 			double sinh_e = (glm::sin(nu) * glm::sqrt(e * e - 1.0)) / (1.0 + e * glm::cos(nu));
 			//double cosh_e = (e + glm::cos(nu)) / (1.0 + e * glm::cos(nu));
 			

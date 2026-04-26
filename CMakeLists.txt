@@ -20,7 +20,7 @@ project(Astrocelerate)
     add_compile_definitions(APP_VERSION_MINOR="${APP_VERSION_MINOR}")
     add_compile_definitions(APP_VERSION_PATCH="${APP_VERSION_PATCH}")
 
-    set(APP_VENDOR "Oriviet Aerospace")
+    set(APP_VENDOR "Oriviet Systems")
     add_compile_definitions(APP_VENDOR="${APP_VENDOR}")
     
     set(AUTHOR "Duong Duy Nhat Minh")

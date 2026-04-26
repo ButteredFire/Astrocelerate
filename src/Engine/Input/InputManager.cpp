@@ -32,7 +32,13 @@ void InputManager::bindEvents() {
 
 
 void InputManager::tick() {
-	processKeyboardInput(Time::GetDeltaTime());
+    // NOTE: Instead of Time::GetDeltaTime, we use render-frame delta time for input-driven movement so that the camera movement is based on actual frame time instead of the physics thread's delta
+	static auto previousTime = std::chrono::high_resolution_clock::now();
+	auto currentTime = std::chrono::high_resolution_clock::now();
+	double frameDelta = std::chrono::duration<double>(currentTime - previousTime).count();
+	previousTime = currentTime;
+
+	processKeyboardInput(frameDelta);
 
 	// If camera is in Orbital mode and the mouse button is down (i.e., m_cursorLocked is True), change the cursor icon
 	if (isCameraOrbiting() && m_cursorLocked.load())
@@ -82,7 +88,8 @@ void InputManager::glfwDeferKeyInput(int key, int scancode, int action, int mods
 void InputManager::processKeyboardInput(double dt) {
 	using namespace Input;
 
-	//std::lock_guard lock(m_pressedKeysMutex);
+	// Lock pressed keys while iterating to avoid data races with the GLFW callback
+	std::lock_guard lock(m_pressedKeysMutex);
 
 	for (const int key : m_pressedKeys) {
 		if (isViewportInputAllowed())

@@ -355,7 +355,7 @@ namespace YAML {
             node[YAMLData::Physics_OrbitalElements_RAAN]            = rhs.raan;
             node[YAMLData::Physics_OrbitalElements_ArgPeriapsis]    = rhs.argPeriapsis;
             node[YAMLData::Physics_OrbitalElements_TrueAnomaly]     = rhs.trueAnomaly;
-            node[YAMLData::Physics_OrbitalElements_ParentBody]      = rhs.parentBody;
+            node[YAMLData::Physics_OrbitalElements_ParentBody]      = rhs._parentBody_str;
             return node;
         }
 

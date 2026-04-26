@@ -68,9 +68,8 @@ void PhysicsSystem::tick(WorkerThread *worker) {
 
 
 	// Compute accumulator
-	float timeScale = Time::GetTimeScale();
 	Time::UpdateDeltaTime();
-
+	float timeScale = Time::GetTimeScale();
 	double deltaTime = Time::GetDeltaTime();
 		// If update() performs a heavy calculation, the delta-time of the next frame will be huge. This leads to an even bigger accumulation, which causes an engine-freezing loop. To solve this, we limit how much real time per frame the engine can process.
 	deltaTime = std::min(deltaTime, 0.25);
@@ -196,10 +195,6 @@ void PhysicsSystem::syncECSData() {
 		et2utc_c(m_currentEpoch, FMT, PREC, LENOUT, buf);
 
 		coordSys.currentEpoch = std::string(buf);
-
-		// Perform thread-safe writes to a non-atomic variable (NOTE: We can't have std::atomic types in components since atomics are non-copyable and non-movable)
-		//std::atomic_ref<std::string> atomic(coordSys.currentEpoch);
-		//atomic.store(std::string(buf));
 	}
 	m_ecsRegistry->updateComponent(id, coordSys);
 }

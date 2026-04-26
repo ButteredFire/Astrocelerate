@@ -430,7 +430,7 @@ void OrbitalWorkspace::renderViewportPanel() {
 		auto coeView = m_ecsRegistry->getView<PhysicsComponent::OrbitalElements>();
 		if (coeView.size() > 0) {
 			ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 255, 0, 255));
-			ImGuiUtils::AlignedText(ImGuiUtils::TEXT_ALIGN_MIDDLE, ImGuiUtils::IconString(ICON_FA_TRIANGLE_EXCLAMATION, "Visualized Keplerian orbits may differ from actual orbits due to accumulated drift.").c_str());
+			ImGuiUtils::AlignedText(ImGuiUtils::TEXT_ALIGN_MIDDLE, ImGuiUtils::IconString(ICON_FA_TRIANGLE_EXCLAMATION, "Visualized Keplerian orbits may differ from actual orbits due to accumulated drift or unaccounted perturbative forces.").c_str());
 			ImGui::PopStyleColor();
 		}
 
@@ -799,25 +799,17 @@ void OrbitalWorkspace::renderSimulationControlPanel() {
 			ImGui::SeparatorText("Camera");
 
 			static Camera *camera = m_inputManager->getCamera();
-			static Camera::Configuration camConfig = camera->getConfig();
 
 			// Speed magnitude
 			{
-				static float speedMagnitude = 8.0f;
+				static float camMoveSpeed = camera->getConfig().movementSpeed;
 
-				static bool initialCameraLoad = true;
-				if (initialCameraLoad) {
-					camConfig.movementSpeed = std::powf(10.0f, speedMagnitude);
-					camera->setConfig(camConfig);
-
-					initialCameraLoad = false;
-				}
-
-				ImGui::Text("Speed (Magnitude):");
+				ImGui::Text("Speed:");
 				ImGui::SameLine();
 				ImGui::SetNextItemWidth(ImGuiUtils::GetAvailableWidth());
-				if (ImGui::DragFloat("##CameraSpeedDragFloat", &speedMagnitude, 0.25f, 1.0f, 12.0f, "1e+%.0f", ImGuiSliderFlags_AlwaysClamp)) {
-					camConfig.movementSpeed = std::powf(10.0f, speedMagnitude);
+				if (ImGui::InputFloat("##CameraSpeedInputFloat", &camMoveSpeed, 0.0f, 0.0f, "%.2e", ImGuiInputTextFlags_AlwaysOverwrite)) {
+					Camera::Configuration camConfig = camera->getConfig();
+					camConfig.movementSpeed = camMoveSpeed;
 					camera->setConfig(camConfig);
 				}
 				ImGuiUtils::CursorOnHover();
