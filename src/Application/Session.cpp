@@ -49,7 +49,6 @@ void Session::bindEvents() {
 			case RESET:
 			case PREPARE_FOR_INIT:
 				m_sessionIsValid = false;
-				m_accumulator = 0.0;
 				break;
 
 			case INITIALIZED:
@@ -136,10 +135,7 @@ void Session::loadSceneFromFile(const std::string &filePath) {
 	auto sceneLoadThread = ThreadManager::CreateThread("SCENE_INIT");
 	sceneLoadThread->set([this, filePath](std::stop_token stopToken) {
 		try {
-			auto fileData = m_sceneLoader->loadSceneFromFile(filePath);		// NOTE: GeometryLoader owns Geometry::GeometryData
-
-			m_physicsSystem->init(fileData.fileConfig, fileData.simulationConfig);
-			m_renderSystem->init(fileData.geometryData, m_offscreenData);
+			initScene(filePath);
 
 
 			// Propagate scene initialization status to GUI
@@ -172,6 +168,14 @@ void Session::loadSceneFromFile(const std::string &filePath) {
 	});
 
 	sceneLoadThread->start(true);
+}
+
+
+void Session::initScene(const std::string &filePath) {
+	auto fileData = m_sceneLoader->loadSceneFromFile(filePath);		// NOTE: GeometryLoader owns Geometry::GeometryData
+
+	m_physicsSystem->init(fileData.fileConfig, fileData.simulationConfig);
+	m_renderSystem->init(fileData.geometryData, m_offscreenData);
 }
 
 

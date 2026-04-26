@@ -79,6 +79,10 @@ public:
 		VkPipeline graphicsPipeline;
 		VkResult result = vkCreateGraphicsPipelines(logicalDevice, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &graphicsPipeline);
 
+		if (result != VK_SUCCESS) {
+			throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create graphics pipeline!");
+		}
+
 		CleanupTask task{};
 		task.caller = __FUNCTION__;
 		task.objectNames = { VARIABLE_NAME(graphicsPipeline) };
@@ -86,11 +90,6 @@ public:
 		task.cleanupFunc = [logicalDevice, graphicsPipeline]() { vkDestroyPipeline(logicalDevice, graphicsPipeline, nullptr); };
 
 		m_cleanupManager->createCleanupTask(task);
-
-
-		if (result != VK_SUCCESS) {
-			throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create graphics pipeline!");
-		}
 
 		return graphicsPipeline;
 	}

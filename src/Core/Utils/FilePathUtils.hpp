@@ -137,7 +137,7 @@ namespace FilePathUtils {
 		@param filePath: The path to the file to be read. If file path is relative, you must specify the working directory.
 		@param workingDirectory (optional): The path to the file. By default, it is set to the binary directory. It is optional, but must be specified if the provided file path is relative.
 
-		@return A byte vector (vector of type char) containing the file's content.
+		@return The file contents.
 	*/
 	inline std::vector<char> ReadFile(const std::string& filePath, std::string workingDirectory = "") {
 		if (filePath.empty()) {

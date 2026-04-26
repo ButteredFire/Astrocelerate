@@ -28,6 +28,7 @@ set(SOURCE_FILES
 	"src/Engine/Rendering/Pipelines/PresentPipeline.cpp"
 	"src/Engine/Rendering/Textures/TextureManager.cpp"
 	"src/Engine/Rendering/Visualizers/GeometryVisualizer.cpp"
+	"src/Engine/Rendering/Visualizers/OrbitVisualizer.cpp"
 	"src/Engine/Scene/Camera.cpp"
 	"src/Engine/Scene/Parsing/SceneLoader.cpp"
 	"src/Engine/Systems/PhysicsSystem.cpp"

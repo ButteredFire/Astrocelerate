@@ -71,6 +71,9 @@ private:
 
 	SerialLogicRegistry m_serialRegistry;
 
+	Application::YAMLFileConfig m_fileConfig;
+	Application::SimulationConfig m_simulationConfig;
+
 	Entity m_renderSpace{};
 	Math::Interval<uint32_t> m_sphereMesh{};
 

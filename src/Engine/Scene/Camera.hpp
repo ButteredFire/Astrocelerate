@@ -91,8 +91,8 @@ public:
 		float farClipPlane;			// Far-clip plane
 	};
 
-	inline void				setConfig(const Configuration &config) { m_config = config; }
-	inline Configuration	getConfig() const { return m_config; }
+	inline void						setConfig(const Configuration &config) { m_config = config; }
+	inline const Configuration&		getConfig() const { return m_config; }
 
 private:
 	std::shared_ptr<ECSRegistry> m_ecsRegistry;

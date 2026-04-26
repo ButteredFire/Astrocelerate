@@ -16,12 +16,14 @@
 #include <Platform/Vulkan/Utils/VkCommandUtils.hpp>
 
 #include <Engine/Scene/Camera.hpp>
+#include <Engine/Systems/Subsystems/PhysicsRenderBridge.hpp>
 #include <Engine/Registry/ECS/ECS.hpp>
 #include <Engine/Registry/ECS/Components/RenderComponents.hpp>
 #include <Engine/Registry/Event/EventDispatcher.hpp>
 #include <Engine/Rendering/UIRenderer.hpp>
 #include <Engine/Rendering/Data/Buffer.hpp>
 #include <Engine/Rendering/Data/Geometry.hpp>
+#include <Engine/Rendering/Visualizers/OrbitVisualizer.hpp>
 #include <Engine/Rendering/Visualizers/GeometryVisualizer.hpp>
 
 
@@ -30,7 +32,7 @@ class UIRenderer;
 
 class RenderSystem {
 public:
-	RenderSystem(const Ctx::VkRenderDevice *renderDeviceCtx, const Ctx::VkWindow *windowCtx, std::shared_ptr<VkBufferManager> bufferMgr, std::shared_ptr<UIRenderer> uiRenderer, std::shared_ptr<Camera> camera);
+	RenderSystem(const Ctx::VkRenderDevice *renderDeviceCtx, const Ctx::VkWindow *windowCtx, std::shared_ptr<PhysicsRenderBridge> physRendBridge, std::shared_ptr<VkBufferManager> bufferMgr, std::shared_ptr<UIRenderer> uiRenderer, std::shared_ptr<Camera> camera);
 	~RenderSystem();
 
 
@@ -67,6 +69,7 @@ private:
 	const Ctx::VkRenderDevice *m_renderDeviceCtx;
 	const Ctx::VkWindow *m_windowCtx;
 
+	std::shared_ptr<PhysicsRenderBridge> m_physRendBridge;
 	std::shared_ptr<VkBufferManager> m_bufferManager;
 	std::shared_ptr<UIRenderer> m_uiRenderer;
 	std::shared_ptr<Camera> m_camera;
@@ -100,6 +103,10 @@ private:
 	Buffer::BufferAlloc m_globalVertBufAlloc;
 	Buffer::BufferAlloc m_globalIdxBufAlloc;
 
+	std::vector<glm::vec3> m_orbitWorldVertices;  // Orbiting entities' trajectory points, in render space
+	std::unordered_map<EntityID, std::pair<size_t, uint32_t>> m_orbitVertexOffsets; // [entityID] => [vertexDrawCountPerEntity, offset]
+	Buffer::BufferAlloc m_orbitVertBufAlloc;
+
 	struct FrameMemResource {
 		Buffer::BufferAlloc bufAlloc;
 		VkDescriptorSet descriptorSet;
@@ -117,6 +124,8 @@ private:
 
 
 	void bindEvents();
+
+	void initOrbitVertexArray();
 
 	void initGlobalBuffers();
 

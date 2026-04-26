@@ -150,8 +150,10 @@ void Engine::initEngine() {
 
 
     // Renderers
+    m_physRendBridge = std::make_shared<PhysicsRenderBridge>();
+
     m_uiRenderer = std::make_shared<UIRenderer>(m_currentWindow, m_renderDeviceCtx, m_windowCtx, m_uiPanelManager);
-    m_renderSystem = std::make_shared<RenderSystem>(m_renderDeviceCtx, m_windowCtx, m_bufferManager, m_uiRenderer, m_camera);
+    m_renderSystem = std::make_shared<RenderSystem>(m_renderDeviceCtx, m_windowCtx, m_physRendBridge, m_bufferManager, m_uiRenderer, m_camera);
     m_renderer = std::make_shared<Renderer>(
         m_renderDeviceCtx, m_windowCtx,
         m_windowManager,
@@ -162,7 +164,7 @@ void Engine::initEngine() {
     );
 
 
-    m_physicsSystem = std::make_shared<PhysicsSystem>();
+    m_physicsSystem = std::make_shared<PhysicsSystem>(m_physRendBridge);
 
     
     // Create new session
@@ -194,6 +196,7 @@ void Engine::initComponents() {
     m_ecsRegistry->initComponentArray<PhysicsComponent::OrbitingBody>();
     m_ecsRegistry->initComponentArray<PhysicsComponent::NutationAngles>();
     m_ecsRegistry->initComponentArray<PhysicsComponent::ShapeParameters>();
+    m_ecsRegistry->initComponentArray<PhysicsComponent::OrbitalElements>();
     m_ecsRegistry->initComponentArray<PhysicsComponent::CoordinateSystem>();
 
     /* Spacecraft */

@@ -43,6 +43,7 @@ namespace YAMLScene {
     _YAMLStrType Physics_RigidBody              = "Physics::RigidBody";
     _YAMLStrType Physics_Propagator             = "Physics::Propagator";
     _YAMLStrType Physics_ShapeParameters        = "Physics::ShapeParameters";
+    _YAMLStrType Physics_OrbitalElements        = "Physics::OrbitalElements";
     _YAMLStrType Spacecraft_Spacecraft          = "Spacecraft::Spacecraft";
     _YAMLStrType Spacecraft_Thruster            = "Spacecraft::Thruster";
     _YAMLStrType Render_MeshRenderable          = "Render::MeshRenderable";
@@ -83,6 +84,14 @@ namespace YAMLData {
 	_YAMLStrType Physics_ShapeParameters_GravParam          = "GravParam";
 	_YAMLStrType Physics_ShapeParameters_RotVelocity        = "RotVelocity";
 	_YAMLStrType Physics_ShapeParameters_J2                 = "J2";
+
+    _YAMLStrType Physics_OrbitalElements_SemiMajorAxis      = "SemiMajorAxis";
+    _YAMLStrType Physics_OrbitalElements_Eccentricity       = "Eccentricity";
+	_YAMLStrType Physics_OrbitalElements_Inclination        = "Inclination";
+	_YAMLStrType Physics_OrbitalElements_RAAN               = "RAAN";
+	_YAMLStrType Physics_OrbitalElements_ArgPeriapsis       = "ArgPeriapsis";
+	_YAMLStrType Physics_OrbitalElements_TrueAnomaly        = "TrueAnomaly";
+	_YAMLStrType Physics_OrbitalElements_ParentBody         = "ParentBody";
 
     _YAMLStrType Spacecraft_Spacecraft_DragCoefficient      = "DragCoefficient";
     _YAMLStrType Spacecraft_Spacecraft_ReferenceArea        = "ReferenceArea";

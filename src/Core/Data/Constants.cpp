@@ -34,6 +34,9 @@ namespace ResourcePath {
 
 
 namespace ShaderConst {
-	const std::string VERTEX		= FilePathUtils::JoinPaths(ROOT_DIR, std::string("bin/Shaders/VertexShader.spv"));
-	const std::string FRAGMENT		= FilePathUtils::JoinPaths(ROOT_DIR, std::string("bin/Shaders/FragmentShader.spv"));
+	const std::string OPAQUE_GEOM_VERTEX		= FilePathUtils::JoinPaths(ROOT_DIR, std::string("bin/Shaders/VertexShader.spv"));
+	const std::string ORBIT_GEOM_VERTEX			= FilePathUtils::JoinPaths(ROOT_DIR, std::string("bin/Shaders/OrbitVertexShader.spv"));
+
+	const std::string OPAQUE_GEOM_FRAGMENT		= FilePathUtils::JoinPaths(ROOT_DIR, std::string("bin/Shaders/FragmentShader.spv"));
+	const std::string ORBIT_GEOM_FRAGMENT		= FilePathUtils::JoinPaths(ROOT_DIR, std::string("bin/Shaders/OrbitFragmentShader.spv"));
 }

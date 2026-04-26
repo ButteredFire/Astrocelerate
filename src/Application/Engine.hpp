@@ -30,6 +30,7 @@
 #include <Engine/Input/InputManager.hpp>
 #include <Engine/Systems/RenderSystem.hpp>
 #include <Engine/Systems/PhysicsSystem.hpp>
+#include <Engine/Systems/Subsystems/PhysicsRenderBridge.hpp>
 #include <Engine/Registry/ECS/ECS.hpp>
 #include <Engine/Registry/ECS/Components/CoreComponents.hpp>
 #include <Engine/Registry/ECS/Components/ModelComponents.hpp>
@@ -101,6 +102,7 @@ private:
 	std::shared_ptr<Renderer> m_renderer;
 	std::shared_ptr<RenderSystem> m_renderSystem;
 	std::shared_ptr<PhysicsSystem> m_physicsSystem;
+	std::shared_ptr<PhysicsRenderBridge> m_physRendBridge;
 
 	// Threads
 	std::shared_ptr<WorkerThread> m_watchdogThread;
