@@ -19,7 +19,7 @@
 						  Directory="InstallProgramMenuFolder"
 						  WorkingDirectory="INSTALL_ROOT" />
 				<RemoveFolder Id="CleanUpShortCut" Directory="InstallProgramMenuFolder" On="uninstall" />
-				<RegistryValue Root="HKCU" Key="Software\OrivietAerospace\Astrocelerate" Name="installed" Type="integer" Value="1" KeyPath="yes" />
+				<RegistryValue Root="HKCU" Key="Software\Oriviet\Astrocelerate" Name="installed" Type="integer" Value="1" KeyPath="yes" />
 			</Component>
 
 			<Component Id="AppDesktopShortcut" Guid="*">
@@ -28,7 +28,7 @@
 						  Target="[#CM_CP_bin.Astrocelerate.exe]"
 						  Directory="DesktopFolder"
 						  WorkingDirectory="INSTALL_ROOT" />
-				<RegistryValue Root="HKCU" Key="Software\OrivietAerospace\Astrocelerate" Name="desktop_icon" Type="integer" Value="1" KeyPath="yes" />
+				<RegistryValue Root="HKCU" Key="Software\Oriviet\Astrocelerate" Name="desktop_icon" Type="integer" Value="1" KeyPath="yes" />
 			</Component>
 		</ComponentGroup>
 	</Fragment>

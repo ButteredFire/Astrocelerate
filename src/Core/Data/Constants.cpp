@@ -13,7 +13,6 @@ namespace ResourcePath {
 	_AppResources App = {
 		.LOGO_SPLASH		= FilePathUtils::JoinPaths(ROOT_DIR, "assets", "App/Splash.png"),
 		.LOGO_ASTRO			= FilePathUtils::JoinPaths(ROOT_DIR, "assets", "App/AstrocelerateLogo.png"),
-		.LOGO_ORIVIET		= FilePathUtils::JoinPaths(ROOT_DIR, "assets", "App/OrivietAerospaceLogo.png"),
 		.LOGO_APP_ICON		= FilePathUtils::JoinPaths(ROOT_DIR, "assets", "App/AppIcon.png"),
 
 		.CONFIG_APP			= FilePathUtils::JoinPaths(ROOT_DIR, "configs", "ApplicationConfig.json"),
