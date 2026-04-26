@@ -49,7 +49,6 @@ void Session::bindEvents() {
 			case RESET:
 			case PREPARE_FOR_INIT:
 				m_sessionIsValid = false;
-				m_accumulator = 0.0;
 				break;
 
 			case INITIALIZED:

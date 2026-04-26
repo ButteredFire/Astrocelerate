@@ -19,14 +19,15 @@
 
 
 namespace COE {
-    /* Finds the classical orbital elements given the geocentric equatorial position and velocity vectors.
-	    @param r: The position vector, in the ECI (IJK) reference frame.
-	    @param v: The velocity vector, in the ECI (IJK) reference frame.
+    /* Computes the classical orbital elements for an orbiting body, given its geocentric equatorial position and velocity vectors.
+	    @param r: The position vector, in an inertial reference frame.
+	    @param v: The velocity vector, in an inertial reference frame.
 	    @param mu: The gravitational parameter of the central body.
 	
 	    @return The computed elements.
     */
     inline Elements rv2coe(const glm::dvec3 &r, const glm::dvec3 &v, double mu) {
+        using namespace std;
         using enum Physics::OrbitGeometry;
         using enum Physics::OrbitInclination;
 
@@ -39,7 +40,7 @@ namespace COE {
 	    glm::dvec3 h = glm::cross(r, v);
 	    double h_mag = glm::length(h);
 
-        if (h_mag < EPSILON)
+        if (h_mag < R_EPSILON)
             // Orbits are meaningless if angular momentum is infinitesimally small
             return coe;
 
@@ -55,14 +56,14 @@ namespace COE {
 
         // Semi-major axis & Semi-latus rectum
         double a, p;
-        if (glm::abs(sme) > EPSILON)    a = -mu / (2.0 * sme);
+        if (glm::abs(sme) > R_EPSILON)    a = -mu / (2.0 * sme);
         else                            a = std::numeric_limits<double>::infinity();
         p = (h_mag * h_mag) / mu;
 
 
         // Inclination
-        double cos_incl = h.z / h_mag;
-        double incl = glm::acos(cos_incl);
+        double cos_incl = glm::clamp(h.z / h_mag, -1.0, 1.0);
+        double incl = acos(cos_incl);
     
 
         // Line-of-nodes vector (points toward the orbit's ascending node)
@@ -74,12 +75,10 @@ namespace COE {
             // NOTE: For floating-point variables, there is a special NaN macro that can be used to set it as undefined. It's certainly cleaner than std::optional!
             // NOTE: NAN-checking: std::isnan(val)  (defined in <cmath>)
         double omega = NAN;
-        if (n_mag > EPSILON) {
-            double cos_omega = n.x / n_mag;
-            if (abs(cos_omega) > 1.0)
-                cos_omega = Math::sign(cos_omega);
+        if (n_mag > R_EPSILON) {
+            double cos_omega = glm::clamp(n.x / n_mag, -1.0, 1.0);
+            omega = acos(cos_omega);
 
-            omega = glm::acos(cos_omega);
             if (n.y < 0.0)
                 omega = TWOPI - omega;
         }
@@ -90,17 +89,17 @@ namespace COE {
         Physics::OrbitInclination orbitIncl = INCLINED;
 
             // Orbit geometry
-        if (e_mag < EPSILON)                                        // e = 0
+        if (e_mag < R_EPSILON)                                          // e = 0
             orbitGeom = CIRCULAR;
-        else if (e_mag < 1.0 - EPSILON)                             // 0 < e < 1
+        else if (e_mag < 1.0 - R_EPSILON)                               // 0 < e < 1
             orbitGeom = ELLIPTICAL;
-        else if (1.0 - EPSILON < e_mag && e_mag < 1.0 + EPSILON)    // e = 1
+        else if (1.0 - R_EPSILON < e_mag && e_mag < 1.0 + R_EPSILON)    // e = 1
             orbitGeom = PARABOLIC;
-        else if (e_mag > 1.0 + EPSILON)                             // e > 1
+        else if (e_mag > 1.0 + R_EPSILON)                               // e > 1
             orbitGeom = HYPERBOLIC;
 
             // Orbit inclination
-        if (incl < EPSILON || glm::abs(incl - PI) < EPSILON)
+        if (incl < R_EPSILON || glm::abs(incl - PI) < R_EPSILON)
             orbitIncl = EQUATORIAL;
         else
             orbitIncl = INCLINED;
@@ -109,7 +108,11 @@ namespace COE {
         // Argument of perigee
         double argp = NAN;
         if (orbitGeom != CIRCULAR && orbitIncl == INCLINED) {
-            argp = glm::acos(glm::clamp(glm::dot(glm::normalize(n), glm::normalize(e)), -1.0, 1.0));
+            double cos_argp = glm::clamp(
+                glm::dot(glm::normalize(n), glm::normalize(e)), -1.0, 1.0
+            );
+            argp = acos(cos_argp);
+
             if (e.z < 0.0)
                 argp = TWOPI - argp;
         }
@@ -118,7 +121,11 @@ namespace COE {
         // True anomaly at epoch
         double nu = NAN;
         if (orbitGeom != CIRCULAR) {
-            nu = glm::acos(glm::clamp(glm::dot(glm::normalize(e), glm::normalize(r)), -1.0, 1.0));
+            double cos_nu = glm::clamp(
+                glm::dot(glm::normalize(e), glm::normalize(r)), -1.0, 1.0
+            );
+            nu = acos(cos_nu);
+            
             if (glm::dot(r, v) < 0.0)
                 nu = TWOPI - nu;
         }
@@ -128,7 +135,11 @@ namespace COE {
         double m = NAN;
         double arglat = NAN;
         if (orbitGeom == CIRCULAR && orbitIncl == INCLINED) {
-            arglat = glm::acos(glm::clamp(glm::dot(glm::normalize(n), glm::normalize(r)), -1.0, 1.0));
+            double cos_arglat = glm::clamp(
+                glm::dot(glm::normalize(n), glm::normalize(r)), -1.0, 1.0
+            );
+            arglat = acos(cos_arglat);
+            
             if (r.z < 0.0)
                 arglat = TWOPI - arglat;
 
@@ -136,14 +147,12 @@ namespace COE {
         }
 
     
-        // Longitude of perigee (non-circular, equatorial orbit)
+        // Longitude of periapsis (non-circular, equatorial orbit)
         double lonper = NAN;
-        if (e_mag > EPSILON && orbitGeom != CIRCULAR && orbitIncl == EQUATORIAL) {
-            double cos_omega = e.x / e_mag;
-            if (glm::abs(cos_omega) > 1.0)
-                cos_omega = Math::sign(cos_omega);
+        if (e_mag > R_EPSILON && orbitGeom != CIRCULAR && orbitIncl == EQUATORIAL) {
+            double cos_omega = glm::clamp(e.x / e_mag, -1.0, 1.0);
+            lonper = acos(cos_omega);
 
-            lonper = glm::acos(cos_omega);
             if (e.y < 0.0)
                 lonper = TWOPI - lonper;
             if (incl > (PI / 2.0))
@@ -153,12 +162,10 @@ namespace COE {
 
         // True longitude (circular, equatorial orbit)
         double truelon = NAN;
-        if (r_mag > EPSILON && orbitGeom == CIRCULAR && orbitIncl == EQUATORIAL) {
-            double cos_lambda = r.x / r_mag;
-            if (glm::abs(cos_lambda) > 1.0)
-                cos_lambda = Math::sign(cos_lambda);
+        if (r_mag > R_EPSILON && orbitGeom == CIRCULAR && orbitIncl == EQUATORIAL) {
+            double cos_lambda = glm::clamp(r.x / r_mag, -1.0, 1.0);
+            truelon = acos(cos_lambda);
 
-            truelon = glm::acos(cos_lambda);
             if (r.y < 0.0)
                 truelon = TWOPI - truelon;
             if (incl > (PI / 2.0))

@@ -14,7 +14,7 @@ Camera::Camera(glm::dvec3 position, glm::quat orientation):
 
 
 	m_config = {
-		.movementSpeed = 1e6f,
+		.movementSpeed = PhysicsConst::C,
 		.mouseSensitivity = 0.1f,
 
 		.zoom = 60.0f,

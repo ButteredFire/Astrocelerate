@@ -27,7 +27,7 @@
 
 Astrocelerate is a high-performance orbital mechanics and spaceflight simulation engine, designed as a versatile and intuitive tool that bridges the gap between "arcane" professional aerospace software and the accessibility of modern engines.
 
-# Goal & Vision
+# Goal & Vision 
 Most aerospace software is either simplified and gamified (e.g., Kerbal Space Program) or a legacy tool built on decades-old Fortran/C codebases (e.g., GMAT/STK). Astrocelerate aims to be:
 
 - Scientifically Valid: Utilizing NASA's SPICE kernels for high-fidelity ephemeris and coordinate systems;

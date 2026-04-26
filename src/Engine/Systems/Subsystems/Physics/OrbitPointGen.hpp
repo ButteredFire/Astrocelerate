@@ -56,23 +56,23 @@ namespace OrbitPointGen {
 
         // Rz(-omega)
         glm::dmat3 Rz_omega(
-            std::cos(omega), std::sin(omega), 0.0,
-            -std::sin(omega), std::cos(omega), 0.0,
-            0.0, 0.0, 1.0
+            std::cos(omega),    std::sin(omega),    0.0,
+            -std::sin(omega),   std::cos(omega),    0.0,
+            0.0,                0.0,                1.0
         );
 
         // Rx(-incl)
         glm::dmat3 Rx_incl(
-            1.0, 0.0, 0.0,
-            0.0, std::cos(incl), std::sin(incl),
-            0.0, -std::sin(incl), std::cos(incl)
+            1.0,    0.0,                0.0,
+            0.0,    std::cos(incl),     std::sin(incl),
+            0.0,    -std::sin(incl),    std::cos(incl)
         );
 
         // Rz(-argp)
         glm::dmat3 Rz_argp(
-            std::cos(argp), std::sin(argp), 0.0,
-            -std::sin(argp), std::cos(argp), 0.0,
-            0.0, 0.0, 1.0
+            std::cos(argp),     std::sin(argp),     0.0,
+            -std::sin(argp),    std::cos(argp),     0.0,
+            0.0,                0.0,                1.0
         );
 
         return Rz_omega * Rx_incl * Rz_argp;
@@ -100,7 +100,7 @@ namespace OrbitPointGen {
         double e = coe.e;
         double p = coe.p;
 
-        // Sample uniformly in eccentric anomaly in range [0, 2pi] to "densify" points near periapsis (Kepler's second law)
+        // Sample uniformly in eccentric anomaly in range [0, 2pi] to "densify" points near periapsis
         double step = TWOPI / static_cast<double>(config.pointCount);
 
         for (uint32_t i = 0; i <= config.pointCount; i++) {

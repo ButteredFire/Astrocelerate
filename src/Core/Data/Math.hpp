@@ -15,7 +15,8 @@
 #include <Core/Utils/SystemUtils.hpp>
 
 
-inline const double EPSILON = std::numeric_limits<double>::epsilon();
+inline const double EPSILON = std::numeric_limits<double>::epsilon();   // Epsilon value, as defined by std::numeric_limits
+inline const double R_EPSILON = 1e-11;                                  // "Realistic" epsilon with a safer tolerance for astronomical calculations
 inline const double PI = std::numbers::pi;
 inline const double TWOPI = 2.0 * PI;
 

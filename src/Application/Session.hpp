@@ -48,9 +48,7 @@ private:
 	// Threading
 	std::shared_ptr<WorkerThread> m_physicsWorker;
 	std::shared_ptr<WorkerThread> m_renderWorker;
-	std::atomic<bool> m_inputThreadIsRunning{ false };
 	std::atomic<bool> m_sessionIsValid{ false };
-	std::atomic<double> m_accumulator{ 0.0 };
 
 
 	void bindEvents();
