@@ -8,7 +8,8 @@ OffscreenPipeline::OffscreenPipeline(const Ctx::VkRenderDevice *renderDeviceCtx,
 	m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
 	m_cleanupManager = ServiceLocator::GetService<CleanupManager>(__FUNCTION__);
 
-	m_swapchainResourceGroup = m_cleanupManager->createCleanupGroup();
+	m_sessionResourceGroup		= m_cleanupManager->createCleanupGroup();
+	m_swapchainResourceGroup	= m_cleanupManager->createCleanupGroup();
 
 	bindEvents();
 
@@ -496,7 +497,7 @@ void OffscreenPipeline::initShaderStage() {
 	task.cleanupFunc = [&]() {
 		vkDestroyShaderModule(m_renderDeviceCtx->logicalDevice, m_vertShaderModule, nullptr);
 		vkDestroyShaderModule(m_renderDeviceCtx->logicalDevice, m_fragShaderModule, nullptr);
-		};
+	};
 
 	m_cleanupManager->createCleanupTask(task, m_sessionResourceGroup);
 }
