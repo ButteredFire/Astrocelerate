@@ -53,6 +53,20 @@ namespace SystemUtils {
     };
 
 
+    // Concept: Has `size` method
+    template<typename T>
+    concept HasSizeMethod = requires(const T & container) {
+        { container.size() } -> std::convertible_to<std::size_t>;
+        typename T::value_type;
+    };
+
+
+    template<HasSizeMethod Container>
+    size_t ByteSize(const Container &c) {
+        return static_cast<size_t>(sizeof(typename Container::value_type) * c.size());
+    }
+
+
     /* Combines multiple hash values into a single hash value. 
 		This function uses the std::hash function to generate a hash for the value and combines it with the seed using a bitwise XOR operation and some arithmetic operations.
 		
