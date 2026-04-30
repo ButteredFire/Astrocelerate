@@ -6,6 +6,7 @@
 #include <vector>
 #include <random>
 #include <chrono>
+#include <limits>
 #include <cstdlib>
 #include <concepts>
 #include <functional>
@@ -63,7 +64,14 @@ namespace SystemUtils {
 
     template<HasSizeMethod Container>
     size_t ByteSize(const Container &c) {
-        return static_cast<size_t>(sizeof(typename Container::value_type) * c.size());
+        constexpr size_t elemSz = sizeof(typename Container::value_type);
+        const size_t cnt = static_cast<size_t>(c.size());
+        LOG_ASSERT(
+            cnt <= (std::numeric_limits<size_t>::max)() / elemSz,
+            "ByteSize overflow: container size exceeds addressable byte range."
+        );
+
+        return elemSz * cnt;
     }
 
 
