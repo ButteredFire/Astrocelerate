@@ -24,8 +24,14 @@ public:
 		});
 	}
 	
-	~WorkerThread() = default; // NOTE: std::jthread automatically joins the thread on destruction (instead of std::thread, which calls std::terminate if the thread has not been joined)
+	~WorkerThread() {
+		// NOTE: std::jthread automatically joins the thread on destruction (instead of std::thread, which calls std::terminate if the thread has not been joined)
+		// However, we should still explicitly join it on destruction (making jthread::~jthread auto-joining a no-op) so that it is destroyed before other memory it might try to access on joining like condition variables
 
+		m_thread.request_stop();
+		if (m_thread.joinable())
+			m_thread.join();
+	}
 
 	/* Defines the worker thread with the given callable function/lambda.
 		@tparam Callable: The callable type (e.g., function pointer, lambda, functor). The callable must accept a std::stop_token.
@@ -100,7 +106,6 @@ public:
     inline std::thread::id getID() const { return m_thread.get_id(); }
 
 private:
-	std::jthread m_thread;
 	std::mutex m_mutex;
 	std::condition_variable_any m_cv; // Use std::condition_variable_any as it is required to work with std::stop_token
 
@@ -114,6 +119,10 @@ private:
 	std::atomic<bool> m_stopRequested{ false };
 	std::atomic<bool> m_detached{ false };
 	
+	// Declare jthread last: in C++, construction and destruction follow a LIFO approach.
+	// This means we must destroy jthread first (declare last), as it auto-joins on destruction and thus might try to access memory (e.g., condition variables)
+	// that would have already been destroyed if jthread was destroyed last (declared first).
+	std::jthread m_thread;
 
 	void threadLoop(std::stop_token stopToken) {
 		// stopToken.stop_requested() will only be true if the associated thread has been destroyed.
