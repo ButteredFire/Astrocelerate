@@ -313,8 +313,14 @@ namespace RequestEvent {
 
 	/* Used when major changes warrant the re-initialization of Dear ImGui. */
 	struct ReInitImGui {
+		enum class Stage {
+			ALL,
+			FONTS
+		};
+
 		const EventFlag eventFlag = EVENT_FLAG_REQUEST_REINIT_IMGUI_BIT;
 
+		Stage reInitStage = Stage::ALL;			// Specifies which part of ImGui needs to be re-initialized
 		GLFWwindow *newWindowPtr = nullptr;		// Optional: The new window pointer, if this event was emitted in case of GLFW window recreation
 	};
 }

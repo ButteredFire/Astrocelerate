@@ -44,6 +44,11 @@ GLFWwindow* Window::initSplashScreen() {
     const uint32_t Y = (CURRENT_SCREEN_HEIGHT - SPLASH_HEIGHT) / 2;
     glfwSetWindowPos(m_splashWindow, X, Y);
 
+    // Query DPI scale
+    float scaleX, scaleY;
+    glfwGetWindowContentScale(m_splashWindow, &scaleX, &scaleY);
+    g_appCtx.Window.dpiScale = scaleX;
+
     return m_splashWindow;
 }
 
@@ -64,6 +69,11 @@ GLFWwindow* Window::initPrimaryScreen(CallbackContext *context) {
 
     loadWindowIcon(m_mainWindow);
 
+        // Query DPI scale
+    float scaleX, scaleY;
+    glfwGetWindowContentScale(m_mainWindow, &scaleX, &scaleY);
+    g_appCtx.Window.dpiScale = scaleX;
+
 
     // Dispatch update event
     m_eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
@@ -74,6 +84,8 @@ GLFWwindow* Window::initPrimaryScreen(CallbackContext *context) {
 
     // Initialize GLFW bindings
     glfwSetWindowUserPointer(m_mainWindow, static_cast<void *>(context));
+
+    glfwSetWindowContentScaleCallback(m_mainWindow, WindowContentScaleCallback);
 
     glfwSetKeyCallback(m_mainWindow, KeyCallback);                      // Binds key events
     glfwSetCharCallback(m_mainWindow, ImGui_ImplGlfw_CharCallback);     // For normal character events (text input), we let ImGui's callback handle them
@@ -115,6 +127,25 @@ void Window::loadWindowIcon(GLFWwindow *window) {
     glfwSetWindowIcon(window, 1, image);
 
     stbi_image_free(pixels);
+}
+
+
+void Window::WindowContentScaleCallback(GLFWwindow *window, float scaleX, float scaleY) {
+    std::cout << "Changed DPI (" << g_appCtx.Window.dpiScale << " -> " << scaleX << ")\n";
+
+    g_appCtx.Window.dpiScale = scaleX;
+
+    // Reset style
+    ImGui::GetStyle() = g_appCtx.Window.baseStyle.value();
+    ImGui::GetStyle().ScaleAllSizes(g_appCtx.Window.dpiScale);
+
+
+    // Reset font
+    ImGui::GetIO().Fonts->Clear();
+    auto eventDispatcher = ServiceLocator::GetService<EventDispatcher>(__FUNCTION__);
+    eventDispatcher->dispatch(RequestEvent::ReInitImGui{
+        .reInitStage = RequestEvent::ReInitImGui::Stage::FONTS
+    });
 }
 
 

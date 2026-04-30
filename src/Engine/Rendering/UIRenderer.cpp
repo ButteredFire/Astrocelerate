@@ -17,6 +17,7 @@ UIRenderer::UIRenderer(GLFWwindow *window, const Ctx::VkRenderDevice *renderDevi
     bindEvents();
     initImGui();
 
+
 	Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
 
@@ -26,7 +27,16 @@ void UIRenderer::bindEvents() {
 
     m_eventDispatcher->subscribe<RequestEvent::ReInitImGui>(selfIndex,
         [this](const RequestEvent::ReInitImGui &event) {
-            reInitImGui(event.newWindowPtr);
+            using enum RequestEvent::ReInitImGui::Stage;
+            switch (event.reInitStage) {
+            case ALL:
+                reInitImGui(event.newWindowPtr);
+                break;
+
+            case FONTS:
+                initFonts();
+                break;
+            }
         }
     );
 }
@@ -74,6 +84,7 @@ void UIRenderer::initImGui() {
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
+
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
     //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
@@ -110,14 +121,14 @@ void UIRenderer::initImGui() {
     vkInitInfo.PhysicalDevice = m_renderDeviceCtx->physicalDevice;
     vkInitInfo.Device = m_renderDeviceCtx->logicalDevice;
 
-    // Queue
+        // Queue
     vkInitInfo.QueueFamily = m_renderDeviceCtx->queueFamilies.graphicsFamily.index.value();
     vkInitInfo.Queue = m_renderDeviceCtx->queueFamilies.graphicsFamily.deviceQueue;
 
-    // Pipeline cache
+        // Pipeline cache
     vkInitInfo.PipelineCache = VK_NULL_HANDLE;
 
-    // Descriptor pool
+        // Descriptor pool
     std::vector<VkDescriptorPoolSize> imgui_PoolSizes = {
         // Sampler to draw the GUI
         { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE },
@@ -130,15 +141,15 @@ void UIRenderer::initImGui() {
     vkInitInfo.DescriptorPool = m_descriptorPool;
 
 
-    // Render pass & subpass
+        // Render pass & subpass
     vkInitInfo.RenderPass = m_windowCtx->presentRenderPass;
     vkInitInfo.Subpass = 0;
 
-    // Image count
+        // Image count
     vkInitInfo.MinImageCount = m_windowCtx->minImageCount; // For some reason, ImGui does not actually use this property
     vkInitInfo.ImageCount = m_windowCtx->minImageCount;
 
-    // Other
+        // Other
     vkInitInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
     vkInitInfo.Allocator = nullptr;
     
@@ -166,17 +177,26 @@ void UIRenderer::initImGui() {
     ImGui_ImplVulkan_Init(&vkInitInfo);
 
 
-    // Loads default fonts
-    initFonts();
-
-    // Implements custom style
+    // Set custom style
         // Refer to ImGui::StyleColorsDark() and ImGui::StyleColorsLight() for more information
     ImGuiTheme::ApplyTheme(defaultAppearance);
     g_guiCtx.GUI.currentAppearance = defaultAppearance;
 
-    //std::cout << ResourcePath::App.CONFIG_IMGUI << '\n';
     auto iniBuffer = FilePathUtils::ReadFile(ResourcePath::App.CONFIG_IMGUI);
     ImGui::LoadIniSettingsFromMemory(iniBuffer.data(), iniBuffer.size());
+
+
+    // Apply DPI scale to style
+        // Set baseline style ONCE (to revert back to on DPI changes)
+    if (!g_appCtx.Window.baseStyle.has_value()) {
+        g_appCtx.Window.baseStyle = ImGui::GetStyle();
+    }
+    style.ScaleAllSizes(g_appCtx.Window.dpiScale);
+
+
+    // Loads default fonts
+    initFonts();
+
 
     m_eventDispatcher->dispatch(InitEvent::ImGui{});
 }
@@ -185,8 +205,8 @@ void UIRenderer::initImGui() {
 void UIRenderer::initFonts() {
     ImGuiIO& io = ImGui::GetIO();
 
-    constexpr float fontSize = 20.0f;
-    constexpr float iconSize = fontSize;
+    const float fontSize = 20.0f * g_appCtx.Window.dpiScale;
+    const float iconSize = fontSize;
 
 
     // Glyph ranges
