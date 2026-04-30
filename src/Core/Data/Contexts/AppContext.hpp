@@ -4,6 +4,7 @@
 #include <chrono>
 #include <atomic>
 #include <cstdint>
+#include <optional>
 #include <condition_variable>
 
 #include <imgui/imgui.h>
@@ -12,8 +13,8 @@
 // General application context
 struct AppContext {
     struct Window {
-        float dpiScale = 0.0f;
-        ImGuiStyle baseStyle;
+        float dpiScale = 1.0f;
+        std::optional<ImGuiStyle> baseStyle;
     } Window;
 
     struct Config {

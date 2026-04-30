@@ -17,9 +17,6 @@ UIRenderer::UIRenderer(GLFWwindow *window, const Ctx::VkRenderDevice *renderDevi
     bindEvents();
     initImGui();
 
-    // Set baseline style ONCE (to revert back to on DPI changes)
-    g_appCtx.Window.baseStyle = ImGui::GetStyle();
-
 
 	Log::Print(Log::T_DEBUG, __FUNCTION__, "Initialized.");
 }
@@ -180,21 +177,26 @@ void UIRenderer::initImGui() {
     ImGui_ImplVulkan_Init(&vkInitInfo);
 
 
+    // Set custom style
+        // Refer to ImGui::StyleColorsDark() and ImGui::StyleColorsLight() for more information
+    ImGuiTheme::ApplyTheme(defaultAppearance);
+    g_guiCtx.GUI.currentAppearance = defaultAppearance;
+
+    auto iniBuffer = FilePathUtils::ReadFile(ResourcePath::App.CONFIG_IMGUI);
+    ImGui::LoadIniSettingsFromMemory(iniBuffer.data(), iniBuffer.size());
+
+
     // Apply DPI scale to style
+        // Set baseline style ONCE (to revert back to on DPI changes)
+    if (!g_appCtx.Window.baseStyle.has_value()) {
+        g_appCtx.Window.baseStyle = ImGui::GetStyle();
+    }
     style.ScaleAllSizes(g_appCtx.Window.dpiScale);
 
 
     // Loads default fonts
     initFonts();
 
-    // Implements custom style
-        // Refer to ImGui::StyleColorsDark() and ImGui::StyleColorsLight() for more information
-    ImGuiTheme::ApplyTheme(defaultAppearance);
-    g_guiCtx.GUI.currentAppearance = defaultAppearance;
-
-    //std::cout << ResourcePath::App.CONFIG_IMGUI << '\n';
-    auto iniBuffer = FilePathUtils::ReadFile(ResourcePath::App.CONFIG_IMGUI);
-    ImGui::LoadIniSettingsFromMemory(iniBuffer.data(), iniBuffer.size());
 
     m_eventDispatcher->dispatch(InitEvent::ImGui{});
 }

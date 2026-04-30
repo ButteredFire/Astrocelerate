@@ -136,7 +136,7 @@ void Window::WindowContentScaleCallback(GLFWwindow *window, float scaleX, float 
     g_appCtx.Window.dpiScale = scaleX;
 
     // Reset style
-    ImGui::GetStyle() = g_appCtx.Window.baseStyle;
+    ImGui::GetStyle() = g_appCtx.Window.baseStyle.value();
     ImGui::GetStyle().ScaleAllSizes(g_appCtx.Window.dpiScale);
 
 
