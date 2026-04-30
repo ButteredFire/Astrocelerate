@@ -6,9 +6,16 @@
 #include <cstdint>
 #include <condition_variable>
 
+#include <imgui/imgui.h>
+
 
 // General application context
 struct AppContext {
+    struct Window {
+        float dpiScale = 0.0f;
+        ImGuiStyle baseStyle;
+    } Window;
+
     struct Config {
         std::string appearance_ColorTheme           = "DARK";
 

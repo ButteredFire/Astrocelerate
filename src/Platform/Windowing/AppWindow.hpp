@@ -50,6 +50,8 @@ private:
 
 	void loadWindowIcon(GLFWwindow *window);
 
+	static void WindowContentScaleCallback(GLFWwindow *window, float scaleX, float scaleY);
+
 	static void KeyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);
 
 	static void MouseCallback(GLFWwindow *window, double posX, double posY);

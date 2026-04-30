@@ -40,6 +40,7 @@ namespace Ctx {
         std::vector<VkImageLayout> imageLayouts;
 
         uint32_t swapchainResourceID;
+        float dpiScale;
     };
 
 
