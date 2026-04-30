@@ -100,9 +100,9 @@ void RenderSystem::initOrbitVertexArray() {
 void RenderSystem::initGlobalBuffers() {
 	// Global vertex & index buffers
 	{
-		VkDeviceSize vertBufSize	= sizeof(m_geomData->meshVertices[0]) * m_geomData->meshVertices.size();
-		VkDeviceSize idxBufSize		= sizeof(m_geomData->meshVertexIndices[0]) * m_geomData->meshVertexIndices.size();
-		VkBufferUsageFlags commonBufUsage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+		VkDeviceSize vertBufSize			= SystemUtils::ByteSize(m_geomData->meshVertices);
+		VkDeviceSize idxBufSize				= SystemUtils::ByteSize(m_geomData->meshVertexIndices);
+		VkBufferUsageFlags commonBufUsage	= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 
 		m_globalVertBufAlloc	= m_bufferManager->allocate(vertBufSize, commonBufUsage | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, Buffer::MemIntent::VRAM);
 		m_globalIdxBufAlloc		= m_bufferManager->allocate(idxBufSize, commonBufUsage | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, Buffer::MemIntent::VRAM);
@@ -115,7 +115,7 @@ void RenderSystem::initGlobalBuffers() {
 
 	// Orbit trajectory vertex buffer
 	if (!m_orbitWorldVertices.empty()) {
-		VkDeviceSize bufSize = sizeof(glm::dvec3) * m_orbitWorldVertices.size();
+		VkDeviceSize bufSize = SystemUtils::ByteSize(m_orbitWorldVertices);
 
 		m_orbitVertBufAlloc = m_bufferManager->allocate(
 			bufSize,

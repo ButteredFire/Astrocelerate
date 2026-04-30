@@ -6,6 +6,7 @@
 #include <vector>
 #include <random>
 #include <chrono>
+#include <limits>
 #include <cstdlib>
 #include <concepts>
 #include <functional>
@@ -51,6 +52,27 @@ namespace SystemUtils {
     concept MultipliableByDouble = requires(T a, double b) {
         { a * b } -> std::convertible_to<T>;
     };
+
+
+    // Concept: Has `size` method
+    template<typename T>
+    concept HasSizeMethod = requires(const T & container) {
+        { container.size() } -> std::convertible_to<std::size_t>;
+        typename T::value_type;
+    };
+
+
+    template<HasSizeMethod Container>
+    size_t ByteSize(const Container &c) {
+        constexpr size_t elemSz = sizeof(typename Container::value_type);
+        const size_t cnt = static_cast<size_t>(c.size());
+        LOG_ASSERT(
+            cnt <= (std::numeric_limits<size_t>::max)() / elemSz,
+            "ByteSize overflow: container size exceeds addressable byte range."
+        );
+
+        return elemSz * cnt;
+    }
 
 
     /* Combines multiple hash values into a single hash value. 
