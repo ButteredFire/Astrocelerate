@@ -209,7 +209,9 @@ public:
 
 		while (!m_eventQueue.empty()) {
 			auto queuedEvent = m_eventQueue.pop_front();
-			queuedEvent.callback(nullptr);
+			lock.unlock(); // Unlocks during callback to prevent deadlocks/contention
+				queuedEvent.callback(nullptr);
+			lock.lock();
 		}
 	}
 	

@@ -2,6 +2,7 @@
 
 #include <mutex>
 #include <deque>
+#include <optional>
 #include <condition_variable>
 
 
@@ -29,7 +30,7 @@ public:
 		
 		@return True if the push was successful, false if the deque was full.
 	*/
-	void try_push_back(T&& data) {
+	bool try_push_back(T&& data) {
 		return tryPush([&]() { m_deque.push_back(std::move(data)); });
 	}
 
@@ -50,12 +51,14 @@ public:
 
 		@return True if the push was successful, false if the deque was full.
 	*/
-	void try_push_front(T&& data) {
+	bool try_push_front(T&& data) {
 		return tryPush([&]() { m_deque.push_front(std::move(data)); });
 	}
 
 
-	/* Pops data from the back of the deque. Blocks if the deque is empty until data is available.
+	/* Pops data from the back of the deque.
+		@note If the deque is empty, this function will block until data is pushed to the deque.
+
 		@return The popped data.
 	*/
 	T pop_back() {
@@ -66,11 +69,35 @@ public:
 	}
 
 
-	/* Pops data from the front of the deque. Blocks if the deque is empty until data is available.
+	/* Attempts to pop data from the back of the deque.
+		@return The popped data (if the operation was successful), otherwise std::nullopt (if the deque is empty).
+	*/
+	std::optional<T> try_pop_back() {
+		return tryPop(
+			[&]() -> T& { return m_deque.back(); },
+			[&]() { m_deque.pop_back(); }
+		);
+	}
+
+
+	/* Pops data from the front of the deque.
+		@note If the deque is empty, this function will block until data is pushed to the deque.
+
 		@return The popped data.
 	*/
 	T pop_front() {
 		return pop(
+			[&]() -> T& { return m_deque.front(); },
+			[&]() { m_deque.pop_front(); }
+		);
+	}
+
+
+	/* Attempts to pop data from the front of the deque.
+		@return The popped data (if the operation was successful), otherwise std::nullopt (if the deque is empty).
+	*/
+	std::optional<T> try_pop_front() {
+		return tryPop(
 			[&]() -> T& { return m_deque.front(); },
 			[&]() { m_deque.pop_front(); }
 		);
@@ -121,11 +148,29 @@ private:
 	}
 
 
+	/* Pops from deque, but blocks current thread if thread is empty until it isn't. */
 	template<typename GetFunc, typename PopFunc>
 	T pop(GetFunc&& getFunc, PopFunc&& popFunc) {
 		std::unique_lock<std::mutex> lock(m_dequeMtx);
 		m_dequeNotEmpty.wait(lock, [this]() { return !m_deque.empty(); });
 	
+		T data = std::move(getFunc());
+		popFunc();
+
+		m_dequeNotFull.notify_one();
+
+		return data;
+	}
+
+
+	/* Attempts to pop from deque; thread is not blocked and instead receives either nothing (if deque empty) or the popped data (if deque has data). */
+	template<typename GetFunc, typename PopFunc>
+	std::optional<T> tryPop(GetFunc &&getFunc, PopFunc &&popFunc) {
+		std::unique_lock<std::mutex> lock(m_dequeMtx);
+		
+		if (m_deque.empty())
+			return std::nullopt;
+
 		T data = std::move(getFunc());
 		popFunc();
 
