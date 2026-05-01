@@ -30,22 +30,6 @@ public:
 	}
 
 
-	/* Signals to all workers that the main thread is currently unresponsive/halted. */
-	inline static void SignalMainThreadHalt() {
-		std::lock_guard<std::mutex> lock(g_appCtx.MainThread.haltMutex);
-		g_appCtx.MainThread.isHalted.store(true);
-	}
-
-	/* Signals to all workers that the main thread has resumed. */
-	inline static void SignalMainThreadResume() {
-		{
-			std::lock_guard<std::mutex> lock(g_appCtx.MainThread.haltMutex);
-			g_appCtx.MainThread.isHalted.store(false);
-		}
-		g_appCtx.MainThread.haltCV.notify_all();
-	}
-
-
 	/* Puts THIS thread to sleep if the main thread is currently unresponsive.
 		NOTE: This method is reserved for worker threads.
 		@param workerThread: The worker thread calling this function.

@@ -88,8 +88,6 @@ void Session::tick() {
 	if (m_sessionIsValid && !m_physicsWorker->isRunning()) {
 		m_physicsWorker->set([this](std::stop_token stopToken) {
 			while (!m_physicsWorker->stopRequested()) {
-				ThreadManager::SleepIfMainThreadHalted(m_physicsWorker.get());
-
 				m_physicsSystem->tick(m_physicsWorker.get());
 			}
 		});
@@ -102,8 +100,6 @@ void Session::tick() {
 	if (m_sessionIsValid && !m_renderWorker->isRunning()) {
 		m_renderWorker->set([this](std::stop_token stopToken) {
 			while (!m_renderWorker->stopRequested()) {
-				ThreadManager::SleepIfMainThreadHalted(m_renderWorker.get());
-
 				m_renderSystem->tick(stopToken);
 			}
 		});

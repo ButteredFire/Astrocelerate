@@ -242,12 +242,12 @@ void Engine::startThreadMonitor() {
 
             if (now - lastHeartbeat >= std::chrono::milliseconds(AppConst::MAX_MAIN_THREAD_TIMEOUT)) {
                 // If the time elapsed between now and the last heartbeat exceeds the maximum timeout, signal to all worker threads that the main thread has halted
-                if (!g_appCtx.MainThread.isHalted.load()) {
+                if (!g_appCtx.MainThread.isHalted.load(std::memory_order_relaxed)) {
                     m_eventDispatcher->dispatch(UpdateEvent::ApplicationStatus{
                         .appState = Application::State::MAIN_THREAD_HALTING
                     }, false, true);
 
-                    ThreadManager::SignalMainThreadHalt();
+                    g_appCtx.MainThread.isHalted.store(true, std::memory_order_relaxed);
                 }
                 
 
@@ -258,12 +258,14 @@ void Engine::startThreadMonitor() {
             }
             else {
                 // Else (time elapsed < max. timeout threshold), signal that the main thread has resumed
-                if (g_appCtx.MainThread.isHalted.load()) {
+                if (g_appCtx.MainThread.isHalted.load(std::memory_order_relaxed)) {
                     m_eventDispatcher->dispatch(UpdateEvent::ApplicationStatus{
                         .appState = Application::State::IDLE
                     }, false, true);
 
-                    ThreadManager::SignalMainThreadResume();
+                    g_appCtx.MainThread.isHalted.store(false, std::memory_order_relaxed);
+                    g_appCtx.MainThread.haltCV.notify_all();
+
                     haltElapseCnt = 1;
                 }
             }
