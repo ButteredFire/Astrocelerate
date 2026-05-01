@@ -17,10 +17,16 @@
 #include <condition_variable>
 
 
+#include <Core/Data/BoundedDeque.hpp>
 #include <Core/Application/IO/LoggingManager.hpp>
 #include <Core/Application/Threading/ThreadManager.hpp>
 
 #include <Engine/Registry/Event/EventTypes.hpp>
+
+
+// Maximum number of queued events. In case the main thread goes unresponsive and thus is unable to process queued events, we must prevent the event queue from growing to enormous sizes and consuming enormous memory.
+// Workers are assumed to also halt execution when the main thread is unresponsive. Thus, exceeding this max-events threshold could indicate a bad memory leak.
+constexpr size_t MAX_QUEUED_EVENTS = 1000;
 
 
 class EventDispatcher {
@@ -174,10 +180,7 @@ public:
 
 			std::lock_guard<std::mutex> lock(m_eventQueueMutex);
 
-			LOG_ASSERT(m_eventQueue.size() <= MAX_QUEUED_EVENTS,
-				"Queued worker event count exceeded safe thresholds! Last worker event was dispatched from Worker Thread " + ThreadManager::ThreadIDToString(threadID) + " (" + ThreadManager::GetThreadNameFromID(threadID) + ").");
-
-			m_eventQueue.push(QueuedEvent{
+			m_eventQueue.push_back(QueuedEvent{
 				.type = eventTypeIndex,
 				.callback = [this, eventTypeIndex, eventFlag, event, suppressLogs](const void * /* Must be void(const void*) (a.k.a. HandlerCallback) instead of void(void) for consistency */) {
 
@@ -204,22 +207,13 @@ public:
 
 		std::unique_lock<std::mutex> lock(m_eventQueueMutex);
 
-		m_eventQueueCondition.wait_for(lock, std::chrono::milliseconds(10));
-
-		//if (!m_eventQueue.empty())
-		//	Log::Print(Log::T_VERBOSE, __FUNCTION__, "Processing " + TO_STR(m_eventQueue.size()) + " queued " + PLURAL(m_eventQueue.size(), "event", "events") + "...");
-
 		while (!m_eventQueue.empty()) {
-			m_eventQueue.front().callback(nullptr);
-			m_eventQueue.pop();
+			auto queuedEvent = m_eventQueue.pop_front();
+			queuedEvent.callback(nullptr);
 		}
 	}
 	
 private:
-	// Maximum number of queued events. In case the main thread goes unresponsive and thus is unable to process queued events, we must prevent the event queue from growing to enormous sizes and consuming enormous memory.
-	// Workers are assumed to also halt execution when the main thread is unresponsive. Thus, exceeding this max-events threshold could indicate a bad memory leak.
-	const size_t MAX_QUEUED_EVENTS = 1000;
-
 	// Subscriber and event data
 	using HandlerCallback = std::function<void(const void*)>;		// Type-erased callback version of EventHandler
 	using EventMask = std::bitset<EVENT_FLAG_COUNT>;
@@ -243,7 +237,7 @@ private:
 		HandlerCallback callback;
 	};
 
-	std::queue<QueuedEvent> m_eventQueue;
+	BoundedDeque<QueuedEvent, MAX_QUEUED_EVENTS> m_eventQueue;
 	std::mutex m_eventQueueMutex;
 	std::condition_variable m_eventQueueCondition;	// Condition variable to signal when new (deferred) events are available.
 
