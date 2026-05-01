@@ -177,9 +177,6 @@ public:
 			if (!suppressLogs)
 				Log::Print(Log::T_VERBOSE, __FUNCTION__, "Queueing event " + enquote(typeid(EventType).name()) + " dispatched in Worker Thread " + ThreadManager::ThreadIDToString(threadID) + " (" + ThreadManager::GetThreadNameFromID(threadID) + ")...");
 
-
-			std::lock_guard<std::mutex> lock(m_eventQueueMutex);
-
 			m_eventQueue.push_back(QueuedEvent{
 				.type = eventTypeIndex,
 				.callback = [this, eventTypeIndex, eventFlag, event, suppressLogs](const void * /* Must be void(const void*) (a.k.a. HandlerCallback) instead of void(void) for consistency */) {
@@ -194,8 +191,6 @@ public:
 					this->internalDispatch(eventTypeIndex, eventFlag, &eventCopy, suppressLogs);
 				}
 			});
-
-			m_eventQueueCondition.notify_one();
 		}
 	}
 
@@ -205,13 +200,8 @@ public:
 		if (std::this_thread::get_id() != ThreadManager::GetMainThreadID())
 			return;
 
-		std::unique_lock<std::mutex> lock(m_eventQueueMutex);
-
-		while (!m_eventQueue.empty()) {
-			auto queuedEvent = m_eventQueue.pop_front();
-			lock.unlock(); // Unlocks during callback to prevent deadlocks/contention
-				queuedEvent.callback(nullptr);
-			lock.lock();
+		while (auto queuedEvent = m_eventQueue.try_pop_front()) {
+			queuedEvent->callback(nullptr);
 		}
 	}
 	
@@ -238,10 +228,7 @@ private:
 		EventIndex type;
 		HandlerCallback callback;
 	};
-
 	BoundedDeque<QueuedEvent, MAX_QUEUED_EVENTS> m_eventQueue;
-	std::mutex m_eventQueueMutex;
-	std::condition_variable m_eventQueueCondition;	// Condition variable to signal when new (deferred) events are available.
 
 	std::mutex m_eventCallbacksWaitMutex;
 	std::condition_variable m_eventCallbacksWaitCondVar;
@@ -265,7 +252,7 @@ private:
 			}
 
 			callbacks = it->second; // Make a copy of the handlers to release the lock quickly
-		} // NOTE: Mutex is automatically released on scope exit with RAII wrappers like std::lock_guard or std::unique_lock
+		}
 
 
 		if (!suppressLogs && !callbacks.empty())
