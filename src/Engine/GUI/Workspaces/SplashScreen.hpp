@@ -24,10 +24,11 @@ public:
 	inline std::unordered_map<GUI::PanelID, GUI::PanelCallback> &getPanelCallbacks() override { return m_panelCallbacks; }
 
 	// We don't need these functions for splash screens
+	inline void loadNewSimulationConfig() override {};
 	inline void loadSimulationConfig(const std::string &configPath) override {};
 	inline void loadWorkspaceConfig(const std::string &configPath) override {};
-	inline void saveSimulationConfig(const std::string &configPath) override {};
-	inline void saveWorkspaceConfig(const std::string &configPath) override {};
+	inline void saveSimulationConfig(const std::string &configPath, const std::string &data) override {};
+	inline void saveWorkspaceConfig(const std::string &configPath, const std::string &data) override {};
 
 private:
 	GUI::PanelMask m_panelMask;

@@ -38,6 +38,9 @@ public:
 			it->second(ctx);
 	}
 
+
+	[[nodiscard]] inline bool containsDeserialLogic(const std::string &typeName) const { return m_loaders.contains(typeName); }
+
 private:
 	std::unordered_map<std::string, DeserialLogic> m_loaders;
 };

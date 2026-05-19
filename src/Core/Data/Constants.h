@@ -69,6 +69,8 @@ namespace ResourcePath {
 
 		const std::string CONFIG_APP;
 		const std::string CONFIG_IMGUI;
+
+		const std::string SIM_TEMPLATE_DEFAULT;
 	} App;
 
 	extern struct _FontsResources {

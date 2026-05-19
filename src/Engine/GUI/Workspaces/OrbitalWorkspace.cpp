@@ -33,16 +33,21 @@ void OrbitalWorkspace::bindEvents() {
 	);
 
 
+	m_eventDispatcher->subscribe<ConfigEvent::SimulationError>(selfIndex,
+		[this](const ConfigEvent::SimulationError &event) {
+			GUI::TogglePanel(m_panelMask, m_panelCodeEditor, GUI::TOGGLE_ON);
+
+			m_codeEditor.SetErrorMarkers(event.errorMarkers);
+			m_errorMarkersChanged = true;
+		}
+	);
+
+
 	m_eventDispatcher->subscribe<UpdateEvent::SessionStatus>(selfIndex,
 		[this](const UpdateEvent::SessionStatus &event) {
 			using enum UpdateEvent::SessionStatus::Status;
 
 			switch (event.sessionStatus) {
-			case PREPARE_FOR_RESET:
-				m_sceneSampleInitialized = false;
-				m_sceneSampleReady = false;
-				break;
-
 			case INITIALIZED:
 				m_sceneSampleInitialized = true;
 				initPerFrameTextures();
@@ -55,13 +60,6 @@ void OrbitalWorkspace::bindEvents() {
 			}
 		}
 	);
-
-
-	//m_eventDispatcher->subscribe<InitEvent::InputManager>(selfIndex,
-	//	[this](const InitEvent::InputManager &event) {
-	//		m_inputManager = ServiceLocator::GetService<InputManager>(__FUNCTION__);
-	//	}
-	//);
 }
 
 
@@ -154,6 +152,11 @@ void OrbitalWorkspace::preRenderUpdate(uint32_t currentFrame) {
 }
 
 
+void OrbitalWorkspace::loadNewSimulationConfig() {
+	
+}
+
+
 void OrbitalWorkspace::loadSimulationConfig(const std::string &configPath) {
 	// Reset per-session data
 	m_simulationIsPaused = true;
@@ -163,20 +166,32 @@ void OrbitalWorkspace::loadSimulationConfig(const std::string &configPath) {
 
 	m_sceneResourceEntityData.clear();
 
+	m_sceneSampleInitialized = false;
+	m_sceneSampleReady = false;
+
 
 	// Close certain instanced panels
 	GUI::TogglePanel(m_panelMask, m_panelSceneResourceDetails, GUI::TOGGLE_OFF);
-	GUI::TogglePanel(m_panelMask, m_panelCodeEditor, GUI::TOGGLE_OFF);
+	//GUI::TogglePanel(m_panelMask, m_panelCodeEditor, GUI::TOGGLE_OFF);
 
 
-	// Load script
-	m_simulationConfigChanged = true;
-	m_simulationConfigPath = configPath;
-	m_simulationScriptData = FilePathUtils::ReadFile(configPath);
+	// Load script & reload code editor
+	if (FilePathUtils::PathExists(configPath)) {
+		m_simulationConfigPath = configPath;
+		m_simulationScriptData = FilePathUtils::ReadFile(configPath);
 
-	m_eventDispatcher->dispatch(RequestEvent::InitSession{
-		.simulationFilePath = configPath
-	});
+		m_eventDispatcher->dispatch(RequestEvent::InitSession{
+			.simulationFilePath = configPath
+		});
+	}
+	else {
+		m_simulationConfigPath = "";
+		m_simulationScriptData.clear();
+
+		GUI::TogglePanel(m_panelMask, m_panelCodeEditor, GUI::TOGGLE_ON);
+	}
+
+	initCodeEditor();
 }
 
 
@@ -185,12 +200,53 @@ void OrbitalWorkspace::loadWorkspaceConfig(const std::string &configPath) {
 }
 
 
-void OrbitalWorkspace::saveSimulationConfig(const std::string &configPath) {
+void OrbitalWorkspace::saveSimulationConfig(const std::string &configPath, const std::string &data) {
+	const char *simulationDir = "simulations";
 
+	if (FilePathUtils::PathExists(configPath))
+		FilePathUtils::WriteToFile(configPath, data);
+	else {
+		if (!FilePathUtils::PathExists(simulationDir))
+			FilePathUtils::CreatePath(simulationDir);
+
+		const char *filters[] = {
+			"*.yaml"
+		};
+
+		const char *selected = tinyfd_saveFileDialog(
+			"Save Simulation File",
+			FilePathUtils::JoinPaths(ROOT_DIR, simulationDir, m_simulationName + ".yaml").c_str(),
+			SIZE_OF(filters),
+			filters,
+			NULL
+		);
+		if (!selected || selected == "0" || strlen(selected) == 0)
+			return;
+
+
+		std::string selectedFilePath(selected);
+
+		if (selectedFilePath.empty())
+			return;
+
+		if (std::filesystem::is_directory(selectedFilePath)) {
+			std::filesystem::remove(selectedFilePath);
+			selectedFilePath += ".yaml";
+		}
+		
+		FilePathUtils::CreateFile(selectedFilePath);
+
+		FilePathUtils::WriteToFile(selectedFilePath, data);
+		m_simulationConfigPath = selectedFilePath;
+	}
+
+	m_simulationConfigSaved = true;
+
+	updateCodeEditorTitles();
 }
 
 
-void OrbitalWorkspace::saveWorkspaceConfig(const std::string &configPath) {
+void OrbitalWorkspace::saveWorkspaceConfig(const std::string &configPath, const std::string &data) {
 
 }
 
@@ -233,6 +289,59 @@ void OrbitalWorkspace::updatePerFrameTextures(uint32_t currentFrame) {
 
 		vkUpdateDescriptorSets(m_renderDeviceCtx->logicalDevice, 1, &imageDescSetWrite, 0, nullptr);
 	}
+}
+
+
+void OrbitalWorkspace::initCodeEditor() {
+	m_simulationConfigSaved = true;
+
+	// Populate with data
+	if (!m_simulationScriptData.empty()) {
+		std::string scriptData(m_simulationScriptData.begin(), m_simulationScriptData.end());
+		m_codeEditor.SetText(scriptData);
+
+		// Upon loading, setting the text makes the code editor flag the text as changed, which will subsequently false-flag the document as unsaved.
+		// As an exception, we will reset the flag to false ONCE upon first load and text setting
+		m_codeEditor.SetTextChanged(false);
+	}
+	else {
+		m_codeEditor.SetText("# Welcome to Astrocelerate's code editor!");
+	}
+
+
+	// Customization
+	using enum ImGuiTheme::Appearance;
+	switch (g_guiCtx.GUI.currentAppearance) {
+	case IMGUI_APPEARANCE_DARK_MODE:
+		m_codeEditor.SetPalette(CodeEditor::GetDarkPalette());
+		break;
+
+	case IMGUI_APPEARANCE_LIGHT_MODE:
+		m_codeEditor.SetPalette(CodeEditor::GetLightPalette());
+		break;
+	}
+
+	m_codeEditor.SetLanguageDefinition(CodeEditor::LanguageDefinition::YAML());
+	m_codeEditor.SetTabSize(2);
+	m_codeEditor.SetShowWhitespaces(false);
+	m_codeEditor.SetReadOnly(false);
+	m_codeEditor.SetErrorMarkers({});
+		
+		
+	updateCodeEditorTitles();
+}
+
+
+void OrbitalWorkspace::updateCodeEditorTitles() {
+	// Set tab title & simulation name
+	std::stringstream ss;
+	if (!m_simulationScriptData.empty())
+		ss << FilePathUtils::GetFileName(m_simulationConfigPath);
+	else
+		ss << "New Script";
+	m_simulationName = ss.str();
+	ss << GUI::GetPanelName(m_panelCodeEditor);
+	m_codeEditorTabLabel = ss.str();
 }
 
 
@@ -964,7 +1073,7 @@ void OrbitalWorkspace::renderDebugConsole() {
 
 
 void OrbitalWorkspace::renderDebugApplication() {
-	static ImGuiIO &io = ImGui::GetIO();
+	ImGuiIO &io = ImGui::GetIO();
 
 	if (ImGui::Begin(GUI::GetPanelName(m_panelDebugApp), nullptr, m_windowFlags)) {
 		ImGui::SeparatorText("Application");
@@ -972,7 +1081,6 @@ void OrbitalWorkspace::renderDebugApplication() {
 		{
 			// FPS
 			{
-				io = ImGui::GetIO();
 				ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
 
 				// FPS must be >= (2 * PHYS_UPDATE_FREQ) for linear interpolation to properly work and prevent jittering
@@ -1432,171 +1540,288 @@ void OrbitalWorkspace::renderSceneResourceDetails() {
 
 
 void OrbitalWorkspace::renderCodeEditor() {
-	// Editor settings
-	if (m_simulationConfigChanged) {
-		m_simulationConfigChanged = false;
+	static bool showFindReplaceWindow = false;
 
-		// Populate with data
-		if (!m_simulationScriptData.empty()) {
-			std::string scriptData(m_simulationScriptData.begin(), m_simulationScriptData.end());
-			m_codeEditor.SetText(scriptData);
-		}
-		else {
-			m_codeEditor.SetText("# Welcome to Astrocelerate's code editor!");
-		}
-	}
-
-		// Customization
-	using enum ImGuiTheme::Appearance;
-	switch (g_guiCtx.GUI.currentAppearance) {
-	case IMGUI_APPEARANCE_DARK_MODE:
-		m_codeEditor.SetPalette(CodeEditor::GetDarkPalette());
-		break;
-
-	case IMGUI_APPEARANCE_LIGHT_MODE:
-		m_codeEditor.SetPalette(CodeEditor::GetLightPalette());
-		break;
-	}
-
-	m_codeEditor.SetLanguageDefinition(CodeEditor::LanguageDefinition::YAML());
-	m_codeEditor.SetShowWhitespaces(false);
+	static std::optional<int> selectedErrListRow = std::nullopt;
 
 
-	std::stringstream ss;
-	if (!m_simulationScriptData.empty())
-		ss << FilePathUtils::GetFileName(m_simulationConfigPath);
-	else
-		ss << "New Script";
-	ss << " (Read-only)" << GUI::GetPanelName(m_panelCodeEditor);
+	if (m_codeEditor.IsTextChanged())
+		m_simulationConfigSaved = false;
 
 
 	bool panelOpen = GUI::IsPanelOpen(m_panelMask, m_panelCodeEditor);
-	ImGuiWindowFlags documentEditedFlag = (m_codeEditor.IsTextChanged()) ? ImGuiWindowFlags_UnsavedDocument : ImGuiWindowFlags_None;
-
-	if (ImGui::Begin(C_STR(ss.str()), &panelOpen, ImGuiWindowFlags_NoCollapse | documentEditedFlag)) {
-
-		ImGui::AlignTextToFramePadding();
-
-		// Editor controls
-		// TODO: Implement functionality
-		ImGuiUtils::PushStyleClearButton();
-		{
-			// Editing actions
-			ImGui::BeginGroup();
-			{
-				if (ImGui::Button(ICON_FA_ARROW_ROTATE_LEFT)) {
-					m_codeEditor.Undo();
-				}
-				ImGuiUtils::CursorOnHover();
-				ImGuiUtils::TextTooltip(0, "Undo");
-
-				ImGui::SameLine();
-
-				if (ImGui::Button(ICON_FA_ARROW_ROTATE_RIGHT)) {
-					m_codeEditor.Redo();
-				}
-				ImGuiUtils::CursorOnHover();
-				ImGuiUtils::TextTooltip(0, "Redo");
-
-				ImGui::SameLine();
-
-				if (ImGui::Button(ICON_FA_SCISSORS)) {
-					m_codeEditor.Cut();
-				}
-				ImGuiUtils::CursorOnHover();
-				ImGuiUtils::TextTooltip(0, "Cut");
-
-				ImGui::SameLine();
-
-				if (ImGui::Button(ICON_FA_COPY)) {
-					m_codeEditor.Copy();
-				}
-				ImGuiUtils::CursorOnHover();
-				ImGuiUtils::TextTooltip(0, "Copy");
-
-				ImGui::SameLine();
-
-				if (ImGui::Button(ICON_FA_CLIPBOARD)) {
-					m_codeEditor.Paste();
-				}
-				ImGuiUtils::CursorOnHover();
-				ImGuiUtils::TextTooltip(0, "Paste");
-			}
-			ImGui::EndGroup();
+	ImGuiWindowFlags documentEditedFlag = (m_simulationConfigSaved) ? ImGuiWindowFlags_None : ImGuiWindowFlags_UnsavedDocument;
 
 
-			ImGuiUtils::VerticalSeparator();
-
-
-			// Navigation & Search
-			ImGui::BeginGroup();
-			{
-				if (ImGui::Button(ICON_FA_MAGNIFYING_GLASS)) {
-					
-				}
-				ImGuiUtils::CursorOnHover();
-				ImGuiUtils::TextTooltip(0, "Find & Replace (currently unavailable)");
-
-			}
-			ImGui::EndGroup();
-
-
-			ImGuiUtils::VerticalSeparator();
-
-
-			// Formatting
-			ImGui::BeginGroup();
-			{
-				if (ImGui::Button(ICON_FA_INDENT)) {
-					
-				}
-				ImGuiUtils::CursorOnHover();
-				ImGuiUtils::TextTooltip(0, "Indent");
-
-				ImGui::SameLine();
-
-				if (ImGui::Button(ICON_FA_OUTDENT)) {
-
-				}
-				ImGuiUtils::CursorOnHover();
-				ImGuiUtils::TextTooltip(0, "Outdent");
-
-				ImGui::SameLine();
-
-				if (ImGui::Button(ICON_FA_HASHTAG)) {
-
-				}
-				ImGuiUtils::CursorOnHover();
-				ImGuiUtils::TextTooltip(0, "Comment");
-			}
-			ImGui::EndGroup();
-		}
-		ImGuiUtils::PopStyleClearButton();
-
-
-		static const float bottomStatsPadding = 70.0f;
-		ImGui::PushFont(g_guiCtx.Font.regularMono);
-		{
-			m_codeEditor.Render("###CodeEditorSpace", ImVec2(0, ImGui::GetContentRegionAvail().y - bottomStatsPadding));
-		}
-		ImGui::PopFont();
-
-
+	// ===== ERROR LIST =====
+	if (ImGui::Begin("Error List", nullptr, m_windowFlags)) {
 		ImGui::BeginGroup();
 		{
-			auto cpos = m_codeEditor.GetCursorPosition();
-			ImGuiUtils::AlignedText(ImGuiUtils::TEXT_ALIGN_RIGHT,
-				"Ln: %d  Col: %d  |  %d lines  | %s | %s",
-				cpos.mLine + 1, cpos.mColumn + 1,
-				m_codeEditor.GetTotalLines(),
-				m_codeEditor.IsOverwrite() ? "Ovr" : "Ins",
-				FilePathUtils::GetFileExtension(m_simulationConfigPath).c_str()
-			);
+			ImGuiTableFlags flags =	  
+									  ImGuiTableFlags_NoSavedSettings
+			//						| ImGuiTableFlags_ScrollY				// Vertically scrollable
+			//						| ImGuiTableFlags_RowBg					// Alternates row background colors (i.e., zebra striping)
+									| ImGuiTableFlags_Resizable				// Resizable columns
+			//						| ImGuiTableFlags_SizingFixedFit		// Columns default to a fixed width that fits their contents
+									| ImGuiTableFlags_Borders;				// Enable inner and outer borders
+
+			ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(5.0f, 5.0f));
+			{
+				if (ImGui::BeginTable("###CodeEditorErrorListTable", 5, flags))
+				{
+					// Freeze the first row (header) so that it doesn't scroll away
+					ImGui::TableSetupScrollFreeze(0, 1);
+
+					ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed, 30.0f);
+					ImGui::TableSetupColumn("Line", ImGuiTableColumnFlags_WidthFixed, 30.0f);
+					ImGui::TableSetupColumn("Issue", ImGuiTableColumnFlags_WidthStretch, 1.0f);
+					ImGui::TableSetupColumn("Details", ImGuiTableColumnFlags_WidthStretch, 2.0f);
+					ImGui::TableSetupColumn("File", ImGuiTableColumnFlags_WidthStretch, 0.5f);
+
+					ImGui::TableHeadersRow();
+
+
+					int currentRow = 0;
+					for (const auto &[line, data] : m_codeEditor.GetErrorMarkers()) {
+						ImGui::TableNextRow();
+
+						const auto &[errTitle, errMsg] = data;
+
+
+						// NOTE: Keep first column content on same line & column as selectable
+						ImGui::SameLine();
+
+
+						ImGui::TableNextColumn();  // Type
+						{
+							ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 0, 0, 255));
+							{
+								ImGuiUtils::AlignedText(ImGuiUtils::TEXT_ALIGN_MIDDLE, ICON_FA_XMARK);
+								ImGuiUtils::TextTooltip(0, "Error");
+							}
+							ImGui::PopStyleColor();
+
+						}
+
+
+						ImGui::TableNextColumn();  // Line
+						{
+							if (line > 0) {
+								ImGuiUtils::AlignedText(ImGuiUtils::TEXT_ALIGN_MIDDLE, "%d", line);
+								ImGuiUtils::Underline();
+								ImGuiUtils::CursorOnHover();
+								ImGuiUtils::TextTooltip(0, "Go to line %d", line);
+
+								if (ImGui::IsItemClicked()) {
+									selectedErrListRow = currentRow;
+								}
+							}
+						}
+
+
+						ImGui::TableNextColumn();  // Issue
+						{
+							ImGui::TextWrapped(errTitle.c_str());
+						}
+
+
+						ImGui::TableNextColumn();  // Details
+						{
+							ImGui::TextWrapped(errMsg.c_str());
+						}
+
+
+						ImGui::TableNextColumn();  // File
+						{
+							ImGui::Text(FilePathUtils::GetFileName(m_simulationConfigPath).c_str());
+						}
+
+
+						currentRow++;
+					}
+
+
+					ImGui::EndTable();
+				}
+			}
+			ImGui::PopStyleVar();
 		}
 		ImGui::EndGroup();
+	
 
 		ImGui::End();
 	}
+	
+
+	// ===== EDITOR CONTROLS & EDITOR =====
+	if (selectedErrListRow.has_value())
+		// Focus on code editor if the user has clicked on an error line in the error list
+		ImGui::SetNextWindowFocus();
+		
+	if (ImGui::Begin(m_codeEditorTabLabel.c_str(), &panelOpen, ImGuiWindowFlags_NoCollapse | documentEditedFlag | m_windowFlags)) {
+		ImGui::AlignTextToFramePadding();
+
+		ImGui::BeginGroup();
+		{
+			ImGuiUtils::PushStyleClearButton();
+			{
+				// Execution
+				ImGui::BeginGroup();
+				{
+					if (ImGui::Button(ICON_FA_PLAY)) {
+						saveSimulationConfig(m_simulationConfigPath, m_codeEditor.GetText());
+
+						loadSimulationConfig(m_simulationConfigPath);
+					}
+					ImGuiUtils::CursorOnHover();
+					ImGuiUtils::TextTooltip(0, "Save and Run %s", m_simulationName.c_str());
+
+					ImGui::SameLine();
+
+					if (ImGui::Button(ICON_FA_FLOPPY_DISK)) {
+						saveSimulationConfig(m_simulationConfigPath, m_codeEditor.GetText());
+					}
+					ImGuiUtils::CursorOnHover();
+					ImGuiUtils::TextTooltip(0, "Save %s", m_simulationName.c_str());
+				}
+				ImGui::EndGroup();
+
+
+				ImGuiUtils::VerticalSeparator();
+
+
+				// Editing
+				ImGui::BeginGroup();
+				{
+					if (ImGui::Button(ICON_FA_ARROW_ROTATE_LEFT)) {
+						m_codeEditor.Undo();
+					}
+					ImGuiUtils::CursorOnHover();
+					ImGuiUtils::TextTooltip(0, "Undo");
+
+					ImGui::SameLine();
+
+					if (ImGui::Button(ICON_FA_ARROW_ROTATE_RIGHT)) {
+						m_codeEditor.Redo();
+					}
+					ImGuiUtils::CursorOnHover();
+					ImGuiUtils::TextTooltip(0, "Redo");
+
+					ImGui::SameLine();
+
+					if (ImGui::Button(ICON_FA_SCISSORS)) {
+						m_codeEditor.Cut();
+					}
+					ImGuiUtils::CursorOnHover();
+					ImGuiUtils::TextTooltip(0, "Cut");
+
+					ImGui::SameLine();
+
+					if (ImGui::Button(ICON_FA_COPY)) {
+						m_codeEditor.Copy();
+					}
+					ImGuiUtils::CursorOnHover();
+					ImGuiUtils::TextTooltip(0, "Copy");
+
+					ImGui::SameLine();
+
+					if (ImGui::Button(ICON_FA_CLIPBOARD)) {
+						m_codeEditor.Paste();
+					}
+					ImGuiUtils::CursorOnHover();
+					ImGuiUtils::TextTooltip(0, "Paste");
+				}
+				ImGui::EndGroup();
+
+
+				ImGuiUtils::VerticalSeparator();
+
+
+				// Navigation & Search
+				ImGui::BeginGroup();
+				{
+					if (ImGui::Button(ICON_FA_MAGNIFYING_GLASS)) {
+						showFindReplaceWindow = !showFindReplaceWindow;
+						m_codeEditor.SetShowFindReplaceWindow(showFindReplaceWindow);
+					}
+					ImGuiUtils::CursorOnHover();
+					ImGuiUtils::TextTooltip(0, "Find & Replace");
+
+				}
+				ImGui::EndGroup();
+
+
+				ImGuiUtils::VerticalSeparator();
+
+
+				// Formatting
+				ImGui::BeginGroup();
+				{
+					if (ImGui::Button(ICON_FA_INDENT)) {
+						m_codeEditor.IndentSpaces();
+					}
+					ImGuiUtils::CursorOnHover();
+					ImGuiUtils::TextTooltip(0, "Indent");
+
+					ImGui::SameLine();
+
+					if (ImGui::Button(ICON_FA_OUTDENT)) {
+						m_codeEditor.UnindentSpaces();
+					}
+					ImGuiUtils::CursorOnHover();
+					ImGuiUtils::TextTooltip(0, "Unindent");
+
+					ImGui::SameLine();
+
+					if (ImGui::Button(ICON_FA_HASHTAG)) {
+						m_codeEditor.HandleCommentInline();
+					}
+					ImGuiUtils::CursorOnHover();
+					ImGuiUtils::TextTooltip(0, "Comment/Uncomment");
+				}
+				ImGui::EndGroup();
+			}
+			ImGuiUtils::PopStyleClearButton();
+
+			// Teleport to line if row in error list is clicked
+			if (selectedErrListRow.has_value()) {
+				auto it = std::next(m_codeEditor.GetErrorMarkers().begin(), selectedErrListRow.value());
+				int line = it->first - 1;
+
+				m_codeEditor.JumpToPosition(CodeEditor::Coordinates(line, 0));
+
+				selectedErrListRow = std::nullopt;
+			}
+
+
+			// ----- EDITOR -----
+			static const float bottomStatsPadding = 70.0f;
+			ImGui::PushFont(g_guiCtx.Font.regularMono);
+			{
+				m_codeEditor.Render("###CodeEditorSpace", ImVec2(0, ImGui::GetContentRegionAvail().y - bottomStatsPadding));
+			}
+			ImGui::PopFont();
+
+
+			ImGui::BeginGroup();
+			{
+				auto cpos = m_codeEditor.GetCursorPosition();
+				ImGuiUtils::AlignedText(ImGuiUtils::TEXT_ALIGN_RIGHT,
+					"Ln: %d  Col: %d  |  %d lines  | %s | %s",
+					cpos.mLine + 1, cpos.mColumn + 1,
+					m_codeEditor.GetTotalLines(),
+					m_codeEditor.IsOverwrite() ? "Ovr" : "Ins",
+					FilePathUtils::GetFileExtension(m_simulationConfigPath).c_str()
+				);
+			}
+			ImGui::EndGroup();
+		}
+		ImGui::EndGroup();
+
+
+		ImGui::End();
+	}
+
 
 	if (!panelOpen)
 		GUI::TogglePanel(m_panelMask, m_panelCodeEditor, GUI::TOGGLE_OFF);

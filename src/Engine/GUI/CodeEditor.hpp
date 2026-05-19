@@ -37,10 +37,14 @@
 #include <string>
 #include <memory>
 #include <algorithm>
+#include <functional>
 #include <unordered_set>
 #include <unordered_map>
 
 #include <imgui/imgui.h>
+#include <imgui/imgui_stdlib.h>
+
+#include <iconfontcppheaders/IconsFontAwesome6.h>
 
 
 #include <Core/Data/Mapping/YAMLKeys.hpp>
@@ -69,6 +73,7 @@ public:
 		Background,
 		Cursor,
 		Selection,
+		Highlight,
 		ErrorMarker,
 		Breakpoint,
 		LineNumber,
@@ -159,16 +164,52 @@ public:
 		}
 	};
 
-	struct Identifier
-	{
+	struct IdentifierDescriptor {
 		Coordinates mLocation;
+		std::string mName;
 		std::string mDeclaration;
+		std::optional<std::string> mSimUnit = std::nullopt;
+		std::optional<YAMLKeyDescription::KeyDescription::Type> mExpectedType = std::nullopt;
+
+		IdentifierDescriptor(const std::string &defaultName = "Identifier/Attribute", const std::string &defaultDeclaration = "Generic Identifier/Attribute") :
+			mName(defaultName),
+			mDeclaration(defaultDeclaration)
+		{}
+
+		std::string TypeToString() const {
+			if (!mExpectedType.has_value())
+				return "";
+
+			using enum YAMLKeyDescription::KeyDescription::Type;
+			switch (mExpectedType.value()) {
+			case SCALAR_STRING:
+				return "String";
+			case SCALAR_NUMBER:
+				return "Number";
+			case SCALAR_BOOL:
+				return "Boolean";
+			case SEQUENCE:
+				return "YAML Sequence";
+			case SEQUENCE_ARRAY_3:
+				return "3-element Vector";
+			case SEQUENCE_ARRAY_4:
+				return "4-element Vector";
+			case MAPPING:
+				return "YAML Mapping";
+			default:
+				return "";
+			}
+		}
+	};
+
+	struct KeywordDescriptor : IdentifierDescriptor {
+		KeywordDescriptor() : IdentifierDescriptor("Keyword", "Generic Keyword") {}
 	};
 
 	typedef std::string String;
-	typedef std::unordered_map<std::string, Identifier> Identifiers;
-	typedef std::unordered_set<std::string> Keywords;
-	typedef std::map<int, std::string> ErrorMarkers;
+	typedef std::unordered_map<std::string, IdentifierDescriptor> Identifiers;
+	typedef std::unordered_map<std::string, KeywordDescriptor> Keywords;
+	typedef std::map<int, std::pair<std::string, std::string>> ErrorMarkers;  // ErrorMarkers = map<Line, pair<Title, Message>>
 	typedef std::unordered_set<int> Breakpoints;
 	typedef std::array<ImU32, (unsigned)PaletteIndex::Max> Palette;
 	typedef uint8_t Char;
@@ -215,6 +256,8 @@ public:
 		}
 
 		static const LanguageDefinition &YAML();
+
+#if 0
 		static const LanguageDefinition &CPlusPlus();
 		static const LanguageDefinition &HLSL();
 		static const LanguageDefinition &GLSL();
@@ -222,10 +265,11 @@ public:
 		static const LanguageDefinition &SQL();
 		static const LanguageDefinition &AngelScript();
 		static const LanguageDefinition &Lua();
+#endif
 	};
 
 	CodeEditor();
-	~CodeEditor();
+	~CodeEditor() = default;
 
 	void SetLanguageDefinition(const LanguageDefinition &aLanguageDef);
 	const LanguageDefinition &GetLanguageDefinition() const { return mLanguageDefinition; }
@@ -234,6 +278,8 @@ public:
 	void SetPalette(const Palette &aValue);
 
 	void SetErrorMarkers(const ErrorMarkers &aMarkers) { mErrorMarkers = aMarkers; }
+	const ErrorMarkers &GetErrorMarkers() const { return mErrorMarkers; }
+
 	void SetBreakpoints(const Breakpoints &aMarkers) { mBreakpoints = aMarkers; }
 
 	void Render(const char *aTitle, const ImVec2 &aSize = ImVec2(), bool aBorder = false);
@@ -251,6 +297,7 @@ public:
 
 	void SetReadOnly(bool aValue);
 	bool IsReadOnly() const { return mReadOnly; }
+	void SetTextChanged(bool aValue) { mTextChanged = aValue; }
 	bool IsTextChanged() const { return mTextChanged; }
 	bool IsCursorPositionChanged() const { return mCursorPositionChanged; }
 
@@ -294,6 +341,10 @@ public:
 	void SelectAll();
 	bool HasSelection() const;
 
+	inline void AddHighlight(const Coordinates &aStart, const Coordinates &aEnd) { mHighlights.emplace_back(std::pair{ aStart, aEnd }); };
+	void DeleteHighlight(const Coordinates &aStart, const Coordinates &aEnd);
+	inline void ClearHighlights() { mHighlights.clear(); };
+
 	void Copy();
 	void Cut();
 	void Paste();
@@ -303,6 +354,21 @@ public:
 	bool CanRedo() const;
 	void Undo(int aSteps = 1);
 	void Redo(int aSteps = 1);
+
+	void IndentSpaces();
+	void UnindentSpaces();
+
+	void HandleCommentInline();
+	void CommentInline();
+	void UncommentInline();
+
+	inline void SetShowFindReplaceWindow(bool aValue) { mShowFindReplaceWindow = aValue; };
+
+	void JumpToPosition(const Coordinates &aPosition);
+
+	/* Finds all occurrences of a specified pattern from specified start to end coordinates; returns a vector of start-end coordinate pairs. */
+	std::vector<std::pair<Coordinates, Coordinates>> FindSubstrings(const Coordinates &aStart, const Coordinates &aEnd, const std::string &aPattern, bool aCaseSensitive);
+	std::vector<std::pair<Coordinates, Coordinates>> FindSubstrings(const std::string &aPattern, bool aCaseSensitive);  // Find substrings within entire document
 
 	static const Palette &GetDarkPalette();
 	static const Palette &GetLightPalette();
@@ -321,8 +387,8 @@ private:
 	class UndoRecord
 	{
 	public:
-		UndoRecord() {}
-		~UndoRecord() {}
+		UndoRecord() = default;
+		~UndoRecord() = default;
 
 		UndoRecord(
 			const std::string &aAdded,
@@ -386,6 +452,8 @@ private:
 	std::string GetWordAt(const Coordinates &aCoords) const;
 	ImU32 GetGlyphColor(const Glyph &aGlyph) const;
 
+	std::pair<Coordinates, Coordinates> GetDocStartEndCoords() const;
+
 	void HandleKeyboardInputs();
 	void HandleMouseInputs();
 	void Render();
@@ -413,6 +481,14 @@ private:
 	bool mHandleMouseInputs;
 	bool mIgnoreImGuiChild;
 	bool mShowWhitespaces;
+
+
+	bool mShowFindReplaceWindow;
+	bool mFindReplaceWindowFocused = false;
+	std::string mFindBuffer;
+	std::string mReplaceBuffer;
+
+	std::vector<std::pair<Coordinates, Coordinates>> mHighlights;
 
 	Palette mPaletteBase;
 	Palette mPalette;

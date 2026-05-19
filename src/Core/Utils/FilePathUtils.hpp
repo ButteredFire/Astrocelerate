@@ -21,10 +21,23 @@
 #include <limits.h> // For PATH_MAX
 #endif
 
+#ifdef CreateFile  // Undefine Windows' CreateFile macro to prevent conflict with FilePathUtils::CreateFile
+#undef CreateFile
+#endif
+
 #include <Core/Application/IO/LoggingManager.hpp>
 
 
 namespace FilePathUtils {
+	// Concept: Is std::string or STL character buffer
+	template<typename T>
+	concept FileContent = requires(const T &content) {
+		{ content.data() } -> std::convertible_to<const char*>;
+		{ content.size() } -> std::convertible_to<std::size_t>;
+	};
+
+
+
 	/* 	Gets the directory of the application executable.
 		This function is platform-specific and uses different methods to retrieve the executable path based on the operating system.
 		@return The directory of the executable as a std::filesystem::path.
@@ -210,5 +223,72 @@ namespace FilePathUtils {
 			lines.push_back(line);
 
 		return lines;
+	}
+
+
+	/* Does a path (file/directory) exist on disk?
+		@param path: The specified path.
+
+		@return True if the path exists, False otherwise.
+	*/
+	inline bool PathExists(const std::string &path) {
+		return std::filesystem::exists(std::filesystem::path(path));
+	}
+
+
+	/* Creates a directory.
+		@param path: The specified directory path.
+	*/
+	inline void CreatePath(const std::string &path) {
+		try {
+			std::filesystem::create_directories(path);
+		}
+		catch (const std::filesystem::filesystem_error &e) {
+			Log::Print(Log::T_ERROR, __FUNCTION__, "Failed to create path " + enquote(path) + "!\n\n" + "Reason: " + e.what());
+			return;
+		}
+	}
+
+
+	/* Creates a file.
+		@param filePath: The specified path to the file.
+	*/
+	inline void CreateFile(const std::string &filePath) {
+		std::filesystem::path path(filePath);
+
+		if (path.has_parent_path()) {
+			std::filesystem::create_directories(path.parent_path());
+		}
+
+		std::ofstream file(filePath);
+		file.close();
+	}
+
+
+	/* Writes to a file.
+		@note The file will be automatically created if it does not exist.
+
+		@param filePath: The path to the file to be read.
+		@param fileContent: The content to be written to the file as a vector of characters (a byte vector).
+		@param openMode (default: std::ios::binary): The open mode(s) for the file.
+	*/
+	template<FileContent Content>
+	inline void WriteToFile(const std::string &filePath, const Content &fileContent, std::ios::openmode openMode = std::ios::binary) {
+		if (!PathExists(filePath))
+			CreateFile(filePath);
+
+		// Write to file
+		std::ofstream file(filePath, std::ios::binary);
+		LOG_ASSERT(file.is_open(),
+			"Failed to open file " + enquote(filePath) + " for writing!"
+		);
+
+		file.write(fileContent.data(), fileContent.size());
+		LOG_ASSERT(file,
+			"Failed to write to file " + enquote(filePath) + "!",
+			Log::T_FATAL
+		);
+
+		file.close();
 	}
 }

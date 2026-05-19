@@ -16,7 +16,9 @@ namespace ResourcePath {
 		.LOGO_APP_ICON		= FilePathUtils::JoinPaths(ROOT_DIR, "assets", "App/AppIcon.png"),
 
 		.CONFIG_APP			= FilePathUtils::JoinPaths(ROOT_DIR, "configs", "ApplicationConfig.json"),
-		.CONFIG_IMGUI		= FilePathUtils::JoinPaths(ROOT_DIR, "configs", "DefaultImGuiConfig.ini")
+		.CONFIG_IMGUI		= FilePathUtils::JoinPaths(ROOT_DIR, "configs", "DefaultImGuiConfig.ini"),
+
+		.SIM_TEMPLATE_DEFAULT	= FilePathUtils::JoinPaths(ROOT_DIR, "samples", "Templates", "Default.yaml")
 	};
 
 

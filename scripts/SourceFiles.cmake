@@ -4,6 +4,7 @@ set(SOURCE_FILES
 	"external/imgui/imgui_draw.cpp"
 	"external/imgui/imgui_impl_glfw.cpp"
 	"external/imgui/imgui_impl_vulkan.cpp"
+	"external/imgui/imgui_stdlib.cpp"
 	"external/imgui/imgui_tables.cpp"
 	"external/imgui/imgui_widgets.cpp"
 	"external/tinyfiledialogs/tinyfiledialogs.c"
