@@ -152,13 +152,8 @@ void OrbitalWorkspace::preRenderUpdate(uint32_t currentFrame) {
 }
 
 
-void OrbitalWorkspace::loadNewSimulationConfig() {
-	
-}
-
-
 void OrbitalWorkspace::loadSimulationConfig(const std::string &configPath) {
-	// Reset per-session data
+	bool	// Reset per-session data
 	m_simulationIsPaused = true;
 	Time::SetTimeScale(0.0f);
 	if (m_lastTimeScale <= 0.0f)
@@ -200,7 +195,7 @@ void OrbitalWorkspace::loadWorkspaceConfig(const std::string &configPath) {
 }
 
 
-void OrbitalWorkspace::saveSimulationConfig(const std::string &configPath, const std::string &data) {
+bool OrbitalWorkspace::saveSimulationConfig(const std::string &configPath, const std::string &data) {
 	const char *simulationDir = "simulations";
 
 	if (FilePathUtils::PathExists(configPath))
@@ -221,7 +216,7 @@ void OrbitalWorkspace::saveSimulationConfig(const std::string &configPath, const
 			NULL
 		);
 		if (!selected || selected == "0" || strlen(selected) == 0)
-			return;
+			return false;
 
 
 		std::string selectedFilePath(selected);
@@ -229,8 +224,7 @@ void OrbitalWorkspace::saveSimulationConfig(const std::string &configPath, const
 		if (selectedFilePath.empty())
 			return;
 
-		if (std::filesystem::is_directory(selectedFilePath)) {
-			std::filesystem::remove(selectedFilePath);
+		if (!std::filesystem::path(selectedFilePath).has_filename()) {
 			selectedFilePath += ".yaml";
 		}
 		
@@ -243,11 +237,14 @@ void OrbitalWorkspace::saveSimulationConfig(const std::string &configPath, const
 	m_simulationConfigSaved = true;
 
 	updateCodeEditorTitles();
+
+
+	return true;
 }
 
 
-void OrbitalWorkspace::saveWorkspaceConfig(const std::string &configPath, const std::string &data) {
-
+bool OrbitalWorkspace::saveWorkspaceConfig(const std::string &configPath, const std::string &data) {
+	return true;
 }
 
 
@@ -325,6 +322,7 @@ void OrbitalWorkspace::initCodeEditor() {
 	m_codeEditor.SetTabSize(2);
 	m_codeEditor.SetShowWhitespaces(false);
 	m_codeEditor.SetReadOnly(false);
+	m_codeEditor.SetTextChanged(false);
 	m_codeEditor.SetErrorMarkers({});
 		
 		
@@ -342,6 +340,8 @@ void OrbitalWorkspace::updateCodeEditorTitles() {
 	m_simulationName = ss.str();
 	ss << GUI::GetPanelName(m_panelCodeEditor);
 	m_codeEditorTabLabel = ss.str();
+
+	m_codeEditor.SetTextChanged(false);
 }
 
 
@@ -1669,9 +1669,8 @@ void OrbitalWorkspace::renderCodeEditor() {
 				ImGui::BeginGroup();
 				{
 					if (ImGui::Button(ICON_FA_PLAY)) {
-						saveSimulationConfig(m_simulationConfigPath, m_codeEditor.GetText());
-
-						loadSimulationConfig(m_simulationConfigPath);
+						if (saveSimulationConfig(m_simulationConfigPath, m_codeEditor.GetText()))
+							loadSimulationConfig(m_simulationConfigPath);
 					}
 					ImGuiUtils::CursorOnHover();
 					ImGuiUtils::TextTooltip(0, "Save and Run %s", m_simulationName.c_str());

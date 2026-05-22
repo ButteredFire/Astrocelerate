@@ -65,11 +65,10 @@ public:
 	inline GUI::PanelMask& getPanelMask() override { return m_panelMask; };
 	inline std::unordered_map<GUI::PanelID, GUI::PanelCallback>& getPanelCallbacks() override { return m_panelCallbacks; };
 
-	void loadNewSimulationConfig() override;
 	void loadSimulationConfig(const std::string &configPath) override;
 	void loadWorkspaceConfig(const std::string &configPath) override;
-	void saveSimulationConfig(const std::string &configPath, const std::string &data) override;
-	void saveWorkspaceConfig(const std::string &configPath, const std::string &data) override;
+	bool saveSimulationConfig(const std::string &configPath, const std::string &data) override;
+	bool saveWorkspaceConfig(const std::string &configPath, const std::string &data) override;
 
 	/* Is the viewport panel focused? (Used for input management) */
 	inline bool isViewportFocused() {

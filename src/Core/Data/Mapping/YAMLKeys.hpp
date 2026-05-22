@@ -127,9 +127,9 @@ namespace YAMLKeyDescription {
             MAPPING
         };
 
-        std::string description;            // Description
-        std::optional<std::string> unit;    // Expected Simulation Unit (optional)
-        std::optional<Type> type;           // Expected Type (optional)
+        std::string description{};            // Description
+        std::optional<std::string> unit{};    // Expected Simulation Unit (optional)
+        std::optional<Type> type{};           // Expected Type (optional)
     };
 
 

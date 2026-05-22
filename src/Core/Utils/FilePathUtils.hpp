@@ -244,8 +244,7 @@ namespace FilePathUtils {
 			std::filesystem::create_directories(path);
 		}
 		catch (const std::filesystem::filesystem_error &e) {
-			Log::Print(Log::T_ERROR, __FUNCTION__, "Failed to create path " + enquote(path) + "!\n\n" + "Reason: " + e.what());
-			return;
+			throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to create path " + enquote(path) + "!\n\n" + "Reason: " + e.what());
 		}
 	}
 
@@ -278,7 +277,7 @@ namespace FilePathUtils {
 			CreateFile(filePath);
 
 		// Write to file
-		std::ofstream file(filePath, std::ios::binary);
+		std::ofstream file(filePath, openMode);
 		LOG_ASSERT(file.is_open(),
 			"Failed to open file " + enquote(filePath) + " for writing!"
 		);

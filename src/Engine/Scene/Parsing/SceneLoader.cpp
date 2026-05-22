@@ -647,12 +647,11 @@ void SceneLoader::processScene(const YAML::Node &rootNode, std::string &currentE
             // Deserialize
                 // Set up diagnostics in case of error
             auto mark = ctx.selfComponents->at(ctx.currentComponentType).Mark();
-            int line = -1, column = -1;
+            int line = -1;
             std::string errLocation;
             if (!mark.is_null()) {
-                line = mark.line + 1;
-                column = mark.column + 1;
-                errLocation = "At line " + std::to_string(line) + ", column " + std::to_string(column) + ": \n\n";
+                line = mark.line;
+                errLocation = "At line " + std::to_string(line + 1) + ", column " + std::to_string(mark.column + 1) + ": \n\n";
             }
             else
                 while (m_errorMarkers.contains(line))
@@ -681,7 +680,7 @@ std::string SceneLoader::getExceptionHeader(const std::string &faultyEntity, con
     if (!faultyEntity.empty() && !faultyComponent.empty())
         entityData = "Error processing " + faultyComponent + " in " + faultyEntity;
     else if (!faultyEntity.empty() || !faultyComponent.empty())
-        entityData = "Error processing " + (faultyEntity.empty()) ? faultyEntity : faultyComponent;
+        entityData = "Error processing " + (faultyEntity.empty()) ? faultyComponent : faultyEntity;
     else
         entityData = "Unknown error";
 

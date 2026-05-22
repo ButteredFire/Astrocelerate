@@ -42,7 +42,7 @@ Scene:
         # but specify ParentBody so that the satellite orbit is visualized.
         # Since the physics engine already knows the satellite's state vector (as specified in Transform and RigidBody),
         # it only needs to know additional information about what body the satellite is orbiting,
-        # in order to generate the orbit trajecttory points necessary to render the orbit.
+        # in order to generate the orbit trajectory points necessary to render the orbit.
         - Type: Physics::OrbitalElements
           Data:
             SemiMajorAxis: 0.0
