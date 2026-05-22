@@ -237,36 +237,40 @@ void CodeEditor::DeleteRange(const Coordinates &aStart, const Coordinates &aEnd)
 	assert(aEnd >= aStart);
 	assert(!mReadOnly);
 
-	//printf("D(%d.%d)-(%d.%d)\n", aStart.mLine, aStart.mColumn, aEnd.mLine, aEnd.mColumn);
-
 	if (aEnd == aStart)
 		return;
 
-	auto start = GetCharacterIndex(aStart);
-	auto end = GetCharacterIndex(aEnd);
+	auto s = SanitizeCoordinates(aStart);
+	auto e = SanitizeCoordinates(aEnd);
 
-	if (aStart.mLine == aEnd.mLine)
-	{
-		auto &line = mLines[aStart.mLine];
-		auto n = GetLineMaxColumn(aStart.mLine);
-		if (aEnd.mColumn >= n)
+	auto start = GetCharacterIndex(s);
+	auto end = GetCharacterIndex(e);
+
+	if (start < 0 || end < 0) {
+		// Nothing to delete or document changed
+		return;
+	}
+
+	if (s.mLine == e.mLine) {
+		auto &line = mLines[s.mLine];
+		auto n = GetLineMaxColumn(s.mLine);
+		if (e.mColumn >= n)
 			line.erase(line.begin() + start, line.end());
 		else
 			line.erase(line.begin() + start, line.begin() + end);
 	}
-	else
-	{
-		auto &firstLine = mLines[aStart.mLine];
-		auto &lastLine = mLines[aEnd.mLine];
+	else {
+		auto &firstLine = mLines[s.mLine];
+		auto &lastLine = mLines[e.mLine];
 
 		firstLine.erase(firstLine.begin() + start, firstLine.end());
 		lastLine.erase(lastLine.begin(), lastLine.begin() + end);
 
-		if (aStart.mLine < aEnd.mLine)
+		if (s.mLine < e.mLine)
 			firstLine.insert(firstLine.end(), lastLine.begin(), lastLine.end());
 
-		if (aStart.mLine < aEnd.mLine)
-			RemoveLine(aStart.mLine + 1, aEnd.mLine + 1);
+		if (s.mLine < e.mLine)
+			RemoveLine(s.mLine + 1, e.mLine + 1);
 	}
 
 	mTextChanged = true;
@@ -1343,7 +1347,7 @@ void CodeEditor::Render() {
 		);
 
 
-		static std::function<void(const std::string &, bool)> tryPopulateSearchResults = [this, &selectedOption, &selectionChanged](const std::string &findPattern, bool forceUpdate) {
+		auto tryPopulateSearchResults = [this, &selectedOption, &selectionChanged](const std::string &findPattern, bool forceUpdate) {
 			if (mFindBuffer.empty()) {
 				searchResults.clear();
 				return;
@@ -1380,7 +1384,7 @@ void CodeEditor::Render() {
 
 
 		// Moves the cursor to the current found substring
-		static std::function<void()> jumpToCurrentResult = [this, &selectedOption]() {
+		auto jumpToCurrentResult = [this, &selectedOption]() {
 			Coordinates findStart = searchResults[currentSearchIdx].first;
 			Coordinates findEnd = searchResults[currentSearchIdx].second;
 
@@ -1394,7 +1398,7 @@ void CodeEditor::Render() {
 
 
 		// Updates the search result index
-		static std::function<void()> advanceResultIdx = []() {
+		auto advanceResultIdx = []() {
 			currentSearchIdx = (currentSearchIdx + 1) % searchResults.size();
 		};
 
@@ -1602,14 +1606,16 @@ void CodeEditor::Render() {
 										// Replace
 									Coordinates newEnd{};
 									const int replaceDiff = static_cast<int>(mReplaceBuffer.size()) - static_cast<int>(mFindBuffer.size());
-									for (auto &[start, end] : searchResults) {
+									for (size_t matchIdx = 0; matchIdx < searchResults.size(); ++matchIdx) {
+										auto &[start, end] = searchResults[matchIdx];
+										
 										DeleteRange(start, end);
 										InsertTextAt(start, mReplaceBuffer.c_str());
 										newEnd = Coordinates(end.mLine, end.mColumn + replaceDiff);
 
 
 										// Other substrings on the same line have shifted positions; update accordingly
-										int searchIdx = currentSearchIdx;
+										size_t searchIdx = matchIdx;
 										while (++searchIdx < searchResults.size()) {
 											auto &[otherStart, otherEnd] = searchResults[searchIdx];
 
@@ -3042,7 +3048,7 @@ std::vector<std::pair<CodeEditor::Coordinates, CodeEditor::Coordinates>> CodeEdi
 		auto end = (lnIdx == aEnd.mLine)  ? (searchStr.begin() + GetCharacterIndex(aEnd))	: searchStr.end();
 
 		while (it != end) {
-			it = std::search(it, searchStr.end(), searcher);
+			it = std::search(it, end, searcher);
 			
 			int patternSz = static_cast<int>(pattern.size());
 

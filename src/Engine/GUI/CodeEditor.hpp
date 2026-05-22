@@ -483,7 +483,7 @@ private:
 	bool mShowWhitespaces;
 
 
-	bool mShowFindReplaceWindow;
+	bool mShowFindReplaceWindow = false;
 	bool mFindReplaceWindowFocused = false;
 	std::string mFindBuffer;
 	std::string mReplaceBuffer;

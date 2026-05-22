@@ -171,6 +171,7 @@ void OrbitalWorkspace::loadSimulationConfig(const std::string &configPath) {
 
 
 	// Load script & reload code editor
+	m_codeEditor.SetErrorMarkers({});
 	if (FilePathUtils::PathExists(configPath)) {
 		m_simulationConfigPath = configPath;
 		m_simulationScriptData = FilePathUtils::ReadFile(configPath);
@@ -222,7 +223,7 @@ bool OrbitalWorkspace::saveSimulationConfig(const std::string &configPath, const
 		std::string selectedFilePath(selected);
 
 		if (selectedFilePath.empty())
-			return;
+			return false;
 
 		if (!std::filesystem::path(selectedFilePath).has_filename()) {
 			selectedFilePath += ".yaml";
@@ -244,7 +245,7 @@ bool OrbitalWorkspace::saveSimulationConfig(const std::string &configPath, const
 
 
 bool OrbitalWorkspace::saveWorkspaceConfig(const std::string &configPath, const std::string &data) {
-	return true;
+	return false;
 }
 
 
@@ -323,7 +324,6 @@ void OrbitalWorkspace::initCodeEditor() {
 	m_codeEditor.SetShowWhitespaces(false);
 	m_codeEditor.SetReadOnly(false);
 	m_codeEditor.SetTextChanged(false);
-	m_codeEditor.SetErrorMarkers({});
 		
 		
 	updateCodeEditorTitles();

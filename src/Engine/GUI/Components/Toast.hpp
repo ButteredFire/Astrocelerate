@@ -1,11 +1,6 @@
 #pragma once
 
 
-// Undefine the ERROR macro so that it can be used as a Toast message type
-#ifdef ERROR
-#undef ERROR
-#endif
-
 // Specify no min/max macros to use GLM functions
 #define NOMINMAX
 
@@ -25,7 +20,7 @@
 
 namespace GUI {
     struct Toast {
-        enum class MsgType { SUCCESS, WARNING, ERROR, INFO };
+        enum class MsgType { SUCCESS, WARNING, ERR, INFO };
         
         std::string title;
         std::string content;
@@ -145,7 +140,7 @@ namespace GUI {
                             ImGui::PopStyleColor();
                             break;
 
-                        case ERROR:
+                        case ERR:
                             ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 0, 0, 255));
                                 ImGui::Text(ICON_FA_XMARK);
                             ImGui::PopStyleColor();
@@ -173,7 +168,7 @@ namespace GUI {
 
 
                     // Progress bar
-                    float progress = (glm::max)(0.0f, 1.0f - (toast.elapsedTime / toast.duration));
+                    float progress = (std::max)(0.0f, 1.0f - (toast.elapsedTime / toast.duration));
                     ImGui::ProgressBar(progress, ImVec2(-1, 2), "");
 
 
@@ -181,8 +176,8 @@ namespace GUI {
                     nextPos.y -= toast.height + m_toastGap;
 
 
-                    ImGui::End();
                 }
+                ImGui::End();
             }
         }
 
@@ -233,7 +228,7 @@ namespace GUI {
         /* Compares two values with a lenient difference tolerance. */
         bool approxEquals(float valA, float valB, const float epsilon = 1.0f) const {
             assert(epsilon > 0.0f);
-            return glm::abs(valA - valB) < epsilon;
+            return std::abs(valA - valB) < epsilon;
         }
     };
 }
