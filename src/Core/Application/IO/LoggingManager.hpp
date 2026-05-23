@@ -6,6 +6,8 @@
 #include <thread>
 #include <string>
 #include <chrono>
+#include <format>
+#include <utility>
 #include <iomanip>
 #include <fstream>
 #include <iostream>
@@ -160,10 +162,53 @@ public:
 	/* Logs a message. 
 		@param type: The message type. Refer to Log::MsgType to see supported types.
 		@param caller: The name of the function from which this function is called. It should always be __FUNCTION__.
-		@param message: The message to be logged.
-		@param newline (default: true): A boolean determining whether the message ends with a newline character (true), or not (false).
+		@param messageFmt: The message to be logged, which can be formatted with curly braces (see std::format curly-braces-style string formatting).
+		@param args...: The message format arguments.
 	*/
-	static void Print(MsgType type, const char *caller, const std::string &message, bool newline = true);
+    template<typename... Args>
+	static void Print(MsgType type, const char *caller, const std::string_view messageFmt, Args&&... args) {
+		std::lock_guard<std::mutex> lock(m_printMutex);
+
+		// Get message type
+		std::string displayType = "Unknown message type";
+		LogColor(type, displayType);
+
+		// Get thread info
+		std::string threadInfo = "";
+		LogThreadInfo(threadInfo);
+
+		// Log
+		std::string fmt = std::vformat(messageFmt, std::make_format_args(args...));
+		std::string logMsg = std::format(
+			"[{:^{}}][{:^{}}][{:^{}}]: {}",
+			threadInfo,		SPACING_THREAD_INFO_MAX_WIDTH_OS,
+			displayType,	SPACING_DISPLAY_TYPE_WIDTH,
+			caller,			SPACING_CALLER_WIDTH,
+			fmt
+		);
+
+		if (type == MsgType::T_ERROR || type == MsgType::T_FATAL)
+			std::cerr << logMsg << termcolor::reset;
+		else
+			std::cout << logMsg << termcolor::reset;
+
+		// Write to file
+		if (m_logFile.is_open()) {
+			m_logFile << logMsg;
+			m_logFile.flush();
+		}
+
+
+		// Push to log buffer
+		LogMessage msg{};
+		msg.type = type;
+		msg.displayType = displayType;
+		msg.threadInfo = threadInfo;
+		msg.caller = caller;
+		msg.message = logMsg;
+
+		AddToLogBuffer(msg);
+	}
 
 
 	/* Logs application information to the console. */
@@ -274,4 +319,9 @@ private:
 	inline static std::mutex m_printMutex;
 	inline static std::ofstream m_logFile;
 	inline static std::string m_logFilePath;
+
+
+	inline static constexpr int SPACING_THREAD_INFO_MAX_WIDTH_OS = 20;
+	inline static constexpr int SPACING_DISPLAY_TYPE_WIDTH = 10;
+	inline static constexpr int SPACING_CALLER_WIDTH = 50;
 };
