@@ -90,6 +90,9 @@ Astrocelerate có bản commit đầu tiên vào ngày 28 tháng 11 năm 2024. T
 ## Kho ảnh
 Các ảnh chụp màn hình sau đây ghi lại quá trình phát triển của Astrocelerate (Format ngày: YYYY-MM-DD).
 
+### 2026-05-23
+<img width="1919" height="1030" alt="2026-05-23" src="https://github.com/user-attachments/assets/db3f5952-5b79-4b52-a929-30dc4191e12d" />
+
 ### 2026-04-12
 <img width="1919" height="1031" alt="2026-04-12" src="https://github.com/user-attachments/assets/03028d1b-e055-4e6d-b202-7e734e6bdf75" />
 
