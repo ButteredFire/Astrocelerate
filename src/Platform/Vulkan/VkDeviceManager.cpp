@@ -45,7 +45,12 @@ void VkDeviceManager::createPhysicalDevice(VkPhysicalDevice &physDevice, Physica
     bool isDeviceCompatible = bestDevice.isCompatible;
     uint32_t physicalDeviceScore = bestDevice.optionalScore;
 
-    Log::Print(Log::T_INFO, __FUNCTION__, ("Out of " + std::to_string(physDeviceCount) + " GPU(s), GPU " + enquote(bestDevice.name) + " was selected with the highest grading score of " + std::to_string(physicalDeviceScore) + "."));
+    Log::Print(Log::T_INFO, __FUNCTION__,
+        "Selected {} out of {} GPU(s); grading score is {}",
+        enquote(bestDevice.name),
+        physDeviceCount,
+        physicalDeviceScore
+    );
 
     if (physicalDevice == nullptr || !isDeviceCompatible) {
         throw Log::RuntimeException(__FUNCTION__, __LINE__, "No GPU on this machine supports the required features to run Astrocelerate!\nPlease ensure your GPUs have their drivers updated to support Vulkan " VULKAN_VERSION_STR ".");

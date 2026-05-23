@@ -3,66 +3,16 @@
 #include <Core/Application/Threading/ThreadManager.hpp>
 
 
-namespace LogSpacing {
-	const int THREAD_INFO_MAX_WIDTH_OS = 30;
-	const int DISPLAY_TYPE_WIDTH = 9;
-	const int CALLER_WIDTH = 50;
-}
-
-
 void Log::LogThreadInfo(std::string &output) {
 	std::thread::id currentThread = std::this_thread::get_id();
-	std::stringstream ss;
-	ss << "[THREAD " << currentThread << ", ";
+	std::stringstream ss{};
+	ss << "THREAD " << currentThread << ", ";
 	if (currentThread == ThreadManager::GetMainThreadID())
-		ss << "MAIN]";
+		ss << "MAIN";
 	else
-		ss << "WORKER]";
-		//ss << ThreadManager::GetThreadNameFromID(currentThread) << "]";
+		ss << ThreadManager::GetThreadNameFromID(currentThread);
 
 	output = ss.str();
-}
-
-
-void Log::Print(MsgType type, const char *caller, const std::string &message, bool newline) {
-	std::lock_guard<std::mutex> lock(m_printMutex);
-
-	// Get message type
-	std::string displayType = "Unknown message type";
-	LogColor(type, displayType);
-
-	// Get thread info
-	std::string threadInfo = "";
-	LogThreadInfo(threadInfo);
-
-	// Log
-	std::stringstream ss;
-	ss << std::left << std::setw(LogSpacing::THREAD_INFO_MAX_WIDTH_OS) << threadInfo
-		<< std::left << std::setw(LogSpacing::DISPLAY_TYPE_WIDTH) << ("[" + displayType + "]")
-		<< "[ " << std::left << std::setw(LogSpacing::CALLER_WIDTH) << caller << "]: "
-		<< message << ((newline) ? "\n" : "");
-
-	if (type == MsgType::T_ERROR || type == MsgType::T_FATAL)
-		std::cerr << ss.str() << termcolor::reset;
-	else
-		std::cout << ss.str() << termcolor::reset;
-
-		// Write to file
-	if (m_logFile.is_open()) {
-		m_logFile << ss.str();
-		m_logFile.flush();
-	}
-
-
-	// Push to log buffer
-	LogMessage msg{};
-	msg.type = type;
-	msg.displayType = displayType;
-	msg.threadInfo = threadInfo;
-	msg.caller = caller;
-	msg.message = ss.str();
-
-	AddToLogBuffer(msg);
 }
 
 
