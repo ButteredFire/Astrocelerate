@@ -65,6 +65,12 @@ Examples:
 - `chore(build): add Catch2 as test dependency`
 - `docs: update installation prerequisites`
 
+
+When breaking changes are made to existing APIs, place an exclamation mark (`!`) after the branch type or scope.
+Examples:
+- `feat!: remove vestigial parameters from Log::Print`
+- `feat(physics)!: remove deprecated API`
+
 ---
 
 ## Pull Requests
