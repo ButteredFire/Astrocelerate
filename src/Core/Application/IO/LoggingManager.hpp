@@ -169,18 +169,17 @@ public:
 	static void Print(MsgType type, const char *caller, const std::string_view messageFmt, Args&&... args) {
 		std::lock_guard<std::mutex> lock(m_printMutex);
 
-		// Get message type
 		std::string displayType = "Unknown message type";
 		LogColor(type, displayType);
 
-		// Get thread info
-		std::string threadInfo = "";
+		std::string threadInfo{};
 		LogThreadInfo(threadInfo);
 
-		// Log
+
+		// Log to console
 		std::string fmt = std::vformat(messageFmt, std::make_format_args(args...));
 		std::string logMsg = std::format(
-			"[{:^{}}][{:^{}}][{:^{}}]: {}",
+			"[{:^{}}][{:^{}}][{:^{}}]: {}\n",
 			threadInfo,		SPACING_THREAD_INFO_MAX_WIDTH_OS,
 			displayType,	SPACING_DISPLAY_TYPE_WIDTH,
 			caller,			SPACING_CALLER_WIDTH,
@@ -191,6 +190,7 @@ public:
 			std::cerr << logMsg << termcolor::reset;
 		else
 			std::cout << logMsg << termcolor::reset;
+
 
 		// Write to file
 		if (m_logFile.is_open()) {
@@ -316,12 +316,11 @@ public:
 
 
 private:
-	inline static std::mutex m_printMutex;
-	inline static std::ofstream m_logFile;
-	inline static std::string m_logFilePath;
-
-
 	inline static constexpr int SPACING_THREAD_INFO_MAX_WIDTH_OS = 20;
 	inline static constexpr int SPACING_DISPLAY_TYPE_WIDTH = 10;
 	inline static constexpr int SPACING_CALLER_WIDTH = 50;
+
+	inline static std::mutex m_printMutex;
+	inline static std::ofstream m_logFile;
+	inline static std::string m_logFilePath;
 };

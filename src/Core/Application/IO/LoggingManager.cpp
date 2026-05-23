@@ -5,7 +5,7 @@
 
 void Log::LogThreadInfo(std::string &output) {
 	std::thread::id currentThread = std::this_thread::get_id();
-	std::stringstream ss;
+	std::stringstream ss{};
 	ss << "THREAD " << currentThread << ", ";
 	if (currentThread == ThreadManager::GetMainThreadID())
 		ss << "MAIN";
