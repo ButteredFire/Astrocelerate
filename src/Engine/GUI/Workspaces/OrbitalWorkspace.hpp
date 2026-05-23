@@ -4,14 +4,17 @@
 #pragma once
 
 #include <any>
+#include <cmath>
 #include <sstream>
 #include <iostream>
 #include <unordered_set>
 
 #include <imgui/imgui.h>
+#include <imgui/imgui_stdlib.h>
 #include <imgui/imgui_internal.h>
 #include <imgui/imgui_impl_vulkan.h>
 
+#include <tinyfiledialogs/tinyfiledialogs.h>
 #include <iconfontcppheaders/IconsFontAwesome6.h>
 
 
@@ -24,6 +27,7 @@
 
 #include <Engine/GUI/Data/GUI.hpp>
 #include <Engine/GUI/CodeEditor.hpp>
+#include <Engine/GUI/Components/Toast.hpp>
 #include <Engine/GUI/Workspaces/IWorkspace.hpp>
 #include <Engine/Input/InputManager.hpp>
 #include <Engine/Utils/ColorUtils.hpp>
@@ -63,8 +67,8 @@ public:
 
 	void loadSimulationConfig(const std::string &configPath) override;
 	void loadWorkspaceConfig(const std::string &configPath) override;
-	void saveSimulationConfig(const std::string &configPath) override;
-	void saveWorkspaceConfig(const std::string &configPath) override;
+	bool saveSimulationConfig(const std::string &configPath, const std::string &data) override;
+	bool saveWorkspaceConfig(const std::string &configPath, const std::string &data) override;
 
 	/* Is the viewport panel focused? (Used for input management) */
 	inline bool isViewportFocused() {
@@ -131,11 +135,15 @@ private:
 	m_ResourceType m_currentSceneResourceType;
 	EntityID m_currentSceneResourceEntityID;
 
-		// Code editor
+		// GUI components
+			// Code editor
 	CodeEditor m_codeEditor;
-	std::string m_simulationConfigPath = "";
+	std::string m_codeEditorTabLabel{};
+	std::string m_simulationName{};
+	std::string m_simulationConfigPath{};
 	std::vector<char> m_simulationScriptData{};
-	bool m_simulationConfigChanged = false;
+	bool m_simulationConfigSaved = true;
+	bool m_errorMarkersChanged = false;
 
 
 	void bindEvents();
@@ -145,6 +153,9 @@ private:
 	void initStaticTextures();
 	void initPerFrameTextures();
 	void updatePerFrameTextures(uint32_t currentFrame);
+
+	void initCodeEditor();
+	void updateCodeEditorTitles();
 
 
 	/* Render functions */

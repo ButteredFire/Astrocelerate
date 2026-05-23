@@ -2,6 +2,7 @@
 */
 #pragma once
 
+#include <map>
 #include <thread>
 
 
@@ -73,6 +74,7 @@ private:
 
 	Application::YAMLFileConfig m_fileConfig;
 	Application::SimulationConfig m_simulationConfig;
+	std::map<int, std::pair<std::string, std::string>> m_errorMarkers;  // ErrorMarkers = map<Line, pair<Title, Message>>
 
 	Entity m_renderSpace{};
 	Math::Interval<uint32_t> m_sphereMesh{};
@@ -98,4 +100,12 @@ private:
 		@param [currentEntity, currentComponent]: The current entity/component being processed. If, during this function's execution, a YAML-CPP exception is thrown, the caller will know precisely where in which component belonging to which entity the error occurred.
 	*/
 	void processScene(const YAML::Node &rootNode, std::string &currentEntity, std::string &currentComponent);
+
+
+	// Exception handling
+	std::string getExceptionHeader(const std::string &faultyEntity, const std::string &faultyComponent);
+	std::string getYAMLExceptionMsg(const YAML::Exception &e, const std::string &customMsg);
+
+
+	void addErrorMarker(int line, const std::string &title, const std::string &msg);
 };

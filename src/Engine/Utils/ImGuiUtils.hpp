@@ -118,6 +118,17 @@ namespace ImGuiUtils {
 
 
 	// ----- TEXT FORMATTING -----
+	/* Underlines the preceding widget (e.g., text, button) with a line that has the same width as the widget.
+		@param thickness (Default: 1.0f): The thickness of the underline.
+	*/
+	inline void Underline(float thickness = 1.0f) {
+		ImVec2 min = ImGui::GetItemRectMin();
+		ImVec2 max = ImGui::GetItemRectMax();
+
+		min.y = max.y; // Offset slightly below the widget
+		ImGui::GetWindowDrawList()->AddLine(min, max, ImVec4ToImU32(ImGui::GetStyle().Colors[ImGuiCol_Text]), thickness);
+	}
+
 
 	/* Emboldens text.
 		@param fmt: The (formatted) text to be emboldened.
@@ -155,12 +166,13 @@ namespace ImGuiUtils {
 	*/
 	inline void UnderlinedText(const char* fmt, ...) {
 		LOG_ASSERT(g_guiCtx.Font.lightItalic, "Cannot underline text " + enquote(fmt) + ": The light-italic font has not been loaded!");
-		ImGui::PushFont(g_guiCtx.Font.lightItalic);
 		va_list args;
 		va_start(args, fmt);
-		ImGui::TextWrappedV(fmt, args);
+			ImGui::TextWrappedV(fmt, args);
 		va_end(args);
-		ImGui::PopFont();
+
+		// Draw line beneath text
+		Underline();
 	}
 
 
@@ -226,6 +238,27 @@ namespace ImGuiUtils {
 	inline void FloatingText(ImVec2 pos, const std::string &text) {
 		ImDrawList *drawList = ImGui::GetWindowDrawList();
 		drawList->AddText(pos, IM_COL32(255, 255, 255, 255), text.c_str());
+	}
+
+
+	/* Renders placeholder text for any arbitrary ImGui::InputXXX widget. Place this function right after the widget.
+		@param inputBufEmpty: Whether the input buffer for the widget is empty (True), or not (False), so that the text can be hidden when it is False.
+		@param text: The placeholder text.
+	*/
+	inline void InputPlaceholderText(bool inputBufEmpty, const std::string &text) {
+		if (!inputBufEmpty) return;
+
+		// Bounding box
+		ImVec2 min = ImGui::GetItemRectMin();
+		ImVec2 max = ImGui::GetItemRectMax();
+
+		// Padding, so that the text won't start at the exact leftmost border of the widget
+		ImVec2 padding = ImGui::GetStyle().FramePadding;
+		ImVec2 pos = { min.x + padding.x, min.y + padding.y };
+
+		ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+			ImGui::GetWindowDrawList()->AddText(pos, ImGui::GetColorU32(ImGuiCol_Text), text.data());
+		ImGui::PopStyleColor();
 	}
 
 

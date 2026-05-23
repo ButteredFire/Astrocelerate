@@ -20,6 +20,6 @@ public:
 	virtual void loadSimulationConfig(const std::string &configPath) = 0;
 	virtual void loadWorkspaceConfig(const std::string &configPath) = 0;
 
-	virtual void saveSimulationConfig(const std::string &configPath) = 0;
-	virtual void saveWorkspaceConfig(const std::string &configPath) = 0;
+	virtual bool saveSimulationConfig(const std::string &configPath, const std::string &data) = 0;
+	virtual bool saveWorkspaceConfig(const std::string &configPath, const std::string &data) = 0;
 };

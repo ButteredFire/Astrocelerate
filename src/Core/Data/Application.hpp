@@ -21,9 +21,10 @@ namespace Application {
 
 	// YAML Simulation File Configuration
 	struct YAMLFileConfig {
-		std::string fileName;			// The name of the simulation file.
-		uint32_t version;				// The version of the simulation. This is NOT the file's YAML version.
-		std::string description;		// The simulation's description.
+		std::string fileName;					// The name of the simulation file.
+		std::string filePath;					// The path to the simulation file.
+		uint32_t version;						// The version of the simulation. This is NOT the file's YAML version.
+		std::string description;				// The simulation's description.
 	};
 
 

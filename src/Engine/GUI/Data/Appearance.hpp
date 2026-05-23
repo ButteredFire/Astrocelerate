@@ -46,7 +46,7 @@ namespace ImGuiTheme {
         // Text Colors
         inline const ImVec4 CODE_EDITOR_KEYWORD     = ColorUtils::sRGBToLinear(0.208f, 0.945f, 1.0f, 1.0f);     // Aqua
         inline const ImVec4 CODE_EDITOR_NUMBER      = ColorUtils::sRGBToLinear(0.835f, 0.208f, 1.0f, 1.0f);     // Purple
-        inline const ImVec4 CODE_EDITOR_STRING      = ColorUtils::sRGBToLinear(1.0f, 1.0f, 0.0f, 1.0f);         // Yellow
+        inline const ImVec4 CODE_EDITOR_STRING      = ColorUtils::sRGBToLinear(0.95f, 0.85f, 0.45f, 1.0f);      // Yellow, desaturated
         inline const ImVec4 CODE_EDITOR_IDENTIFIER  = ColorUtils::sRGBToLinear(0.078f, 0.78f, 0.078f, 1.0f);    // Dark green
         inline const ImVec4 CODE_EDITOR_BREAKPOINT  = ColorUtils::sRGBToLinear(1.0f, 0.5f, 0.0f, 0.25f);        // Red, 50% alpha
         inline const ImVec4 CODE_EDITOR_ERROR_MARKER = ColorUtils::sRGBToLinear(1.0f, 0.0f, 0.0f, 0.5f);        // Orange, 25% alpha
@@ -76,7 +76,7 @@ namespace ImGuiTheme {
         // Text Colors
         inline const ImVec4 CODE_EDITOR_KEYWORD     = ColorUtils::sRGBToLinear(0.208f, 0.945f, 1.0f, 1.0f);     // Aqua
         inline const ImVec4 CODE_EDITOR_NUMBER      = ColorUtils::sRGBToLinear(0.835f, 0.208f, 1.0f, 1.0f);     // Purple
-        inline const ImVec4 CODE_EDITOR_STRING      = ColorUtils::sRGBToLinear(1.0f, 1.0f, 0.0f, 1.0f);         // Yellow
+        inline const ImVec4 CODE_EDITOR_STRING      = ColorUtils::sRGBToLinear(0.95f, 0.85f, 0.45f, 1.0f);      // Yellow, desaturated
         inline const ImVec4 CODE_EDITOR_IDENTIFIER  = ColorUtils::sRGBToLinear(0.078f, 0.78f, 0.078f, 1.0f);    // Dark green
         inline const ImVec4 CODE_EDITOR_BREAKPOINT  = ColorUtils::sRGBToLinear(1.0f, 0.5f, 0.0f, 0.25f);        // Red, 50% alpha
         inline const ImVec4 CODE_EDITOR_ERROR_MARKER = ColorUtils::sRGBToLinear(1.0f, 0.0f, 0.0f, 0.5f);        // Orange, 25% alpha
@@ -258,23 +258,24 @@ namespace ImGuiTheme {
         return colors;
     }
 
+
+    inline ThemeColors GetThemeColors(const Appearance &appearance) {
+        switch (appearance) {
+        case Appearance::IMGUI_APPEARANCE_DARK_MODE:
+            return GetDarkThemeColors();
+
+        case Appearance::IMGUI_APPEARANCE_LIGHT_MODE:
+            return GetLightThemeColors();
+        }
+    }
+
     
     /* Applies a theme to change the GUI appearance. */
-    inline void ApplyTheme(const Appearance& appearance) {
+    inline void ApplyTheme(const Appearance &appearance) {
         ImGuiStyle& style = ImGui::GetStyle();
         ImVec4* colors = style.Colors;
 
-        ThemeColors theme;
-
-        switch (appearance) {
-        case Appearance::IMGUI_APPEARANCE_DARK_MODE:
-            theme = GetDarkThemeColors();
-            break;
-
-        case Appearance::IMGUI_APPEARANCE_LIGHT_MODE:
-            theme = GetLightThemeColors();
-            break;
-        }
+        ThemeColors theme = GetThemeColors(appearance);
 
         colors[ImGuiCol_WindowBg] = theme.WindowBg;
         colors[ImGuiCol_MenuBarBg] = theme.MenuBarBg;

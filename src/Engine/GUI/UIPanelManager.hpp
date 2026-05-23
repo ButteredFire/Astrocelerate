@@ -89,6 +89,11 @@ private:
 	Application::SimulationConfig m_simulationConfig{};
 
 
+	// GUI components
+		// Toast
+	GUI::ToastManager m_toastMgr;
+
+
 	void bindEvents();
 
 	void initCommonPanels();
@@ -105,5 +110,5 @@ private:
 
 		// Modals
 	const char *m_sceneLoadModelName = "Processing Scene";
-	void renderSceneLoadModal(const std::string &fileName);
+	void renderSceneLoadModal();
 };

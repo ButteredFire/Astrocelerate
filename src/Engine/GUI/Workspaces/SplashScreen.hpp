@@ -26,8 +26,8 @@ public:
 	// We don't need these functions for splash screens
 	inline void loadSimulationConfig(const std::string &configPath) override {};
 	inline void loadWorkspaceConfig(const std::string &configPath) override {};
-	inline void saveSimulationConfig(const std::string &configPath) override {};
-	inline void saveWorkspaceConfig(const std::string &configPath) override {};
+	inline bool saveSimulationConfig(const std::string &configPath, const std::string &data) override	{ return false; };
+	inline bool saveWorkspaceConfig(const std::string &configPath, const std::string &data) override	{ return false; };
 
 private:
 	GUI::PanelMask m_panelMask;

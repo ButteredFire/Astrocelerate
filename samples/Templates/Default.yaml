@@ -1,0 +1,59 @@
+# File metadata
+FileConfig:
+    Version: 0
+    Description: "Default simulation template"
+
+# Simulation conditions
+SimulationConfig:
+    Kernels:
+        - Path: "kernels/naif0012.tls"  # Leapseconds kernel
+        - Path: "kernels/pck00010.tpc"  # Planetary orientation kernel
+        - Path: "kernels/de442.bsp"     # Planetary and lunar ephemeris
+
+    CoordinateSystem:
+        Frame: ECI
+        Epoch: J2000
+        EpochFormat: "2000-01-01 00:00:00 UTC"
+
+# Scene entities
+Scene:
+    - Entity: Body::Sun
+    - Entity: Body::Earth
+
+    - Entity: "Satellite"
+      Components:
+        - Type: Core::Identifiers
+          Data:
+              EntityType: SPACECRAFT
+
+        - Type: Core::Transform
+          Data:
+              Position: [6.522e6, 1.515e6, -2.045e6]
+              Rotation: [0.0, 0.0, 90.0]
+              Scale: 10.0
+
+        - Type: Physics::RigidBody
+          Data:
+              Velocity: [1.205e3, -5.830e3, 7.240e3]
+              Acceleration: [0.0, 0.0, 0.0]
+              Mass: 20.0
+              
+        # Zero-initialize numerical fields in OrbitalElements,
+        # but specify ParentBody so that the satellite orbit is visualized.
+        # Since the physics engine already knows the satellite's state vector (as specified in Transform and RigidBody),
+        # it only needs to know additional information about what body the satellite is orbiting,
+        # in order to generate the orbit trajectory points necessary to render the orbit.
+        - Type: Physics::OrbitalElements
+          Data:
+            SemiMajorAxis: 0.0
+            Eccentricity: 0.0
+            Inclination: 0.0
+            RAAN: 0.0
+            ArgPeriapsis: 0.0
+            TrueAnomaly: 0.0
+            ParentBody: Body::Earth
+
+        - Type: Render::MeshRenderable
+          Data:
+              MeshPath: "assets/Models/TestModels/GenericCubeSat/GenericCubeSat.gltf"
+              VisualScale: 1.0

@@ -120,10 +120,29 @@ void UIPanelManager::renderWorkspace(uint32_t currentFrame) {
 		}
 	}
 
-		// Instanced panels
+	// Instanced panels
+		// Welcome panel
 	if (!workspaceIsSplash)
 		if (GUI::IsPanelOpen(m_commonPanelMask, m_panelWelcome))
 			renderWelcomePanel();
+
+		// "Processing Scene" popup
+	static bool openedPopup = false;
+	if (m_showLoadingModal) {
+		if (!openedPopup) {
+			ImGuiID popupID = ImGui::GetID(m_sceneLoadModelName);
+			ImGui::OpenPopup(popupID);
+
+			openedPopup = true;
+		}
+		renderSceneLoadModal();
+	}
+	else
+		openedPopup = false;
+
+
+	// GUI components
+	m_toastMgr.render();
 
 
 	m_currentWorkspace->update(currentFrame);
@@ -139,68 +158,104 @@ void UIPanelManager::renderMenuBar() {
 	if (workspaceIsSplash)
 		return;
 
-	static std::string selectedFile{};
+	static std::function<void(const std::string &)> loadFile = [this](const std::string &selectedFilePath) {
+		// Skip other setup steps if the user is loading a blank file
+		if (selectedFilePath.empty()) {
+			m_currentWorkspace->loadSimulationConfig("");
+			return;
+		}
 
-	if (m_showLoadingModal) {
-		ImGui::OpenPopup(m_sceneLoadModelName);
-	}
-	renderSceneLoadModal(selectedFile);
+		// Show popup modal to indicate preparation
+		bool showInitialPopup = true;
+		{
+			const char *popupName = "PrepPopupModal";
+
+			ImGui::OpenPopup(popupName);
+
+			ImGui::SetNextWindowSize(ImVec2(500.0f, 0.0f));
+			ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+			if (ImGui::BeginPopupModal(popupName, &showInitialPopup, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration)) {
+				ImGuiUtils::AlignedText(ImGuiUtils::TEXT_ALIGN_MIDDLE, "Preparing...");
+				ImGui::EndPopup();
+			}
+		}
+
+
+		// Reset UI state before starting a new load
+		m_showLoadingModal = true; showInitialPopup = false;
+		m_currentLoadProgress = 0.0f;
+		m_currentLoadMessage = "Starting scene load...";
+		m_loadErrorOccurred = false;
+		m_loadErrorMessage = "";
+
+		m_currentWorkspace->loadSimulationConfig(selectedFilePath);
+	};
 
 
 	if (ImGui::BeginMainMenuBar()) {
 
+		ImGui::AlignTextToFramePadding();
+
 		if (ImGui::BeginMenu("File")) {
-			// Load Simulation
-			if (ImGui::MenuItem("Load Simulation", "Ctrl+O")) {
-				// Handle Open using tinyfiledialogs
-				const char *filterPatterns[] = { "*.yaml" };
-				const char *selectedFilePath = tinyfd_openFileDialog(
-					"Open Simulation File",
-					FilePathUtils::JoinPaths(ROOT_DIR, "samples/").c_str(),          // Default path/filename
-					IM_ARRAYSIZE(filterPatterns),
-					filterPatterns,
-					NULL,        // Optional: filter description (e.g., "Text files")
-					0            // Allow multiple selections (0 for single, 1 for multiple)
-				);
-
-
-				// Process selected file
-				if (selectedFilePath) {
-					// Show popup modal to indicate preparation
-					bool showInitialPopup = true;
-					{
-						const char *popupName = "PrepPopupModal";
-
-						ImGui::OpenPopup(popupName);
-
-						ImGui::SetNextWindowSize(ImVec2(500.0f, 0.0f));
-						ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
-						if (ImGui::BeginPopupModal(popupName, &showInitialPopup, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration)) {
-							ImGuiUtils::AlignedText(ImGuiUtils::TEXT_ALIGN_MIDDLE, "Preparing...");
-							ImGui::EndPopup();
-						}
+			if (ImGui::BeginMenu("Simulation...")) {
+				// New simulation
+				if (ImGui::BeginMenu(ImGuiUtils::IconString(ICON_FA_FILE_CIRCLE_PLUS, "New...").c_str())) {
+					if (ImGui::MenuItem("Blank")) {
+						loadFile("");
 					}
+					ImGuiUtils::CursorOnHover();
 
 
-					// Reset UI state before starting a new load
-					m_showLoadingModal = true; showInitialPopup = false;
-					m_currentLoadProgress = 0.0f;
-					m_currentLoadMessage = "Starting scene load...";
-					m_loadErrorOccurred = false;
-					m_loadErrorMessage = "";
+					ImGui::Separator();
 
-					m_currentWorkspace->loadSimulationConfig(selectedFilePath);
-					selectedFile = FilePathUtils::GetFileName(selectedFilePath);
+
+					if (ImGui::MenuItem("Default template")) {
+						loadFile(ResourcePath::App.SIM_TEMPLATE_DEFAULT);
+					}
+					ImGuiUtils::CursorOnHover();
+
+
+					ImGui::EndMenu();
 				}
-			}
-			ImGuiUtils::CursorOnHover();
+				ImGuiUtils::CursorOnHover();
 
 
-			// Save Simulation
-			if (ImGui::MenuItem("Save Simulation", "Ctrl+S")) {
-				// TODO: Handle Save
+				// Load Simulation
+				if (ImGui::MenuItem(ImGuiUtils::IconString(ICON_FA_FILE, "Load").c_str(), "Ctrl+O")) {
+					// Handle Open using tinyfiledialogs
+					const char *filterPatterns[] = { "*.yaml" };
+					const char *selectedFilePath = tinyfd_openFileDialog(
+						"Open Simulation File",
+						FilePathUtils::JoinPaths(ROOT_DIR, "samples/").c_str(),          // Default path/filename
+						SIZE_OF(filterPatterns),
+						filterPatterns,
+						NULL,        // Optional: filter description (e.g., "Text files")
+						0            // Allow multiple selections (0 for single, 1 for multiple)
+					);
+
+
+					// Process selected file
+					if (selectedFilePath) {
+						loadFile(selectedFilePath);
+					}
+				}
+				ImGuiUtils::CursorOnHover();
+
+
+				// Save Simulation
+				ImGuiUtils::PushStyleDisabled();
+				{
+					if (ImGui::MenuItem(ImGuiUtils::IconString(ICON_FA_FLOPPY_DISK, "Save").c_str(), "Ctrl+S")) {
+						// TODO: Handle Save (saving new file VS modified file)
+						//m_currentWorkspace->saveSimulationConfig(m_fileConfig.filePath);
+					}
+					ImGuiUtils::CursorOnHover();
+				}
+				ImGuiUtils::PopStyleDisabled();
+				
+				
+				ImGui::EndMenu();
 			}
-			ImGuiUtils::CursorOnHover();
 
 
 			ImGui::Separator();
@@ -225,6 +280,7 @@ void UIPanelManager::renderMenuBar() {
 				throw Log::EngineExitException();
 			}
 			ImGuiUtils::CursorOnHover();
+
 
 			ImGui::EndMenu();
 		}
@@ -662,13 +718,18 @@ void UIPanelManager::renderAboutPanel() {
 }
 
 
-void UIPanelManager::renderSceneLoadModal(const std::string &fileName) {
+void UIPanelManager::renderSceneLoadModal() {
+	if (m_fileConfig.filePath.empty())
+		return;
+
+	std::string fileName = FilePathUtils::GetFileName(m_fileConfig.filePath);
+
 	ImGui::SetNextWindowSize(ImVec2(500.0f, 0.0f));
 	ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 
 	ImGui::PushStyleColor(ImGuiCol_ModalWindowDimBg, ColorUtils::sRGBToLinear(0.0f, 0.0f, 0.0f, 0.80f));
 	{
-		if (ImGui::BeginPopupModal(m_sceneLoadModelName, &m_showLoadingModal, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration)) {
+		if (ImGui::BeginPopupModal(m_sceneLoadModelName, NULL, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration)) {
 
 			ImVec2 availableRegion = ImGui::GetContentRegionAvail();
 			float availableScrollHeight = availableRegion.y - ImGuiUtils::GetBottomButtonAreaHeight();
@@ -676,7 +737,7 @@ void UIPanelManager::renderSceneLoadModal(const std::string &fileName) {
 			if (!m_loadErrorOccurred) {
 				ImGui::PushFont(g_guiCtx.Font.bold);
 				{
-					ImGuiUtils::AlignedText(ImGuiUtils::TEXT_ALIGN_MIDDLE, "Processing %s", fileName.c_str());
+					ImGuiUtils::AlignedText(ImGuiUtils::TEXT_ALIGN_MIDDLE, "Loading simulation...");
 					ImGuiUtils::Padding();
 					ImGuiUtils::AlignedText(ImGuiUtils::TEXT_ALIGN_MIDDLE, m_currentLoadMessage.c_str());
 				}
@@ -700,8 +761,12 @@ void UIPanelManager::renderSceneLoadModal(const std::string &fileName) {
 
 
 				if (m_currentLoadProgress >= 1.0f) {
+					if (m_showLoadingModal) {
+						m_toastMgr.addToast(fileName, "Simulation loaded successfully.", GUI::Toast::MsgType::SUCCESS);
+						m_showLoadingModal = false;
+					}
+
 					ImGui::CloseCurrentPopup();
-					m_showLoadingModal = false;
 				}
 			}
 
@@ -710,7 +775,7 @@ void UIPanelManager::renderSceneLoadModal(const std::string &fileName) {
 				ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 0, 0, 255));
 				ImGui::PushFont(g_guiCtx.Font.bold);
 				{
-					ImGuiUtils::AlignedText(ImGuiUtils::TEXT_ALIGN_MIDDLE, "Failed to load %s", fileName.c_str());
+					ImGuiUtils::AlignedText(ImGuiUtils::TEXT_ALIGN_MIDDLE, "Failed to load simulation");
 					ImGuiUtils::Padding();
 					ImGuiUtils::AlignedText(ImGuiUtils::TEXT_ALIGN_MIDDLE, m_currentLoadMessage.c_str());
 				}

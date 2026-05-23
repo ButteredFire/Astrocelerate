@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <map>
 #include <memory>
 #include <barrier>
 
@@ -49,9 +50,10 @@ enum EventFlag {
 	EVENT_FLAG_REQUEST_INIT_SCENE_RESOURCES_BIT			= 1 << 23,
 	EVENT_FLAG_REQUEST_REINIT_IMGUI_BIT					= 1 << 24,
 
-	EVENT_FLAG_CONFIG_SIMULATION_FILE_PARSED_BIT		= 1 << 25
+	EVENT_FLAG_CONFIG_SIMULATION_FILE_PARSED_BIT		= 1 << 25,
+	EVENT_FLAG_CONFIG_SIMULATION_ERROR_BIT				= 1 << 26
 };
-constexpr size_t EVENT_FLAG_COUNT = 25 + 1; // Highest bit position + 1
+constexpr size_t EVENT_FLAG_COUNT = 26 + 1; // Highest bit position + 1
 
 
 namespace InitEvent {
@@ -334,5 +336,13 @@ namespace ConfigEvent {
 
 		Application::YAMLFileConfig fileConfig;
 		Application::SimulationConfig simulationConfig;
+	};
+
+
+	/* Used when errors have been detected during simulation loading. */
+	struct SimulationError {
+		const EventFlag eventFlag = EVENT_FLAG_CONFIG_SIMULATION_ERROR_BIT;
+
+		std::map<int, std::pair<std::string, std::string>> errorMarkers;		// Error marker map that details which errors occurred on which line, with what error title and message
 	};
 }

@@ -3,10 +3,6 @@ FileConfig:
     Description: "SGP4 Propagator test with the VNREDSat-1A satellite, using real TLE data (TEME -> J2000 ECI)"
 
 SimulationConfig:
-    Kernels:
-        - Path: "kernels/naif0012.tls"
-        - Path: "kernels/pck00010.tpc"
-        - Path: "kernels/de442.bsp"
     CoordinateSystem:
         Frame: ECI
         Epoch: J2000
@@ -48,7 +44,7 @@ Scene:
               ReferenceArea: 0.0
               ReflectivityCoefficient: 0.0
 
-        - Type: Spacecraft::Thruster
+        - Type: Spacecraft::Thrustr
           Data:
               ThrustMagnitude: 0.0
               SpecificImpulse: 0.0

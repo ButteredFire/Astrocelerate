@@ -310,31 +310,6 @@ SceneLoader::FileData SceneLoader::loadSceneFromFile(const std::string &filePath
     m_fileName = FilePathUtils::GetFileName(filePath);
 
 
-    // Exception message creation helpers
-    static std::function<std::string(const std::string &, const std::string &)> getExceptionHeader = [](const std::string &faultyEntity, const std::string &faultyComponent) {
-        std::string entityData;
-        if (!faultyEntity.empty() && !faultyComponent.empty())
-            entityData = "Error processing " + faultyComponent + " @ " + faultyEntity + "\n\n";
-
-        return entityData;
-    };
-    static std::function<std::string(const YAML::Exception &, const std::string &)> getYAMLExceptionMsg = [](const YAML::Exception &e, const std::string &customMsg) {
-        std::string msg;
-        std::string excMsg = e.msg;
-        if (!e.mark.is_null())
-            msg = "Parsing error at line " + std::to_string(e.mark.line + 1) + ", column " + std::to_string(e.mark.column + 1) + ": ";
-        if (!excMsg.empty())
-            excMsg[0] = std::toupper(excMsg[0]);
-        msg += excMsg;
-
-        if (!customMsg.empty())
-            msg += "\n\nDetails:\n" + customMsg;
-
-        return msg;
-    };
-
-
-
     // Worker thread progress tracking
     m_eventDispatcher->dispatch(UpdateEvent::SceneLoadProgress{
         .progress = 0.0f,
@@ -349,6 +324,10 @@ SceneLoader::FileData SceneLoader::loadSceneFromFile(const std::string &filePath
 
     m_fileConfig = Application::YAMLFileConfig{};
     m_simulationConfig = Application::SimulationConfig{};
+
+    m_errorMarkers.clear();
+
+    m_fileConfig.filePath = filePath;
 
 	try {
         YAML::Node rootNode = YAML::LoadFile(filePath);
@@ -365,7 +344,7 @@ SceneLoader::FileData SceneLoader::loadSceneFromFile(const std::string &filePath
         m_eventDispatcher->dispatch(ConfigEvent::SimulationFileParsed{
            .fileConfig = m_fileConfig,
            .simulationConfig = m_simulationConfig
-        }, false, true);
+        });
 
 
 
@@ -375,8 +354,13 @@ SceneLoader::FileData SceneLoader::loadSceneFromFile(const std::string &filePath
             .message = "Processing scene..."
         });
 
-        processScene(rootNode, currentEntity, currentComponent);
-
+        try {
+            processScene(rootNode, currentEntity, currentComponent);
+        }
+        catch (const YAML::Exception &e) {
+            int line = e.mark.line;
+            addErrorMarker(line, getExceptionHeader(currentEntity, currentComponent), getYAMLExceptionMsg(e, ""));
+        }
 
 
         // ----- Finalize geometry baking -----
@@ -401,19 +385,31 @@ SceneLoader::FileData SceneLoader::loadSceneFromFile(const std::string &filePath
 
 	catch (const YAML::BadFile &e) {
         const std::string msg = "Simulation file " + m_fileName + " is either not found or unreadable.";
-		throw Log::RuntimeException(__FUNCTION__, __LINE__, getYAMLExceptionMsg(e, msg));
+        throw Log::RuntimeException(__FUNCTION__, __LINE__, getYAMLExceptionMsg(e, msg));
 
         // Re-throw the original exception to the outer try-catch block (i.e., the Session try-catch block, for it to reset its status)
         throw;
 	}
-	catch (const YAML::Exception &e) {
-        const std::string header = getExceptionHeader(currentEntity, currentComponent);
-        throw Log::RuntimeException(__FUNCTION__, __LINE__, header + getYAMLExceptionMsg(e, ""));
-        throw;
-	}
+    catch (const YAML::Exception &e) {
+        int line = e.mark.line;
+        addErrorMarker(line, getExceptionHeader(currentEntity, currentComponent), getYAMLExceptionMsg(e, ""));
+    }
     catch (const std::exception &e) {
         const std::string header = getExceptionHeader(currentEntity, currentComponent);
-        throw Log::RuntimeException(__FUNCTION__, __LINE__, header + e.what());
+        addErrorMarker(-1, header, e.what());
+    }
+
+
+
+    if (!m_errorMarkers.empty()) {
+        m_eventDispatcher->dispatch(ConfigEvent::SimulationError{
+            .errorMarkers = m_errorMarkers
+        });
+
+        throw Log::RuntimeException(__FUNCTION__, __LINE__,
+            "Encountered " + std::to_string(m_errorMarkers.size()) + PLURAL(m_errorMarkers.size(), " error " , " errors ")
+            + "while processing simulation file " + enquote(m_fileName) + ".\n\nOpen configuration to see details."
+        );
         throw;
     }
 
@@ -446,66 +442,75 @@ void SceneLoader::processMetadata(Application::YAMLFileConfig *fileConfig, Appli
     const auto fileCfgRoot = rootNode[YAMLFileConfig::ROOT];
     const auto simCfgRoot = rootNode[YAMLSimConfig::ROOT];
 
-    // File configuration
-    if (fileCfgRoot) {
-        fileConfig->fileName = m_fileName;
+    try {
+        // File configuration
+        if (fileCfgRoot) {
+            fileConfig->fileName = m_fileName;
 
-        if (!YAMLUtils::TryGetEntryData(&fileConfig->version, YAMLFileConfig::Version, fileCfgRoot))
-            Log::Print(Log::T_WARNING, __FUNCTION__, "File configuration does not include simulation version! This simulation may be incompatible.");
+            if (!YAMLUtils::TryGetEntryData(&fileConfig->version, YAMLFileConfig::Version, fileCfgRoot))
+                Log::Print(Log::T_WARNING, __FUNCTION__, "File configuration does not include simulation version! This simulation may be incompatible.");
 
-        YAMLUtils::TryGetEntryData(&fileConfig->description, YAMLFileConfig::Description, fileCfgRoot);
-    }
-
-    else {
-        throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to process metadata: File configuration does not exist!");
-        throw;
-    }
-
-
-    // Simulation configuration
-    if (simCfgRoot) {
-        // SPICE kernels
-        const auto kernelsNode = simCfgRoot[YAMLSimConfig::Kernels];
-        if (!kernelsNode) {
-            throw Log::RuntimeException(__FUNCTION__, __LINE__, "Simulation configuration does not contain SPICE kernel paths!");
-            throw;
+            YAMLUtils::TryGetEntryData(&fileConfig->description, YAMLFileConfig::Description, fileCfgRoot);
         }
 
         else {
-            const size_t kernelCount = kernelsNode.size();
-            simConfig->kernelPaths.resize(kernelCount);
-
-            for (size_t i = 0; i < kernelCount; i++) {
-                YAMLUtils::TryGetEntryData(&simConfig->kernelPaths[i], YAMLSimConfig::Kernel_Path, kernelsNode[i]);
-            }
+            addErrorMarker(-1, "File configuration error", "Failed to process metadata: File configuration does not exist!");
+            //throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to process metadata: File configuration does not exist!");
+            //throw;
         }
 
 
-        // Coordinate system
-        const auto coordSysNode = simCfgRoot[YAMLSimConfig::CoordSys];
-        if (!coordSysNode) {
-            throw Log::RuntimeException(__FUNCTION__, __LINE__, "Simulation configuration does not contain information on the coordinate system!");
-            throw;
+        // Simulation configuration
+        if (simCfgRoot) {
+            // SPICE kernels
+            const auto kernelsNode = simCfgRoot[YAMLSimConfig::Kernels];
+            if (!kernelsNode) {
+                addErrorMarker(-1, "Simulation configuration error", "Simulation configuration does not contain SPICE kernel paths!\n\nCertain kernels, such as the leapseconds kernel, are required to run the simulation.");
+                //throw Log::RuntimeException(__FUNCTION__, __LINE__, "Simulation configuration does not contain SPICE kernel paths!");
+                //throw;
+            }
+
+            else {
+                const size_t kernelCount = kernelsNode.size();
+                simConfig->kernelPaths.resize(kernelCount);
+
+                for (size_t i = 0; i < kernelCount; i++) {
+                    YAMLUtils::TryGetEntryData(&simConfig->kernelPaths[i], YAMLSimConfig::Kernel_Path, kernelsNode[i]);
+                }
+            }
+
+
+            // Coordinate system
+            const auto coordSysNode = simCfgRoot[YAMLSimConfig::CoordSys];
+            if (!coordSysNode) {
+                addErrorMarker(-1, "Simulation configuration error", "No coordinate system has been specified!");
+                //throw Log::RuntimeException(__FUNCTION__, __LINE__, "Simulation configuration does not contain information on the coordinate system!");
+                //throw;
+            }
+
+            else {
+                std::string frameStr;
+                if (YAMLUtils::TryGetEntryData(&frameStr, YAMLSimConfig::CoordSys_Frame, coordSysNode)) {
+                    simConfig->frame = CoordSys::FrameYAMLToEnumMap.at(frameStr);
+                    simConfig->frameType = CoordSys::FrameProperties.at(simConfig->frame).frameType;
+                }
+
+                std::string epochStr;
+                if (YAMLUtils::TryGetEntryData(&epochStr, YAMLSimConfig::CoordSys_Epoch, coordSysNode)) {
+                    simConfig->epoch = CoordSys::EpochStrToEnumMap.at(epochStr);
+                    YAMLUtils::TryGetEntryData(&simConfig->epochFormat, YAMLSimConfig::CoordSys_EpochFormat, coordSysNode);
+                }
+            }
         }
 
         else {
-            std::string frameStr;
-            if (YAMLUtils::TryGetEntryData(&frameStr, YAMLSimConfig::CoordSys_Frame, coordSysNode)) {
-                simConfig->frame = CoordSys::FrameYAMLToEnumMap.at(frameStr);
-                simConfig->frameType = CoordSys::FrameProperties.at(simConfig->frame).frameType;
-            }
-
-            std::string epochStr;
-            if (YAMLUtils::TryGetEntryData(&epochStr, YAMLSimConfig::CoordSys_Epoch, coordSysNode)) {
-                simConfig->epoch = CoordSys::EpochStrToEnumMap.at(epochStr);
-                YAMLUtils::TryGetEntryData(&simConfig->epochFormat, YAMLSimConfig::CoordSys_EpochFormat, coordSysNode);
-            }
+            addErrorMarker(-1, "Simulation configuration error", "Failed to process metadata: Simulation configuration does not exist!");
+            //throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to process metadata: Simulation configuration does not exist!");
+            //throw;
         }
     }
-
-    else {
-        throw Log::RuntimeException(__FUNCTION__, __LINE__, "Failed to process metadata: Simulation configuration does not exist!");
-        throw;
+    catch (const YAML::Exception &e) {
+        addErrorMarker(e.mark.line, "Configuration error", getYAMLExceptionMsg(e, ""));
     }
 
 
@@ -521,7 +526,6 @@ void SceneLoader::processScene(const YAML::Node &rootNode, std::string &currentE
     const auto sceneRoot = rootNode[YAMLScene::ROOT];
     LOG_ASSERT(sceneRoot, "There is nothing to process!");
 
-    size_t processedEntities = 0;
     size_t totalEntities = sceneRoot.size();
 
 
@@ -594,7 +598,9 @@ void SceneLoader::processScene(const YAML::Node &rootNode, std::string &currentE
         for (YAML::Node componentNode : entityNode[YAMLScene::Entity_Components]) {
             ComponentName componentType = componentNode[YAMLScene::Entity_Components_Type].as<ComponentName>();
             
+            // FIXME: `selfComponents` is misleading when it is actually an entity-to-components map (containing all scene entities); consider renaming or unifying it with the `YAMLParseCtx::sceneEntities` map pointer
             parseContext.selfComponents = &componentNodes[entityName];
+            
             parseContext.currentComponentType = componentType;
 
             componentNodes[entityName][componentType] = componentNode;
@@ -604,6 +610,9 @@ void SceneLoader::processScene(const YAML::Node &rootNode, std::string &currentE
 
 
         // ----- DESERIALIZE ENTITIES & COMPONENTS -----
+    size_t processedComponents = 0;
+    const size_t totalComponents = entityParseContexts.size();
+
     for (auto &ctx : entityParseContexts) {
         Log::Print(Log::T_DEBUG, __FUNCTION__, "Deserializing " + ctx.currentComponentType + " @ " + ctx.entityName);
 
@@ -611,16 +620,96 @@ void SceneLoader::processScene(const YAML::Node &rootNode, std::string &currentE
         currentComponent = ctx.currentComponentType;
 
         // Update progress
-        processedEntities++;
-        float entityProcessingProgress = static_cast<float>(processedEntities) / totalEntities;
+        float progress = static_cast<float>(processedComponents++) / totalComponents;
 
         m_eventDispatcher->dispatch(UpdateEvent::SceneLoadProgress{
-            .progress = 0.1f + (entityProcessingProgress * 0.75f),
+            .progress = 0.1f + (progress * 0.75f),
             .message = "[" + std::string(ctx.entityName) + "] Processing components..."
         });
 
 
-        // Deserialize!
-        m_serialRegistry.deserialize(ctx.currentComponentType, static_cast<IParseCtx *>(&ctx));
+        // Deserialization
+        // FIXME: This is a bad and confusing error-checking implementation, but fixing the entire scene loader is outside of the scope of `feat/enhanced-editor`
+        if (!ctx.selfComponents) {
+            // Deserialize directly if entity has no components (i.e., it either is a dummy or built-in entity), as there is no risk for parsing errors
+            m_serialRegistry.deserialize(ctx.currentComponentType, static_cast<IParseCtx *>(&ctx));
+        }
+        else {
+            // Else, set up error marker data and then deserialize
+
+            // Make sure component has deserialization logic
+            if (!m_serialRegistry.containsDeserialLogic(ctx.currentComponentType)) {
+                addErrorMarker(-1, getExceptionHeader(ctx.entityName, ctx.currentComponentType), "Unrecognized or unsupported component " + enquote(ctx.currentComponentType));
+                continue;
+            }
+
+
+            // Deserialize
+                // Set up diagnostics in case of error
+            auto mark = ctx.selfComponents->at(ctx.currentComponentType).Mark();
+            int line = -1;
+            std::string errLocation;
+            if (!mark.is_null()) {
+                line = mark.line;
+                errLocation = "At line " + std::to_string(line + 1) + ", column " + std::to_string(mark.column + 1) + ": \n\n";
+            }
+            else
+                while (m_errorMarkers.contains(line))
+                    line--;
+
+                // Deserialize!
+            try {
+                m_serialRegistry.deserialize(ctx.currentComponentType, static_cast<IParseCtx *>(&ctx));
+            }
+            catch (const Log::RuntimeException &e) {
+                addErrorMarker(line, getExceptionHeader(ctx.entityName, ctx.currentComponentType), errLocation + e.what());
+            }
+            catch (const std::out_of_range &e) {
+                addErrorMarker(line, getExceptionHeader(ctx.entityName, ctx.currentComponentType), errLocation + e.what());
+            }
+            catch (const YAML::Exception &e) {
+                addErrorMarker(line, getExceptionHeader(ctx.entityName, ctx.currentComponentType), getYAMLExceptionMsg(e, ""));
+            }
+        }
     }
+}
+
+
+std::string SceneLoader::getExceptionHeader(const std::string &faultyEntity, const std::string &faultyComponent) {
+    std::string entityData;
+    if (!faultyEntity.empty() && !faultyComponent.empty())
+        entityData = "Error processing " + faultyComponent + " in " + faultyEntity;
+    else if (!faultyEntity.empty() || !faultyComponent.empty())
+        entityData = "Error processing " + (faultyEntity.empty()) ? faultyComponent : faultyEntity;
+    else
+        entityData = "Unknown error";
+
+    return entityData;
+}
+
+
+std::string SceneLoader::getYAMLExceptionMsg(const YAML::Exception &e, const std::string &customMsg) {
+    std::string msg;
+    std::string excMsg = e.msg;
+    if (!e.mark.is_null())
+        msg = "At line " + std::to_string(e.mark.line + 1) + ", column " + std::to_string(e.mark.column + 1) + ": ";
+    if (!excMsg.empty())
+        excMsg[0] = std::toupper(excMsg[0]);
+    msg += excMsg;
+
+    if (!customMsg.empty())
+        msg += "\n\nDetails:\n" + customMsg;
+
+    return msg;
+}
+
+
+void SceneLoader::addErrorMarker(int line, const std::string &title, const std::string &msg) {
+    line += 1;          // yaml-cpp: lines and columns are 0-indexed
+    if (line <= 0)      // yaml-cpp: if a mark is null, line = column = -1
+        // If mark is null (i.e., the error is not attributable to any specific line/column in the file), still insert error marker but make sure line number is unique (though guaranteed to be negative)
+        while (m_errorMarkers.contains(line))
+            line--;
+
+    m_errorMarkers[line] = { title, msg };
 }
