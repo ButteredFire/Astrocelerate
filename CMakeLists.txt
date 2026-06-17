@@ -347,3 +347,41 @@ install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/configs/"
 
 # Include CPack at the end so that it could read the configuration (environmental variables)
 include(CPack)
+
+
+
+# CATCH2 UNIT TESTING
+
+enable_testing()
+
+set(TESTS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/tests")
+
+file(GLOB_RECURSE TEST_SOURCES 
+    CONFIGURE_DEPENDS 
+    "${TESTS_DIR}/main.cpp"
+    "${TESTS_DIR}/*.test.cpp"
+)
+
+add_executable(AstrocelerateTests ${TEST_SOURCES})
+
+target_link_libraries(AstrocelerateTests PRIVATE 
+    ${SPICE_LIBRARIES} 
+    ${PKG_LIBS} 
+    ${EXTERNAL_LIBS}
+)
+
+target_include_directories(AstrocelerateTests PRIVATE 
+    ${HEADER_DIRS}
+    ${SPICE_INCLUDE_DIRS}
+    ${FETCHCONTENT_LIBS_TARGET_INCLUDE_DIRS}
+    ${TESTS_DIR}
+)
+
+target_compile_options(AstrocelerateTests PRIVATE
+    $<$<CXX_COMPILER_ID:MSVC>:/MP>
+    $<$<CXX_COMPILER_ID:MSVC>:/utf-8>
+    $<$<CXX_COMPILER_ID:GNU>:-finput-charset=UTF-8>
+    $<$<CXX_COMPILER_ID:Clang>:-finput-charset=UTF-8>
+)
+
+add_test(NAME AllTests COMMAND AstrocelerateTests)
