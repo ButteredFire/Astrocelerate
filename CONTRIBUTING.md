@@ -49,7 +49,8 @@ When writing a commit message, please keep in mind:
 |---|---|
 | `physics` | Physics engine and simulation logic |
 | `propagator` | Orbital propagators (SGP4, numerical integrators, etc.) |
-| `rendering` | Vulkan rendering layer |
+| `vulkan` | Vulkan rendering layer |
+| `scripting` | Scripting architecture |
 | `ecs` | Entity-component system |
 | `ui` | Dear ImGui interface |
 | `build` | CMake, build configuration |
@@ -61,7 +62,7 @@ When writing a commit message, please keep in mind:
 Examples:
 - `feat(propagator): implement SGP4 mean motion initialization`
 - `fix(ecs): correct out-of-bounds access in sparse set operator[]`
-- `refactor(rendering): extract swapchain logic into dedicated class`
+- `refactor(vulkan): extract swapchain logic into dedicated class`
 - `chore(build): add Catch2 as test dependency`
 - `docs: update installation prerequisites`
 

@@ -55,9 +55,9 @@ set(RELEASE_MODES "Release;MinSizeRel")
 
 if (CMAKE_BUILD_TYPE IN_LIST ASAN_ENABLED_MODES)
     if (MSVC)
-        add_compile_options(/fsanitize=address)
+        add_compile_options(/fsanitize=address /Zc:preprocessor /MP)
         add_link_options(/fsanitize=address)
-        # Handle /RTC and /ZI if needed
+        # Handle /RTC and /ZI
     elseif (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
         add_compile_options(-fsanitize=address -fno-omit-frame-pointer -g)
         add_link_options(-fsanitize=address)
@@ -84,20 +84,6 @@ list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/scripts")    # Appends the 
     include("scripts/HeaderFiles.cmake")
 
 
-# Add source files to the project's executable
-add_executable(Astrocelerate ${SOURCE_FILES})
-
-
-# Show/Hide the console window
-    # On Windows, applications with windows have their consoles automatically hidden
-    # On Linux/macOS, this property is ignored and does nothing
-set_target_properties(Astrocelerate PROPERTIES WIN32_EXECUTABLE TRUE)
-if(MSVC)
-    # Because Microsoft always feels the need to make themselves look special, Windows applications look for `WinMain` rather than the conventional `main` function as the entry point. We can force MSVC to look for `main` instead.
-    set_target_properties(Astrocelerate PROPERTIES LINK_FLAGS "/ENTRY:mainCRTStartup")
-endif()
-
-
 # Copy resources from source to binary directory
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/samples" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
 
@@ -106,22 +92,6 @@ file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/kernels" DESTINATION "${CMAKE_CURRENT_BIN
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/assets" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
 
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/configs" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
-
-
-# Set the output directory for the executable in the development build
-set_target_properties(Astrocelerate PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bin"  # This mirrors the final installation output
-)
-
-
-# Compile options for C++ source files
-    # CMake generator expression: $<condition:value>        (If condition is true, value is used; otherwise, value = empty string)
-target_compile_options(Astrocelerate PRIVATE
-    $<$<CXX_COMPILER_ID:MSVC>:/MP>
-    $<$<CXX_COMPILER_ID:MSVC>:/utf-8>
-    $<$<CXX_COMPILER_ID:GNU>:-finput-charset=UTF-8>
-    $<$<CXX_COMPILER_ID:Clang>:-finput-charset=UTF-8>
-)
 
 
 # Functions
@@ -229,10 +199,6 @@ set(FETCHCONTENT_LIBS_TARGET_INCLUDE_DIRS
 )
 
 
-# Automate compilation of shader files into SPIR-V bytecode with glslc.exe
-    CompileShaders()
-
-
 # Add subdirectories
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/external/boxer")
 
@@ -242,16 +208,57 @@ add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/external/boxer")
     endif (WIN32)
 
 
-# Link libraries
-target_link_libraries(Astrocelerate PRIVATE ${SPICE_LIBRARIES} ${PKG_LIBS} ${EXTERNAL_LIBS})
+# Compile all source files into a reusable object library pool
+# (so that both the main application and unit testing can resolve external symbols via a shared pool of compiled binary machine code instructions)
+add_library(Astrocelerate_ObjLib OBJECT ${SOURCE_FILES})
 
-
-# Include library directories
-target_include_directories(Astrocelerate PRIVATE 
+target_include_directories(Astrocelerate_ObjLib PRIVATE 
     ${HEADER_DIRS}
     ${SPICE_INCLUDE_DIRS}
     ${FETCHCONTENT_LIBS_TARGET_INCLUDE_DIRS}
 )
+
+target_link_libraries(Astrocelerate_ObjLib PUBLIC
+    ${SPICE_LIBRARIES}
+    ${PKG_LIBS}
+    ${EXTERNAL_LIBS}
+)
+
+
+
+# Astrocelerate Application Setup
+add_executable(Astrocelerate "${CMAKE_CURRENT_SOURCE_DIR}/src/Application/Application.cpp")
+
+target_link_libraries(Astrocelerate PRIVATE
+    Astrocelerate_ObjLib
+)
+
+target_include_directories(Astrocelerate PRIVATE 
+    ${HEADER_DIRS}
+    ${SPICE_INCLUDE_DIRS}
+    ${FETCHCONTENT_LIBS_TARGET_INCLUDE_DIRS}
+    "${CMAKE_CURRENT_SOURCE_DIR}/src"
+)
+
+
+    # Show/Hide the console window
+        # On Windows, applications with windows have their consoles automatically hidden
+        # On Linux/macOS, this property is ignored and does nothing
+set_target_properties(Astrocelerate PROPERTIES WIN32_EXECUTABLE TRUE)
+if(MSVC)
+    # Windows applications look for `WinMain` rather than the CONVENTIONAL `main` function as the entry point. We can force MSVC to look for `main` instead.
+    set_target_properties(Astrocelerate PROPERTIES LINK_FLAGS "/ENTRY:mainCRTStartup")
+endif()
+
+    # Set the output directory for the executable in the development build
+set_target_properties(Astrocelerate PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bin"  # This mirrors the final installation output
+)
+
+
+    # Automate compilation of shader files into SPIR-V bytecode with glslc.exe (depends on the Astrocelerate target)
+CompileShaders()
+
 
 
 # Installation commands
@@ -350,24 +357,23 @@ include(CPack)
 
 
 
-# CATCH2 UNIT TESTING
+# AstrocelerateTests Application Setup (Catch2 Unit Testing)
 
 enable_testing()
 
 set(TESTS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/tests")
 
 file(GLOB_RECURSE TEST_SOURCES 
-    CONFIGURE_DEPENDS 
+    CONFIGURE_DEPENDS
     "${TESTS_DIR}/main.cpp"
-    "${TESTS_DIR}/*.test.cpp"
+    "${TESTS_DIR}/*.unit_test.cpp"
+    "${TESTS_DIR}/*.integ_test.cpp"
 )
-
+    
 add_executable(AstrocelerateTests ${TEST_SOURCES})
 
 target_link_libraries(AstrocelerateTests PRIVATE 
-    ${SPICE_LIBRARIES} 
-    ${PKG_LIBS} 
-    ${EXTERNAL_LIBS}
+    Astrocelerate_ObjLib # Tests are compiled with the object library they share with the main application
 )
 
 target_include_directories(AstrocelerateTests PRIVATE 
@@ -375,13 +381,6 @@ target_include_directories(AstrocelerateTests PRIVATE
     ${SPICE_INCLUDE_DIRS}
     ${FETCHCONTENT_LIBS_TARGET_INCLUDE_DIRS}
     ${TESTS_DIR}
-)
-
-target_compile_options(AstrocelerateTests PRIVATE
-    $<$<CXX_COMPILER_ID:MSVC>:/MP>
-    $<$<CXX_COMPILER_ID:MSVC>:/utf-8>
-    $<$<CXX_COMPILER_ID:GNU>:-finput-charset=UTF-8>
-    $<$<CXX_COMPILER_ID:Clang>:-finput-charset=UTF-8>
 )
 
 add_test(NAME AllTests COMMAND AstrocelerateTests)

@@ -8,11 +8,16 @@ import sys
 import platform
 from pathlib import Path
 
-# Exclude Boxer source files, as they are already compiled as part of the Boxer library
 excludedFiles = [
+    # Exclude Boxer source files, as they are already compiled as part of the Boxer library
     "boxer_linux.cpp",
     "boxer_mac.mm",
-    "boxer_win.cpp"
+    "boxer_win.cpp",
+
+    # Entry point for the main Astrocelerate application.
+    # It is excluded because the rest of the application is compiled into an object library that both the main and unit-test applications share.
+    # If it were included, the unit-test application would not be able to compile due to duplicate entry points.
+    "Application.cpp"
 ]
 
 # File extensions that are allowed to be written into CMake files
