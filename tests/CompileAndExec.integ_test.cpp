@@ -120,7 +120,7 @@ namespace {
 		const Compiler::MockNodeRegistry &nodeRegistry,
 		const Compiler::ConstantPool::ConstantPoolLookupT &poolLookupTable,
 		const Diagnostics::DiagReporter &reporter,
-		const std::vector<std::string> &disassembly,
+		const std::vector<Compiler::SymbolicInstruction> &symbolicInstructions,
 		const std::ostringstream &output
 	) {
 		static constexpr int IDX_HEX_W = sizeof(Compiler::RawOperandT) * 2;    // sizeof(T) returns the size in bytes; 2 hex digits = 1 byte
@@ -203,7 +203,7 @@ namespace {
 		std::cout << "========== DISASSEMBLY ==========\n\n";
 		AsTL::IDX address = 0;
 
-		for (const auto &line : disassembly)
+		for (const auto &line : CompilerUtils::FormatDisassembly(symbolicInstructions))
 			std::cout << std::format("0x{:0>{}X} |\t{}\n",
 				address++, IDX_HEX_W,
 				line
@@ -246,8 +246,7 @@ TEST_CASE("Compilation & Execution Test: Simple Graph", __FILE__) {
 	PROFILE_COMPILE_END
 
 	//std::ostringstream dummy{};
-	//auto disassembly = CompilerUtils::FormatDisassembly(symbolicInstructions);
-	//dumpDisassembly(registry, pool.getPoolLookup(), reporter, disassembly, dummy);
+	//dumpDisassembly(registry, pool.getPoolLookup(), reporter, symbolicInstructions, dummy);
 
 	Compiler::VMExitCode exitCode{};
 
@@ -268,6 +267,8 @@ TEST_CASE("Compilation & Execution Test: Simple Graph", __FILE__) {
 
 	std::cout.rdbuf(oldBuf);
 
+
+	REQUIRE(exitCode == Compiler::VMExitCode::SUCCESS);
 	AssertOutput(
 		output,
 		"Got here from the True branch!\n"
@@ -303,8 +304,7 @@ TEST_CASE("Compilation & Execution Test: Diamond Graph", __FILE__) {
 	PROFILE_COMPILE_END
 
 	//std::ostringstream dummy{};
-	//auto disassembly = CompilerUtils::FormatDisassembly(symbolicInstructions);
-	//dumpDisassembly(registry, pool.getPoolLookup(), reporter, disassembly, dummy);
+	//dumpDisassembly(registry, pool.getPoolLookup(), reporter, symbolicInstructions, dummy);
 
 	Compiler::VMExitCode exitCode{};
 
@@ -325,6 +325,8 @@ TEST_CASE("Compilation & Execution Test: Diamond Graph", __FILE__) {
 
 	std::cout.rdbuf(oldBuf);
 
+
+	REQUIRE(exitCode == Compiler::VMExitCode::SUCCESS);
 	AssertOutput(
 		output,
 R"(Path A: True
@@ -363,8 +365,7 @@ TEST_CASE("Compilation & Execution Test: Fibonacci Sequence", __FILE__) {
 	PROFILE_COMPILE_END
 
 	//std::ostringstream dummy{};
-	//auto disassembly = CompilerUtils::FormatDisassembly(symbolicInstructions);
-	//dumpDisassembly(registry, pool.getPoolLookup(), reporter, disassembly, dummy);
+	//dumpDisassembly(registry, pool.getPoolLookup(), reporter, symbolicInstructions, dummy);
 
 	Compiler::VMExitCode exitCode{};
 
@@ -385,6 +386,11 @@ TEST_CASE("Compilation & Execution Test: Fibonacci Sequence", __FILE__) {
 
 	std::cout.rdbuf(oldBuf);
 
+
+	//dumpDisassembly(registry, pool.getPoolLookup(), reporter, symbolicInstructions, output);
+
+
+	REQUIRE(exitCode == Compiler::VMExitCode::SUCCESS);
 	AssertOutput(
 		output,
 R"(1
@@ -402,10 +408,6 @@ R"(1
 
 
 	PRINT_PROFILING_STAT(exitCode)
-
-
-	//auto disassembly = CompilerUtils::FormatDisassembly(symbolicInstructions);
-	//dumpDisassembly(registry, pool.getPoolLookup(), reporter, disassembly, output);
 }
 
 
@@ -503,8 +505,7 @@ TEST_CASE("Compilation & Execution Test: Custom Node", __FILE__) {
 
 
 	//std::ostringstream dummy{};
-	//auto disassembly = CompilerUtils::FormatDisassembly(symbolicInstructions);
-	//dumpDisassembly(registry, pool.getPoolLookup(), reporter, disassembly, dummy);
+	//dumpDisassembly(registry, pool.getPoolLookup(), reporter, symbolicInstructions, dummy);
 
 
 	Compiler::VMExitCode exitCode{};
@@ -527,9 +528,10 @@ TEST_CASE("Compilation & Execution Test: Custom Node", __FILE__) {
 	std::cout.rdbuf(oldBuf);
 
 
-	//auto disassembly = CompilerUtils::FormatDisassembly(symbolicInstructions);
-	//dumpDisassembly(registry, pool.getPoolLookup(), reporter, disassembly, output);
+	//dumpDisassembly(registry, pool.getPoolLookup(), reporter, symbolicInstructions, output);
 
+
+	REQUIRE(exitCode == Compiler::VMExitCode::SUCCESS);
 	AssertOutput(
 		output,
 		R"(Mock::GetApoapsis: Callable invoked with Satellite VNREDSat-1A at position {2e+05, 4e+05, 2e+05}
@@ -612,8 +614,7 @@ TEST_CASE("Compilation & Execution Test: Simulation Tick Exiting", __FILE__) {
 
 
 	//std::ostringstream dummy{};
-	//auto disassembly = CompilerUtils::FormatDisassembly(symbolicInstructions);
-	//dumpDisassembly(registry, pool.getPoolLookup(), reporter, disassembly, dummy);
+	//dumpDisassembly(registry, pool.getPoolLookup(), reporter, symbolicInstructions, dummy);
 
 	// Intentionally invalid exit code (see the execution loop below)
 	// Otherwise, `exitCode` will be initialized to the exit code (0x00 - SUCCESS)
@@ -625,18 +626,20 @@ TEST_CASE("Compilation & Execution Test: Simulation Tick Exiting", __FILE__) {
 	std::streambuf* oldBuf = std::cout.rdbuf();
 	std::cout.rdbuf(output.rdbuf());
 
+	// Cap simulation ticks to prevent TLEs
+	constexpr int MAX_SIM_TICKS = 100;
+	int simTicks = 0;
+
 	// Execution
 	PROFILE_EXEC_START
 	{
 		VirtualMachine vm(pool, registry, reinterpret_cast<AsTL::OpaqueExecCtx*>(&mockSimCtx));
 		vm.setProgram(rawInstructions);
 
-		while (exitCode != Compiler::VMExitCode::SUCCESS) {
-			if (exitCode == Compiler::VMExitCode::FINISHED_EXEC_TICK)
-				exitCode = vm.resume();
-			else
-				exitCode = vm.execute();
-		}
+		exitCode = vm.execute();
+
+		while (exitCode == Compiler::VMExitCode::FINISHED_EXEC_TICK && ++simTicks < MAX_SIM_TICKS)
+			exitCode = vm.resume();
 	}
 	PROFILE_EXEC_END
 
@@ -644,9 +647,11 @@ TEST_CASE("Compilation & Execution Test: Simulation Tick Exiting", __FILE__) {
 	std::cout.rdbuf(oldBuf);
 
 
-	//auto disassembly = CompilerUtils::FormatDisassembly(symbolicInstructions);
-	//dumpDisassembly(registry, pool.getPoolLookup(), reporter, disassembly, output);
+	//dumpDisassembly(registry, pool.getPoolLookup(), reporter, symbolicInstructions, output);
 
+
+	REQUIRE(simTicks < MAX_SIM_TICKS);
+	REQUIRE(exitCode == Compiler::VMExitCode::SUCCESS);
 	AssertOutput(
 		output,
 		R"(Current Epoch: 0.000000
@@ -779,8 +784,7 @@ TEST_CASE("Compilation & Execution Test: One Hundred Primes", __FILE__) {
 
 
 	//std::ostringstream dummy{};
-	//auto disassembly = CompilerUtils::FormatDisassembly(symbolicInstructions);
-	//dumpDisassembly(registry, pool.getPoolLookup(), reporter, disassembly, dummy);
+	//dumpDisassembly(registry, pool.getPoolLookup(), reporter, symbolicInstructions, dummy);
 
 
 	Compiler::VMExitCode exitCode{};
@@ -803,9 +807,10 @@ TEST_CASE("Compilation & Execution Test: One Hundred Primes", __FILE__) {
 	std::cout.rdbuf(oldBuf);
 
 
-	auto disassembly = CompilerUtils::FormatDisassembly(symbolicInstructions);
-	dumpDisassembly(registry, pool.getPoolLookup(), reporter, disassembly, output);
+	//dumpDisassembly(registry, pool.getPoolLookup(), reporter, symbolicInstructions, output);
 
+	
+	REQUIRE(exitCode == Compiler::VMExitCode::SUCCESS);
 	AssertOutput(
 		output,
 		"2\n3\n5\n7\n11\n13\n17\n19\n23\n29\n31\n37\n41\n43\n47\n53\n59\n61\n67\n71\n73\n79\n83\n89\n97\n101\n103\n107\n109\n113\n127\n131\n137\n139\n149\n151\n157\n163\n167\n173\n179\n181\n191\n193\n197\n199\n211\n223\n227\n229\n233\n239\n241\n251\n257\n263\n269\n271\n277\n281\n283\n293\n307\n311\n313\n317\n331\n337\n347\n349\n353\n359\n367\n373\n379\n383\n389\n397\n401\n409\n419\n421\n431\n433\n439\n443\n449\n457\n461\n463\n467\n479\n487\n491\n499\n503\n509\n521\n523\n541\n"

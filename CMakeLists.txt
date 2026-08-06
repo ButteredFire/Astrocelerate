@@ -55,7 +55,7 @@ set(RELEASE_MODES "Release;MinSizeRel")
 
 if (CMAKE_BUILD_TYPE IN_LIST ASAN_ENABLED_MODES)
     if (MSVC)
-        add_compile_options(/fsanitize=address /Zc:preprocessor /MP)
+        add_compile_options(/fsanitize=address)
         add_link_options(/fsanitize=address)
         # Handle /RTC and /ZI
     elseif (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
@@ -63,6 +63,9 @@ if (CMAKE_BUILD_TYPE IN_LIST ASAN_ENABLED_MODES)
         add_link_options(-fsanitize=address)
     endif()
 endif()
+
+    # Other compile options
+add_compile_options(/Zc:preprocessor /MP)
 
 
 # Set C++ standard (allow overriding via CMake cache)

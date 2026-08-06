@@ -262,11 +262,11 @@ private:
 
 	/* Logic for all unary arithmetic and logical operations */
 	template <typename T>
-	FORCE_INLINE void unarySwitchIns(Compiler::OperandType t);
+	void unarySwitchIns(Compiler::OperandType t);
 
 	/* Logic for all binary arithmetic and logical operations */
 	template <typename LEFT_T, typename RIGHT_T>
-	FORCE_INLINE void binarySwitchIns(Compiler::OperandType lt, Compiler::OperandType rt);
+	void binarySwitchIns(Compiler::OperandType lt, Compiler::OperandType rt);
 
 	/* Reinterprets the binary representation of a (smaller- or equal-size) floating-point value as that of a stack element value (uint64_t).
 		The reinterpretation preserves the original value's binary pattern, and performs zero-extension if necessary.

@@ -1000,7 +1000,7 @@ FORCE_INLINE AsTL::STR VirtualMachine::decodeString(uint64_t val) {
 
 
 template <typename T>
-FORCE_INLINE void VirtualMachine::unarySwitchIns(Compiler::OperandType t) {
+void VirtualMachine::unarySwitchIns(Compiler::OperandType t) {
 	size_t consumed{};
 	T val = castFromStack<T>(t, &consumed);
 
@@ -1042,7 +1042,7 @@ bad_unary_op:
 
 
 template <typename LEFT_T, typename RIGHT_T>
-FORCE_INLINE void VirtualMachine::binarySwitchIns(Compiler::OperandType lt, Compiler::OperandType rt) {
+void VirtualMachine::binarySwitchIns(Compiler::OperandType lt, Compiler::OperandType rt) {
 	size_t consumed1{}, consumed2{};
 	RIGHT_T slot1 = castFromStack<RIGHT_T>(m_vsp, rt, &consumed1);		// Top VM stack slot
 	LEFT_T slot2 = castFromStack<LEFT_T>(m_vsp - 1, lt, &consumed2);	// Second-to-top VM stack slot
