@@ -6,8 +6,12 @@
 #include <Scripting/GraphTypes.hpp>
 
 
-namespace Scripting {
+namespace TestProgram::Impl {
 	using enum Graph::Link::LinkType;
+	using enum Graph::ClassScope;
+	using enum Graph::CatScope;
+	using enum Graph::FuncScope;
+
 
 	struct TestInput {
 		std::vector<Graph::Variable> variables;
@@ -21,7 +25,7 @@ namespace Scripting {
 		.nodes = {
 			Graph::Node{
 				1,
-				"Math::Pi",
+				Graph::MakeQualifiedID(Math, Constant, Pi),
 				{}, {}, {},
 				{
 					{ "Value", AsTL::TID_F64 }
@@ -29,7 +33,7 @@ namespace Scripting {
 			},
 			Graph::Node{
 				2,
-				"Math::Multiply",
+				Graph::MakeQualifiedID(Math, Arithmetic, Multiply),
 				{},
 				{},
 				{
@@ -42,7 +46,7 @@ namespace Scripting {
 			},
 			Graph::Node{
 				3,
-				"Math::GT",
+				Graph::MakeQualifiedID(Math, Logic, GreaterThan),
 				{},
 				{},
 				{
@@ -55,7 +59,7 @@ namespace Scripting {
 			},
 			Graph::Node{
 				4,
-				"Control::Branch",
+				Graph::MakeQualifiedID(Control, Branch),
 				{ Graph::ExecInID },
 				{ "True", "False" },
 				{
@@ -65,7 +69,7 @@ namespace Scripting {
 			},
 			Graph::Node{
 				5,
-				"Control::DoOnce",
+				Graph::MakeQualifiedID(Control, DoOnce),
 				{ Graph::ExecInID, "Reset" },
 				{ "Out" },
 				{
@@ -75,7 +79,7 @@ namespace Scripting {
 			},
 			Graph::Node{
 				6,
-				"Console::Print",
+				Graph::MakeQualifiedID(Console, Print),
 				{ Graph::ExecInID },
 				{ Graph::ExecOutID },
 				{
@@ -85,7 +89,7 @@ namespace Scripting {
 			},
 			Graph::Node{
 				7,
-				"Control::DoOnce",
+				Graph::MakeQualifiedID(Control, DoOnce),
 				{ Graph::ExecInID, "Reset" },
 				{ "Out" },
 				{
@@ -95,7 +99,7 @@ namespace Scripting {
 			},
 			Graph::Node{
 				8,
-				"Console::Print",
+				Graph::MakeQualifiedID(Console, Print),
 				{ Graph::ExecInID },
 				{ Graph::ExecOutID },
 				{
@@ -106,7 +110,7 @@ namespace Scripting {
 
 			Graph::Node{
 				9,
-				"Console::Print",
+				Graph::MakeQualifiedID(Console, Print),
 				{ Graph::ExecInID },
 				{ Graph::ExecOutID },
 				{
@@ -145,19 +149,19 @@ namespace Scripting {
 		},
 
 		.nodes = {
-			// --- Deep Math Data Tree ---
 			Graph::Node{
 				1,
-				"Math::Pi",
+				Graph::MakeQualifiedID(Math, Constant, Pi),
 				{}, {},
 				{},
 				{
 					{ "Value", AsTL::TID_F64 }
 				}
 			},
+
 			Graph::Node{
 				2,
-				"Math::Multiply",
+				Graph::MakeQualifiedID(Math, Arithmetic, Multiply),
 				{}, {},
 				{
 					Graph::Node::DataInPin{ "A", AsTL::TID_F64 },
@@ -167,9 +171,10 @@ namespace Scripting {
 					{ "", AsTL::TID_F64 }
 				}
 			},
+
 			Graph::Node{
 				3,
-				"Math::Sin",
+				Graph::MakeQualifiedID(Math, Arithmetic, Sine),
 				{}, {},
 				{
 					Graph::Node::DataInPin{ "X", AsTL::TID_F64 }
@@ -178,9 +183,10 @@ namespace Scripting {
 					{ "", AsTL::TID_F64 }
 				}
 			},
+
 			Graph::Node{
 				4,
-				"Math::Cos",
+				Graph::MakeQualifiedID(Math, Arithmetic, Cosine),
 				{}, {},
 				{
 					Graph::Node::DataInPin{ "X", AsTL::TID_F64 }
@@ -189,9 +195,10 @@ namespace Scripting {
 					{ "", AsTL::TID_F64 }
 				}
 			},
+
 			Graph::Node{
 				5,
-				"Math::Add",
+				Graph::MakeQualifiedID(Math, Arithmetic, Add),
 				{}, {},
 				{
 					Graph::Node::DataInPin{ "A", AsTL::TID_F64 },
@@ -201,9 +208,10 @@ namespace Scripting {
 					{ "", AsTL::TID_F64 }
 				}
 			},
+
 			Graph::Node{
 				6,
-				"Math::GT",
+				Graph::MakeQualifiedID(Math, Logic, GreaterThan),
 				{}, {},
 				{
 					Graph::Node::DataInPin{ "A", AsTL::TID_F64 },
@@ -214,10 +222,9 @@ namespace Scripting {
 				}
 			},
 
-			// --- Execution Flow Nodes ---
 			Graph::Node{
 				7,
-				"Control::Branch",
+				Graph::MakeQualifiedID(Control, Branch),
 				{ Graph::ExecInID },
 				{ "True", "False" },
 				{
@@ -225,9 +232,10 @@ namespace Scripting {
 				},
 				{}
 			},
+
 			Graph::Node{
 				8,
-				"Console::Print",
+				Graph::MakeQualifiedID(Console, Print),
 				{ Graph::ExecInID },
 				{ Graph::ExecOutID },
 				{
@@ -235,9 +243,10 @@ namespace Scripting {
 				},
 				{}
 			},
+
 			Graph::Node{
 				9,
-				"Console::Print",
+				Graph::MakeQualifiedID(Console, Print),
 				{ Graph::ExecInID },
 				{ Graph::ExecOutID },
 				{
@@ -246,10 +255,9 @@ namespace Scripting {
 				{}
 			},
 
-			// The Convergence Point
 			Graph::Node{
 				10,
-				"Control::DoOnce",
+				Graph::MakeQualifiedID(Control, DoOnce),
 				{ Graph::ExecInID, "Reset" },
 				{ "Out" },
 				{
@@ -257,9 +265,10 @@ namespace Scripting {
 				},
 				{}
 			},
+
 			Graph::Node{
 				11,
-				"Console::Print",
+				Graph::MakeQualifiedID(Console, Print),
 				{ Graph::ExecInID },
 				{ Graph::ExecOutID },
 				{
@@ -268,7 +277,6 @@ namespace Scripting {
 				{}
 			},
 
-			// The Loop Back
 			Graph::Node{
 				12,
 				Graph::GetterNodeSymbol,
@@ -283,7 +291,7 @@ namespace Scripting {
 
 			Graph::Node{
 				13,
-				"Control::Branch",
+				Graph::MakeQualifiedID(Control, Branch),
 				{ Graph::ExecInID },
 				{ "True", "False" },
 				{
@@ -294,7 +302,7 @@ namespace Scripting {
 
 			Graph::Node{
 				14,
-				"Control::Sequence",
+				Graph::MakeQualifiedID(Control, Sequence),
 				{ Graph::ExecInID },
 				{ "Then 0", "Then 1", "Then 2" },
 				{}, {}
@@ -311,9 +319,10 @@ namespace Scripting {
 				},
 				{}
 			},
+
 			Graph::Node{
 				16,
-				"Math::Not",
+				Graph::MakeQualifiedID(Math, Logic, Not),
 				{}, {},
 				{
 					Graph::Node::DataInPin{ "", AsTL::TID_BOOL }
@@ -326,6 +335,20 @@ namespace Scripting {
 
 
 		.links = {
+			// Execution Links
+			{ EXEC, Graph::EntryNodeID, Graph::ExecOutID, 7, Graph::ExecInID }, // START -> Branch 1
+			{ EXEC, 7, "True", 8, Graph::ExecInID },							// Branch 1 [True] -> Print A
+			{ EXEC, 7, "False", 9, Graph::ExecInID },							// Branch 1 [False] -> Print B
+			{ EXEC, 8, Graph::ExecOutID, 10, Graph::ExecInID },					// Print A [EXEC_IN] -> DoOnce
+			{ EXEC, 9, Graph::ExecOutID, 10, "Reset" },							// Print B [EXEC_IN] -> DoOnce
+			{ EXEC, 10, "Out", 11, Graph::ExecInID },							// DoOnce [EXEC_OUT] -> Print Converged
+			{ EXEC, 11, Graph::ExecOutID, 13, Graph::ExecInID },				// Print Converged [EXEC_OUT] -> Branch 2
+			{ EXEC, 13, "False", Graph::TermNodeID, Graph::ExecInID },			// Branch 2 [False] -> TERMINATE
+			{ EXEC, 13, "True", 14, Graph::ExecInID },							// Branch 2 [True] -> Sequence
+			{ EXEC, 14, "Then 0", 10, "Reset" },								// Sequence [Then 0] -> DoOnce
+			{ EXEC, 14, "Then 1", 15, Graph::ExecInID },						// Sequence	[Then 1] -> Variable Set
+			{ EXEC, 14, "Then 2", 7, Graph::ExecInID },							// Sequence [Then 2] -> Branch 1
+
 			// Data Links
 			{ DATA, 1, "Value", 2, "A" },										// Pi -> Multiply
 			{ DATA, 2, "", 3, "X" },											// Multiply -> Sin
@@ -336,21 +359,7 @@ namespace Scripting {
 			{ DATA, 6, "", 7, "Condition" },									// GT -> Branch 1
 			{ DATA, 6, "", 16, "" },											// GT -> Not
 			{ DATA, 12, Graph::GetterOutputDataPin, 13, "Condition" },			// Variable Get -> Branch 2
-			{ DATA, 16, "", 15, Graph::SetterInputDataPin },					// Not -> Variable Set
-
-			// Execution Links
-			{ EXEC, Graph::EntryNodeID, Graph::ExecOutID, 7, Graph::ExecInID }, // START -> Branch 1
-			{ EXEC, 7, "True", 8, Graph::ExecInID },							// Branch 1 [True] -> Print A
-			{ EXEC, 7, "False", 9, Graph::ExecInID },							// Branch 1 [False] -> Print B
-			{ EXEC, 8, Graph::ExecOutID, 10, Graph::ExecInID },					// Print A [EXEC_IN] -> DoOnce
-			{ EXEC, 9, Graph::ExecOutID, 10, "Reset" },							// Print B [EXEC_IN] -> DoOnce
-			{ EXEC, 10, "Out", 11, Graph::ExecInID },							// DoOnce [EXEC_OUT] -> Print Converged
-			{ EXEC, 11, Graph::ExecOutID, 13, Graph::ExecInID },				// Print Converged [EXEC_OUT] -> Branch 2
-			{ EXEC, 13, "False", Graph::TermNodeID, Graph::ExecInID },			// Branch 2 [False] -> TERMINATE
-			{ EXEC, 13, "True", 14, Graph::ExecInID },
-			{ EXEC, 14, "Then 0", 10, "Reset" },
-			{ EXEC, 14, "Then 1", 15, Graph::ExecInID },
-			{ EXEC, 14, "Then 2", 7, Graph::ExecInID }
+			{ DATA, 16, "", 15, Graph::SetterInputDataPin }						// Not -> Variable Set
 		}
 	};
 
@@ -389,7 +398,7 @@ namespace Scripting {
 
 			Graph::Node{
 				3,
-				"Math::Add",
+				Graph::MakeQualifiedID(Math, Arithmetic, Add),
 				{}, {},
 				{
 					Graph::Node::DataInPin{ "A", AsTL::TID_I32 },
@@ -402,7 +411,7 @@ namespace Scripting {
 
 			Graph::Node{
 				4,
-				"Math::LT",
+				Graph::MakeQualifiedID(Math, Logic, LessThan),
 				{}, {},
 				{
 					Graph::Node::DataInPin{ "A", AsTL::TID_I32 },
@@ -415,7 +424,7 @@ namespace Scripting {
 
 			Graph::Node{
 				5,
-				"Control::Branch",
+				Graph::MakeQualifiedID(Control, Branch),
 				{ Graph::ExecInID },
 				{ "True", "False" },
 				{
@@ -450,7 +459,7 @@ namespace Scripting {
 
 			Graph::Node{
 				8,
-				"Console::Print",
+				Graph::MakeQualifiedID(Console, Print),
 				{ Graph::ExecInID },
 				{ Graph::ExecOutID },
 				{
@@ -517,7 +526,7 @@ namespace Scripting {
 
 			Graph::Node{
 				3,
-				"Math::GT",
+				Graph::MakeQualifiedID(Math, Logic, GreaterThan),
 				{},
 				{},
 				{
@@ -531,7 +540,7 @@ namespace Scripting {
 
 			Graph::Node{
 				4,
-				"Control::Branch",
+				Graph::MakeQualifiedID(Control, Branch),
 				{ Graph::ExecInID },
 				{ "True", "False" },
 				{
@@ -542,7 +551,7 @@ namespace Scripting {
 
 			Graph::Node{
 				5,
-				"StringUtils::Concat",
+				Graph::MakeQualifiedID(Misc, StringConcat),
 				{}, {},
 				{
 					Graph::Node::DataInPin{ "A", AsTL::TID_STR },
@@ -555,7 +564,7 @@ namespace Scripting {
 
 			Graph::Node{
 				6,
-				"StringUtils::Concat",
+				Graph::MakeQualifiedID(Misc, StringConcat),
 				{}, {},
 				{
 					Graph::Node::DataInPin{ "A", AsTL::TID_STR, "Satellite " },
@@ -568,7 +577,7 @@ namespace Scripting {
 
 			Graph::Node{
 				7,
-				"StringUtils::Concat",
+				Graph::MakeQualifiedID(Misc, StringConcat),
 				{}, {},
 				{
 					Graph::Node::DataInPin{ "A", AsTL::TID_STR, " at position " },
@@ -581,7 +590,7 @@ namespace Scripting {
 
 			Graph::Node{
 				8,
-				"StringUtils::Concat",
+				Graph::MakeQualifiedID(Misc, StringConcat),
 				{}, {},
 				{
 					Graph::Node::DataInPin{ "A", AsTL::TID_STR, " at position " },
@@ -594,7 +603,7 @@ namespace Scripting {
 
 			Graph::Node{
 				9,
-				"StringUtils::Concat",
+				Graph::MakeQualifiedID(Misc, StringConcat),
 				{}, {},
 				{
 					Graph::Node::DataInPin{ "A", AsTL::TID_STR },
@@ -607,7 +616,7 @@ namespace Scripting {
 
 			Graph::Node{
 				10,
-				"Console::Print",
+				Graph::MakeQualifiedID(Console, Print),
 				{ Graph::ExecInID },
 				{ Graph::ExecOutID },
 				{
@@ -618,7 +627,7 @@ namespace Scripting {
 
 			Graph::Node{
 				11,
-				"StringUtils::Concat",
+				Graph::MakeQualifiedID(Misc, StringConcat),
 				{}, {},
 				{
 					Graph::Node::DataInPin{ "A", AsTL::TID_STR },
@@ -631,7 +640,7 @@ namespace Scripting {
 
 			Graph::Node{
 				12,
-				"Console::Print",
+				Graph::MakeQualifiedID(Console, Print),
 				{ Graph::ExecInID },
 				{ Graph::ExecOutID },
 				{
@@ -683,7 +692,7 @@ namespace Scripting {
 
 			Graph::Node{
 				2,
-				"StringUtils::Concat",
+				Graph::MakeQualifiedID(Misc, StringConcat),
 				{}, {},
 				{
 					Graph::Node::DataInPin{ "A", AsTL::TID_STR, "Current Epoch: " },
@@ -696,7 +705,7 @@ namespace Scripting {
 
 			Graph::Node{
 				3,
-				"Console::Print",
+				Graph::MakeQualifiedID(Console, Print),
 				{ Graph::ExecInID },
 				{ Graph::ExecOutID },
 				{
@@ -707,7 +716,7 @@ namespace Scripting {
 
 			Graph::Node{
 				4,
-				"Math::GT",
+				Graph::MakeQualifiedID(Math, Logic, GreaterThan),
 				{},
 				{},
 				{
@@ -721,7 +730,7 @@ namespace Scripting {
 
 			Graph::Node{
 				5,
-				"Control::Branch",
+				Graph::MakeQualifiedID(Control, Branch),
 				{ Graph::ExecInID },
 				{ "True", "False" },
 				{
@@ -771,7 +780,7 @@ namespace Scripting {
 
 			Graph::Node{
 				2,
-				"Math::Add",
+				Graph::MakeQualifiedID(Math, Arithmetic, Add),
 				{}, {},
 				{
 					Graph::Node::DataInPin{ "A", AsTL::TID_I32 },
@@ -796,7 +805,7 @@ namespace Scripting {
 
 			Graph::Node{
 				4,
-				"Math::GTEq",
+				Graph::MakeQualifiedID(Math, Logic, GreaterThanEqualTo),
 				{},
 				{},
 				{
@@ -810,7 +819,7 @@ namespace Scripting {
 
 			Graph::Node{
 				5,
-				"Math::LT",
+				Graph::MakeQualifiedID(Math, Logic, LessThan),
 				{}, {},
 				{
 					Graph::Node::DataInPin{ "A", AsTL::TID_I32 },
@@ -823,7 +832,7 @@ namespace Scripting {
 
 			Graph::Node{
 				6,
-				"Control::Branch",
+				Graph::MakeQualifiedID(Control, Branch),
 				{ Graph::ExecInID },
 				{ "True", "False" },
 				{
@@ -834,7 +843,7 @@ namespace Scripting {
 
 			Graph::Node{
 				7,
-				"Control::Branch",
+				Graph::MakeQualifiedID(Control, Branch),
 				{ Graph::ExecInID },
 				{ "True", "False" },
 				{
@@ -870,7 +879,7 @@ namespace Scripting {
 
 			Graph::Node{
 				10,
-				"Math::Add",
+				Graph::MakeQualifiedID(Math, Arithmetic, Add),
 				{}, {},
 				{
 					Graph::Node::DataInPin{ "A", AsTL::TID_I32 },
@@ -883,7 +892,7 @@ namespace Scripting {
 
 			Graph::Node{
 				11,
-				"Math::Multiply",
+				Graph::MakeQualifiedID(Math, Arithmetic, Multiply),
 				{},
 				{},
 				{
@@ -897,7 +906,7 @@ namespace Scripting {
 
 			Graph::Node{
 				12,
-				"Math::LTEq",
+				Graph::MakeQualifiedID(Math, Logic, LessThanEqualTo),
 				{}, {},
 				{
 					Graph::Node::DataInPin{ "A", AsTL::TID_I32 },
@@ -910,7 +919,7 @@ namespace Scripting {
 
 			Graph::Node{
 				13,
-				"Control::Branch",
+				Graph::MakeQualifiedID(Control, Branch),
 				{ Graph::ExecInID },
 				{ "True", "False" },
 				{
@@ -921,7 +930,7 @@ namespace Scripting {
 
 			Graph::Node{
 				14,
-				"Math::Modulo",
+				Graph::MakeQualifiedID(Math, Arithmetic, Modulo),
 				{},
 				{},
 				{
@@ -935,7 +944,7 @@ namespace Scripting {
 
 			Graph::Node{
 				15,
-				"Math::Eq",
+				Graph::MakeQualifiedID(Math, Logic, EqualTo),
 				{}, {},
 				{
 					Graph::Node::DataInPin{ "A", AsTL::TID_I32 },
@@ -948,7 +957,7 @@ namespace Scripting {
 
 			Graph::Node{
 				16,
-				"Control::Branch",
+				Graph::MakeQualifiedID(Control, Branch),
 				{ Graph::ExecInID },
 				{ "True", "False" },
 				{
@@ -983,7 +992,7 @@ namespace Scripting {
 
 			Graph::Node{
 				19,
-				"Control::Branch",
+				Graph::MakeQualifiedID(Control, Branch),
 				{ Graph::ExecInID },
 				{ "True", "False" },
 				{
@@ -994,19 +1003,19 @@ namespace Scripting {
 
 			Graph::Node{
 				20,
-				"Console::Print",
+				Graph::MakeQualifiedID(Console, Print),
 				{ Graph::ExecInID },
 				{ Graph::ExecOutID },
 				{
 					Graph::Node::DataInPin{ "String", AsTL::TID_I32 }
 				},
 				{}
-			},
+			}
 		},
 
 		.links = {
 			// Execution links
-			{ EXEC, Graph::EntryNodeID, Graph::ExecOutID, 1, Graph::ExecInID },			// ENTRY -> Outer Loop
+			{ EXEC, Graph::EntryNodeID, Graph::ExecOutID, 1, Graph::ExecInID },			// START -> Outer Loop
 			{ EXEC, 1, "Completed", Graph::TermNodeID, Graph::ExecInID },				// Outer Loop (Completed) -> TERMINATE
 			{ EXEC, 1, "In Loop", 6, Graph::ExecInID },									// Outer Loop (In Loop) -> Branch 1
 			{ EXEC, 6, "True", 1, "Break" },											// Branch 1 (True) -> (Break) Outer Loop
@@ -1046,4 +1055,182 @@ namespace Scripting {
 			{ DATA, 18, Graph::GetterOutputDataPin, 19, "Condition" },					// Get "Is Prime" -> (Condition) Branch 5
 		}
 	};
+
+
+
+	inline const TestInput BrokenTypeMismatch = {
+		.variables = {
+			{ "Vector", AsTL::TID_VEC3, AsTL::VEC3(3.14) }
+		},
+
+		.nodes = {
+			Graph::Node{
+				1,
+				Graph::GetterNodeSymbol,
+				{}, {},
+				{
+					Graph::Node::ComboInPin{ Graph::GetterInputComboPin, AsTL::TID_VEC3, "Vector" }
+				},
+				{
+					{ Graph::GetterOutputDataPin, AsTL::TID_VEC3 }
+				}
+			},
+
+			Graph::Node{
+				2,
+				Graph::MakeQualifiedID(Math, Arithmetic, Add),
+				{}, {},
+				{
+					Graph::Node::DataInPin{ "A", AsTL::TID_I32 },
+					Graph::Node::DataInPin{ "B", AsTL::TID_I32 }
+				},
+				{
+					{ "", AsTL::TID_I32 }
+				}
+			},
+
+			Graph::Node{
+				3,
+				Graph::MakeQualifiedID(Console, Print),
+				{ Graph::ExecInID },
+				{ Graph::ExecOutID },
+				{
+					Graph::Node::DataInPin{ "String", AsTL::TID_I32 }
+				},
+				{}
+			}
+		},
+
+		.links = {
+			// Execution Links
+			{ EXEC, Graph::EntryNodeID, Graph::ExecOutID, 3, Graph::ExecInID },
+			{ EXEC, 3, Graph::ExecOutID, Graph::TermNodeID, Graph::ExecInID },
+
+			// Data Links
+			{ DATA, 1, Graph::GetterOutputDataPin, 2, "A" },	// Vector Get (VEC3) -> I32 Input
+			{ DATA, 1, Graph::GetterOutputDataPin, 2, "B" },	// Vector Get (VEC3) -> I32 Input
+			{ DATA, 2, "", 3, "String" }
+		}
+	};
+
+
+
+	inline const TestInput BrokenUndefinedVariable = {
+		.variables = {},
+
+		.nodes = {
+			Graph::Node{
+				1,
+				Graph::MakeQualifiedID(Math, Constant, Pi),
+				{}, {},
+				{},
+				{
+					{ "Value", AsTL::TID_F64 }
+				}
+			},
+			Graph::Node{
+				2,
+				Graph::SetterNodeSymbol,
+				{ Graph::ExecInID },
+				{ Graph::ExecOutID },
+				{
+					Graph::Node::ComboInPin{ Graph::SetterInputComboPin, AsTL::TID_ANY, "NonExistentVar" }  // This variable doesn't exist
+				},
+				{}
+			}
+		},
+
+		.links = {
+			{ EXEC, Graph::EntryNodeID, Graph::ExecOutID, 2, Graph::ExecInID },
+			{ EXEC, 2, Graph::ExecOutID, Graph::TermNodeID, Graph::ExecInID },
+
+			{ DATA, 1, "Value", 2, Graph::SetterInputDataPin }
+		}
+	};
+
+
+
+	inline const TestInput BrokenCircularDependency = {
+		.variables = {},
+
+		.nodes = {
+			Graph::Node{
+				1,
+				Graph::MakeQualifiedID(Math, Arithmetic, Add),
+				{}, {},
+				{
+					Graph::Node::DataInPin{ "A", AsTL::TID_F64 },
+					Graph::Node::DataInPin{ "B", AsTL::TID_F64 }
+				},
+				{
+					{ "", AsTL::TID_F64 }
+				}
+			},
+
+			Graph::Node{
+				2,
+				Graph::MakeQualifiedID(Math, Arithmetic, Multiply),
+				{}, {},
+				{
+					Graph::Node::DataInPin{ "A", AsTL::TID_F64 },
+					Graph::Node::DataInPin{ "B", AsTL::TID_F64 }
+				},
+				{
+					{ "", AsTL::TID_F64 }
+				}
+			},
+
+			Graph::Node{
+				3,
+				Graph::MakeQualifiedID(Math, Arithmetic, Subtract),
+				{}, {},
+				{
+					Graph::Node::DataInPin{ "A", AsTL::TID_F64 },
+					Graph::Node::DataInPin{ "B", AsTL::TID_F64 }
+				},
+				{
+					{ "", AsTL::TID_F64 }
+				}
+			},
+
+			// We need an executable node to link one of the circular nodes to, so that the semantic analyzer can trace the links and report the error
+			Graph::Node{
+				4,
+				Graph::MakeQualifiedID(Console, Print),
+				{ Graph::ExecInID },
+				{ Graph::ExecOutID },
+				{
+					Graph::Node::DataInPin{ "String", AsTL::TID_F64 }
+				},
+				{}
+			}
+		},
+
+		.links = {
+			// Circular dependency: 1 depends on 2, 2 depends on 3, 3 depends on 1
+			{ DATA, 1, "", 4, "String" },	// Node 1 output -> Print
+			{ DATA, 1, "", 3, "A" },		// Node 1 output -> Node 3
+			{ DATA, 3, "", 2, "A" },		// Node 3 output -> Node 2
+			{ DATA, 2, "", 1, "A" },		// Node 2 output -> Node 1
+
+			{ EXEC, Graph::EntryNodeID, Graph::ExecOutID, 4, Graph::ExecInID }
+		}
+	};
+}
+
+
+namespace TestProgram {
+	// Working programs
+	inline const Impl::TestInput& SimpleGraph = Impl::SimpleGraph;
+	inline const Impl::TestInput& DiamondGraph = Impl::DiamondGraph;
+	inline const Impl::TestInput& FibonacciSequence = Impl::FibonacciSequence;
+	inline const Impl::TestInput& CustomNode = Impl::CustomNode;
+	inline const Impl::TestInput& SimulationTick = Impl::SimulationTick;
+	inline const Impl::TestInput& OneHundredPrimes = Impl::OneHundredPrimes;
+	
+
+	// Broken programs
+	inline const Impl::TestInput& TypeMismatch = Impl::BrokenTypeMismatch;
+	inline const Impl::TestInput& UndefinedVariable = Impl::BrokenUndefinedVariable;
+	inline const Impl::TestInput& CircularDependency = Impl::BrokenCircularDependency;
 }

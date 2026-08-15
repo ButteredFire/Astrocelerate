@@ -12,11 +12,11 @@
 #include <Scripting/Utils/Assembly.hpp>
 #include <Scripting/Utils/VariantHelpers.hpp>
 #include <Scripting/Compiler/Instruction.hpp>
-#include <Scripting/Compiler/GraphNodeRegistry.hpp>
 #include <Scripting/Compiler/BytecodeEmitter.hpp>
 
 #include <Scripting/VM/VirtualMachine.hpp>
 
+#include "MockNodeRegistry.hpp"
 #include "ScriptingTestData.hpp"
 
 
@@ -41,49 +41,6 @@
 		std::cout << "\nGraph compiled in " << ct.count() << "s\n"																\
 			<< "Executed in " << ext.count() << "s with exit code " << Compiler::VMExitCodeToString(EXIT_CODE) << "\n";			\
 	}
-
-
-namespace Compiler {
-	class MockNodeRegistry : public IGraphNodeRegistry {
-	public:
-		MockNodeRegistry() {
-			m_nodeTable = transferTable();
-			m_nodeLookup = transferLookup();
-		};
-		~MockNodeRegistry() = default;
-
-		const NodeTableT &getNodeTable() const override { return m_nodeTable; };
-		const NodeLookupT &getNodeLookup() const override { return m_nodeLookup; };
-
-		void addOrSet(const GraphNodeDescriptor &descriptor) override {
-			addOrModifyInternal(m_nodeTable, m_nodeLookup, descriptor);
-		};
-
-		void addOrSet(GraphNodeDescriptor &&descriptor) override {
-			addOrModifyInternal(m_nodeTable, m_nodeLookup, std::forward<GraphNodeDescriptor>(descriptor));
-		};
-
-		bool contains(const std::string &nodeFuncName) const override { return m_nodeLookup.contains(nodeFuncName); };
-
-		bool contains(AsTL::IDX nodeFuncIdx) const override { return m_nodeTable.contains(nodeFuncIdx); };
-
-		const std::pair<AsTL::IDX, const GraphNodeDescriptor &> getInfo(const std::string &nodeFuncName) const override {
-			AsTL::IDX index = m_nodeLookup.at(nodeFuncName);
-			return {
-				index,
-				m_nodeTable.at(index)
-			};
-		};
-
-		const GraphNodeDescriptor &getInfo(AsTL::IDX nodeFuncIdx) const override {
-			return m_nodeTable.at(nodeFuncIdx);
-		};
-
-	private:
-		NodeTableT m_nodeTable{};
-		NodeLookupT m_nodeLookup{};
-	};
-}
 
 
 namespace {
@@ -157,11 +114,10 @@ namespace {
 
 			std::cout << "========== REPORTED DIAGNOSTICS ==========\n\n";
 			for (const auto &diag : reporter.getDiagnostics()) {
-				std::cout << std::format("{} {} @ Node_{}{}{}: {}\n",
+				std::cout << std::format("{} {} @ Node_{}{}: {}\n",
 					DiagTypeToString(diag.diagType), DiagSeverityToString(diag.severity),
-					diag.faultyNodeID,
+					(diag.faultyNodeID.has_value()) ? std::to_string(diag.faultyNodeID.value()) : "",
 					(diag.faultyNodePin.has_value()) ? std::format(", Pin \"{}\"", diag.faultyNodePin.value()) : "",
-					(diag.line.has_value()) ? std::format(" (disassembly: line {}, column {})", diag.line.value(), diag.col.value()) : "",
 					diag.message
 				);
 			}
@@ -234,9 +190,9 @@ TEST_CASE("Compilation & Execution Test: Simple Graph", __FILE__) {
 	PROFILE_COMPILE_START
 	{
 		symbolicInstructions = Compiler::BytecodeEmitter(registry, reporter, pool).emitSymbolic(
-			Scripting::SimpleGraph.variables,
-			Scripting::SimpleGraph.nodes,
-			Scripting::SimpleGraph.links
+			TestProgram::SimpleGraph.variables,
+			TestProgram::SimpleGraph.nodes,
+			TestProgram::SimpleGraph.links
 		);
 
 		rawInstructions.reserve(symbolicInstructions.size());
@@ -292,9 +248,9 @@ TEST_CASE("Compilation & Execution Test: Diamond Graph", __FILE__) {
 	PROFILE_COMPILE_START
 	{
 		symbolicInstructions = Compiler::BytecodeEmitter(registry, reporter, pool).emitSymbolic(
-			Scripting::DiamondGraph.variables,
-			Scripting::DiamondGraph.nodes,
-			Scripting::DiamondGraph.links
+			TestProgram::DiamondGraph.variables,
+			TestProgram::DiamondGraph.nodes,
+			TestProgram::DiamondGraph.links
 		);
 
 		rawInstructions.reserve(symbolicInstructions.size());
@@ -325,6 +281,8 @@ TEST_CASE("Compilation & Execution Test: Diamond Graph", __FILE__) {
 
 	std::cout.rdbuf(oldBuf);
 
+	//dumpDisassembly(registry, pool.getPoolLookup(), reporter, symbolicInstructions, output);
+
 
 	REQUIRE(exitCode == Compiler::VMExitCode::SUCCESS);
 	AssertOutput(
@@ -353,9 +311,9 @@ TEST_CASE("Compilation & Execution Test: Fibonacci Sequence", __FILE__) {
 	PROFILE_COMPILE_START
 	{
 		symbolicInstructions = Compiler::BytecodeEmitter(registry, reporter, pool).emitSymbolic(
-			Scripting::FibonacciSequence.variables,
-			Scripting::FibonacciSequence.nodes,
-			Scripting::FibonacciSequence.links
+			TestProgram::FibonacciSequence.variables,
+			TestProgram::FibonacciSequence.nodes,
+			TestProgram::FibonacciSequence.links
 		);
 
 		rawInstructions.reserve(symbolicInstructions.size());
@@ -492,9 +450,9 @@ TEST_CASE("Compilation & Execution Test: Custom Node", __FILE__) {
 	PROFILE_COMPILE_START
 	{
 		symbolicInstructions = Compiler::BytecodeEmitter(registry, reporter, pool).emitSymbolic(
-			Scripting::CustomNode.variables,
-			Scripting::CustomNode.nodes,
-			Scripting::CustomNode.links
+			TestProgram::CustomNode.variables,
+			TestProgram::CustomNode.nodes,
+			TestProgram::CustomNode.links
 		);
 
 		rawInstructions.reserve(symbolicInstructions.size());
@@ -534,10 +492,10 @@ TEST_CASE("Compilation & Execution Test: Custom Node", __FILE__) {
 	REQUIRE(exitCode == Compiler::VMExitCode::SUCCESS);
 	AssertOutput(
 		output,
-		R"(Mock::GetApoapsis: Callable invoked with Satellite VNREDSat-1A at position {2e+05, 4e+05, 2e+05}
-Mock::GetApoapsis: Callable invoked with Satellite VNREDSat-1A at position {4e+05, 8e+05, 4e+05}
-Mock::GetApoapsis: Callable invoked with Satellite VNREDSat-1A at position {8e+05, 1600000, 8e+05}
-Mock::GetApoapsis: Callable invoked with Satellite VNREDSat-1A at position {1600000, 3200000, 1600000}
+		R"(Mock::GetApoapsis: Callable invoked with Satellite VNREDSat-1A at position (2e+05, 4e+05, 2e+05)
+Mock::GetApoapsis: Callable invoked with Satellite VNREDSat-1A at position (4e+05, 8e+05, 4e+05)
+Mock::GetApoapsis: Callable invoked with Satellite VNREDSat-1A at position (8e+05, 1600000, 8e+05)
+Mock::GetApoapsis: Callable invoked with Satellite VNREDSat-1A at position (1600000, 3200000, 1600000)
 Satellite VNREDSat-1A has escaped Low-Earth Orbit!
 )"
 	);
@@ -601,9 +559,9 @@ TEST_CASE("Compilation & Execution Test: Simulation Tick Exiting", __FILE__) {
 	PROFILE_COMPILE_START
 	{
 		symbolicInstructions = Compiler::BytecodeEmitter(registry, reporter, pool).emitSymbolic(
-			Scripting::SimulationTick.variables,
-			Scripting::SimulationTick.nodes,
-			Scripting::SimulationTick.links
+			TestProgram::SimulationTick.variables,
+			TestProgram::SimulationTick.nodes,
+			TestProgram::SimulationTick.links
 		);
 
 		rawInstructions.reserve(symbolicInstructions.size());
@@ -771,9 +729,9 @@ TEST_CASE("Compilation & Execution Test: One Hundred Primes", __FILE__) {
 	PROFILE_COMPILE_START
 	{
 		symbolicInstructions = Compiler::BytecodeEmitter(registry, reporter, pool).emitSymbolic(
-			Scripting::OneHundredPrimes.variables,
-			Scripting::OneHundredPrimes.nodes,
-			Scripting::OneHundredPrimes.links
+			TestProgram::OneHundredPrimes.variables,
+			TestProgram::OneHundredPrimes.nodes,
+			TestProgram::OneHundredPrimes.links
 		);
 
 		rawInstructions.reserve(symbolicInstructions.size());

@@ -10,15 +10,16 @@
 #include <iostream>
 
 #include <Scripting/AsTLTypes.hpp>
+#include <Scripting/AsTLMacros.hpp>
 #include <Scripting/Utils/Bytes.hpp>
 #include <Scripting/Utils/VariantHelpers.hpp>
+#include <Scripting/Utils/LogicalConcept.hpp>
+#include <Scripting/Utils/ArithmeticConcept.hpp>
 #include <Scripting/Compiler/Instruction.hpp>
 #include <Scripting/Compiler/ConstantPool.hpp>
 #include <Scripting/Compiler/GraphNodeRegistry.hpp>
 
 #include "VMException.hpp"
-#include "LogicalConcept.hpp"
-#include "ArithmeticConcept.hpp"
 
 
 #define PACK_OPS(OP1, OP2)	(static_cast<Compiler::RawOperandT>(static_cast<AsTL::BYTE>(OP1) & 0xFF) << 8) | \
@@ -58,26 +59,6 @@
 	}
 
 
-// List of types allowed in the switch-case generator
-#define VM_TYPE_LIST(X, ...)											\
-	X(Compiler::OperandType::OT_BOOL, AsTL::BOOL,	##__VA_ARGS__)		\
-	X(Compiler::OperandType::OT_IDX, AsTL::IDX,		##__VA_ARGS__)		\
-	X(Compiler::OperandType::OT_I16, AsTL::I16,		##__VA_ARGS__)		\
-	X(Compiler::OperandType::OT_I32, AsTL::I32,		##__VA_ARGS__)		\
-	X(Compiler::OperandType::OT_F64, AsTL::F64,		##__VA_ARGS__)		\
-	X(Compiler::OperandType::OT_VEC3, AsTL::VEC3,	##__VA_ARGS__)
-
-
-// Nested macro expansion loops to create type list permutations
-#define GEN_PERMUTATIONS(OP, ...)														\
-    VM_TYPE_LIST(OP, Compiler::OperandType::OT_BOOL, AsTL::BOOL,	##__VA_ARGS__)		\
-    VM_TYPE_LIST(OP, Compiler::OperandType::OT_IDX, AsTL::IDX,		##__VA_ARGS__)		\
-    VM_TYPE_LIST(OP, Compiler::OperandType::OT_I16, AsTL::I16,		##__VA_ARGS__)		\
-    VM_TYPE_LIST(OP, Compiler::OperandType::OT_I32, AsTL::I32,		##__VA_ARGS__)		\
-    VM_TYPE_LIST(OP, Compiler::OperandType::OT_F64, AsTL::F64,		##__VA_ARGS__)		\
-    VM_TYPE_LIST(OP, Compiler::OperandType::OT_VEC3, AsTL::VEC3,	##__VA_ARGS__)
-
-
 /* Generates switch cases for each supported AstroAssembly type.
 	@param OP: The raw 1-byte value of the operand
 	@param LAMBDA: The callable that will be invoked for each case.
@@ -87,7 +68,7 @@
 */
 #define SWITCH_TYPES(OP, LAMBDA, CONCEPT)																									\
     switch (OP) {																															\
-        VM_TYPE_LIST(MAKE_CASE_1OP, LAMBDA, CONCEPT)																						\
+        ASTL_TYPE_LIST(MAKE_CASE_1OP, LAMBDA, CONCEPT)																						\
         default:																															\
 		{																																	\
 			saveVMState(Compiler::VMExitCode::BAD_CAST);																					\
@@ -111,7 +92,7 @@
 #define SWITCH_TYPES_PERMUT(L_OP, R_OP, LAMBDA, BIN_CONCEPT)																				\
     switch ((static_cast<Compiler::RawOperandT>(L_OP) << 8) |																				\
 			static_cast<Compiler::RawOperandT>(R_OP)) {																						\
-        GEN_PERMUTATIONS(MAKE_CASE_2OP, LAMBDA, BIN_CONCEPT)																				\
+        ASTL_TYPE_LIST_PERMUTATIONS(MAKE_CASE_2OP, LAMBDA, BIN_CONCEPT)																		\
         default:																															\
 		{																																	\
 			saveVMState(Compiler::VMExitCode::BAD_CAST);																					\
@@ -311,10 +292,10 @@ private:
 
 template<typename T>
 inline FORCE_INLINE T VirtualMachine::popFromVMStackAs(Compiler::OperandType opType) {
-	const T v = castFromStack<T>(opType);
+	AsTL::IDX consumed{};
+	const T v = castFromStack<T>(opType, &consumed);
 
-	m_vmStack.pop_back();
-	--m_vsp;
+	popFromVMStack(consumed);
 
 	return v;
 }

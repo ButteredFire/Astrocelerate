@@ -45,6 +45,7 @@ set(SOURCE_FILES
 	"src/Platform/Vulkan/VkWindowManager.cpp"
 	"src/Platform/Windowing/AppWindow.cpp"
 	"src/Scripting/Compiler/BytecodeEmitter.cpp"
+	"src/Scripting/Compiler/SemanticAnalyzer.cpp"
 	"src/Scripting/VM/VirtualMachine.cpp"
 	"src/Simulation/Propagators/SGP4/SGP4.cpp"
 	"src/Simulation/Propagators/SGP4/TLE.cpp"

@@ -4,10 +4,31 @@ Author: Dương Duy Nhật Minh (Minh Dương | ButteredFire)
 
 ---
 
+## Table of Contents
+
+* [1. Description](#1-description)
+* [2. Definitions, Conventions & Policies](#2-definitions-conventions--policies)
+  * [I. The Virtual Machine](#i-the-virtual-machine)
+  * [II. Containers](#ii-containers)
+    * [2.1. The Stack](#21-the-stack)
+    * [2.2. Special-Purpose Registers (SPRs)](#22-special-purpose-registers-sprs)
+    * [2.3. Variable Registries](#23-variable-registries)
+    * [2.4. Constant Pools](#24-constant-pools)
+    * [2.5. Container Types](#25-container-types)
+* [3. Data Types & Type Casting](#3-data-types--type-casting)
+  * [Natively Supported Types](#natively-supported-types)
+  * [Type Casting](#type-casting)
+* [4. Execution & Error Behaviors](#4-execution--error-behaviors)
+  * [Arithmetic and Logical Instructions](#arithmetic-and-logical-instructions)
+  * [Exit Codes (Termination)](#exit-codes-termination)
+* [5. Instruction Set Reference](#5-instruction-set-reference)
+
+---
+
 ## 1. Description
 AstroAssembly ("As"-Two Language, `.astl`) is a bytecode language designed for Astrocelerate's visual scripting architecture. 
 
-Simulations are mostly programmed via the visual graph, existing on disk as a YAML configuration file. While initial simulation state configuration is directly read from YAML, the visual graph is compiled to AstroAssembly and executed by a dedicated Virtual Machine.
+Simulations are mostly programmed via the visual graph, which exists on disk as a YAML configuration file. While initial simulation state configuration is directly read from YAML, the visual graph is compiled to AstroAssembly and executed by a dedicated Virtual Machine.
 
 ---
 
@@ -26,15 +47,15 @@ The AstroAssembly Bytecode Virtual Machine (VM) is a Big-Endian, hybrid-architec
 ### II. Containers
 
 #### 2.1. The Stack
-The VM stack is a LIFO container storing 64-bit slots of data. It is a buffer that stores transient data for calculations and comparisons. Every instruction that reads from the VM stack consumes (pops) what it has read.
+The VM stack is a LIFO container storing fixed-size (64-bit) slots of data. It is a buffer that stores transient data for calculations and comparisons. Every instruction that reads from the VM stack consumes (pops) what it has read.
 
-Values well-defined in size are stored directly on the stack. Arbitrarily sized values (e.g., strings) are stored on the stack as 64-bit indices pointing into other containers:
-* Bytes 0-1: Container type
-* Bytes 2-6: Unused bits
-* Bytes 7-8: Value's index into the container
+Values well-defined in size are stored directly on the stack. Arbitrarily sized values (e.g., strings) are stored on the stack as 64-bit indices pointing into other containers (that can store arbitrary-size data):
+* Byte 0: Container type *(see [Section 2.5](#25-container-types) for container type codes)*
+* Bytes 1-5: Unused bits
+* Bytes 6-7: Value's index into the container
 
 #### 2.2. Special-Purpose Registers (SPRs)
-Each SPR stores 64 bits of data pertaining to VM state, execution flow state, and special simulation states.
+Each SPR stores fixed-size (64-bit) data pertaining to VM state, execution flow state, and special simulation states.
 
 * `<0x00>` VMS (Virtual Machine States):
   + Bytes 0-1: VM exit code
@@ -46,12 +67,12 @@ Each SPR stores 64 bits of data pertaining to VM state, execution flow state, an
   + Bytes 0-8: Container type holding the string, and index into that container.
 
 #### 2.3. Variable Registries
-Data containers for persistent, reusable data tied to a specific registry scope.
+Variable Registries are containers for persistent, reusable, arbitrary-size data tied to a specific registry scope.
 * Global Registry: Globally accessible; valid for the entire simulation lifetime.
 * Local Registries: Live on the frame stack; scoped to the allocating procedure. Using local-registry instructions outside procedures is illegal.
 
 #### 2.4. Constant Pools
-A table of structures representing literals and symbolic references, resolved at compile time.
+The Constant Pool is a compile-time table of arbitrary-size literals and symbolic references.
 
 #### 2.5. Container Types
 * `<0x00>` VM Stack
@@ -59,7 +80,8 @@ A table of structures representing literals and symbolic references, resolved at
 * `<0x02>` Global Registry
 * `<0x03>` Local Registry
 * `<0x04>` Constant Pool
-*(Implementations may internally use other non-standard container type codes.)*
+
+Implementations may internally use other non-standard container type codes.
 
 ---
 
@@ -82,7 +104,7 @@ Terminology:
 
 ### Type Casting
 Convertible/mutually castable types can be cast to each other.
-* Convertible types (transitively): `I16` <=> `I32` <=> `F64` <=> `BOOL`
+* Convertible types (transitively): `I16` <=> `I32` <=> `F64`
 * Widening casts apply automatically in arithmetic/logical operations between mutually castable types.
 
 ---
@@ -101,7 +123,7 @@ Convertible/mutually castable types can be cast to each other.
 * `-3`: `EXEC_HALTED` *(Execution flow failed to reach an explicit TERMINATE instruction)*
 * `-4`: `VM_STACK_OVERFLOW` *(The VM stack exceeded its maximum allocated size)*
 * `-5`: `CALL_STACK_OVERFLOW` *(The call stack exceeded its maximum allocated size)*
-* `-6`: `BAD_CAST` *(A value was casted to or reinterpreted as an incompatible type, or sourced from an incompatible origin)*
+* `-6`: `BAD_CAST` *(A value was casted to or reinterpreted as an incompatible type, or sourced from an incompatible container)*
 * `-7`: `OUT_OF_BOUNDS` *(A container was accessed with an out-of-bounds index)*
 
 Positive exit codes are implementation-defined.
@@ -139,7 +161,7 @@ All instructions have a fixed length of 4 bytes.
 | `MUL` | bitmask | Slot T2 | Slot T1 | Evaluates (A * B) |
 | `DIV` | bitmask | Slot T2 | Slot T1 | Evaluates (A / B) |
 | `MOD` | bitmask | Slot T2 | Slot T1 | Evaluates (A % B) |
-| `NEG` | bitmask | Slot T2 | Slot T1 | Evaluates (-A) |
+| `NEG` | bitmask | padding | Slot T1 | Evaluates (-A) |
 | `STR_CAT` | bitmask | padding | padding | Concatenates the top two STR VM stack slots and pushes the result onto the stack |
 | `VEC_NORM` | bitmask | padding | padding | Vector normalization |
 | `VEC_MAG` | bitmask | padding | padding | Vector magnitude |
@@ -162,7 +184,7 @@ All instructions have a fixed length of 4 bytes.
 | `ACOS` | bitmask | padding | padding | Computes Arccosine |
 | `TAN` | bitmask | padding | padding | Computes Tangent |
 | `ATAN` | bitmask | padding | padding | Computes Arctangent |
-| `ATAN2` | bitmask | padding | padding | Computes `atan2(y, x)`, where the VM stack is structured as `[y, x]` |
+| `ATAN2` | bitmask | padding | padding | Computes Arctangent of Single Ratio, `atan2(y, x)`, where the VM stack is structured as `[y, x]` |
 | `COT` | bitmask | padding | padding | Computes Cotangent |
 | `ACOT` | bitmask | padding | padding | Computes Arccotangent |
 | `ABS` | bitmask | padding | padding | Computes Absolute value |

@@ -23,7 +23,7 @@ concept Divisible = requires(T1 a, T2 b) {
 };
 
 template <typename T1, typename T2>
-concept CanDoModulo = requires(T1 a, T2 b) {
+concept CanDoModulo = std::integral<T1> && std::integral<T2> && requires(T1 a, T2 b) {
 	a % b;
 };
 

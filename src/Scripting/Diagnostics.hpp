@@ -29,13 +29,8 @@ namespace Diagnostics {
 
         std::string message;
 
-        int32_t faultyNodeID;
-
+        std::optional<int32_t> faultyNodeID;
         std::optional<std::string> faultyNodePin;
-
-        // Line and column in disassembled AstroAssembly (optional)
-        std::optional<uint32_t> line;
-        std::optional<uint32_t> col;
     };
 
 
@@ -78,10 +73,8 @@ namespace Diagnostics {
         void report(
             Diagnostic::Severity severity,
             Diagnostic::DiagType diagType,
-            int32_t nodeID,
+            std::optional<int32_t> nodeID,
             std::optional<std::string> nodePin,
-            std::optional<uint32_t> disassemblyLine,
-            std::optional<uint32_t> disassemblyCol,
             const std::string_view messageFmt, Args&&... args
         ) {
             m_diagnostics.push_back({
@@ -89,9 +82,7 @@ namespace Diagnostics {
                 diagType,
                 std::vformat(messageFmt, std::make_format_args(args...)),
                 nodeID,
-                nodePin,
-                disassemblyLine,
-                disassemblyCol
+                nodePin
             });
         }
 

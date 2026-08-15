@@ -5,6 +5,7 @@
 #include <typeindex>
 
 #include "AsTLTypes.hpp"
+#include "GraphIdentifiers.hpp"
 
 
 // Astrocelerate's Visual Graph
@@ -154,21 +155,20 @@ namespace Graph {
 
 	// Standard physical graph node
 	struct Node {
-		struct DataInPin {
-			std::string label;			// Pin labels are IDs
+		struct Pin {
+			std::string label;
 			std::type_index type;
-			AsTL::StackValue val;		// Value (could be default value if there is no data link to this pin)
 		};
 
-		struct ComboInPin {
-			std::string label;						// Pin labels are IDs
-			std::type_index comboType;				// The combo type is a variable combo box filter (e.g., type is BOOL => only BOOL variables are shown in the dropdown)
-			std::string chosenVar;					// The chosen variable (by name)
+		// Data Input Pin
+		struct DataInPin : Pin {
+			AsTL::StackValue val;					// Value (could be default value if there is no data link to this pin)
 		};
 
-		struct DataOutPin {
-			std::string label;			// Pin labels are IDs
-			std::type_index type;
+		// Combo-box Input Pin
+		// NOTE: The combo type is a variable combo box filter (e.g., type is BOOL => only BOOL variables are shown in the dropdown)
+		struct ComboInPin : Pin {
+			std::optional<std::string> chosenVar;	// The chosen variable (by name)
 		};
 
 		NodeID id;
@@ -179,7 +179,7 @@ namespace Graph {
 		std::vector<
 			std::variant<DataInPin, ComboInPin>
 		> inputPins;
-		std::vector<DataOutPin> outputPins;
+		std::vector<Pin> outputPins;
 	};
 
 

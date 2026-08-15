@@ -343,13 +343,16 @@ Compiler::VMExitCode VirtualMachine::executeAt(AsTL::IDX insAddress) {
 				break;
 			}
 
+
 			case MUL:
+			case VEC_MUL:
 			{
 				SWITCH_TYPES_PERMUT(leftOp, rightOp, binarySwitchIns, Multipliable);
 				break;
 			}
 
 			case DIV:
+			case VEC_DIV:
 			{
 				SWITCH_TYPES_PERMUT(leftOp, rightOp, binarySwitchIns, Divisible);
 				break;
@@ -410,34 +413,6 @@ Compiler::VMExitCode VirtualMachine::executeAt(AsTL::IDX insAddress) {
 					popFromVMStack(consumed);
 
 				writeToVMStack(vec.mag(), Compiler::CT_GLOBAL_REG, m_vmStack.size() - 1);
-
-				break;
-			}
-
-			case VEC_MUL:
-			{
-				size_t consumed1{}, consumed2{};
-				AsTL::VEC3 vec1 = castFromStack<AsTL::VEC3>(m_vsp, Compiler::OT_VEC3, &consumed1);
-				AsTL::VEC3 vec2 = castFromStack<AsTL::VEC3>(m_vsp - 1, Compiler::OT_VEC3, &consumed2);
-
-				if (!insReadOnly())
-					popFromVMStack(consumed1 + consumed2);
-
-				writeToVMStack(vec1 * vec2, Compiler::CT_GLOBAL_REG, m_vmStack.size() - 1);
-
-				break;
-			}
-
-			case VEC_DIV:
-			{
-				size_t consumed1{}, consumed2{};
-				AsTL::VEC3 vec1 = castFromStack<AsTL::VEC3>(m_vsp, Compiler::OT_VEC3, &consumed1);
-				AsTL::VEC3 vec2 = castFromStack<AsTL::VEC3>(m_vsp - 1, Compiler::OT_VEC3, &consumed2);
-
-				if (!insReadOnly())
-					popFromVMStack(consumed1 + consumed2);
-
-				writeToVMStack(vec1 / vec2, Compiler::CT_GLOBAL_REG, m_vmStack.size() - 1);
 
 				break;
 			}
@@ -1273,7 +1248,8 @@ std::string VirtualMachine::variantToString(const AsTL::StackValue &val) const {
 		[&](const AsTL::STR &val) { str = val; },
 
 		[&](const AsTL::VEC3 &v) {
-			str = std::format("{{{}, {}, {}}}", v.x, v.y, v.z);
+			// math vector notation
+			str = std::format("({}, {}, {})", v.x, v.y, v.z);
 		}
 	}, val);
 

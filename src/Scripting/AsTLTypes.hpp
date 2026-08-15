@@ -169,23 +169,6 @@ namespace AsTL {
 			return { x / magnitude, y / magnitude, z / magnitude };
 		}
 	};
-	// Scalar addition with Left-side I32 (I32 + VEC3)
-	inline AsTL::VEC3 operator+(AsTL::F64 scalar, const AsTL::VEC3& v) {
-		return v + scalar;
-	}
-	// Scalar addition with Left-side F64 (F64 + VEC3)
-	inline AsTL::VEC3 operator+(AsTL::I32 scalar, const AsTL::VEC3& v) {
-		return v + scalar;
-	}
-	// Scalar subtraction with Left-side I32 (I32 - VEC3)
-	inline AsTL::VEC3 operator-(AsTL::F64 scalar, const AsTL::VEC3& v) {
-		return { scalar - v.x, scalar - v.y, scalar - v.z };
-	}
-	// Scalar subtraction with Left-side F64 (F64 - VEC3)
-	inline AsTL::VEC3 operator-(AsTL::I32 scalar, const AsTL::VEC3& v) {
-		F64 s = static_cast<F64>(scalar);
-		return { s - v.x, s - v.y, s - v.z };
-	}
 	// Scalar multiplication with Left-side I32 (I32 * VEC3)
 	inline VEC3 operator*(I32 orgScalar, const VEC3& vec) {
 		F64 scalar = static_cast<F64>(orgScalar);
@@ -195,17 +178,8 @@ namespace AsTL {
 	inline VEC3 operator*(F64 scalar, const VEC3& vec) {
 		return { vec.x * scalar, vec.y * scalar, vec.z * scalar };
 	}
-	// Scalar division with Left-side I32 (I32 / VEC3)
-	inline AsTL::VEC3 operator/(AsTL::F64 scalar, const AsTL::VEC3& v) {
-		return { scalar / v.x, scalar / v.y, scalar / v.z };
-	}
-	// Scalar division with Left-side F64 (F64 / VEC3)
-	inline AsTL::VEC3 operator/(AsTL::I32 scalar, const AsTL::VEC3& v) {
-		F64 s = static_cast<F64>(scalar);
-		return { s / v.x, s / v.y, s / v.z };
-	}
 
-		// (External) String
+		// String
 	using STR = std::string;
 
 
@@ -263,6 +237,8 @@ namespace AsTL {
 	> ValidConversionMap = {
 		{ TID_BYTE, {} },	// Internal type
 		{ TID_IDX, {} },	// Internal type
+
+		{ TID_BOOL, { TID_BOOL, TID_STR } },
 
 		{ TID_I16, { TID_I16, TID_I32, TID_F64, TID_STR } },
 		{ TID_I32, { TID_I16, TID_I32, TID_F64, TID_STR } },
@@ -323,11 +299,11 @@ namespace AsTL {
 		else if (type == TID_FPOINT)	return SER_FLOATS;
 		else if (type == TID_ANY)		return SER_ANY;
 
-		else return "Unknown type";
+		else return "???";
 	}
 
 	inline std::string StackValueToString(const StackValue &stackVal) {
-		std::string rv = "Unknown type";
+		std::string rv = "???";
 		std::visit([&](const auto &val) {
 			rv = StackValueToString(typeid(decltype(val)));
 		}, stackVal);
@@ -342,7 +318,7 @@ namespace AsTL {
 		if (type == TID_IDX)			return "Address";
 
 		else if (type == TID_I16)		return "16-bit Integer";
-		else if (type == TID_I32)		return "32-bit Integer";
+		else if (type == TID_I32)		return "Integer";
 		else if (type == TID_F64)		return "Float";
 		else if (type == TID_BOOL)		return "Boolean";
 		else if (type == TID_VEC3)		return "Vector3";

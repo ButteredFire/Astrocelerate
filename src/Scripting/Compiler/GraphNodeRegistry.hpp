@@ -11,6 +11,7 @@
 
 #include <Scripting/AsTLTypes.hpp>
 #include <Scripting/GraphTypes.hpp>
+#include <Scripting/GraphIdentifiers.hpp>
 #include <Scripting/Utils/StaticBlock.hpp>
 
 #include "Instruction.hpp"
@@ -48,7 +49,7 @@ namespace Compiler {
 												the Executable Node will be re-evaluated and the execution flow restarted from that Node. */
 
 			Getter,			// Non-executable Node: Read-only operation that returns a value
-			Constant,		// Non-executable Node: Read-only operation that returns a constant value
+			MathConstant,	// Non-executable Node: Read-only operation that returns a constant value
 			MathAndLogic	// Non-executable Node: Purely mathematical or logical operation
 		};
 
@@ -120,6 +121,10 @@ namespace Compiler {
 			using enum GraphNodeDescriptor::NodeClass;
 			using enum GraphNodeDescriptor::Parameter::ParamClass;
 
+			using enum Graph::ClassScope;
+			using enum Graph::CatScope;
+			using enum Graph::FuncScope;
+
 
 			addDefault({
 				ControlFlow,
@@ -153,8 +158,7 @@ namespace Compiler {
 			addDefault({
 				Getter,
 				"Get Variable", Graph::GetterNodeSymbol,
-				{ Graph::ExecInID },
-				{ Graph::ExecOutID },
+				{}, {},
 				{
 					{ Combo, Graph::GetterInputComboPin, AsTL::TID_ANY }
 				},
@@ -170,8 +174,8 @@ namespace Compiler {
 				// Parameterless
 					// General
 			addDefault({
-				Constant,
-				"Pi", "Math::Pi",
+				MathConstant,
+				"Pi", Graph::MakeQualifiedID(Math, Constant, Pi),
 				{}, {},
 				{},
 				{
@@ -457,7 +461,7 @@ namespace Compiler {
 				// Parameterized
 			addDefault({
 				ControlFlow,
-				"Branch", "Control::Branch",
+				"Branch", Graph::MakeQualifiedID(Control, Branch),
 				{ Graph::ExecInID },
 				{ "True", "False" },
 				{
@@ -481,7 +485,7 @@ namespace Compiler {
 
 			addDefault({
 				ControlFlow,
-				"Do Once", "Control::DoOnce",
+				"Do Once", Graph::MakeQualifiedID(Control, DoOnce),
 				{ Graph::ExecInID, "Reset" },
 				{ "Out" },
 				{
@@ -519,7 +523,7 @@ namespace Compiler {
 
 			addDefault({
 				ControlFlowLoop,
-				"Sequence", "Control::Sequence",
+				"Sequence", Graph::MakeQualifiedID(Control, Sequence),
 				{ Graph::ExecInID },
 				{ "Then 0", "Then 1", "Then 2" },
 				{}, {},
@@ -567,11 +571,128 @@ namespace Compiler {
 				}
 			});
 
+			addDefault({
+				ControlFlow,
+				"For Loop in Range", Graph::MakeQualifiedID(Control, ForLoop),
+				{ Graph::ExecInID, "Break" },
+				{ "In Loop", "Completed" },
+				{
+					{ Data, "Range Start", AsTL::TID_I32 },
+					{ Data, "Range End", AsTL::TID_I32 }
+				},
+				{
+					{ Data, "Index", AsTL::TID_I32 }
+				},
+				[](
+					AsTL::OpaqueExecCtx* ctx,
+					const Compiler::GraphNodeDescriptor* self,
+					AsTL::IDX nodeID,
+					std::string_view triggeredPin,
+					std::span<const AsTL::StackValue> args,
+					AsTL::StackValue* retBuffer
+				) -> void {
+
+					static std::unordered_map<AsTL::IDX, AsTL::I32> indicesOfLoops{};
+					AsTL::I32& thisLoopIdx = indicesOfLoops[nodeID];
+
+					AsTL::I32 startIdx = std::get<AsTL::I32>(args[0]);
+					AsTL::I32 endIdx = std::get<AsTL::I32>(args[1]);
+
+					STATIC_BLOCK_BEGIN(nodeID)
+						thisLoopIdx = startIdx;
+					STATIC_BLOCK_END
+
+					AsTL::I32 lastLoopIdx = thisLoopIdx;
+
+					if (triggeredPin != "Break") {
+						if (thisLoopIdx <= endIdx) {
+							retBuffer[0] = true;			// Exec Out: In Loop
+							retBuffer[1] = false;			// Exec Out: Completed
+						}
+						else {
+							retBuffer[0] = false;			// Exec Out: In Loop
+							retBuffer[1] = true;			// Exec Out: Completed
+						}
+
+						retBuffer[2] = thisLoopIdx++;	// Data Out: Index
+
+						return;
+					}
+
+
+					thisLoopIdx = 0;
+
+					retBuffer[0] = false;			// Exec Out: In Loop
+					retBuffer[1] = true;			// Exec Out: Completed
+					retBuffer[2] = lastLoopIdx;		// Data Out: Index
+				}
+			});
+
+			addDefault({
+				ControlFlow,
+				"While Loop", Graph::MakeQualifiedID(Control, WhileLoop),
+				{ Graph::ExecInID, "Break" },
+				{ "In Loop", "Completed" },
+				{
+					{ Data, "Condition", AsTL::TID_BOOL }
+				},
+				{
+					{ Data, "Index", AsTL::TID_I32 }
+				},
+				[](
+					AsTL::OpaqueExecCtx* ctx,
+					const Compiler::GraphNodeDescriptor* self,
+					AsTL::IDX nodeID,
+					std::string_view triggeredPin,
+					std::span<const AsTL::StackValue> args,
+					AsTL::StackValue* retBuffer
+				) -> void {
+
+					static std::unordered_map<AsTL::IDX, AsTL::BOOL> conditionsOfLoops{};
+					static std::unordered_map<AsTL::IDX, AsTL::I32> indicesOfLoops{};
+
+					AsTL::BOOL& maintainLoop = conditionsOfLoops[nodeID];
+					AsTL::I32& thisLoopIdx = indicesOfLoops[nodeID];
+
+					maintainLoop = std::get<AsTL::BOOL>(args[0]);
+					STATIC_BLOCK_BEGIN(nodeID)
+						thisLoopIdx = 0;
+					STATIC_BLOCK_END
+
+					AsTL::I32 lastLoopIdx = thisLoopIdx;
+
+					if (maintainLoop && triggeredPin != "Break") {
+						retBuffer[0] = true;			// Exec Out: In Loop
+						retBuffer[1] = false;			// Exec Out: Completed
+						retBuffer[2] = thisLoopIdx++;	// Data Out: Index
+
+						return;
+					}
+
+					else if (!maintainLoop) {
+						thisLoopIdx = 0;
+
+						retBuffer[0] = false;			// Exec Out: In Loop
+						retBuffer[1] = false;			// Exec Out: Completed
+						retBuffer[2] = lastLoopIdx;		// Data Out: Index
+
+						return;
+					}
+
+					maintainLoop = false;
+					thisLoopIdx = 0;
+
+					retBuffer[0] = false;			// Exec Out: In Loop
+					retBuffer[1] = true;			// Exec Out: Completed
+					retBuffer[2] = lastLoopIdx;		// Data Out: Index
+				}
+			});
+
 
 				// Descriptors mappable to AstroAssembly instructions
 			addDefault({
 				Action,
-				"Print to Console", "Console::Print",
+				"Print to Console", Graph::MakeQualifiedID(Console, Print),
 				{ Graph::ExecInID },
 				{ Graph::ExecOutID },
 				{
@@ -583,7 +704,7 @@ namespace Compiler {
 
 			addDefault({
 				MathAndLogic,
-				"Concatenate String", "StringUtils::Concat",
+				"Concatenate String", Graph::MakeQualifiedID(Misc, StringConcat),
 				{}, {},
 				{
 					{ Data, "A", AsTL::TID_STR },
@@ -597,7 +718,7 @@ namespace Compiler {
 
 			addDefault({
 				MathAndLogic,
-				"Add", "Math::Add",
+				"Add", Graph::MakeQualifiedID(Math, Arithmetic, Add),
 				{}, {},
 				{
 					{ Data, "A", AsTL::TID_NUMERIC },
@@ -611,7 +732,7 @@ namespace Compiler {
 
 			addDefault({
 				MathAndLogic,
-				"Subtract", "Math::Subtract",
+				"Subtract", Graph::MakeQualifiedID(Math, Arithmetic, Subtract),
 				{}, {},
 				{
 					{ Data, "A", AsTL::TID_NUMERIC },
@@ -625,7 +746,7 @@ namespace Compiler {
 
 			addDefault({
 				MathAndLogic,
-				"Multiply", "Math::Multiply",
+				"Multiply", Graph::MakeQualifiedID(Math, Arithmetic, Multiply),
 				{}, {},
 				{
 					{ Data, "A", AsTL::TID_NUMERIC },
@@ -639,21 +760,7 @@ namespace Compiler {
 
 			addDefault({
 				MathAndLogic,
-				"Modulo", "Math::Modulo",
-				{}, {},
-				{
-					{ Data, "A", AsTL::TID_NUMERIC },
-					{ Data, "B", AsTL::TID_NUMERIC }
-				},
-				{
-					{ Data, "", AsTL::TID_NUMERIC }
-				},
-				Opcode::MOD
-			});
-
-			addDefault({
-				MathAndLogic,
-				"Divide", "Math::Divide",
+				"Divide", Graph::MakeQualifiedID(Math, Arithmetic, Divide),
 				{}, {},
 				{
 					{ Data, "A", AsTL::TID_NUMERIC },
@@ -667,7 +774,86 @@ namespace Compiler {
 
 			addDefault({
 				MathAndLogic,
-				"Greater Than", "Math::GT",
+				"Modulo", Graph::MakeQualifiedID(Math, Arithmetic, Modulo),
+				{}, {},
+				{
+					{ Data, "A", AsTL::TID_INTEGRAL },
+					{ Data, "B", AsTL::TID_INTEGRAL }
+				},
+				{
+					{ Data, "", AsTL::TID_INTEGRAL }
+				},
+				Opcode::MOD
+			});
+
+			addDefault({
+				MathAndLogic,
+				"Negate", Graph::MakeQualifiedID(Math, Arithmetic, Negate),
+				{}, {},
+				{
+					{ Data, "X", AsTL::TID_NUMERIC }
+				},
+				{
+					{ Data, "", AsTL::TID_NUMERIC }
+				},
+				Opcode::NEG
+			});
+
+			addDefault({
+				MathAndLogic,
+				"Normalize Vector3", Graph::MakeQualifiedID(Math, Arithmetic, Vec3Normalize),
+				{}, {},
+				{
+					{ Data, "Vector", AsTL::TID_VEC3 }
+				},
+				{
+					{ Data, "", AsTL::TID_VEC3 }
+				},
+				Opcode::VEC_NORM
+			});
+
+			addDefault({
+				MathAndLogic,
+				"Magnitude of Vector3", Graph::MakeQualifiedID(Math, Arithmetic, Vec3Magnitude),
+				{}, {},
+				{
+					{ Data, "Vector", AsTL::TID_VEC3 }
+				},
+				{
+					{ Data, "", AsTL::TID_F64 }
+				},
+				Opcode::VEC_MAG
+			});
+
+			addDefault({
+				MathAndLogic,
+				"Dot Product of Vector3", Graph::MakeQualifiedID(Math, Arithmetic, Vec3Dot),
+				{}, {},
+				{
+					{ Data, "Vector", AsTL::TID_VEC3 }
+				},
+				{
+					{ Data, "", AsTL::TID_VEC3 }
+				},
+				Opcode::VEC_MUL_DOT
+			});
+
+			addDefault({
+				MathAndLogic,
+				"Cross Product of Vector3", Graph::MakeQualifiedID(Math, Arithmetic, Vec3Cross),
+				{}, {},
+				{
+					{ Data, "Vector", AsTL::TID_VEC3 }
+				},
+				{
+					{ Data, "", AsTL::TID_VEC3 }
+				},
+				Opcode::VEC_MUL_CROSS
+			});
+
+			addDefault({
+				MathAndLogic,
+				"Greater Than", Graph::MakeQualifiedID(Math, Logic, GreaterThan),
 				{}, {},
 				{
 					{ Data, "A", AsTL::TID_NUMERIC },
@@ -681,7 +867,7 @@ namespace Compiler {
 
 			addDefault({
 				MathAndLogic,
-				"Greater Than or Equal To", "Math::GTEq",
+				"Greater Than or Equal To", Graph::MakeQualifiedID(Math, Logic, GreaterThanEqualTo),
 				{}, {},
 				{
 					{ Data, "A", AsTL::TID_NUMERIC },
@@ -695,7 +881,7 @@ namespace Compiler {
 
 			addDefault({
 				MathAndLogic,
-				"Less Than", "Math::LT",
+				"Less Than", Graph::MakeQualifiedID(Math, Logic, LessThan),
 				{}, {},
 				{
 					{ Data, "A", AsTL::TID_NUMERIC },
@@ -709,7 +895,7 @@ namespace Compiler {
 
 			addDefault({
 				MathAndLogic,
-				"Less Than or Equal To", "Math::LTEq",
+				"Less Than or Equal To", Graph::MakeQualifiedID(Math, Logic, LessThanEqualTo),
 				{}, {},
 				{
 					{ Data, "A", AsTL::TID_NUMERIC },
@@ -723,7 +909,7 @@ namespace Compiler {
 
 			addDefault({
 				MathAndLogic,
-				"Equal To", "Math::Eq",
+				"Equal To", Graph::MakeQualifiedID(Math, Logic, EqualTo),
 				{}, {},
 				{
 					{ Data, "A", AsTL::TID_NUMERIC },
@@ -737,7 +923,7 @@ namespace Compiler {
 
 			addDefault({
 				MathAndLogic,
-				"Not Equal To", "Math::NEq",
+				"Not Equal To", Graph::MakeQualifiedID(Math, Logic, NotEqualTo),
 				{}, {},
 				{
 					{ Data, "A", AsTL::TID_NUMERIC },
@@ -751,7 +937,7 @@ namespace Compiler {
 
 			addDefault({
 				MathAndLogic,
-				"And", "Math::And",
+				"And", Graph::MakeQualifiedID(Math, Logic, And),
 				{}, {},
 				{
 					{ Data, "A", AsTL::TID_BOOL },
@@ -765,7 +951,7 @@ namespace Compiler {
 
 			addDefault({
 				MathAndLogic,
-				"Or", "Math::Or",
+				"Or", Graph::MakeQualifiedID(Math, Logic, Or),
 				{}, {},
 				{
 					{ Data, "A", AsTL::TID_BOOL },
@@ -779,7 +965,7 @@ namespace Compiler {
 
 			addDefault({
 				MathAndLogic,
-				"Not", "Math::Not",
+				"Not", Graph::MakeQualifiedID(Math, Logic, Not),
 				{}, {},
 				{
 					{ Data, "", AsTL::TID_BOOL }
@@ -792,125 +978,125 @@ namespace Compiler {
 
 			addDefault({
 				MathAndLogic,
-				"Sine", "Math::Sin",
+				"Sine", Graph::MakeQualifiedID(Math, Arithmetic, Sine),
 				{}, {},
 				{
 					{ Data, "X", AsTL::TID_NUMERIC }
 				},
 				{
-					{ Data, "", AsTL::TID_NUMERIC }
+					{ Data, "", AsTL::TID_F64 }
 				},
 				Opcode::SIN
 			});
 
 			addDefault({
 				MathAndLogic,
-				"Arc-sine", "Math::Asin",
+				"Arc-sine", Graph::MakeQualifiedID(Math, Arithmetic, Arcsine),
 				{}, {},
 				{
 					{ Data, "X", AsTL::TID_NUMERIC }
 				},
 				{
-					{ Data, "", AsTL::TID_NUMERIC }
+					{ Data, "", AsTL::TID_F64 }
 				},
 				Opcode::ASIN
 			});
 
 			addDefault({
 				MathAndLogic,
-				"Cosine", "Math::Cos",
+				"Cosine", Graph::MakeQualifiedID(Math, Arithmetic, Cosine),
 				{}, {},
 				{
 					{ Data, "X", AsTL::TID_NUMERIC }
 				},
 				{
-					{ Data, "", AsTL::TID_NUMERIC }
+					{ Data, "", AsTL::TID_F64 }
 				},
 				Opcode::COS
 			});
 
 			addDefault({
 				MathAndLogic,
-				"Arc-cosine", "Math::Acos",
+				"Arc-cosine", Graph::MakeQualifiedID(Math, Arithmetic, Arccosine),
 				{}, {},
 				{
 					{ Data, "X", AsTL::TID_NUMERIC }
 				},
 				{
-					{ Data, "", AsTL::TID_NUMERIC }
+					{ Data, "", AsTL::TID_F64 }
 				},
 				Opcode::ACOS
 			});
 
 			addDefault({
 				MathAndLogic,
-				"Tangent", "Math::Tan",
+				"Tangent", Graph::MakeQualifiedID(Math, Arithmetic, Tangent),
 				{}, {},
 				{
 					{ Data, "X", AsTL::TID_NUMERIC }
 				},
 				{
-					{ Data, "", AsTL::TID_NUMERIC }
+					{ Data, "", AsTL::TID_F64 }
 				},
 				Opcode::TAN
 			});
 
 			addDefault({
 				MathAndLogic,
-				"Arc-tangent of Single Ratio", "Math::Atan",
+				"Arc-tangent of Single Ratio", Graph::MakeQualifiedID(Math, Arithmetic, Arctangent),
 				{}, {},
 				{
 					{ Data, "X", AsTL::TID_NUMERIC }
 				},
 				{
-					{ Data, "", AsTL::TID_NUMERIC }
+					{ Data, "", AsTL::TID_F64 }
 				},
 				Opcode::ATAN
 			});
 
 			addDefault({
 				MathAndLogic,
-				"Arc-tangent", "Math::Atan2",
+				"Arc-tangent", Graph::MakeQualifiedID(Math, Arithmetic, Arctangent2),
 				{}, {},
 				{
 					{ Data, "X", AsTL::TID_NUMERIC },
 					{ Data, "Y", AsTL::TID_NUMERIC }
 				},
 				{
-					{ Data, "", AsTL::TID_NUMERIC }
+					{ Data, "", AsTL::TID_F64 }
 				},
 				Opcode::ATAN2
 			});
 
 			addDefault({
 				MathAndLogic,
-				"Cotangent", "Math::Cot",
+				"Cotangent", Graph::MakeQualifiedID(Math, Arithmetic, Cotangent),
 				{}, {},
 				{
 					{ Data, "X", AsTL::TID_NUMERIC }
 				},
 				{
-					{ Data, "", AsTL::TID_NUMERIC }
+					{ Data, "", AsTL::TID_F64 }
 				},
 				Opcode::COT
 			});
 
 			addDefault({
 				MathAndLogic,
-				"Arc-cotangent", "Math::Acot",
+				"Arc-cotangent", Graph::MakeQualifiedID(Math, Arithmetic, Arccotangent),
 				{}, {},
 				{
 					{ Data, "X", AsTL::TID_NUMERIC }
 				},
 				{
-					{ Data, "", AsTL::TID_NUMERIC }
+					{ Data, "", AsTL::TID_F64 }
 				},
 				Opcode::ACOT
 			});
 
 			addDefault({
 				MathAndLogic,
-				"Absolute Value", "Math::Abs",
+				"Absolute Value", Graph::MakeQualifiedID(Math, Arithmetic, Absolute),
 				{}, {},
 				{
 					{ Data, "X", AsTL::TID_NUMERIC }
@@ -923,7 +1109,7 @@ namespace Compiler {
 
 			addDefault({
 				MathAndLogic,
-				"Minimum Value", "Math::Min",
+				"Minimum Value", Graph::MakeQualifiedID(Math, Arithmetic, Minimum),
 				{}, {},
 				{
 					{ Data, "A", AsTL::TID_NUMERIC },
@@ -937,7 +1123,7 @@ namespace Compiler {
 
 			addDefault({
 				MathAndLogic,
-				"Maximum Value", "Math::Max",
+				"Maximum Value", Graph::MakeQualifiedID(Math, Arithmetic, Maximum),
 				{}, {},
 				{
 					{ Data, "A", AsTL::TID_NUMERIC },

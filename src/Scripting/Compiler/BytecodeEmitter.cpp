@@ -1,5 +1,4 @@
 #include "BytecodeEmitter.hpp"
-#include "BytecodeEmitter.hpp"
 
 
 namespace Compiler {
@@ -38,7 +37,7 @@ namespace Compiler {
 					// Find & cache variable from a Getter node
 					const auto& comboInPin = std::get<Graph::Node::ComboInPin>(node.inputPins[0]);
 					for (const auto &var : variables)
-						if (var.name == comboInPin.chosenVar) {
+						if (var.name == comboInPin.chosenVar.value()) {
 							m_graphVarCache.emplace(node.id, var);
 							break;
 						}
@@ -362,7 +361,7 @@ namespace Compiler {
 
 
 				auto evaluateComboPin = [&](const Graph::Node::ComboInPin& comboPin) -> void {
-					nodeDataInPinTypes.push_back(comboPin.comboType);
+					nodeDataInPinTypes.push_back(comboPin.type);
 
 					// The combo-box pin's value either comes from an incoming link, or is directly specified (only possible if it's the default Getter node)
 					bool valueFromLink = false;
@@ -385,10 +384,10 @@ namespace Compiler {
 
 					if (valueFromLink)
 						// Value comes from an incoming link
-						varName = getPreallocOutPinName(valueLink.outNodeID, valueLink.outPinID, comboPin.comboType);
+						varName = getPreallocOutPinName(valueLink.outNodeID, valueLink.outPinID, comboPin.type);
 					else
 						// Value is directly specified (i.e., the node is the default Getter node)
-						varName = getPreallocOutPinName(nodeID, Graph::GetterOutputDataPin, comboPin.comboType);
+						varName = getPreallocOutPinName(nodeID, Graph::GetterOutputDataPin, comboPin.type);
 
 					emitInstruction(
 						SymbolicInstruction(
@@ -417,9 +416,9 @@ namespace Compiler {
 							// Then evaluate combo pin (variable name)
 							const auto& comboPin = std::get<Graph::Node::ComboInPin>(inPin);
 							for (const auto& [varGetterID, varRef] : m_graphVarCache) {
-								if (comboPin.chosenVar == varRef.get().name) {
+								if (comboPin.chosenVar.value() == varRef.get().name) {
 									AsTL::IDX globRegIdx = m_varGlRegIdxName.at(
-										getPreallocOutPinName(varGetterID, Graph::GetterOutputDataPin, comboPin.comboType)
+										getPreallocOutPinName(varGetterID, Graph::GetterOutputDataPin, comboPin.type)
 									);
 
 									// Overwrite the current value in the global registry with the new value
