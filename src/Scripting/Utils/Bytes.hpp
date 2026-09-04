@@ -1,9 +1,11 @@
 #pragma once
 
 #include <bit>
+#include <array>
 #include <ranges>
 #include <concepts>
 #include <algorithm>
+#include <type_traits>
 
 
 namespace CompilerUtils {
@@ -18,4 +20,5 @@ namespace CompilerUtils {
         std::ranges::reverse(valRep);
         return std::bit_cast<T>(valRep);
     }
-}
+
+} // namespace CompilerUtils

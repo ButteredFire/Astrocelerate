@@ -2,7 +2,9 @@
 
 #include <string>
 #include <vector>
+#include <limits>
 #include <iterator>
+#include <exception>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -31,6 +33,9 @@ namespace Compiler {
 		AsTL::IDX getOrCreateIndex(const AsTL::StackValue &val) {
 			auto it = m_lookup.find(val);
 			if (it == m_lookup.end()) {
+				if (m_pool.size() > std::numeric_limits<AsTL::IDX>::max())
+					throw std::exception("Encountered constant pool overflow");
+
 				m_lookup[val] = static_cast<AsTL::IDX>(m_pool.size());
 				m_pool.push_back(val);
 			}

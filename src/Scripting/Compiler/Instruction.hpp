@@ -42,8 +42,11 @@ namespace Compiler {
 		OT_F64,
 		OT_BOOL,
 		OT_VEC3,
-		OT_STR
+		OT_STR,
+
+		OTC		// Number of operand type codes
 	};
+	constexpr size_t OperandTypeCount = static_cast<size_t>(OperandType::OTC);
 
 
 	// AstroAssembly special-purpose register types
@@ -53,7 +56,7 @@ namespace Compiler {
 
 		SPRC	// Number of special-purpose registers
 	};
-	constexpr size_t SPR_COUNT = static_cast<size_t>(SPRType::SPRC);
+	constexpr size_t SPRCount = static_cast<size_t>(SPRType::SPRC);
 
 
 	// AstroAssembly container type codes
@@ -209,36 +212,13 @@ namespace Compiler {
 				AsTL::I16,
 				
 				// Double-operand instruction
-				std::pair<AsTL::BYTE, AsTL::BYTE>,
-				std::pair<AsTL::BYTE, AsTL::IDX>
+				std::pair<AsTL::BYTE, AsTL::BYTE>
 			>
 		> operand;
 
 		SymbolicInstruction(Opcode op) : opcode(op), bitmask(std::nullopt), operand(std::nullopt) {}
-
-		SymbolicInstruction(Opcode op, decltype(operand) val) : opcode(op), operand(val) {
-			setOperandValue();
-		}
-
-		SymbolicInstruction(Opcode op, InstructionMask mask, decltype(operand) val) : opcode(op), bitmask(mask), operand(val) {
-			setOperandValue();
-		}
-
-
-		void setOperandValue() {
-			if (
-				// Operand is std::nullopt
-				!operand.has_value() ||
-
-				// Operand has already been set to a definitive value
-				(operand.has_value() && typeid(operand.value()) != typeid(std::remove_reference_t<decltype(SymbolicInstruction::operand.value())>))
-			)
-				return;
-
-			std::visit([&](const auto &val) {
-				operand = val;
-			}, operand.value());
-		}
+		SymbolicInstruction(Opcode op, decltype(operand) val) : opcode(op), operand(val) {}
+		SymbolicInstruction(Opcode op, InstructionMask mask, decltype(operand) val) : opcode(op), bitmask(mask), operand(val) {}
 	};
 
 
@@ -300,8 +280,10 @@ namespace Compiler {
 		case CRASHED_RT:			return std::to_string(intVal) + " (CRASHED_RT)";
 		case EXEC_HALTED:			return std::to_string(intVal) + " (EXEC_HALTED)";
 		case VM_STACK_OVERFLOW:		return std::to_string(intVal) + " (VM_STACK_OVERFLOW)";
+		case CALL_STACK_OVERFLOW:	return std::to_string(intVal) + " (CALL_STACK_OVERFLOW)";
 		case BAD_CAST:				return std::to_string(intVal) + " (BAD_CAST)";
 		case OUT_OF_BOUNDS:			return std::to_string(intVal) + " (OUT_OF_BOUNDS)";
+		case FINISHED_EXEC_TICK:	return std::to_string(intVal) + " (FINISHED_EXEC_TICK)";
 		default:					return std::to_string(intVal) + " (???)";
 		}
 	}

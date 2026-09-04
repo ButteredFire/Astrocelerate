@@ -37,11 +37,16 @@ Simulations are mostly programmed via the visual graph, which exists on disk as 
 ### I. The Virtual Machine
 The AstroAssembly Bytecode Virtual Machine (VM) is a Big-Endian, hybrid-architecture software VM that uses a LIFO stack data structure as its primary mechanism for storing operands, as well as special-purpose registers (SPRs) to store metadata.
 
-* Maximum Stack Size: 10 KB default (Configurable up to 1 MB)
+The VM treats units of digital information (bytes, kilobytes, etc.) as metric (SI) units, where prefixes represent powers of 10 - i.e., `1 MB = 1000 KB`; `1 KB = 1000 B`; and so on.
+
+One exception is the size of the byte, which is defined as 8 bits as per ISO/IEC 2382-1:1993.
+
+VM specifications:
+* Maximum Stack Size: 10 KB default (Configurable up to 512 KB)
 * Maximum Call Stack Size: 10 KB default (Configurable up to 1 MB)
 * Word Size: 64 bits
 * SPR Size: 64 bits
-* Instruction Size: Fixed-length, 32-bit (4 bytes) instructions.
+* Instruction Size: Fixed-length, 32-bit (4-byte) instructions.
 * Endianness: Big-Endian (Byte 0 is the Most Significant Byte, Byte 7 is the Least Significant Byte).
 
 ### II. Containers
@@ -49,10 +54,7 @@ The AstroAssembly Bytecode Virtual Machine (VM) is a Big-Endian, hybrid-architec
 #### 2.1. The Stack
 The VM stack is a LIFO container storing fixed-size (64-bit) slots of data. It is a buffer that stores transient data for calculations and comparisons. Every instruction that reads from the VM stack consumes (pops) what it has read.
 
-Values well-defined in size are stored directly on the stack. Arbitrarily sized values (e.g., strings) are stored on the stack as 64-bit indices pointing into other containers (that can store arbitrary-size data):
-* Byte 0: Container type *(see [Section 2.5](#25-container-types) for container type codes)*
-* Bytes 1-5: Unused bits
-* Bytes 6-7: Value's index into the container
+Values well-defined in size are stored directly on the stack. Arbitrarily sized values (e.g., strings) are stored on the stack as 64-bit indices pointing into other containers (that can store arbitrary-size data).
 
 #### 2.2. Special-Purpose Registers (SPRs)
 Each SPR stores fixed-size (64-bit) data pertaining to VM state, execution flow state, and special simulation states.
@@ -63,8 +65,7 @@ Each SPR stores fixed-size (64-bit) data pertaining to VM state, execution flow 
   + Bytes 4-5: Current stack size (KB)
   + Byte 6: Instruction bitmask
   + Byte 7: Debugger bitmask
-* `<0x01>` EXC: Stores the current name of the execution pin that triggered the current basic block.
-  + Bytes 0-8: Container type holding the string, and index into that container.
+* `<0x01>` EXC: Stores the current name of the execution pin that triggered the current basic block as a string pointer.
 
 #### 2.3. Variable Registries
 Variable Registries are containers for persistent, reusable, arbitrary-size data tied to a specific registry scope.
@@ -101,6 +102,13 @@ Terminology:
 * "Number": Refers to `I16`, `I32`, `F64`.
 * "Address", "Index", "ID": Refers to `IDX`.
 * "Slot T1" / "Slot T2": Type of the top / second-to-top VM stack slot.
+
+Arbitrarily sized types are strictly defined inside containers that are able to store such data. In containers that store fixed-size data (e.g., the VM stack, SPRs), arbitrarily sized data is represented as tagged pointers to the actual definitions.
+
+The STR type, represented as a fixed-size 64-bit data slot, has the following byte layout:
+* Byte 0: Container type *(see [Section 2.5](#25-container-types) for container type codes)*
+* Bytes 1-5: Unused bits
+* Bytes 6-7: Value's index into the container
 
 ### Type Casting
 Convertible/mutually castable types can be cast to each other.
@@ -183,8 +191,8 @@ All instructions have a fixed length of 4 bytes.
 | `COS` | bitmask | padding | padding | Computes Cosine |
 | `ACOS` | bitmask | padding | padding | Computes Arccosine |
 | `TAN` | bitmask | padding | padding | Computes Tangent |
-| `ATAN` | bitmask | padding | padding | Computes Arctangent |
-| `ATAN2` | bitmask | padding | padding | Computes Arctangent of Single Ratio, `atan2(y, x)`, where the VM stack is structured as `[y, x]` |
+| `ATAN` | bitmask | padding | padding | Computes Arctangent of Single Ratio |
+| `ATAN2` | bitmask | padding | padding | Computes Arctangent `atan2(y, x)`, where the VM stack is structured as `[y, x]` |
 | `COT` | bitmask | padding | padding | Computes Cotangent |
 | `ACOT` | bitmask | padding | padding | Computes Arccotangent |
 | `ABS` | bitmask | padding | padding | Computes Absolute value |

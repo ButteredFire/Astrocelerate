@@ -17,6 +17,7 @@
 
 
 namespace Compiler {
+	/* (Single-use) Bytecode Emitter Implementation */
 	class BytecodeEmitter {
 	public:
 		BytecodeEmitter(const std::reference_wrapper<IGraphNodeRegistry> nodeRegistry, Diagnostics::DiagReporter &reporter, ConstantPool &constPool);
@@ -137,13 +138,22 @@ namespace Compiler {
 
 		/* Compilation pass: The emitter traverses and compiles the graph. */
 		void compileGraph();
-		void compileGraphFrom(Graph::NodeID startNodeID, Graph::NodeID prevNodeID);
+
+		/* Traverses the graph starting from a particular node.
+			@param startNodeID: The ID of the starting node.
+			@param prevNodeID: The ID of the node that immediately precedes the starting node in execution order.
+			@param execPath: The path the compiler took, from the entry node, to get to the starting node.
+		*/
+		void compileGraphFrom(Graph::NodeID startNodeID, Graph::NodeID prevNodeID, std::vector<Graph::NodeID> execPath);
 
 		/* Backpatching pass: The emitter resolves emitted. placeholder memory addresses. */
 		void backpatch();
 
-		/* Compiles a node. */
-		void compileNode(Graph::NodeID nodeID);
+		/* Compiles a node.
+			@param nodeID: The ID of the node to be compiled.
+			@param execPath: The path the compiler took, from the entry node, to get to the node to be compiled.
+		*/
+		void compileNode(Graph::NodeID nodeID, std::vector<Graph::NodeID> execPath);
 
 		/* Emits a cast instruction for the top VM stack slot. */
 		void emitCastInstruction(AsTL::BYTE startType, AsTL::BYTE destType);
@@ -191,8 +201,5 @@ namespace Compiler {
 
 
 		void emitInstruction(SymbolicInstruction &&instruction);
-
-
-		void resetEmitter();
 	};
 }

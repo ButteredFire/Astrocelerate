@@ -65,7 +65,9 @@ if (CMAKE_BUILD_TYPE IN_LIST ASAN_ENABLED_MODES)
 endif()
 
     # Other compile options
-add_compile_options(/Zc:preprocessor /MP)
+if (MSVC)
+    add_compile_options(/Zc:preprocessor /MP)
+endif()
 
 
 # Set C++ standard (allow overriding via CMake cache)

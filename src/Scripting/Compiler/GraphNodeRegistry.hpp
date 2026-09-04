@@ -2,9 +2,14 @@
 
 #include <span>
 #include <cmath>
+#include <limits>
 #include <string>
+#include <vector>
 #include <numbers>
+#include <variant>
+#include <optional>
 #include <exception>
+#include <stdexcept>
 #include <typeindex>
 #include <string_view>
 #include <unordered_map>
@@ -42,11 +47,16 @@ namespace Compiler {
 	// The description of the graph node
 	struct GraphNodeDescriptor {
 		enum class NodeClass {
-			Action,			// Executable Node: Operation that modifies the environment, change physics states, or otherwise interact with external systems
-			ControlFlow,	/* Executable Node: Operation that dictates execution flow; if the execution flow dies before reaching an explicit Terminate node,
-												the program definitively ends without re-evaluating the Executable Node. */
-			ControlFlowLoop,/* Executable Node: Operation that dictates execution flow; if the execution flow dies before reaching an explicit Terminate node,
-												the Executable Node will be re-evaluated and the execution flow restarted from that Node. */
+			// Executable Node: Operation that modifies the environment, change physics states, or otherwise interact with external systems
+			Action,
+
+			// Executable Node: Operation that dictates execution flow; if the execution flow dies before reaching an explicit Terminate node,
+			// the program definitively ends without re-evaluating the Executable Node
+			ControlFlow,
+
+			// Executable Node: Operation that dictates execution flow; if the execution flow dies before reaching an explicit Terminate node,
+			// the Executable Node will be re-evaluated and the execution flow restarted from that Node.
+			ControlFlowLoop,
 
 			Getter,			// Non-executable Node: Read-only operation that returns a value
 			MathConstant,	// Non-executable Node: Read-only operation that returns a constant value
@@ -55,7 +65,7 @@ namespace Compiler {
 
 		struct Parameter {
 			enum class ParamClass {
-				Data,	// Pure Data Darameter
+				Data,	// Pure Data Parameter
 				Combo	// Graph Variable Combo-Box Parameter
 			};
 
@@ -525,7 +535,7 @@ namespace Compiler {
 				ControlFlowLoop,
 				"Sequence", Graph::MakeQualifiedID(Control, Sequence),
 				{ Graph::ExecInID },
-				{ "Then 0", "Then 1", "Then 2" },
+				{ "Then 0", "Then 1", "Then 2", Graph::ExecStopID },
 				{}, {},
 				[](AsTL::OpaqueExecCtx *, const GraphNodeDescriptor *self, AsTL::IDX nodeID, std::string_view triggeredPin, std::span<const AsTL::StackValue> args, AsTL::StackValue* retBuffer) -> void {
 					static std::unordered_map<AsTL::IDX,
@@ -537,23 +547,23 @@ namespace Compiler {
 					STATIC_BLOCK_BEGIN(nodeID)
 					{
 						currentOutPin = 0;
-
-						outList.resize(self->outExecs.size());
-						outList[0] = true;
-						for (size_t i = 1; i < self->outExecs.size(); ++i)
-							outList[i] = false;
+						outList.resize(self->outExecs.size() - 1);
+						std::fill(outList.begin(), outList.end(), false);
 					}
 					STATIC_BLOCK_END
 
-					if (currentOutPin > 0) {
-						for (size_t i = 1; i < outList.size(); ++i) {
-							if (i == currentOutPin) {
-								outList[i - 1] = false;
-								outList[i] = true;
-							}
-						}
-					}
+					retBuffer[outList.size()] = false;
+					outList[currentOutPin] = true;
 
+					if (currentOutPin > 0)
+						outList[currentOutPin - 1] = false;
+
+					if (currentOutPin >= outList.size()) {
+						// All pins have executed; stop re-evaluation and set all pins to false
+						retBuffer[outList.size()] = true;
+						outList[outList.size() - 1] = false;
+					}
+					
 					++currentOutPin;
 
 					/* NOTE: `retBuffer = outList.data()` does NOT work!!
@@ -567,15 +577,15 @@ namespace Compiler {
 						Or the idiomatic C++ alternative (safer, because it does the byte size calculations for you, but only accepts STL containers as the source):
 							`std::copy(outList.begin(), outList.end(), retBuffer);`
 					*/
-					std::copy(outList.begin(), outList.end(), retBuffer);
+					std::copy(outList.begin(), outList.end(), retBuffer + 1);
 				}
 			});
 
 			addDefault({
-				ControlFlow,
+				ControlFlowLoop,
 				"For Loop in Range", Graph::MakeQualifiedID(Control, ForLoop),
 				{ Graph::ExecInID, "Break" },
-				{ "In Loop", "Completed" },
+				{ Graph::ExecStopID, "In Loop", "Completed" },
 				{
 					{ Data, "Range Start", AsTL::TID_I32 },
 					{ Data, "Range End", AsTL::TID_I32 }
@@ -592,47 +602,64 @@ namespace Compiler {
 					AsTL::StackValue* retBuffer
 				) -> void {
 
+					static constexpr size_t
+						ExecStop = 0,
+						InLoop = 1,
+						Completed = 2,
+						Index = 3;
+
+					static std::unordered_map<AsTL::IDX, AsTL::BOOL> loopBreaks{};
 					static std::unordered_map<AsTL::IDX, AsTL::I32> indicesOfLoops{};
+
+					AsTL::BOOL& loopReachedBreak = loopBreaks[nodeID];
 					AsTL::I32& thisLoopIdx = indicesOfLoops[nodeID];
 
-					AsTL::I32 startIdx = std::get<AsTL::I32>(args[0]);
-					AsTL::I32 endIdx = std::get<AsTL::I32>(args[1]);
-
 					STATIC_BLOCK_BEGIN(nodeID)
-						thisLoopIdx = startIdx;
+						loopReachedBreak = false;
+						thisLoopIdx = std::get<AsTL::I32>(args[0]);
 					STATIC_BLOCK_END
 
+					const AsTL::I32 endIdx = std::get<AsTL::I32>(args[1]);
+					const AsTL::BOOL loopCondition = (thisLoopIdx <= endIdx);
+
+					retBuffer[ExecStop] = false;
 					AsTL::I32 lastLoopIdx = thisLoopIdx;
 
-					if (triggeredPin != "Break") {
-						if (thisLoopIdx <= endIdx) {
-							retBuffer[0] = true;			// Exec Out: In Loop
-							retBuffer[1] = false;			// Exec Out: Completed
-						}
-						else {
-							retBuffer[0] = false;			// Exec Out: In Loop
-							retBuffer[1] = true;			// Exec Out: Completed
-						}
+					if (loopReachedBreak || !loopCondition) {
+						loopReachedBreak = false;
+						thisLoopIdx = 0;
 
-						retBuffer[2] = thisLoopIdx++;	// Data Out: Index
+						retBuffer[ExecStop] = true;
+
+						retBuffer[InLoop] = false;
+						retBuffer[Completed] = false;
+						retBuffer[Index] = lastLoopIdx;
 
 						return;
 					}
 
+					if (triggeredPin == Graph::ExecInID) {
+						retBuffer[InLoop] = true;
+						retBuffer[Completed] = false;
+						retBuffer[Index] = thisLoopIdx++;
 
+						return;
+					}
+
+					loopReachedBreak = true;
 					thisLoopIdx = 0;
 
-					retBuffer[0] = false;			// Exec Out: In Loop
-					retBuffer[1] = true;			// Exec Out: Completed
-					retBuffer[2] = lastLoopIdx;		// Data Out: Index
+					retBuffer[InLoop] = false;
+					retBuffer[Completed] = true;
+					retBuffer[Index] = lastLoopIdx;
 				}
 			});
 
 			addDefault({
-				ControlFlow,
+				ControlFlowLoop,
 				"While Loop", Graph::MakeQualifiedID(Control, WhileLoop),
 				{ Graph::ExecInID, "Break" },
-				{ "In Loop", "Completed" },
+				{ Graph::ExecStopID, "In Loop", "Completed" },
 				{
 					{ Data, "Condition", AsTL::TID_BOOL }
 				},
@@ -648,43 +675,55 @@ namespace Compiler {
 					AsTL::StackValue* retBuffer
 				) -> void {
 
-					static std::unordered_map<AsTL::IDX, AsTL::BOOL> conditionsOfLoops{};
+					static constexpr size_t
+						ExecStop = 0,
+						InLoop = 1,
+						Completed = 2,
+						Index = 3;
+
+					static std::unordered_map<AsTL::IDX, AsTL::BOOL> loopBreaks{};
 					static std::unordered_map<AsTL::IDX, AsTL::I32> indicesOfLoops{};
 
-					AsTL::BOOL& maintainLoop = conditionsOfLoops[nodeID];
+					AsTL::BOOL& loopReachedBreak = loopBreaks[nodeID];
 					AsTL::I32& thisLoopIdx = indicesOfLoops[nodeID];
 
-					maintainLoop = std::get<AsTL::BOOL>(args[0]);
+					const AsTL::BOOL loopCondition = std::get<AsTL::BOOL>(args[0]);
+					
 					STATIC_BLOCK_BEGIN(nodeID)
+						loopReachedBreak = false;
 						thisLoopIdx = 0;
 					STATIC_BLOCK_END
 
+					retBuffer[ExecStop] = false;
 					AsTL::I32 lastLoopIdx = thisLoopIdx;
 
-					if (maintainLoop && triggeredPin != "Break") {
-						retBuffer[0] = true;			// Exec Out: In Loop
-						retBuffer[1] = false;			// Exec Out: Completed
-						retBuffer[2] = thisLoopIdx++;	// Data Out: Index
-
-						return;
-					}
-
-					else if (!maintainLoop) {
+					if (loopReachedBreak || !loopCondition) {
+						loopReachedBreak = false;
 						thisLoopIdx = 0;
 
-						retBuffer[0] = false;			// Exec Out: In Loop
-						retBuffer[1] = false;			// Exec Out: Completed
-						retBuffer[2] = lastLoopIdx;		// Data Out: Index
+						retBuffer[ExecStop] = true;
+
+						retBuffer[InLoop] = false;
+						retBuffer[Completed] = false;
+						retBuffer[Index] = lastLoopIdx;
 
 						return;
 					}
 
-					maintainLoop = false;
+					if (triggeredPin == Graph::ExecInID) {
+						retBuffer[InLoop] = true;
+						retBuffer[Completed] = false;
+						retBuffer[Index] = thisLoopIdx++;
+
+						return;
+					}
+
+					loopReachedBreak = true;
 					thisLoopIdx = 0;
 
-					retBuffer[0] = false;			// Exec Out: In Loop
-					retBuffer[1] = true;			// Exec Out: Completed
-					retBuffer[2] = lastLoopIdx;		// Data Out: Index
+					retBuffer[InLoop] = false;
+					retBuffer[Completed] = true;
+					retBuffer[Index] = lastLoopIdx;
 				}
 			});
 
@@ -830,10 +869,11 @@ namespace Compiler {
 				"Dot Product of Vector3", Graph::MakeQualifiedID(Math, Arithmetic, Vec3Dot),
 				{}, {},
 				{
-					{ Data, "Vector", AsTL::TID_VEC3 }
+					{ Data, "A", AsTL::TID_VEC3 },
+					{ Data, "B", AsTL::TID_VEC3 }
 				},
 				{
-					{ Data, "", AsTL::TID_VEC3 }
+					{ Data, "", AsTL::TID_F64 }
 				},
 				Opcode::VEC_MUL_DOT
 			});
@@ -843,7 +883,8 @@ namespace Compiler {
 				"Cross Product of Vector3", Graph::MakeQualifiedID(Math, Arithmetic, Vec3Cross),
 				{}, {},
 				{
-					{ Data, "Vector", AsTL::TID_VEC3 }
+					{ Data, "A", AsTL::TID_VEC3 },
+					{ Data, "B", AsTL::TID_VEC3 }
 				},
 				{
 					{ Data, "", AsTL::TID_VEC3 }
@@ -1059,8 +1100,8 @@ namespace Compiler {
 				"Arc-tangent", Graph::MakeQualifiedID(Math, Arithmetic, Arctangent2),
 				{}, {},
 				{
-					{ Data, "X", AsTL::TID_NUMERIC },
-					{ Data, "Y", AsTL::TID_NUMERIC }
+					{ Data, "Y", AsTL::TID_NUMERIC },
+					{ Data, "X", AsTL::TID_NUMERIC }
 				},
 				{
 					{ Data, "", AsTL::TID_F64 }
@@ -1143,8 +1184,7 @@ namespace Compiler {
 				if (outParam.paramClass != GraphNodeDescriptor::Parameter::ParamClass::Data)
 					throw std::runtime_error("Cannot register descriptor for node \"" + descriptor.symbol + "\": Output parameter class is restricted to the Data class");
 
-
-			AsTL::IDX idx = IDX_NAN;
+			AsTL::IDX idx = std::numeric_limits<AsTL::IDX>::max();
 
 			if (lookup.contains(descriptor.symbol)) {
 				// Modify existing node
@@ -1168,8 +1208,6 @@ namespace Compiler {
 		NodeLookupT &&transferLookup() { return std::move(m_nodeLookup); }
 
 	private:
-		AsTL::IDX IDX_NAN = std::numeric_limits<AsTL::IDX>::max();
-
 		NodeTableT m_nodeTable{};	// Node Table
 		NodeLookupT m_nodeLookup{};	// Lookup Table mapping a node symbol to its corresponding entry in the Node Table
 

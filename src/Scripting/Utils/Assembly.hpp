@@ -14,6 +14,7 @@
 
 
 namespace CompilerUtils {
+
 	/* Disassembles an encoded AstroAssembly instruction.
 		@param rawInstruction: The encoded AstroAssembly instruction.
 		@return The decoded instruction.
@@ -42,18 +43,13 @@ namespace CompilerUtils {
 		if (instruction.operand.has_value()) {
 			const auto &v = instruction.operand.value();
 
-			std::visit(OverloadedVisit{
+			std::visit(CompilerUtils::OverloadedVisit {
 				[&](AsTL::BYTE val)		{ operand = val; },
 				[&](AsTL::IDX val)		{ operand = val; },
 				[&](AsTL::I16 val)		{ operand = val; },
 				[&](std::pair<AsTL::BYTE, AsTL::BYTE> val) {
 					const auto &[high, low] = val;
 					operand =	(static_cast<Compiler::RawOperandT>(high) << 8) | 
-								(static_cast<Compiler::RawOperandT>(low) << 0);
-				},
-				[&](std::pair<AsTL::BYTE, AsTL::IDX> val) {
-					const auto &[high, low] = val;
-					operand =	(static_cast<Compiler::RawOperandT>(high) << 8) |
 								(static_cast<Compiler::RawOperandT>(low) << 0);
 				}
 			}, v);
@@ -69,7 +65,7 @@ namespace CompilerUtils {
 		@param instructions: Symbolic instructions to format.
 		@return Formatted strings representing the disassembled instructions.
 	*/
-	inline std::vector<std::string> FormatDisassembly(std::vector<Compiler::SymbolicInstruction> instructions) {
+	inline std::vector<std::string> FormatDisassembly(const std::vector<Compiler::SymbolicInstruction>& instructions) {
 		static constexpr int MAX_OPCODE_W = 15;
 		static constexpr int BITMASK_W = Compiler::BitmaskSz * 2 / 8;
 		static constexpr int FULL_OPERAND_W = sizeof(Compiler::RawOperandT) * 2;
@@ -82,7 +78,7 @@ namespace CompilerUtils {
 			std::string operandStr{};
 
 			if (instruction.operand.has_value()) {
-				std::visit(OverloadedVisit{
+				std::visit(CompilerUtils::OverloadedVisit {
 					[&](AsTL::BYTE val) {
 						operandStr = std::format("0x{:0>{}X}", val, HALF_OPERAND_W);
 					},
@@ -96,12 +92,6 @@ namespace CompilerUtils {
 						operandStr = std::format("0x{:0>{}X}, 0x{:0>{}X}",
 							val.first, HALF_OPERAND_W,
 							val.second, HALF_OPERAND_W
-						);
-					},
-					[&](std::pair<AsTL::BYTE, AsTL::IDX> val) {
-						operandStr = std::format("0x{:0>{}X}, 0x{:0>{}X}",
-							val.first, HALF_OPERAND_W,
-							val.second, FULL_OPERAND_W
 						);
 					}
 				}, instruction.operand.value());
@@ -130,4 +120,5 @@ namespace CompilerUtils {
 
 		return lines;
 	}
-}
+
+} // namespace CompilerUtils

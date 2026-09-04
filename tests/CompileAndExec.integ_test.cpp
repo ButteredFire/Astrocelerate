@@ -49,18 +49,19 @@ namespace {
 
 		std::string retVal = "???";
 
-		std::visit(OverloadedVisit {
+		std::visit(CompilerUtils::OverloadedVisit {
 			[&retVal](IDX arg)					{ retVal = std::to_string(arg); },
+			[&retVal](I16 arg)					{ retVal = std::to_string(arg); },
 			[&retVal](I32 arg)					{ retVal = std::to_string(arg); },
 			[&retVal](F64 arg)					{ retVal = std::to_string(arg); },
-			[&retVal](BOOL arg)					{ retVal = std::to_string(arg); },
-			[&retVal](VEC3 arg)					{ retVal = std::format("[{}, {}, {}]", arg.x, arg.y, arg.z); },
+			[&retVal](BOOL arg)					{ retVal = (arg ? "True" : "False"); },
+			[&retVal](VEC3 arg)					{ retVal = std::format("({}, {}, {})", arg.x, arg.y, arg.z); },
 			[&retVal](const std::string &arg)	{ retVal = arg; }
 		}, val);
 
 		return retVal;
 	}
-
+	
 	std::string valueTypeToString(const AsTL::StackValue &val) {
 		using namespace AsTL;
 
@@ -430,7 +431,7 @@ TEST_CASE("Compilation & Execution Test: Custom Node", __FILE__) {
 		MockSimulationContext* simCtx = reinterpret_cast<MockSimulationContext*>(ctx);
 		const AsTL::IDX satID = std::get<AsTL::IDX>(args[0]);
 
-		const AsTL::VEC3& oldPos = simCtx->satPositions[satID].position;
+		const AsTL::VEC3 oldPos = simCtx->satPositions[satID].position;
 
 		// Simulate satellite altitude ascension
 		simCtx->satPositions[satID].position = simCtx->satPositions[satID].position * 2;
@@ -492,10 +493,10 @@ TEST_CASE("Compilation & Execution Test: Custom Node", __FILE__) {
 	REQUIRE(exitCode == Compiler::VMExitCode::SUCCESS);
 	AssertOutput(
 		output,
-		R"(Mock::GetApoapsis: Callable invoked with Satellite VNREDSat-1A at position (2e+05, 4e+05, 2e+05)
+		R"(Mock::GetApoapsis: Callable invoked with Satellite VNREDSat-1A at position (1e+05, 2e+05, 1e+05)
+Mock::GetApoapsis: Callable invoked with Satellite VNREDSat-1A at position (2e+05, 4e+05, 2e+05)
 Mock::GetApoapsis: Callable invoked with Satellite VNREDSat-1A at position (4e+05, 8e+05, 4e+05)
 Mock::GetApoapsis: Callable invoked with Satellite VNREDSat-1A at position (8e+05, 1600000, 8e+05)
-Mock::GetApoapsis: Callable invoked with Satellite VNREDSat-1A at position (1600000, 3200000, 1600000)
 Satellite VNREDSat-1A has escaped Low-Earth Orbit!
 )"
 	);

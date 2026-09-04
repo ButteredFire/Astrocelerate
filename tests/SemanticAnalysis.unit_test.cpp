@@ -135,9 +135,7 @@ TEST_CASE("Semantic Analysis: One Hundred Primes", __FILE__) {
 
 	PrintReports(reporter);
 
-	// Error 1: Missing definition for custom node "Control::Loop" (ID: 1)
-	// Error 2: Missing definition for custom node "Control::Loop" (ID: 9)
-	REQUIRE(reporter.getDiagCount() == 2);
+	REQUIRE(!reporter.hasDiagnostics());
 }
 
 

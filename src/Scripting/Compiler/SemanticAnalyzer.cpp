@@ -28,22 +28,16 @@ namespace Compiler {
 		}
 
 		for (const auto& link : nodeLinks) {
-			// Ingoing links
-			for (const auto& otherLink : nodeLinks)
-				if (otherLink.inNodeID == link.inNodeID)
-					m_nodeInLinks[link.inNodeID].emplace_back(otherLink);
-
-			// Outgoing links
-			for (const auto& otherLink : nodeLinks)
-				if (otherLink.outNodeID == link.outNodeID)
-					m_nodeOutLinks[link.outNodeID].emplace_back(otherLink);
+			m_nodeOutLinks[link.outNodeID].emplace_back(link);
+			m_nodeInLinks[link.inNodeID].emplace_back(link);
 		}
-
-		resolveWildcards();
 
 		checkExistence();
 		checkRegistry();
 		checkCircularDeps();
+
+		resolveWildcards();
+
 		checkInputLiterals();
 		checkUnused();
 		checkCasting();
@@ -83,71 +77,84 @@ namespace Compiler {
 	void SemanticAnalyzer::resolveWildcards() {
 		traverseGraph(
 			[&](Graph::NodeID nodeID) -> void {
-				const Graph::Node& node = m_nodes.at(nodeID);
-
-				std::vector<std::type_index> inPinTypes{};
-
-				for (const auto& inPin : node.inputPins) {
-					std::visit(
-						[&](const auto& pin) {
-							inPinTypes.push_back(pin.type);
-						},
-						inPin
-					);
-				}
-
-
-				// If the node is a native math node that accepts wildcard values and returns wildcard types, attempt to deduce its return type
-					// Binary node
-				if (
-					Graph::BinaryMathTypeRules.HasOperation(node.symbol) &&
-					inPinTypes.size() == 2
-				) {
-					std::optional<std::type_index> retType = Graph::BinaryMathTypeRules.TryGetResultType(inPinTypes[0], inPinTypes[1], node.symbol);
-
-					if (retType.has_value())
-						m_wildcardOutputs.emplace(node.id, retType.value());
-
-					else {
-						m_reporter.report(
-							Diagnostics::Diagnostic::Severity::Error,
-							Diagnostics::Diagnostic::DiagType::Semantic,
-							node.id,
-							std::nullopt,
-							"Incompatible math operation between inputs of types {} and {}",
-							AsTL::StackValueToRepString(inPinTypes[0]),
-							AsTL::StackValueToRepString(inPinTypes[1])
-						);
-
-						markAsDirtied(node.id);
-					}
-				}
-
-					// Unary node
-				else if (
-					Graph::UnaryMathTypeRules.HasOperation(node.symbol) &&
-					inPinTypes.size() == 1
-				) {
-					std::optional<std::type_index> retType = Graph::UnaryMathTypeRules.TryGetResultType(inPinTypes[0], node.symbol);
-
-					if (retType.has_value())
-						m_wildcardOutputs.emplace(node.id, retType.value());
-
-					else {
-						m_reporter.report(
-							Diagnostics::Diagnostic::Severity::Error,
-							Diagnostics::Diagnostic::DiagType::Semantic,
-							node.id,
-							std::nullopt,
-							"Incompatible math operation for input of type {}",
-							AsTL::StackValueToRepString(inPinTypes[0])
-						);
-
-						markAsDirtied(node.id);
-					}
-				}
+				resolveWildcardsForNode(nodeID);
 			}
 		);
+	}
+
+
+	void SemanticAnalyzer::resolveWildcardsForNode(Graph::NodeID nodeID) {
+		if (isDirty(nodeID))
+			return;
+
+		const Graph::Node& node = m_nodes.at(nodeID);
+
+		std::vector<std::type_index> inPinTypes{};
+
+		for (const auto& inPin : node.inputPins) {
+			std::visit(
+				[&](const auto& pin) {
+					inPinTypes.push_back(pin.type);
+					
+					if (m_nodeInLinks.contains(nodeID))
+						for (const Graph::Link& link : m_nodeInLinks.at(nodeID))
+							if (link.inPinID == pin.label)
+								resolveWildcardsForNode(link.outNodeID);
+				},
+				inPin
+			);
+		}
+
+
+		// If the node is a native math node that accepts wildcard values and returns wildcard types, attempt to deduce its return type
+			// Binary node
+		if (
+			Graph::BinaryMathTypeRules.HasOperation(node.symbol) &&
+			inPinTypes.size() == 2
+		) {
+			std::optional<std::type_index> retType = Graph::BinaryMathTypeRules.TryGetResultType(inPinTypes[0], inPinTypes[1], node.symbol);
+
+			if (retType.has_value())
+				m_wildcardOutputs.emplace(node.id, retType.value());
+
+			else {
+				m_reporter.report(
+					Diagnostics::Diagnostic::Severity::Error,
+					Diagnostics::Diagnostic::DiagType::Semantic,
+					node.id,
+					std::nullopt,
+					"Incompatible math operation between inputs of types {} and {}",
+					AsTL::StackValueToRepString(inPinTypes[0]),
+					AsTL::StackValueToRepString(inPinTypes[1])
+				);
+
+				markAsDirtied(node.id);
+			}
+		}
+
+			// Unary node
+		else if (
+			Graph::UnaryMathTypeRules.HasOperation(node.symbol) &&
+			inPinTypes.size() == 1
+		) {
+			std::optional<std::type_index> retType = Graph::UnaryMathTypeRules.TryGetResultType(inPinTypes[0], node.symbol);
+
+			if (retType.has_value())
+				m_wildcardOutputs.emplace(node.id, retType.value());
+
+			else {
+				m_reporter.report(
+					Diagnostics::Diagnostic::Severity::Error,
+					Diagnostics::Diagnostic::DiagType::Semantic,
+					node.id,
+					std::nullopt,
+					"Incompatible math operation for input of type {}",
+					AsTL::StackValueToRepString(inPinTypes[0])
+				);
+
+				markAsDirtied(node.id);
+			}
+		}
 	}
 
 	void SemanticAnalyzer::checkExistence() {
@@ -359,7 +366,7 @@ namespace Compiler {
 
 			for (const auto& inPin : node.inputPins)
 				std::visit(
-					OverloadedVisit{
+					CompilerUtils::OverloadedVisit {
 						// Variable combo boxes
 						[&](const Graph::Node::ComboInPin& comboPin) {
 							if (!pinContainsLiteral(node.id, comboPin.label))
@@ -380,7 +387,7 @@ namespace Compiler {
 												AsTL::StackValueToRepString(comboPin.type)
 											);
 
-											markAsDirtied(node.id, comboPin.label);
+											markAsDirtied(node.id, Impl::DirtyPin{ Impl::DirtyPin::IN_PIN, comboPin.label });
 										}
 
 										return;
@@ -396,7 +403,7 @@ namespace Compiler {
 									comboPin.chosenVar.value()
 								);
 
-								markAsDirtied(node.id, comboPin.label);
+								markAsDirtied(node.id, Impl::DirtyPin{ Impl::DirtyPin::IN_PIN, comboPin.label });
 							}
 							else {
 								// No variable has been selected
@@ -408,7 +415,7 @@ namespace Compiler {
 									"No variable has been selected"
 								);
 
-								markAsDirtied(node.id, comboPin.label);
+								markAsDirtied(node.id, Impl::DirtyPin{ Impl::DirtyPin::IN_PIN, comboPin.label });
 							}
 						},
 
@@ -443,7 +450,7 @@ namespace Compiler {
 											AsTL::StackValueToRepString(dataPin.type)
 										);
 
-										markAsDirtied(node.id, dataPin.label);
+										markAsDirtied(node.id, Impl::DirtyPin{ Impl::DirtyPin::IN_PIN, dataPin.label });
 									}
 								},
 								dataPin.val
@@ -466,7 +473,7 @@ namespace Compiler {
 
 				for (const auto& inPin : node.inputPins)
 					std::visit(
-						OverloadedVisit {
+						CompilerUtils::OverloadedVisit {
 							[&](const Graph::Node::ComboInPin& comboPin) {
 								if (comboPin.chosenVar.has_value() && comboPin.chosenVar.value() == var.name)
 									unused = false;
@@ -564,10 +571,15 @@ namespace Compiler {
 					)
 						return;
 
-					const auto& convertibleTypes = AsTL::ValidConversionMap.at(pin.type);
-						
+					std::type_index destType = pin.type;
 
-					if (!convertibleTypes.contains(sourceType)) {
+					if (Graph::IsNonPrimitive(destType))
+						destType = Graph::HighLevelTypeToPrimitive(destType);
+
+					if (
+						AsTL::ValidConversionMap.contains(destType) &&
+						!AsTL::ValidConversionMap.at(destType).contains(sourceType)
+					) {
 						m_reporter.report(
 							Diagnostics::Diagnostic::Severity::Error,
 							Diagnostics::Diagnostic::DiagType::Semantic,
@@ -576,10 +588,10 @@ namespace Compiler {
 							"Incompatible data link to Input Pin \"{}\": No conversion exists between output type {} and input type {}",
 							pin.label,
 							AsTL::StackValueToRepString(sourceType),
-							AsTL::StackValueToRepString(pin.type)
+							AsTL::StackValueToRepString(destType)
 						);
 
-						markAsDirtied(node.id, pin.label);
+						markAsDirtied(node.id, Impl::DirtyPin{ Impl::DirtyPin::IN_PIN, pin.label });
 					}
 				},
 				inPin
@@ -588,21 +600,21 @@ namespace Compiler {
 	}
 
 
-	void SemanticAnalyzer::markAsDirtied(Graph::NodeID dirtyNodeID, std::optional<std::string> dirtyPinLabel) {
-		if (dirtyPinLabel.has_value())
-			m_dirtied[dirtyNodeID].insert(dirtyPinLabel.value());
-		else
-			m_dirtied.emplace(dirtyNodeID, std::unordered_set<std::string>{});
+	void SemanticAnalyzer::markAsDirtied(Graph::NodeID dirtyNodeID, std::optional<Impl::DirtyPin> dirtyPin) {
+		if (dirtyPin.has_value())
+			m_dirtied[dirtyNodeID].insert(dirtyPin.value());
+		else if (!m_dirtied.contains(dirtyNodeID))
+			m_dirtied[dirtyNodeID] = {};
 	}
 
 
-	bool SemanticAnalyzer::isDirty(Graph::NodeID dirtyNodeID, std::optional<std::string> dirtyPinLabel) {
+	bool SemanticAnalyzer::isDirty(Graph::NodeID dirtyNodeID, std::optional<Impl::DirtyPin> dirtyPin) const {
 		if (!m_dirtied.contains(dirtyNodeID))
 			return false;
 
 		// Check if node's pin is dirty
-		if (dirtyPinLabel.has_value())
-			return m_dirtied[dirtyNodeID].contains(dirtyPinLabel.value());
+		if (dirtyPin.has_value())
+			return m_dirtied.at(dirtyNodeID).contains(dirtyPin.value());
 		
 		// Check if node is dirty (true here, due to the guardrail at the start)
 		return true;

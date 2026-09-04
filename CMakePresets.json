@@ -6,7 +6,6 @@
         "hidden": true,
         "generator": "Ninja",
         "cacheVariables": {
-            //"WARNINGS_AS_ERRORS": "ON",
             "CMAKE_TOOLCHAIN_FILE": "D:/vcpkg/scripts/buildsystems/vcpkg.cmake"
         },
         "environment": {

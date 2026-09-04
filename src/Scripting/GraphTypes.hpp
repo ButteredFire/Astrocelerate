@@ -2,7 +2,9 @@
 
 #include <string>
 #include <vector>
+#include <variant>
 #include <typeindex>
+#include <unordered_set>
 
 #include "AsTLTypes.hpp"
 #include "GraphIdentifiers.hpp"
@@ -18,6 +20,10 @@ namespace Graph {
 
 	inline const std::string ExecInID			= "EXEC_IN";	// Input Execution Pin ID
 	inline const std::string ExecOutID			= "EXEC_OUT";	// Output Execution Pin ID
+
+	// (For ControlFlowLoop Node Class) Stop-Reevaluation Pin ID.
+	// If this pin is triggered, re-evaluation stops for the current function call.
+	inline const std::string ExecStopID			= "EXEC_OUT_STOP_REEVAL";
 
 	inline constexpr NodeID TermNodeID			= -1;			// ID of the Termination node
 	inline const std::string TermNodeSymbol		= "_TERM";		// Symbol of the Termination node
@@ -44,6 +50,10 @@ namespace Graph {
 		ExecInID, ExecOutID,
 		SetterInputComboPin, SetterInputDataPin,
 		GetterInputComboPin, GetterOutputDataPin
+	};
+
+	inline const std::unordered_set<std::string> HiddenPinIDs = {
+		ExecStopID
 	};
 
 
@@ -85,7 +95,8 @@ namespace Graph {
 			type == TID_OBJ ||
 			type == TID_SPC ||
 			type == TID_BODY ||
-			type == TID_SPK
+			type == TID_SPK ||
+			type == TID_EXEC
 		);
 	}
 
@@ -105,11 +116,11 @@ namespace Graph {
 	/* Converts a serialized string to a pin type. */
 	inline static std::type_index StringToPinType(const std::string &type) {
 		// High-level types
-		if (type == "OBJ")			return TID_OBJ;
-		else if (type == "SPC")		return TID_SPC;
-		else if (type == "BODY")	return TID_BODY;
-		else if (type == "SPK")		return TID_SPK;
-		else if (type == "EXEC")	return TID_EXEC;
+		if (type == SER_OBJ)		return TID_OBJ;
+		else if (type == SER_SPC)	return TID_SPC;
+		else if (type == SER_BODY)	return TID_BODY;
+		else if (type == SER_SPK)	return TID_SPK;
+		else if (type == SER_EXEC)	return TID_EXEC;
 
 		// Primitive types
 		else return AsTL::StringToStackValue(type);
@@ -119,11 +130,11 @@ namespace Graph {
 	/* Converts a pin type to a serialized string. */
 	inline static std::string PinTypeToString(std::type_index type) {
 		// High-level types
-		if (type == TID_OBJ)		return "OBJ";
-		else if (type == TID_SPC)	return "SPC";
-		else if (type == TID_BODY)	return "BODY";
-		else if (type == TID_SPK)	return "SPK";
-		else if (type == TID_EXEC)	return "EXEC";
+		if (type == TID_OBJ)		return SER_OBJ;
+		else if (type == TID_SPC)	return SER_SPC;
+		else if (type == TID_BODY)	return SER_BODY;
+		else if (type == TID_SPK)	return SER_SPK;
+		else if (type == TID_EXEC)	return SER_EXEC;
 
 		// Primitive types
 		else return AsTL::StackValueToString(type);

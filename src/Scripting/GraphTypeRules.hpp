@@ -5,7 +5,7 @@
 #include <type_traits>
 #include <unordered_map>
 
-#include <Scripting/Utils/ArithmeticConcept.hpp>
+#include <Scripting/Utils/Concepts.hpp>
 
 #include "AsTLMacros.hpp"
 #include "GraphIdentifiers.hpp"
@@ -57,11 +57,11 @@ namespace Graph::Impl {
                         ```
                             struct CustomType { int x, y, z; }  // No operator+ overload
 
-                            if constexpr (Addable<int, CustomType>)
+                            if constexpr (CompilerUtils::Addable<int, CustomType>)
                                 auto res = int() + CustomType();
                         ```
 
-                        ... still fails. Addable<T1, T2> explicitly requires T1 and T2 to be addable, so why does the compiler still
+                        ... still fails. CompilerUtils::Addable<T1, T2> explicitly requires T1 and T2 to be CompilerUtils::Addable, so why does the compiler still
                         insist that the line `auto res = int() + CustomType()` is illegal because `CustomType` has no `operator+`,
                         when that conditional branch would logically be discarded at compile time?
 
@@ -76,11 +76,11 @@ namespace Graph::Impl {
                         ```
                             template<typename A, typename B>
                             void doWork(A a, B b) {
-                                if constexpr (Addable<A, B>)
+                                if constexpr (CompilerUtils::Addable<A, B>)
                                     auto res = a + b;
                             }
 
-                            if constexpr (Addable<int, CustomType>)
+                            if constexpr (CompilerUtils::Addable<int, CustomType>)
                                 doWork(int(), CustomType());
                         ```
 
@@ -110,23 +110,69 @@ namespace Graph::Impl {
                 }
 
                 ASTL_TYPE_LIST_PERMUTATIONS(
-                    X, Addable,
+                    X, CompilerUtils::Addable,
                     MakeQualifiedID(ClassScope::Math, CatScope::Arithmetic, FuncScope::Add), +
                 )
 
                 ASTL_TYPE_LIST_PERMUTATIONS(
-                    X, Subtractable,
+                    X, CompilerUtils::Subtractable,
                     MakeQualifiedID(ClassScope::Math, CatScope::Arithmetic, FuncScope::Subtract), -
                 )
 
                 ASTL_TYPE_LIST_PERMUTATIONS(
-                    X, Multipliable,
+                    X, CompilerUtils::Multipliable,
                     MakeQualifiedID(ClassScope::Math, CatScope::Arithmetic, FuncScope::Multiply), *
                 )
 
                 ASTL_TYPE_LIST_PERMUTATIONS(
-                    X, Divisible,
+                    X, CompilerUtils::Divisible,
                     MakeQualifiedID(ClassScope::Math, CatScope::Arithmetic, FuncScope::Divide), /
+                )
+
+                ASTL_TYPE_LIST_PERMUTATIONS(
+                    X, CompilerUtils::CanDoModulo,
+                    MakeQualifiedID(ClassScope::Math, CatScope::Logic, FuncScope::Modulo), %
+                )
+
+                ASTL_TYPE_LIST_PERMUTATIONS(
+                    X, CompilerUtils::CompGreaterThan,
+                    MakeQualifiedID(ClassScope::Math, CatScope::Logic, FuncScope::GreaterThan), >
+                )
+
+                ASTL_TYPE_LIST_PERMUTATIONS(
+                    X, CompilerUtils::CompGreaterThanEqualTo,
+                    MakeQualifiedID(ClassScope::Math, CatScope::Logic, FuncScope::GreaterThanEqualTo), >=
+                )
+
+                ASTL_TYPE_LIST_PERMUTATIONS(
+                    X, CompilerUtils::CompLessThan,
+                    MakeQualifiedID(ClassScope::Math, CatScope::Logic, FuncScope::LessThan), <
+                )
+
+                ASTL_TYPE_LIST_PERMUTATIONS(
+                    X, CompilerUtils::CompLessThanEqualTo,
+                    MakeQualifiedID(ClassScope::Math, CatScope::Logic, FuncScope::LessThanEqualTo), <=
+                )
+
+                ASTL_TYPE_LIST_PERMUTATIONS(
+                    X, CompilerUtils::CompEqualTo,
+                    MakeQualifiedID(ClassScope::Math, CatScope::Logic, FuncScope::EqualTo), ==
+                )
+
+                ASTL_TYPE_LIST_PERMUTATIONS(
+                    X, CompilerUtils::CompNotEqualTo,
+                    MakeQualifiedID(ClassScope::Math, CatScope::Logic, FuncScope::NotEqualTo), !=
+                )
+
+
+                // min(A, B), max(A, B), and A + B all return the same type, so we're using `+` as a hack
+                ASTL_TYPE_LIST_PERMUTATIONS(
+                    X, CompilerUtils::Addable,
+                    MakeQualifiedID(ClassScope::Math, CatScope::Arithmetic, FuncScope::Minimum), +
+                )
+                ASTL_TYPE_LIST_PERMUTATIONS(
+                    X, CompilerUtils::Addable,
+                    MakeQualifiedID(ClassScope::Math, CatScope::Arithmetic, FuncScope::Maximum), +
                 )
             #undef X
         }

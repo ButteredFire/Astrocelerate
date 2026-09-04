@@ -13,15 +13,17 @@ VirtualMachine::VirtualMachine(
 	m_constPool(constPool),
 	m_nodeRegistry(nodeRegistry.get()),
 	m_execCtx(execCtx),
+	m_instructions(nullptr),
 	m_SPRs(), m_vmsSPR(),
-	m_pc(0),
-	m_vsp(0),
+	m_pc(0x00),
+	m_vsp(-1), // The stack pointer is zero-indexed, so it would point to -1 for empty stacks
+	m_csp(-1),
 	m_currentOpcode()
 {
 	size_t vmStackSzBytes = m_allocVMStackSzKB * 1000;
 	size_t callStackSzBytes = m_allocCallStackSzKB * 1000;
 
-	// Stack size must be divisible by the size of each stack element
+	// Stack size must be CompilerUtils::Divisible by the size of each stack element
 	if (vmStackSzBytes % sizeof(uint64_t) != 0) {
 		saveVMState(Compiler::VMExitCode::CRASHED_CONFIG);
 		throw VMConfigException("Virtual machine configuration error: allocated VM stack size must be a multiple of {} bytes",
@@ -35,11 +37,13 @@ VirtualMachine::VirtualMachine(
 		);
 	}
 
-	// Stack size must be less than 1000 KB (1 MB)
-	if (m_allocVMStackSzKB > 1000) {
+	// VM Stack size must be less than 512 KB
+	if (m_allocVMStackSzKB > 512) {
 		saveVMState(Compiler::VMExitCode::CRASHED_CONFIG);
-		throw VMConfigException("Virtual machine configuration error: allocated VM stack size must not exceed 1000 KB");
+		throw VMConfigException("Virtual machine configuration error: allocated VM stack size must not exceed 512 KB");
 	}
+
+	// Call Stack size must be less than 1000 KB (1 MB)
 	if (m_allocCallStackSzKB > 1000) {
 		saveVMState(Compiler::VMExitCode::CRASHED_CONFIG);
 		throw VMConfigException("Virtual machine configuration error: allocated call stack size must not exceed 1000 KB");
@@ -65,8 +69,10 @@ void VirtualMachine::setProgram(const std::vector<Compiler::RawInstructionT>& in
 
 Compiler::VMExitCode VirtualMachine::execute(const std::vector<Compiler::RawInstructionT>& instructions) {
 	m_pc = 0;
-	m_vsp = -1; // The stack pointer is zero-indexed, so it would point to -1 for empty stacks
+	m_vsp = -1;
 
+	STATIC_BLOCK_TRACKER.resetStaticBlocks();
+	
 	m_instructions = &instructions;
 
 	return executeAt(m_pc);
@@ -74,11 +80,10 @@ Compiler::VMExitCode VirtualMachine::execute(const std::vector<Compiler::RawInst
 
 
 Compiler::VMExitCode VirtualMachine::execute() {
-	if (!m_instructions)
-		throw VMConfigException("Unable to start execution: No program (instruction list) has been set");
-
 	m_pc = 0;
 	m_vsp = -1;
+
+	STATIC_BLOCK_TRACKER.resetStaticBlocks();
 
 	return executeAt(m_pc);
 }
@@ -90,31 +95,42 @@ Compiler::VMExitCode VirtualMachine::resume() {
 
 
 Compiler::VMExitCode VirtualMachine::executeAt(AsTL::IDX insAddress) {
-	/* Is the instruction's operation read-only? */
-	const auto insReadOnly = [&]() -> bool {
-		return testBit(m_vmsSPR.insMask, Compiler::BITFLAG_READ_ONLY_BIT);
-	};
-
-	AsTL::BYTE leftOp{}, rightOp{};  // VM stack: [leftOp, rightOp]
-	const auto& instructions = *m_instructions;
-
-	while (true) {
-		if (m_pc >= instructions.size()) {
-			saveVMState(Compiler::VMExitCode::EXEC_HALTED);
-			return m_vmsSPR.exitCode;
+	try {
+		if (!m_instructions) {
+			saveVMState(Compiler::VMExitCode::CRASHED_RT);
+			throw VMRuntimeException("Cannot begin or resume execution: No program has been set");
 		}
 
-		Compiler::Instruction ins(instructions[m_pc]);
-		++m_pc;
+		const auto& instructions = *m_instructions;
+		
+		if (instructions.size() >= std::numeric_limits<AsTL::IDX>::max()) {
+			saveVMState(Compiler::VMExitCode::CRASHED_RT);
+			throw VMRuntimeException("Cannot begin or resume execution: Program size is larger than the virtual machine's addressable byte range");
+		}
+		
+		/* Is the instruction's operation read-only? */
+		const auto insReadOnly = [&]() -> bool {
+			return testBit(m_vmsSPR.insMask, Compiler::BITFLAG_READ_ONLY_BIT);
+		};
 
-		m_vmsSPR.insMask = ins.bitmask;
-		m_currentOpcode = static_cast<Compiler::Opcode>(ins.opcode);
+		AsTL::BYTE leftOp{}, rightOp{};  // VM stack: [leftOp, rightOp]
 
-		// Also reinterpret the instruction operand as 2 operands
-		leftOp = static_cast<AsTL::BYTE>((ins.operand >> 8) & 0xFF);
-		rightOp = static_cast<AsTL::BYTE>(ins.operand & 0xFF);
+		while (true) {
+			if (m_pc >= instructions.size()) {
+				saveVMState(Compiler::VMExitCode::EXEC_HALTED);
+				return m_vmsSPR.exitCode;
+			}
 
-		try {
+			Compiler::Instruction ins(instructions[m_pc]);
+			++m_pc;
+
+			m_vmsSPR.insMask = ins.bitmask;
+			m_currentOpcode = static_cast<Compiler::Opcode>(ins.opcode);
+
+			// Also reinterpret the instruction operand as 2 operands
+			leftOp = static_cast<AsTL::BYTE>((ins.operand >> 8) & 0xFF);
+			rightOp = static_cast<AsTL::BYTE>(ins.operand & 0xFF);
+
 			using enum Compiler::Opcode;
 			switch (m_currentOpcode) {
 			case LOAD_INLINE:
@@ -129,15 +145,26 @@ Compiler::VMExitCode VirtualMachine::executeAt(AsTL::IDX insAddress) {
 
 			case LOAD_SPR:
 			{
+				checkBoundsFor(m_SPRs, rightOp);
 				writeToVMStack(m_SPRs[rightOp]);
 				break;
 			}
 
 			case STORE_SPR:
 			{
+				if (m_vmStack.empty()) {
+					saveVMState(Compiler::VMExitCode::OUT_OF_BOUNDS);
+					throw VMRuntimeException("At instruction address 0x{:0>{}X}: Invalid pop from empty VM stack",
+						m_pc - 1, ADDR_HEX_SZ
+					);
+				}
+
+				checkBoundsFor(m_SPRs, rightOp);
 				m_SPRs[rightOp] = m_vmStack.back();
+
 				if (!insReadOnly())
 					popFromVMStack();
+				
 				break;
 			}
 
@@ -153,7 +180,10 @@ Compiler::VMExitCode VirtualMachine::executeAt(AsTL::IDX insAddress) {
 			case LOAD_GL:
 			{
 				AsTL::IDX idx = std::bit_cast<AsTL::IDX>(ins.operand);
-				const auto &val = m_globReg.at(idx);
+
+				checkBoundsFor(m_globReg, idx);
+				const auto &val = m_globReg[idx];
+
 				writeToVMStack(val, Compiler::CT_GLOBAL_REG, idx);
 
 				break;
@@ -165,7 +195,7 @@ Compiler::VMExitCode VirtualMachine::executeAt(AsTL::IDX insAddress) {
 
 			case STORE_GL:
 			{
-				size_t consumed = 0;
+				AsTL::IDX consumed = 0;
 				m_globReg.push_back(
 					castFromStack<AsTL::StackValue>(static_cast<Compiler::OperandType>(rightOp), &consumed)
 				);
@@ -182,8 +212,10 @@ Compiler::VMExitCode VirtualMachine::executeAt(AsTL::IDX insAddress) {
 
 			case OVR_GL:
 			{
-				size_t consumed = 0;
 				AsTL::IDX idx = std::bit_cast<AsTL::IDX>(ins.operand);
+				AsTL::IDX consumed = 0;
+
+				checkBoundsFor(m_globReg, idx);
 				m_globReg[idx] = castFromStack<AsTL::StackValue>(
 					static_cast<Compiler::OperandType>(
 						Compiler::StackValueToByte(m_globReg[idx])
@@ -203,7 +235,7 @@ Compiler::VMExitCode VirtualMachine::executeAt(AsTL::IDX insAddress) {
 
 			case TO_STR:
 			{
-				size_t consumed = 0;
+				AsTL::IDX consumed = 0;
 				const auto &val = castFromStack<AsTL::StackValue>(static_cast<Compiler::OperandType>(rightOp), &consumed);
 
 				m_strHeap.push_back(variantToString(val));
@@ -215,7 +247,7 @@ Compiler::VMExitCode VirtualMachine::executeAt(AsTL::IDX insAddress) {
 
 			case TO_I16:
 			{
-				size_t consumed = 0;
+				AsTL::IDX consumed = 0;
 				const auto &val = castFromStack<AsTL::StackValue>(static_cast<Compiler::OperandType>(rightOp), &consumed);
 
 				if (!insReadOnly())
@@ -230,7 +262,7 @@ Compiler::VMExitCode VirtualMachine::executeAt(AsTL::IDX insAddress) {
 
 			case TO_I32:
 			{
-				size_t consumed = 0;
+				AsTL::IDX consumed = 0;
 				const auto &val = castFromStack<AsTL::StackValue>(static_cast<Compiler::OperandType>(rightOp), &consumed);
 
 				if (!insReadOnly())
@@ -245,7 +277,7 @@ Compiler::VMExitCode VirtualMachine::executeAt(AsTL::IDX insAddress) {
 
 			case TO_F64:
 			{
-				size_t consumed = 0;
+				AsTL::IDX consumed = 0;
 				const auto &val = castFromStack<AsTL::StackValue>(static_cast<Compiler::OperandType>(rightOp), &consumed);
 
 				if (!insReadOnly())
@@ -281,15 +313,15 @@ Compiler::VMExitCode VirtualMachine::executeAt(AsTL::IDX insAddress) {
 				}
 
 				// Node ID
-				size_t nodeIDConsumed{};
+				AsTL::IDX nodeIDConsumed{};
 				Graph::NodeID nodeID = static_cast<Graph::NodeID>(
 					castFromStack<AsTL::I16>(Compiler::OT_I16, &nodeIDConsumed)
 				);
 
 				// Arguments
-				size_t offset = nodeIDConsumed;
+				AsTL::IDX offset = nodeIDConsumed;
 				for (size_t i = desc.inParams.size(); i-- > 0;) {
-					size_t slotsConsumed = 0;
+					AsTL::IDX slotsConsumed = 0;
 
 					std::type_index argType = desc.inParams[i].type;
 					if (Graph::IsNonPrimitive(argType))
@@ -333,13 +365,13 @@ Compiler::VMExitCode VirtualMachine::executeAt(AsTL::IDX insAddress) {
 
 			case ADD:
 			{
-				SWITCH_TYPES_PERMUT(leftOp, rightOp, binarySwitchIns, Addable);
+				SWITCH_TYPES_PERMUT(leftOp, rightOp, binarySwitchIns, CompilerUtils::Addable);
 				break;
 			}
 
 			case SUB:
 			{
-				SWITCH_TYPES_PERMUT(leftOp, rightOp, binarySwitchIns, Subtractable);
+				SWITCH_TYPES_PERMUT(leftOp, rightOp, binarySwitchIns, CompilerUtils::Subtractable);
 				break;
 			}
 
@@ -347,32 +379,32 @@ Compiler::VMExitCode VirtualMachine::executeAt(AsTL::IDX insAddress) {
 			case MUL:
 			case VEC_MUL:
 			{
-				SWITCH_TYPES_PERMUT(leftOp, rightOp, binarySwitchIns, Multipliable);
+				SWITCH_TYPES_PERMUT(leftOp, rightOp, binarySwitchIns, CompilerUtils::Multipliable);
 				break;
 			}
 
 			case DIV:
 			case VEC_DIV:
 			{
-				SWITCH_TYPES_PERMUT(leftOp, rightOp, binarySwitchIns, Divisible);
+				SWITCH_TYPES_PERMUT(leftOp, rightOp, binarySwitchIns, CompilerUtils::Divisible);
 				break;
 			}
 
 			case MOD:
 			{
-				SWITCH_TYPES_PERMUT(leftOp, rightOp, binarySwitchIns, CanDoModulo);
+				SWITCH_TYPES_PERMUT(leftOp, rightOp, binarySwitchIns, CompilerUtils::CanDoModulo);
 				break;
 			}
 			
 			case NEG:
 			{
-				SWITCH_TYPES(rightOp, unarySwitchIns, Negatable);
+				SWITCH_TYPES(rightOp, unarySwitchIns, CompilerUtils::Negatable);
 				break;
 			}
 
 			case STR_CAT:
 			{
-				size_t consumed1{}, consumed2{};
+				AsTL::IDX consumed1{}, consumed2{};
 
 				AsTL::StackValue slot1 = castFromStack<AsTL::StackValue>(m_vsp, static_cast<Compiler::OperandType>(leftOp), &consumed1);
 				AsTL::StackValue slot2 = castFromStack<AsTL::StackValue>(m_vsp - 1, static_cast<Compiler::OperandType>(rightOp), &consumed2);
@@ -393,7 +425,7 @@ Compiler::VMExitCode VirtualMachine::executeAt(AsTL::IDX insAddress) {
 
 			case VEC_NORM:
 			{
-				size_t consumed{};
+				AsTL::IDX consumed{};
 				AsTL::VEC3 vec = castFromStack<AsTL::VEC3>(Compiler::OT_VEC3, &consumed);
 
 				if (!insReadOnly())
@@ -406,7 +438,7 @@ Compiler::VMExitCode VirtualMachine::executeAt(AsTL::IDX insAddress) {
 
 			case VEC_MAG:
 			{
-				size_t consumed{};
+				AsTL::IDX consumed{};
 				AsTL::VEC3 vec = castFromStack<AsTL::VEC3>(Compiler::OT_VEC3, &consumed);
 
 				if (!insReadOnly())
@@ -419,7 +451,7 @@ Compiler::VMExitCode VirtualMachine::executeAt(AsTL::IDX insAddress) {
 
 			case VEC_MUL_DOT:
 			{
-				size_t consumed1{}, consumed2{};
+				AsTL::IDX consumed1{}, consumed2{};
 				AsTL::VEC3 vec1 = castFromStack<AsTL::VEC3>(m_vsp, Compiler::OT_VEC3, &consumed1);
 				AsTL::VEC3 vec2 = castFromStack<AsTL::VEC3>(m_vsp - 1, Compiler::OT_VEC3, &consumed2);
 
@@ -433,7 +465,7 @@ Compiler::VMExitCode VirtualMachine::executeAt(AsTL::IDX insAddress) {
 
 			case VEC_MUL_CROSS:
 			{
-				size_t consumed1{}, consumed2{};
+				AsTL::IDX consumed1{}, consumed2{};
 				AsTL::VEC3 vec1 = castFromStack<AsTL::VEC3>(m_vsp, Compiler::OT_VEC3, &consumed1);
 				AsTL::VEC3 vec2 = castFromStack<AsTL::VEC3>(m_vsp - 1, Compiler::OT_VEC3, &consumed2);
 
@@ -447,61 +479,61 @@ Compiler::VMExitCode VirtualMachine::executeAt(AsTL::IDX insAddress) {
 
 			case CMP_LT:
 			{
-				SWITCH_TYPES_PERMUT(leftOp, rightOp, binarySwitchIns, CompLessThan);
+				SWITCH_TYPES_PERMUT(leftOp, rightOp, binarySwitchIns, CompilerUtils::CompLessThan);
 				break;
 			}
 
 			case CMP_LTE:
 			{
-				SWITCH_TYPES_PERMUT(leftOp, rightOp, binarySwitchIns, CompLessThanEqualTo);
+				SWITCH_TYPES_PERMUT(leftOp, rightOp, binarySwitchIns, CompilerUtils::CompLessThanEqualTo);
 				break;
 			}
 
 			case CMP_GT:
 			{
-				SWITCH_TYPES_PERMUT(leftOp, rightOp, binarySwitchIns, CompGreaterThan);
+				SWITCH_TYPES_PERMUT(leftOp, rightOp, binarySwitchIns, CompilerUtils::CompGreaterThan);
 				break;
 			}
 
 			case CMP_GTE:
 			{
-				SWITCH_TYPES_PERMUT(leftOp, rightOp, binarySwitchIns, CompGreaterThanEqualTo);
+				SWITCH_TYPES_PERMUT(leftOp, rightOp, binarySwitchIns, CompilerUtils::CompGreaterThanEqualTo);
 				break;
 			}
 
 			case CMP_EQ:
 			{
-				SWITCH_TYPES_PERMUT(leftOp, rightOp, binarySwitchIns, CompEqualTo);
+				SWITCH_TYPES_PERMUT(leftOp, rightOp, binarySwitchIns, CompilerUtils::CompEqualTo);
 				break;
 			}
 
 			case CMP_NEQ:
 			{
-				SWITCH_TYPES_PERMUT(leftOp, rightOp, binarySwitchIns, CompNotEqualTo);
+				SWITCH_TYPES_PERMUT(leftOp, rightOp, binarySwitchIns, CompilerUtils::CompNotEqualTo);
 				break;
 			}
 
 			case LGC_AND:
 			{
-				SWITCH_TYPES_PERMUT(leftOp, rightOp, binarySwitchIns, LogicalAnd);
+				SWITCH_TYPES_PERMUT(leftOp, rightOp, binarySwitchIns, CompilerUtils::LogicalAnd);
 				break;
 			}
 
 			case LGC_OR:
 			{
-				SWITCH_TYPES_PERMUT(leftOp, rightOp, binarySwitchIns, LogicalOr);
+				SWITCH_TYPES_PERMUT(leftOp, rightOp, binarySwitchIns, CompilerUtils::LogicalOr);
 				break;
 			}
 
 			case LGC_NOT:
 			{
-				SWITCH_TYPES(rightOp, unarySwitchIns, LogicalNot);
+				SWITCH_TYPES(rightOp, unarySwitchIns, CompilerUtils::LogicalNot);
 				break;
 			}
 
 			case SIN:
 			{
-				size_t consumed{};
+				AsTL::IDX consumed{};
 				AsTL::F64 x = castFromStack<AsTL::F64>(Compiler::OT_F64, &consumed);
 
 				if (!insReadOnly())
@@ -514,7 +546,7 @@ Compiler::VMExitCode VirtualMachine::executeAt(AsTL::IDX insAddress) {
 
 			case ASIN:
 			{
-				size_t consumed{};
+				AsTL::IDX consumed{};
 				AsTL::F64 x = castFromStack<AsTL::F64>(Compiler::OT_F64, &consumed);
 
 				if (!insReadOnly())
@@ -527,7 +559,7 @@ Compiler::VMExitCode VirtualMachine::executeAt(AsTL::IDX insAddress) {
 
 			case COS:
 			{
-				size_t consumed{};
+				AsTL::IDX consumed{};
 				AsTL::F64 x = castFromStack<AsTL::F64>(Compiler::OT_F64, &consumed);
 
 				if (!insReadOnly())
@@ -540,7 +572,7 @@ Compiler::VMExitCode VirtualMachine::executeAt(AsTL::IDX insAddress) {
 
 			case ACOS:
 			{
-				size_t consumed{};
+				AsTL::IDX consumed{};
 				AsTL::F64 x = castFromStack<AsTL::F64>(Compiler::OT_F64, &consumed);
 
 				if (!insReadOnly())
@@ -553,7 +585,7 @@ Compiler::VMExitCode VirtualMachine::executeAt(AsTL::IDX insAddress) {
 
 			case TAN:
 			{
-				size_t consumed{};
+				AsTL::IDX consumed{};
 				AsTL::F64 x = castFromStack<AsTL::F64>(Compiler::OT_F64, &consumed);
 
 				if (!insReadOnly())
@@ -566,7 +598,7 @@ Compiler::VMExitCode VirtualMachine::executeAt(AsTL::IDX insAddress) {
 
 			case ATAN:
 			{
-				size_t consumed{};
+				AsTL::IDX consumed{};
 				AsTL::F64 x = castFromStack<AsTL::F64>(Compiler::OT_F64, &consumed);
 
 				if (!insReadOnly())
@@ -579,7 +611,7 @@ Compiler::VMExitCode VirtualMachine::executeAt(AsTL::IDX insAddress) {
 
 			case ATAN2:
 			{
-				size_t consumed1{}, consumed2{};
+				AsTL::IDX consumed1{}, consumed2{};
 				AsTL::F64 x = castFromStack<AsTL::F64>(m_vsp, Compiler::OT_F64, &consumed1);
 				AsTL::F64 y = castFromStack<AsTL::F64>(m_vsp - 1, Compiler::OT_F64, &consumed2);
 
@@ -593,7 +625,7 @@ Compiler::VMExitCode VirtualMachine::executeAt(AsTL::IDX insAddress) {
 
 			case COT:
 			{
-				size_t consumed{};
+				AsTL::IDX consumed{};
 				AsTL::F64 x = castFromStack<AsTL::F64>(Compiler::OT_F64, &consumed);
 
 				if (!insReadOnly())
@@ -606,7 +638,7 @@ Compiler::VMExitCode VirtualMachine::executeAt(AsTL::IDX insAddress) {
 
 			case ACOT:
 			{
-				size_t consumed{};
+				AsTL::IDX consumed{};
 				AsTL::F64 x = castFromStack<AsTL::F64>(Compiler::OT_F64, &consumed);
 
 				if (!insReadOnly())
@@ -619,7 +651,7 @@ Compiler::VMExitCode VirtualMachine::executeAt(AsTL::IDX insAddress) {
 
 			case ABS:
 			{
-				size_t consumed{};
+				AsTL::IDX consumed{};
 				AsTL::F64 x = castFromStack<AsTL::F64>(Compiler::OT_F64, &consumed);
 
 				if (!insReadOnly())
@@ -632,9 +664,9 @@ Compiler::VMExitCode VirtualMachine::executeAt(AsTL::IDX insAddress) {
 
 			case MIN:
 			{
-				size_t consumed1{}, consumed2{};
-				AsTL::F64 x = castFromStack<AsTL::F64>(m_pc, Compiler::OT_F64, &consumed1);
-				AsTL::F64 y = castFromStack<AsTL::F64>(m_pc - 1, Compiler::OT_F64, &consumed2);
+				AsTL::IDX consumed1{}, consumed2{};
+				AsTL::F64 x = castFromStack<AsTL::F64>(m_vsp, Compiler::OT_F64, &consumed1);
+				AsTL::F64 y = castFromStack<AsTL::F64>(m_vsp - 1, Compiler::OT_F64, &consumed2);
 
 				if (!insReadOnly())
 					popFromVMStack(consumed1 + consumed2);
@@ -646,9 +678,9 @@ Compiler::VMExitCode VirtualMachine::executeAt(AsTL::IDX insAddress) {
 
 			case MAX:
 			{
-				size_t consumed1{}, consumed2{};
-				AsTL::F64 x = castFromStack<AsTL::F64>(m_pc, Compiler::OT_F64, &consumed1);
-				AsTL::F64 y = castFromStack<AsTL::F64>(m_pc - 1, Compiler::OT_F64, &consumed2);
+				AsTL::IDX consumed1{}, consumed2{};
+				AsTL::F64 x = castFromStack<AsTL::F64>(m_vsp, Compiler::OT_F64, &consumed1);
+				AsTL::F64 y = castFromStack<AsTL::F64>(m_vsp - 1, Compiler::OT_F64, &consumed2);
 
 				if (!insReadOnly())
 					popFromVMStack(consumed1 + consumed2);
@@ -660,34 +692,34 @@ Compiler::VMExitCode VirtualMachine::executeAt(AsTL::IDX insAddress) {
 
 			case JUMP:
 			{
-				m_pc = std::bit_cast<AsTL::IDX>(ins.operand);
+				setProgramCounterRT(std::bit_cast<AsTL::IDX>(ins.operand));
 				break;
 			}
 
 			case JUMP_IF_TRUE:
 			{
-				size_t consumed{};
+				AsTL::IDX consumed{};
 				AsTL::BOOL cond = castFromStack<AsTL::BOOL>(Compiler::OT_BOOL, &consumed);
 
 				if (!insReadOnly())
 					popFromVMStack(consumed);
 
 				if (cond)
-					m_pc = std::bit_cast<AsTL::IDX>(ins.operand);
+					setProgramCounterRT(std::bit_cast<AsTL::IDX>(ins.operand));
 
 				break;
 			}
 
 			case JUMP_IF_FALSE:
 			{
-				size_t consumed{};
+				AsTL::IDX consumed{};
 				AsTL::BOOL cond = castFromStack<AsTL::BOOL>(Compiler::OT_BOOL, &consumed);
 
 				if (!insReadOnly())
 					popFromVMStack(consumed);
 
 				if (!cond)
-					m_pc = std::bit_cast<AsTL::IDX>(ins.operand);
+					setProgramCounterRT(std::bit_cast<AsTL::IDX>(ins.operand));
 
 				break;
 			}
@@ -698,14 +730,14 @@ Compiler::VMExitCode VirtualMachine::executeAt(AsTL::IDX insAddress) {
 					.returnAddr = m_pc
 				});
 
-				m_pc = std::bit_cast<AsTL::IDX>(ins.operand);
+				setProgramCounterRT(std::bit_cast<AsTL::IDX>(ins.operand));
 
 				break;
 			}
 
 			case CALL_IF_TRUE:
 			{
-				size_t consumed{};
+				AsTL::IDX consumed{};
 				AsTL::BOOL cond = castFromStack<AsTL::BOOL>(Compiler::OT_BOOL, &consumed);
 
 				if (!insReadOnly())
@@ -716,7 +748,7 @@ Compiler::VMExitCode VirtualMachine::executeAt(AsTL::IDX insAddress) {
 						.returnAddr = m_pc
 					});
 
-					m_pc = std::bit_cast<AsTL::IDX>(ins.operand);
+					setProgramCounterRT(std::bit_cast<AsTL::IDX>(ins.operand));
 				}
 
 				break;
@@ -724,7 +756,7 @@ Compiler::VMExitCode VirtualMachine::executeAt(AsTL::IDX insAddress) {
 
 			case CALL_IF_FALSE:
 			{
-				size_t consumed{};
+				AsTL::IDX consumed{};
 				AsTL::BOOL cond = castFromStack<AsTL::BOOL>(Compiler::OT_BOOL, &consumed);
 
 				if (!insReadOnly())
@@ -735,7 +767,7 @@ Compiler::VMExitCode VirtualMachine::executeAt(AsTL::IDX insAddress) {
 						.returnAddr = m_pc
 					});
 					
-					m_pc = std::bit_cast<AsTL::IDX>(ins.operand);
+					setProgramCounterRT(std::bit_cast<AsTL::IDX>(ins.operand));
 				}
 
 				break;
@@ -744,7 +776,7 @@ Compiler::VMExitCode VirtualMachine::executeAt(AsTL::IDX insAddress) {
 			case RET:
 			{
 				StackFrame frame = popFromCallStack();
-				m_pc = frame.returnAddr;
+				setProgramCounterRT(frame.returnAddr);
 
 				break;
 			}
@@ -758,31 +790,34 @@ Compiler::VMExitCode VirtualMachine::executeAt(AsTL::IDX insAddress) {
 			}
 
 			default:
+			{
 				saveVMState(Compiler::VMExitCode::CRASHED_RT);
 				throw VMRuntimeException("At instruction address 0x{:0>{}X}: Invalid opcode in instruction stream (hex: 0x{:0>{}X})",
-					m_pc - 1, 4,
-					ins.opcode, 2 // 2 hex chars = 1 byte
+					m_pc - 1, ADDR_HEX_SZ,
+					ins.opcode, BYTE_HEX_SZ
 				);
 			}
+			}
 		}
-		catch (const VMRuntimeException &) {
-			// Propagate exception
-			throw;
-		}
-		catch (const VMFinishedExecTick &) {
-			throw;
-		}
-		catch (const std::exception &e) {
-			saveVMState(Compiler::VMExitCode::CRASHED_RT);
-			throw VMRuntimeException("At instruction address 0x{:0>{}X}: An unknown exception has occurred",
-				m_pc - 1, 4,
-				e.what()
-			);
-		}
+	}
+	catch (const VMRuntimeException &) {
+		// Propagate exception
+		throw;
+	}
+	catch (const VMFinishedExecTick &) {
+		throw;
+	}
+	catch (const std::exception &e) {
+		saveVMState(Compiler::VMExitCode::CRASHED_RT);
+		throw VMRuntimeException("At instruction address 0x{:0>{}X}: Unhandled exception during execution ({})",
+			m_pc - 1, ADDR_HEX_SZ,
+			e.what()
+		);
 	}
 
 
-	return m_vmsSPR.exitCode;
+	//return m_vmsSPR.exitCode;
+	// The execution loop is an infinite loop that only exits when the program counter reaches a TERMINATE instruction, or an exception is thrown.
 }
 
 
@@ -790,7 +825,7 @@ FORCE_INLINE void VirtualMachine::writeToCallStack(StackFrame &&frame) {
 	if ((m_callStack.size() + 1) * sizeof(uint64_t) > m_allocCallStackSzKB * 1000) {
 		saveVMState(Compiler::VMExitCode::CALL_STACK_OVERFLOW);
 		throw VMRuntimeException("At instruction address 0x{:0>{}X}: Encountered call stack overflow",
-			m_pc - 1, 4
+			m_pc - 1, ADDR_HEX_SZ
 		);
 	}
 
@@ -812,7 +847,7 @@ FORCE_INLINE void VirtualMachine::writeToVMStack(uint64_t val) {
 	if ((m_vmStack.size() + 1) * sizeof(uint64_t) > m_allocVMStackSzKB * 1000) {
 		saveVMState(Compiler::VMExitCode::VM_STACK_OVERFLOW);
 		throw VMRuntimeException("At instruction address 0x{:0>{}X}: Encountered virtual machine stack overflow",
-			m_pc - 1, 4
+			m_pc - 1, ADDR_HEX_SZ
 		);
 	}
 
@@ -822,7 +857,7 @@ FORCE_INLINE void VirtualMachine::writeToVMStack(uint64_t val) {
 
 
 FORCE_INLINE void VirtualMachine::writeToVMStack(const AsTL::StackValue &variantVal, Compiler::ContainerType sourceContainer, AsTL::IDX idx) {
-	std::visit(OverloadedVisit{
+	std::visit(CompilerUtils::OverloadedVisit {
 		[&](const AsTL::BOOL &val)	{ writeToVMStack(integralToStackElem(val)); },
 		[&](const AsTL::IDX &val)	{ writeToVMStack(integralToStackElem(val)); },
 		[&](const AsTL::I16 &val)	{ writeToVMStack(integralToStackElem(val)); },
@@ -835,8 +870,8 @@ FORCE_INLINE void VirtualMachine::writeToVMStack(const AsTL::StackValue &variant
 			writeToVMStack(floatingPointToStackElem(val.z));
 		},
 		[&](const AsTL::STR &val) {
-			uint64_t packedVal =	((integralToStackElem(static_cast<AsTL::BYTE>(sourceContainer)) & 0xFF) << 56) |
-									((integralToStackElem(idx) & 0xFF) << 0);
+			uint64_t packedVal =	static_cast<uint64_t>((integralToStackElem(static_cast<AsTL::BYTE>(sourceContainer)) & 0xFF) << 56) |
+									static_cast<uint64_t>((integralToStackElem(idx) & 0xFFFF) << 0);
 
 			writeToVMStack(packedVal);
 		}
@@ -845,6 +880,8 @@ FORCE_INLINE void VirtualMachine::writeToVMStack(const AsTL::StackValue &variant
 
 
 FORCE_INLINE void VirtualMachine::popFromVMStack(size_t cnt) {
+	checkBoundsFor(m_vmStack, m_vmStack.size() - cnt);
+
 	for (size_t i = 0; i < cnt; ++i) {
 		m_vmStack.pop_back();
 	}
@@ -852,18 +889,18 @@ FORCE_INLINE void VirtualMachine::popFromVMStack(size_t cnt) {
 }
 
 
-FORCE_INLINE AsTL::StackValue VirtualMachine::castFromStack_Impl(AsTL::IDX sp, Compiler::OperandType opType, size_t *consumed) {
-	if (sp < 0 || sp >= m_vmStack.size()) {
+FORCE_INLINE AsTL::StackValue VirtualMachine::castFromStack_Impl(AsTL::IDX sp, Compiler::OperandType opType, AsTL::IDX *consumed) {
+	if (sp >= m_vmStack.size()) {
 		saveVMState(Compiler::VMExitCode::OUT_OF_BOUNDS);
 		throw VMRuntimeException("At instruction address 0x{:0>{}X}: Out-of-bounds VM stack access at index {}",
-			m_pc - 1, 4,
+			m_pc - 1, ADDR_HEX_SZ,
 			sp
 		);
 	}
 
 	uint64_t stackVal = m_vmStack[sp];
 
-	auto setConsumed = [&](size_t v) -> void {
+	auto setConsumed = [&](AsTL::IDX v) -> void {
 		if (consumed)
 			*consumed = v;
 	};
@@ -925,11 +962,48 @@ FORCE_INLINE AsTL::StackValue VirtualMachine::castFromStack_Impl(AsTL::IDX sp, C
 	{
 		saveVMState(Compiler::VMExitCode::CRASHED_RT);
 		throw VMRuntimeException("At instruction address 0x{:0>{}X}: Invalid stack cast to type \"{}\"",
-			m_pc - 1, 4,
+			m_pc - 1, ADDR_HEX_SZ,
 			Compiler::ByteToString(opType)
 		);
 	}
 	}
+}
+
+
+template<typename Container, typename Idx>
+requires CompilerUtils::HasSizeMethod<Container> && std::is_integral_v<Idx>
+FORCE_INLINE void VirtualMachine::checkBoundsFor(const Container& container, Idx index) {
+	if (index >= container.size()) {
+		goto throw_err;
+	}
+
+	if constexpr (std::is_signed_v<Idx>) {
+		if (index < 0) {
+			goto throw_err;
+		}
+	}
+
+	return;
+
+throw_err:
+	saveVMState(Compiler::VMExitCode::OUT_OF_BOUNDS);
+	throw VMRuntimeException("At instruction address 0x{:0>{}X}: Invalid container access at index 0x{:0>{}X}",
+		m_pc - 1, ADDR_HEX_SZ,
+		index, BYTE_HEX_SZ
+	);
+}
+
+
+FORCE_INLINE void VirtualMachine::setProgramCounterRT(AsTL::IDX newAddr) {
+	if (newAddr >= m_instructions->size()) {
+		saveVMState(Compiler::VMExitCode::OUT_OF_BOUNDS);
+		throw VMRuntimeException("At instruction address 0x{:0>{}X}: Attempted jump to invalid instruction at address 0x{:0>{}X}",
+			m_pc - 1, ADDR_HEX_SZ,
+			newAddr, ADDR_HEX_SZ
+		);
+	}
+
+	m_pc = newAddr;
 }
 
 
@@ -959,15 +1033,15 @@ FORCE_INLINE AsTL::STR VirtualMachine::decodeString(uint64_t val) {
 		default:
 			saveVMState(Compiler::VMExitCode::BAD_CAST);
 			throw VMRuntimeException("At instruction address 0x{:0>{}X}: String value is sourced from an unsupported container (type code: 0x{:0>{}X})",
-				m_pc - 1, 4,
-				static_cast<AsTL::BYTE>(ct), 2
+				m_pc - 1, ADDR_HEX_SZ,
+				static_cast<AsTL::BYTE>(ct), BYTE_HEX_SZ
 			);
 		}
 	}
 	catch (const std::bad_variant_access &) {
 		saveVMState(Compiler::VMExitCode::BAD_CAST);
 		throw VMRuntimeException("At instruction address 0x{:0>{}X}: Element at index {} of source container does not contain a string",
-			m_pc - 1, 4,
+			m_pc - 1, ADDR_HEX_SZ,
 			idx
 		);
 	}
@@ -976,7 +1050,7 @@ FORCE_INLINE AsTL::STR VirtualMachine::decodeString(uint64_t val) {
 
 template <typename T>
 void VirtualMachine::unarySwitchIns(Compiler::OperandType t) {
-	size_t consumed{};
+	AsTL::IDX consumed{};
 	T val = castFromStack<T>(t, &consumed);
 
 	if (!testBit(m_vmsSPR.insMask, Compiler::BITFLAG_READ_ONLY_BIT))
@@ -985,7 +1059,7 @@ void VirtualMachine::unarySwitchIns(Compiler::OperandType t) {
 	using enum Compiler::Opcode;
 	switch (m_currentOpcode) {
 	case NEG:
-		if constexpr (Negatable<T>) {
+		if constexpr (CompilerUtils::Negatable<T>) {
 			writeToVMStack(-val, Compiler::CT_VM_STACK, m_vmStack.size() - 1);
 			break;
 		}
@@ -993,7 +1067,7 @@ void VirtualMachine::unarySwitchIns(Compiler::OperandType t) {
 		break;  // Break anyway to prevent fallthroughs
 
 	case LGC_NOT:
-		if constexpr (LogicalNot<T>) {
+		if constexpr (CompilerUtils::LogicalNot<T>) {
 			writeToVMStack(!val, Compiler::CT_VM_STACK, m_vmStack.size() - 1);
 			break;
 		}
@@ -1002,7 +1076,7 @@ void VirtualMachine::unarySwitchIns(Compiler::OperandType t) {
 
 	default:
 		saveVMState(Compiler::VMExitCode::CRASHED_RT);
-		throw VMRuntimeException("At instruction address 0x{:0>{}X}: Illegal unary operation", m_pc - 1, 4);
+		throw VMRuntimeException("At instruction address 0x{:0>{}X}: Illegal unary operation", m_pc - 1, ADDR_HEX_SZ);
 	}
 
 	return;
@@ -1010,7 +1084,7 @@ void VirtualMachine::unarySwitchIns(Compiler::OperandType t) {
 bad_unary_op:
 	saveVMState(Compiler::VMExitCode::BAD_CAST);
 	throw VMRuntimeException("At instruction address 0x{:0>{}X}: Invalid operand type {} for unary operation",
-		m_pc - 1, 4,
+		m_pc - 1, ADDR_HEX_SZ,
 		Compiler::ByteToString(t)
 	);
 }
@@ -1018,7 +1092,7 @@ bad_unary_op:
 
 template <typename LEFT_T, typename RIGHT_T>
 void VirtualMachine::binarySwitchIns(Compiler::OperandType lt, Compiler::OperandType rt) {
-	size_t consumed1{}, consumed2{};
+	AsTL::IDX consumed1{}, consumed2{};
 	RIGHT_T slot1 = castFromStack<RIGHT_T>(m_vsp, rt, &consumed1);		// Top VM stack slot
 	LEFT_T slot2 = castFromStack<LEFT_T>(m_vsp - 1, lt, &consumed2);	// Second-to-top VM stack slot
 
@@ -1029,7 +1103,7 @@ void VirtualMachine::binarySwitchIns(Compiler::OperandType lt, Compiler::Operand
 	switch (m_currentOpcode) {
 	case ADD:
 	{
-		if constexpr (Addable<LEFT_T, RIGHT_T>) {
+		if constexpr (CompilerUtils::Addable<LEFT_T, RIGHT_T>) {
 			writeToVMStack(slot2 + slot1, Compiler::CT_VM_STACK, m_vmStack.size());
 			break;
 		}
@@ -1039,7 +1113,7 @@ void VirtualMachine::binarySwitchIns(Compiler::OperandType lt, Compiler::Operand
 
 	case SUB:
 	{
-		if constexpr (Subtractable<LEFT_T, RIGHT_T>) {
+		if constexpr (CompilerUtils::Subtractable<LEFT_T, RIGHT_T>) {
 			writeToVMStack(slot2 - slot1, Compiler::CT_VM_STACK, m_vmStack.size());
 			break;
 		}
@@ -1049,7 +1123,7 @@ void VirtualMachine::binarySwitchIns(Compiler::OperandType lt, Compiler::Operand
 
 	case MUL:
 	{
-		if constexpr (Multipliable<LEFT_T, RIGHT_T>) {
+		if constexpr (CompilerUtils::Multipliable<LEFT_T, RIGHT_T>) {
 			writeToVMStack(slot2 * slot1, Compiler::CT_VM_STACK, m_vmStack.size());
 			break;
 		}
@@ -1059,7 +1133,7 @@ void VirtualMachine::binarySwitchIns(Compiler::OperandType lt, Compiler::Operand
 
 	case DIV:
 	{
-		if constexpr (Divisible<LEFT_T, RIGHT_T>) {
+		if constexpr (CompilerUtils::Divisible<LEFT_T, RIGHT_T>) {
 			writeToVMStack(slot2 / slot1, Compiler::CT_VM_STACK, m_vmStack.size());
 			break;
 		}
@@ -1069,7 +1143,7 @@ void VirtualMachine::binarySwitchIns(Compiler::OperandType lt, Compiler::Operand
 
 	case MOD:
 	{
-		if constexpr (CanDoModulo<LEFT_T, RIGHT_T>) {
+		if constexpr (CompilerUtils::CanDoModulo<LEFT_T, RIGHT_T>) {
 			writeToVMStack(slot2 % slot1, Compiler::CT_VM_STACK, m_vmStack.size());
 			break;
 		}
@@ -1079,7 +1153,7 @@ void VirtualMachine::binarySwitchIns(Compiler::OperandType lt, Compiler::Operand
 
 	case CMP_LT:
 	{
-		if constexpr (CompLessThan<LEFT_T, RIGHT_T>) {
+		if constexpr (CompilerUtils::CompLessThan<LEFT_T, RIGHT_T>) {
 			writeToVMStack(slot2 < slot1, Compiler::CT_VM_STACK, m_vmStack.size());
 			break;
 		}
@@ -1089,7 +1163,7 @@ void VirtualMachine::binarySwitchIns(Compiler::OperandType lt, Compiler::Operand
 
 	case CMP_LTE:
 	{
-		if constexpr (CompLessThanEqualTo<LEFT_T, RIGHT_T>) {
+		if constexpr (CompilerUtils::CompLessThanEqualTo<LEFT_T, RIGHT_T>) {
 			writeToVMStack(slot2 <= slot1, Compiler::CT_VM_STACK, m_vmStack.size());
 			break;
 		}
@@ -1099,7 +1173,7 @@ void VirtualMachine::binarySwitchIns(Compiler::OperandType lt, Compiler::Operand
 
 	case CMP_GT:
 	{
-		if constexpr (CompGreaterThan<LEFT_T, RIGHT_T>) {
+		if constexpr (CompilerUtils::CompGreaterThan<LEFT_T, RIGHT_T>) {
 			writeToVMStack(slot2 > slot1, Compiler::CT_VM_STACK, m_vmStack.size());
 			break;
 		}
@@ -1109,7 +1183,7 @@ void VirtualMachine::binarySwitchIns(Compiler::OperandType lt, Compiler::Operand
 
 	case CMP_GTE:
 	{
-		if constexpr (CompGreaterThanEqualTo<LEFT_T, RIGHT_T>) {
+		if constexpr (CompilerUtils::CompGreaterThanEqualTo<LEFT_T, RIGHT_T>) {
 			writeToVMStack(slot2 >= slot1, Compiler::CT_VM_STACK, m_vmStack.size());
 			break;
 		}
@@ -1119,7 +1193,7 @@ void VirtualMachine::binarySwitchIns(Compiler::OperandType lt, Compiler::Operand
 
 	case CMP_EQ:
 	{
-		if constexpr (CompEqualTo<LEFT_T, RIGHT_T>) {
+		if constexpr (CompilerUtils::CompEqualTo<LEFT_T, RIGHT_T>) {
 			writeToVMStack(slot2 == slot1, Compiler::CT_VM_STACK, m_vmStack.size());
 			break;
 		}
@@ -1129,7 +1203,7 @@ void VirtualMachine::binarySwitchIns(Compiler::OperandType lt, Compiler::Operand
 
 	case CMP_NEQ:
 	{
-		if constexpr (CompNotEqualTo<LEFT_T, RIGHT_T>) {
+		if constexpr (CompilerUtils::CompNotEqualTo<LEFT_T, RIGHT_T>) {
 			writeToVMStack(slot2 != slot1, Compiler::CT_VM_STACK, m_vmStack.size());
 			break;
 		}
@@ -1139,7 +1213,7 @@ void VirtualMachine::binarySwitchIns(Compiler::OperandType lt, Compiler::Operand
 
 	case LGC_AND:
 	{
-		if constexpr (LogicalAnd<LEFT_T, RIGHT_T>) {
+		if constexpr (CompilerUtils::LogicalAnd<LEFT_T, RIGHT_T>) {
 			writeToVMStack(slot2 && slot1, Compiler::CT_VM_STACK, m_vmStack.size());
 			break;
 		}
@@ -1149,7 +1223,7 @@ void VirtualMachine::binarySwitchIns(Compiler::OperandType lt, Compiler::Operand
 
 	case LGC_OR:
 	{
-		if constexpr (LogicalOr<LEFT_T, RIGHT_T>) {
+		if constexpr (CompilerUtils::LogicalOr<LEFT_T, RIGHT_T>) {
 			writeToVMStack(slot2 || slot1, Compiler::CT_VM_STACK, m_vmStack.size());
 			break;
 		}
@@ -1159,7 +1233,7 @@ void VirtualMachine::binarySwitchIns(Compiler::OperandType lt, Compiler::Operand
 
 	default:
 		saveVMState(Compiler::VMExitCode::CRASHED_RT);
-		throw VMRuntimeException("At instruction address 0x{:0>{}X}: Illegal binary operation", m_pc - 1, 4);
+		throw VMRuntimeException("At instruction address 0x{:0>{}X}: Illegal binary operation", m_pc - 1, ADDR_HEX_SZ);
 	}
 
 	return;
@@ -1167,7 +1241,7 @@ void VirtualMachine::binarySwitchIns(Compiler::OperandType lt, Compiler::Operand
 bad_binary_op:
 	saveVMState(Compiler::VMExitCode::BAD_CAST);
 	throw VMRuntimeException("At instruction address 0x{:0>{}X}: Invalid operand types (left: {}, right: {}) for binary operation",
-		m_pc - 1, 4,
+		m_pc - 1, ADDR_HEX_SZ,
 		Compiler::ByteToString(lt), Compiler::ByteToString(rt)
 	);
 }
@@ -1199,7 +1273,7 @@ FORCE_INLINE uint64_t VirtualMachine::numericVariantToStackElem(const AsTL::Stac
 			else {
 				saveVMState(Compiler::VMExitCode::BAD_CAST);
 				throw VMRuntimeException("At instruction address 0x{:0>{}X}: Unable to serialize value casted to type {} as a VM stack value",
-					m_pc - 1, 4,
+					m_pc - 1, ADDR_HEX_SZ,
 					Compiler::ByteToString(
 						Compiler::StackValueToByte(typeid(FirstT))
 					)
@@ -1209,7 +1283,7 @@ FORCE_INLINE uint64_t VirtualMachine::numericVariantToStackElem(const AsTL::Stac
 		else {
 			saveVMState(Compiler::VMExitCode::BAD_CAST);
 			throw VMRuntimeException("At instruction address 0x{:0>{}X}: Unable to serialize value of type {} as a VM stack value",
-				m_pc - 1, 4,
+				m_pc - 1, ADDR_HEX_SZ,
 				Compiler::ByteToString(
 					Compiler::StackValueToByte(typeid(ValueType))
 				)
@@ -1226,7 +1300,7 @@ FORCE_INLINE void VirtualMachine::saveVMState(std::optional<Compiler::VMExitCode
 		m_vmsSPR.exitCode = exitCode.value();
 
 	m_vmsSPR.progCounter = m_pc;
-	m_vmsSPR.stackSz = m_vmStack.size() * sizeof(uint64_t);
+	m_vmsSPR.stackSzKB = m_vmStack.size() * sizeof(uint64_t) / 1000;
 
 	m_SPRs[Compiler::SPR_VMS] = m_vmsSPR.encode();
 }
@@ -1239,9 +1313,9 @@ FORCE_INLINE bool VirtualMachine::testBit(const Compiler::RawBitmaskT bitmask, c
 
 std::string VirtualMachine::variantToString(const AsTL::StackValue &val) const {
 	AsTL::STR str = "???";
-	std::visit(OverloadedVisit {
+	std::visit(CompilerUtils::OverloadedVisit {
 		[&](const AsTL::BOOL &v) { str = v ? "True" : "False"; },
-		[&](const AsTL::IDX &v) { str = std::format("0x{:0>{}X}", v, 4); },
+		[&](const AsTL::IDX &v) { str = std::format("0x{:0>{}X}", v, ADDR_HEX_SZ); },
 		[&](const AsTL::I16 &v) { str = std::to_string(v); },
 		[&](const AsTL::I32 &v) { str = std::to_string(v); },
 		[&](const AsTL::F64 &v) { str = std::to_string(v); },

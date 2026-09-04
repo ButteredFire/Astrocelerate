@@ -12,8 +12,26 @@
 #include "GraphNodeRegistry.hpp"
 
 
-namespace Compiler {
+namespace Compiler::Impl {
+	// Dirty pin (Semantic Analyzer)
+	struct DirtyPin {
+		enum PinType {
+			IN_PIN,
+			OUT_PIN
+		};
 
+		PinType type;
+		std::string label;
+
+		bool operator==(const DirtyPin& other) const {
+			return type == other.type && label == other.label;
+		}
+	};
+}
+
+
+namespace Compiler {
+	/* (Single-use) Semantic Analyzer Implementation */
 	class SemanticAnalyzer {
 	public:
 		SemanticAnalyzer(std::reference_wrapper<const IGraphNodeRegistry> nodeRegistry, Diagnostics::DiagReporter& reporter);
@@ -54,7 +72,7 @@ namespace Compiler {
 		std::unordered_map<Graph::NodeID, std::type_index> m_wildcardOutputs;
 
 		// Dirty nodes & pins (to avoid cascading errors)
-		std::unordered_map<Graph::NodeID, std::unordered_set<std::string>> m_dirtied;
+		std::unordered_map<Graph::NodeID, std::unordered_set<Impl::DirtyPin>> m_dirtied;
 
 
 		/* Traverses the graph, starting from the Entry node.
@@ -65,6 +83,7 @@ namespace Compiler {
 
 		/* Attempts to deduce the return type of each node, if it is a native math node that accepts wildcard values and returns a wildcard type. */
 		void resolveWildcards();
+		void resolveWildcardsForNode(Graph::NodeID nodeID);
 
 		/* Verifies that all nodes have corresponding descriptors in the node registry. */
 		void checkExistence();
@@ -88,10 +107,26 @@ namespace Compiler {
 
 
 		/* Marks a node (and optionally its pin) as dirty, to avoid cascading errors. */
-		void markAsDirtied(Graph::NodeID dirtyNodeID, std::optional<std::string> dirtyPinLabel = std::nullopt);
+		void markAsDirtied(Graph::NodeID dirtyNodeID, std::optional<Impl::DirtyPin> dirtyPin = std::nullopt);
 
 		/* Is a node (and optionally its pin) dirty/faulty? */
-		bool isDirty(Graph::NodeID dirtyNodeID, std::optional<std::string> dirtyPinLabel = std::nullopt);
+		bool isDirty(Graph::NodeID dirtyNodeID, std::optional<Impl::DirtyPin> dirtyPin = std::nullopt) const;
 	};
 
+} // namespace Compiler
+
+
+namespace std {
+	template <>
+	struct hash<Compiler::Impl::DirtyPin> {
+		size_t operator()(const Compiler::Impl::DirtyPin& pin) const noexcept {
+			size_t h1 = std::hash<int>{}(pin.type);
+			size_t h2 = std::hash<std::string>{}(pin.label);
+
+			size_t seed = h1;
+			seed ^= h2 + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+
+			return seed;
+		}
+	};
 }

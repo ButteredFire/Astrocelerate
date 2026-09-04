@@ -9,10 +9,11 @@ namespace Compiler {
 	) :
 		m_nodeRegistry(nodeRegistry.get()),
 		m_reporter(reporter),
-		m_constPool(constPool)
-	{
-		resetEmitter();
-	}
+		m_constPool(constPool),
+		m_glRegIdx(0),
+		m_line(1),
+		m_col(1)
+	{}
 
 
 	std::vector<SymbolicInstruction> Compiler::BytecodeEmitter::emitSymbolic(
@@ -21,8 +22,6 @@ namespace Compiler {
 		const std::vector<Graph::Link>& nodeLinks
 	) {
 		using namespace AsTL;
-
-		resetEmitter();
 
 		// Cache node data and create lookup tables
 		{
@@ -47,17 +46,8 @@ namespace Compiler {
 
 			// Node Links
 			for (const auto &link : nodeLinks) {
-				// Cache outgoing links
-				if (!m_outLinkCache.contains(link.outNodeID))
-					for (const auto& otherLink : nodeLinks)
-						if (link.outNodeID == otherLink.outNodeID)
-							m_outLinkCache[link.outNodeID].emplace_back(otherLink);
-
-				// Cache incoming links
-				if (!m_inLinkCache.contains(link.inNodeID))
-					for (const auto& otherLink : nodeLinks)
-						if (link.inNodeID == otherLink.inNodeID)
-							m_inLinkCache[link.inNodeID].emplace_back(otherLink);
+				m_outLinkCache[link.outNodeID].emplace_back(link);
+				m_inLinkCache[link.inNodeID].emplace_back(link);
 
 				// Cache data connections
 				if (link.linkType == Graph::Link::LinkType::DATA)
@@ -180,11 +170,11 @@ namespace Compiler {
 
 
 	void BytecodeEmitter::compileGraph() {
-		compileGraphFrom(Graph::EntryNodeID, Graph::EntryNodeID);
+		compileGraphFrom(Graph::EntryNodeID, Graph::EntryNodeID, { Graph::EntryNodeID });
 	}
 
 
-	void BytecodeEmitter::compileGraphFrom(Graph::NodeID startNodeID, Graph::NodeID prevNodeID) {
+	void BytecodeEmitter::compileGraphFrom(Graph::NodeID startNodeID, Graph::NodeID prevNodeID, std::vector<Graph::NodeID> execPath) {
 		if (
 			(!m_outLinkCache.contains(startNodeID) && !m_inLinkCache.contains(startNodeID)) ||
 			m_compiledNodes.contains(startNodeID)
@@ -192,24 +182,27 @@ namespace Compiler {
 			return;
 
 		// Compile node
-		if (startNodeID == Graph::EntryNodeID)		compileNode(startNodeID);
-		else if (startNodeID == Graph::TermNodeID)	compileNode(startNodeID);
+		if (startNodeID == Graph::EntryNodeID)		compileNode(startNodeID, execPath);
+		else if (startNodeID == Graph::TermNodeID)	compileNode(startNodeID, execPath);
 		else
 			for (const Graph::Link& link : m_outLinkCache.at(prevNodeID))
 				if (link.inNodeID == startNodeID) {
-					compileNode(startNodeID);
+					compileNode(startNodeID, execPath);
 					break;
 				}
 
 		// Continue along execution path to other executable nodes
 		if (m_outLinkCache.contains(startNodeID))
 			for (const Graph::Link& link : m_outLinkCache.at(startNodeID))
-				if (link.linkType == Graph::Link::LinkType::EXEC)
-					compileGraphFrom(link.inNodeID, startNodeID);
+				if (link.linkType == Graph::Link::LinkType::EXEC) {
+					execPath.emplace_back(link.inNodeID);
+						compileGraphFrom(link.inNodeID, startNodeID, execPath);
+					execPath.pop_back();
+				}
 	}
 
 
-	void BytecodeEmitter::compileNode(Graph::NodeID nodeID) {
+	void BytecodeEmitter::compileNode(Graph::NodeID nodeID, std::vector<Graph::NodeID> execPath) {
 		using namespace AsTL;
 
 		if (nodeID == Graph::EntryNodeID) {
@@ -230,7 +223,7 @@ namespace Compiler {
 					// Termination with the special FINISHED_EXEC_TICK exit code triggers a trap that notifies the VM caller of the execution finish for the current simulation tick.
 					// The VM caller can then call `VirtualMachine::resume` after updating the simulation tick, whereupon the VM should continue at `CALL [main call instruction address]`
 					emitInstruction(SymbolicInstruction(Opcode::TERMINATE, static_cast<I16>(VMExitCode::FINISHED_EXEC_TICK)));
-					emitInstruction(SymbolicInstruction(Opcode::CALL, static_cast<IDX>(mainCallInsAddr)));
+					emitInstruction(SymbolicInstruction(Opcode::JUMP, static_cast<IDX>(mainCallInsAddr)));
 
 					return;
 				}
@@ -301,7 +294,9 @@ namespace Compiler {
 
 						if (!m_compiledNodes.contains(valueLink.outNodeID)) {
 							// The Output Node has not been compiled it yet; resolve Data Link by compiling it before evaluating load instruction
-							compileNode(valueLink.outNodeID);
+							execPath.emplace_back(valueLink.outNodeID);
+								compileNode(valueLink.outNodeID, execPath);
+							execPath.pop_back();
 									
 							// Update new starting address of THIS node
 							m_nodeAddresses[nodeID].trueAddr.start = m_instructions.size();
@@ -434,7 +429,7 @@ namespace Compiler {
 				else
 					for (const auto& inPin : node.inputPins) {
 						std::visit(
-							OverloadedVisit{
+							CompilerUtils::OverloadedVisit {
 								[&](const Graph::Node::DataInPin& dataPin)		{ evaluateDataPin(dataPin); },
 								[&](const Graph::Node::ComboInPin& comboPin)	{ evaluateComboPin(comboPin); }
 							},
@@ -478,7 +473,7 @@ namespace Compiler {
 
 				// Invoke node callable
 				std::visit(
-					OverloadedVisit {
+					CompilerUtils::OverloadedVisit {
 						// CASE: Node is an AstroAssembly instruction
 						[&](Opcode op) {
 							// If the node is the AstroAssembly instruction TERMINATE, emit it and return early
@@ -520,21 +515,6 @@ namespace Compiler {
 
 						// CASE: Node has a native C++ callback
 						[&](GraphNodeCallback callback) {
-							/*
-							if (nodeDescriptor.nodeClass == GraphNodeDescriptor::NodeClass::Constant) {
-								// Optimization: If the Node class is Constant, execute the function now and store the result as a constant
-								std::vector<StackValue> retVals = callback(nullptr, &nodeDescriptor, nodeID, "", {});
-								AsTL::IDX valIdx = storeInConstPool(retVals[0]);
-
-								m_constPoolIdxCache[nodeID] = valIdx;
-							}
-							else {
-								// Else, let the VM execute the callback
-								isNativeCallable = true;
-								emitInstruction(SymbolicInstruction(Opcode::LOAD_INLINE, static_cast<AsTL::I16>(nodeID)));
-								emitInstruction(SymbolicInstruction(Opcode::EXEC_NATIVE, nodeFuncIdx));
-							}
-							*/
 							isNativeCallable = true;
 							emitInstruction(SymbolicInstruction(Opcode::LOAD_INLINE, static_cast<AsTL::I16>(nodeID)));
 							emitInstruction(SymbolicInstruction(Opcode::EXEC_NATIVE, nodeFuncIdx));
@@ -570,7 +550,9 @@ namespace Compiler {
 			// Process Output Execution Pins
 			if (nodeDescriptor.isExecutable()) {
 				bool hasDefaultOutExec = false;
-				bool requiresReEvaluation =
+
+				// THIS node requires re-evaluation in case the execution signal stops here
+				bool isControlFlowLoop =
 					(nodeDescriptor.nodeClass == Compiler::GraphNodeDescriptor::NodeClass::ControlFlowLoop);
 
 				/* For each Output Exec Pin, if it is connected to elsewhere, emit:
@@ -592,15 +574,25 @@ namespace Compiler {
 
 				// vector<pair<Instruction Address, Placeholder Address>>
 				struct RealInstruction {
+					std::string_view pinLabel;
 					size_t remainingExecs;
 					size_t insAddr;
-					I16 placeholderAddr;
+					I16 nodeIDAddrPlaceholder; // Node ID as address placeholder for node instructions
 				};
-				std::vector<RealInstruction> realInstructions{};
+				std::vector<RealInstruction> branchingInstructions{};
 
 
 				for (size_t i = nodeDescriptor.outExecs.size(); i-- > 0;) {
 					const std::string &execPinID = nodeDescriptor.outExecs[i];
+
+					if (isControlFlowLoop && execPinID == Graph::ExecStopID) {
+						// This pin is a hidden pin that's not supposed to connect to anything else; a link search will fail for this case
+						branchingInstructions.push_back(RealInstruction{ execPinID, i, m_instructions.size(), I16() });
+						emitInstruction(SymbolicInstruction(Opcode::JUMP_IF_TRUE, I16()));
+
+						continue;
+					}
+
 
 					bool isLinkedPin = false;
 
@@ -622,7 +614,7 @@ namespace Compiler {
 								// Placeholder address is the node of the Input node connected to THIS node's Output Exec Pin
 								I16 placeholderAddr = static_cast<I16>(link.inNodeID);
 								{
-									realInstructions.push_back(RealInstruction{ i, m_instructions.size(), placeholderAddr });
+									branchingInstructions.push_back(RealInstruction{ execPinID, i, m_instructions.size(), placeholderAddr });
 
 									if (execPinID == Graph::ExecOutID) {
 										emitInstruction(SymbolicInstruction(Opcode::JUMP, placeholderAddr));
@@ -631,7 +623,7 @@ namespace Compiler {
 									else
 										emitInstruction(
 											SymbolicInstruction(
-												requiresReEvaluation ?
+												isControlFlowLoop ?
 													Opcode::CALL_IF_TRUE :
 													Opcode::JUMP_IF_TRUE,
 
@@ -654,8 +646,7 @@ namespace Compiler {
 
 				// If Node does not have the default EXEC_OUT pin (and no specific output exec pin was triggered), the execution flow stops at THIS node
 				if (!hasDefaultOutExec) {
-					if (requiresReEvaluation)
-						// Node requires re-evaluation; jump back to its starting address
+					if (isControlFlowLoop)
 						emitInstruction(SymbolicInstruction(Opcode::JUMP, m_nodeAddresses[nodeID].completeAddr.start));
 					else
 						emitInstruction(SymbolicInstruction(Opcode::RET));
@@ -663,11 +654,21 @@ namespace Compiler {
 
 
 				// Resolution for inactive execution branches' boolean states remaining on the VM stack
-				for (const auto& ins : realInstructions) {
-					if (ins.remainingExecs > 0) {
-						IDX popAddr = m_instructions.size();
+				for (const auto& ins : branchingInstructions) {
+					// Only clean up the boolean states when...
+					bool emitPop = 
+						// There are boolean states to clean up
+						ins.remainingExecs > 0 &&
 
-						m_instructions[ins.insAddr].operand = popAddr;
+						// The node is not a ControlFlowLoop node
+						// (reason: if it is, then branches are called with CALL_IF_TRUE instructions. If a branch returns,
+						// other branches will attempt to be called, which means we need the booleans for the CALL conditions)
+						!isControlFlowLoop;
+
+
+					if (emitPop) {
+						// Point the original JUMP/CALL to the POP instruction
+						m_instructions[ins.insAddr].operand = static_cast<IDX>(m_instructions.size());
 
 						emitInstruction(
 							SymbolicInstruction(
@@ -675,14 +676,66 @@ namespace Compiler {
 								static_cast<I16>(ins.remainingExecs)
 							)
 						);
-
-						m_backpatchQueue.emplace_back(m_instructions.size());
-						emitInstruction(SymbolicInstruction(Opcode::JUMP, ins.placeholderAddr));
-
-						continue;
 					}
-					
-					m_backpatchQueue.emplace_back(ins.insAddr);
+
+					if (isControlFlowLoop && ins.pinLabel == Graph::ExecStopID) {
+						// Speical output exec pin; break re-evaluation and return (either to the main call or a call site inside it)
+						m_instructions[ins.insAddr].operand = static_cast<IDX>(m_instructions.size());
+						emitInstruction(SymbolicInstruction(Opcode::RET));
+					}
+
+					else {
+						// Trace path to see if THIS node was previously called by the target ControlFlowLoop node
+						// If true, the target node used CALL_IF_TRUE to get to this node; to reach the target node again, use RET
+						// If false, there is no return address generated by the target node's CALL_IF_TRUE jump, or the return address doesn't point at the target node; use JUMP to directly reach the target node
+						bool previouslyCalled = false;
+
+						// Trace execution path backwards starting from, but excluding THIS node (size - 1)
+						for (size_t i = execPath.size() - 1; i-- > 0;)
+							if (m_nodeCache.contains(execPath[i])) {
+								const Graph::Node& targetNode = m_nodeCache.at(execPath[i]);
+
+								if (m_nodeRegistry.contains(targetNode.symbol)) {
+									const GraphNodeDescriptor& desc = m_nodeRegistry.getInfo(targetNode.symbol).second;
+
+									if (desc.nodeClass == Compiler::GraphNodeDescriptor::NodeClass::ControlFlowLoop) {
+										if (execPath[i] == ins.nodeIDAddrPlaceholder)
+											// First encountered ControlFlowLoop node is the target node
+											previouslyCalled = true;
+
+										// Else, the target node calls a number of other ControlFlowLoop nodes before reaching THIS node,
+										// in this case RET won't reach the target node, but rather an inner ControlFlowLoop node
+										
+										break;
+									}
+								}
+							}
+						
+
+						if (previouslyCalled) {
+							// ControlFlowLoop creates branches via CALLs rather than JUMPs; use RET to return to the target node + clear the stack frame
+							
+							if (!emitPop)
+								// Point original JUMP/CALL to the next RET instruction if it didn't point to POP already
+								m_instructions[ins.insAddr].operand = static_cast<IDX>(m_instructions.size());
+							
+							emitInstruction(SymbolicInstruction(Opcode::RET));
+							
+						}
+						else {
+							// JUMP directly to the target node since there is no stack frame created from the target's CALLs
+
+							if (emitPop) {
+								// Jump to the actual address after popping
+								m_backpatchQueue.emplace_back(m_instructions.size());
+								emitInstruction(SymbolicInstruction(Opcode::JUMP, ins.nodeIDAddrPlaceholder));
+							}
+							else
+								// This is the last boolean on the stack; make the original JUMP/CALL instruction go to the real address directly
+								// rather than go through an additional Pop + Real JUMP stage
+								m_backpatchQueue.emplace_back(ins.insAddr);
+						}
+					}
 				}
 			}
 		}
@@ -820,14 +873,21 @@ namespace Compiler {
 	
 
 	bool BytecodeEmitter::shouldPreallocOutputPin(Graph::NodeID nodeID, const std::string& outPinLabel) {
-		if (!m_nodeCache.contains(nodeID))
+		if (!m_nodeCache.contains(nodeID) || !m_outLinkCache.contains(nodeID))
 			return false;
 
 		const Graph::Node& outNode = m_nodeCache.at(nodeID).get();
 
 		size_t pinLinkCnt = 0;
-		bool onlyLinkIsToNextNode = false;
+		bool outputGoesToNextNode = false;
 		std::string potentialVarName{};
+
+		size_t evalIdx = 0;
+		for (size_t i = 0; i < m_nodeEvalOrder.size(); ++i)
+			if (m_nodeEvalOrder[i] == nodeID) {
+				evalIdx = i;
+				break;
+			}
 
 		for (const auto& outPin : outNode.outputPins) {
 			if (outPin.label == outPinLabel)
@@ -835,23 +895,20 @@ namespace Compiler {
 
 
 			// Get number of outgoing data wires from this output pin
-			size_t evalIdx = 0;
-			for (size_t i = 0; i < m_nodeEvalOrder.size(); ++i)
-				if (m_nodeEvalOrder[i] == nodeID) {
-					evalIdx = i;
-					break;
-				}
-
 			for (const Graph::Link& link : m_outLinkCache.at(nodeID))
-				if (link.linkType == Graph::Link::LinkType::DATA &&
+				if (
+					link.linkType == Graph::Link::LinkType::DATA &&
 					link.outPinID == outPin.label
-					) {
+				) {
 					++pinLinkCnt;
 
+					// If the closest parent node to THIS node is directly connected to this output pin,
+					// that parent node becomes the next node to be evaluated after THIS node
 					if (evalIdx + 1 < m_nodeEvalOrder.size() && m_nodeEvalOrder[evalIdx + 1] == link.inNodeID)
-						onlyLinkIsToNextNode = true;
+						outputGoesToNextNode = true;
 				}
 		}
+
 
 		return (
 			// Output pin is not already stored in the constant pool
@@ -861,7 +918,7 @@ namespace Compiler {
 				pinLinkCnt > 1 ||
 
 				// Output pin is connected to one single node, and that node is not the closest parent to THIS node
-				(pinLinkCnt == 1 && !onlyLinkIsToNextNode) ||
+				(pinLinkCnt == 1 && !outputGoesToNextNode) ||
 
 				// Output pin has at least one Output Execution Pin
 				// (Execution Pins dictate control flow, and thus dictate the VM stack state;
@@ -890,21 +947,4 @@ namespace Compiler {
 		++m_line;
 	}
 
-
-	void Compiler::BytecodeEmitter::resetEmitter() {
-		m_line = 1;
-		m_col = 1;
-
-		m_instructions.clear();
-
-		m_varGlRegIdxName.clear();
-		m_nodeCache.clear();
-		m_outLinkCache.clear();
-		m_inLinkCache.clear();
-
-		m_glReg.clear();
-		m_glRegIdx = 0;
-
-		m_compiledNodes.clear();
-	}
-}
+} // namespace Compiler

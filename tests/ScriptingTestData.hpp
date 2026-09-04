@@ -491,10 +491,22 @@ namespace TestProgram::Impl {
 	};
 
 
-	inline const std::type_index SpcPrimitive = Graph::HighLevelTypeToPrimitive(Graph::TID_SPC); // Primitive type of the high-level Spacecraft type: IDX
+	//inline const std::type_index SpcPrimitive = Graph::HighLevelTypeToPrimitive(Graph::TID_SPC); // Primitive type of the high-level Spacecraft type: IDX
+	// NOTE: The definition of SpcPrimitive above is actually UB: the initialization order of static variables across different translation units is not defined in standard C++.
+	// Concretely, SpcPrimitive calls HighLevelTypeToPrimitive with TID_SPC, both of which are defined in GraphTypes.hpp, a different header file.
+	// While the function call happens after `main`, TID_SPC initialization does not, which means while this line expects TID_SPC to be defined before SpcPrimitive, that behavior is not guaranteed.
+	// This is known as the Static Initialization Order Fiasco.
+	
+	// The solution is to use the Meyers' Singleton design pattern (i.e., Construct on First Use idiom), where you wrap variables with dependencies as static variables inside a function.
+	// Due to lazy evaluation, these variables are only initialized after `main` because they have static storage.
+	inline std::type_index SpcPrimitive() {
+		static const std::type_index val = Graph::HighLevelTypeToPrimitive(Graph::TID_SPC);
+		return val;
+	}
+	
 	inline const TestInput CustomNode = {
 		.variables = {
-			{ "Chosen Satellite ID", SpcPrimitive, 0 }
+			{ "Chosen Satellite ID", SpcPrimitive(), 0}
 		},
 
 		.nodes = {
@@ -503,10 +515,10 @@ namespace TestProgram::Impl {
 				Graph::GetterNodeSymbol,
 				{}, {},
 				{
-					Graph::Node::ComboInPin{ Graph::GetterInputComboPin, SpcPrimitive, "Chosen Satellite ID" }
+					Graph::Node::ComboInPin{ Graph::GetterInputComboPin, SpcPrimitive(), "Chosen Satellite ID" }
 				},
 				{
-					{ Graph::GetterOutputDataPin, SpcPrimitive }
+					{ Graph::GetterOutputDataPin, SpcPrimitive() }
 				}
 			},
 
@@ -515,7 +527,7 @@ namespace TestProgram::Impl {
 				"Mock::GetApoapsis",
 				{}, {},
 				{
-					Graph::Node::ComboInPin{ "Satellite", SpcPrimitive }
+					Graph::Node::ComboInPin{ "Satellite", SpcPrimitive() }
 				},
 				{
 					{ "Node Symbol", AsTL::TID_STR },
@@ -526,12 +538,25 @@ namespace TestProgram::Impl {
 
 			Graph::Node{
 				3,
+				Graph::MakeQualifiedID(Math, Arithmetic, Vec3Magnitude),
+				{},
+				{},
+				{
+					Graph::Node::DataInPin{ "Vector", AsTL::TID_VEC3 }
+				},
+				{
+					{ "", AsTL::TID_F64 }
+				}
+			},
+
+			Graph::Node{
+				4,
 				Graph::MakeQualifiedID(Math, Logic, GreaterThan),
 				{},
 				{},
 				{
-					Graph::Node::DataInPin{ "A", AsTL::TID_VEC3 },
-					Graph::Node::DataInPin{ "B", AsTL::TID_VEC3, AsTL::VEC3(2000e3) }  // Low-earth orbit: 2000 km above Earth - { 2000e3, 2000e3, 2000e3 }
+					Graph::Node::DataInPin{ "A", AsTL::TID_F64 },
+					Graph::Node::DataInPin{ "B", AsTL::TID_F64, 2000e3 }  // Low-earth orbit: 2000 km above Earth - { 2000e3, 2000e3, 2000e3 }
 				},
 				{
 					{ "", AsTL::TID_BOOL }
@@ -539,7 +564,7 @@ namespace TestProgram::Impl {
 			},
 
 			Graph::Node{
-				4,
+				5,
 				Graph::MakeQualifiedID(Control, Branch),
 				{ Graph::ExecInID },
 				{ "True", "False" },
@@ -550,7 +575,7 @@ namespace TestProgram::Impl {
 			},
 
 			Graph::Node{
-				5,
+				6,
 				Graph::MakeQualifiedID(Misc, StringConcat),
 				{}, {},
 				{
@@ -563,7 +588,7 @@ namespace TestProgram::Impl {
 			},
 
 			Graph::Node{
-				6,
+				7,
 				Graph::MakeQualifiedID(Misc, StringConcat),
 				{}, {},
 				{
@@ -576,7 +601,7 @@ namespace TestProgram::Impl {
 			},
 
 			Graph::Node{
-				7,
+				8,
 				Graph::MakeQualifiedID(Misc, StringConcat),
 				{}, {},
 				{
@@ -589,7 +614,7 @@ namespace TestProgram::Impl {
 			},
 
 			Graph::Node{
-				8,
+				9,
 				Graph::MakeQualifiedID(Misc, StringConcat),
 				{}, {},
 				{
@@ -602,7 +627,7 @@ namespace TestProgram::Impl {
 			},
 
 			Graph::Node{
-				9,
+				10,
 				Graph::MakeQualifiedID(Misc, StringConcat),
 				{}, {},
 				{
@@ -615,7 +640,7 @@ namespace TestProgram::Impl {
 			},
 
 			Graph::Node{
-				10,
+				11,
 				Graph::MakeQualifiedID(Console, Print),
 				{ Graph::ExecInID },
 				{ Graph::ExecOutID },
@@ -626,7 +651,7 @@ namespace TestProgram::Impl {
 			},
 
 			Graph::Node{
-				11,
+				12,
 				Graph::MakeQualifiedID(Misc, StringConcat),
 				{}, {},
 				{
@@ -639,7 +664,7 @@ namespace TestProgram::Impl {
 			},
 
 			Graph::Node{
-				12,
+				13,
 				Graph::MakeQualifiedID(Console, Print),
 				{ Graph::ExecInID },
 				{ Graph::ExecOutID },
@@ -652,26 +677,27 @@ namespace TestProgram::Impl {
 
 		.links = {
 			// Execution links
-			{ EXEC, Graph::EntryNodeID, Graph::ExecOutID, 4, Graph::ExecInID },
-			{ EXEC, 4, "False", 10, Graph::ExecInID },
-			{ EXEC, 10, Graph::ExecOutID, 4, Graph::ExecInID },
-			{ EXEC, 4, "True", 12, Graph::ExecInID },
-			{ EXEC, 12, Graph::ExecOutID, Graph::TermNodeID, Graph::ExecInID },
+			{ EXEC, Graph::EntryNodeID, Graph::ExecOutID, 5, Graph::ExecInID },
+			{ EXEC, 5, "False", 11, Graph::ExecInID },
+			{ EXEC, 11, Graph::ExecOutID, 5, Graph::ExecInID },
+			{ EXEC, 5, "True", 13, Graph::ExecInID },
+			{ EXEC, 13, Graph::ExecOutID, Graph::TermNodeID, Graph::ExecInID },
 
 			// Data links
 			{ DATA, 1, Graph::GetterOutputDataPin, 2, "Satellite" },
-			{ DATA, 2, "Position", 3, "A" },
-			{ DATA, 2, "Node Symbol", 5, "A" },
-			{ DATA, 2, "Satellite Name", 6, "B"},
-			{ DATA, 2, "Position", 7, "B" },
-			{ DATA, 3, "", 4, "Condition" },
-			{ DATA, 5, "", 8, "A" },
-			{ DATA, 6, "", 8, "B" },
-			{ DATA, 8, "", 9, "A" },
+			{ DATA, 2, "Node Symbol", 6, "A" },
+			{ DATA, 2, "Satellite Name", 7, "B"},
+			{ DATA, 2, "Position", 3, "Vector" },
+			{ DATA, 2, "Position", 8, "B" },
+			{ DATA, 3, "", 4, "A" },
+			{ DATA, 4, "", 5, "Condition" },
+			{ DATA, 6, "", 9, "A" },
 			{ DATA, 7, "", 9, "B" },
-			{ DATA, 9, "", 10, "String" },
-			{ DATA, 6, "", 11, "A" },
-			{ DATA, 11, "", 12, "String" }
+			{ DATA, 9, "", 10, "A" },
+			{ DATA, 8, "", 10, "B" },
+			{ DATA, 10, "", 11, "String" },
+			{ DATA, 7, "", 12, "A" },
+			{ DATA, 12, "", 13, "String" }
 		}
 	};
 
@@ -767,7 +793,7 @@ namespace TestProgram::Impl {
 		.nodes = {
 			Graph::Node{
 				1,
-				"Control::Loop",
+				Graph::MakeQualifiedID(Control, WhileLoop),
 				{ Graph::ExecInID, "Break" },
 				{ "In Loop", "Completed" },
 				{
@@ -866,7 +892,7 @@ namespace TestProgram::Impl {
 
 			Graph::Node{
 				9,
-				"Control::Loop",
+				Graph::MakeQualifiedID(Control, WhileLoop),
 				{ Graph::ExecInID, "Break" },
 				{ "In Loop", "Completed" },
 				{
@@ -1020,19 +1046,19 @@ namespace TestProgram::Impl {
 			{ EXEC, 1, "In Loop", 6, Graph::ExecInID },									// Outer Loop (In Loop) -> Branch 1
 			{ EXEC, 6, "True", 1, "Break" },											// Branch 1 (True) -> (Break) Outer Loop
 			{ EXEC, 6, "False", 7, Graph::ExecInID },									// Branch 1 (False) -> Branch 2
-			{ EXEC, 7, "True", 8, Graph::ExecInID },									// Branch 2 (True) -> Outer Loop (Continue loop...)
-			{ EXEC, 7, "False", 8, Graph::ExecOutID },									// Branch 2 (False) -> Set "Is Prime" to True
+		//{ EXEC, 7, "True", 8, Graph::ExecInID },										// Branch 2 (True) -> Outer Loop (Continue loop...)
+			{ EXEC, 7, "False", 8, Graph::ExecInID },									// Branch 2 (False) -> Set "Is Prime" to True
 			{ EXEC, 8, Graph::ExecOutID, 9, Graph::ExecInID },							// Set "Is Prime" to True -> Inner Loop
 			{ EXEC, 9, "In Loop", 13, Graph::ExecInID },								// Inner Loop (In Loop) -> Branch 3
 			{ EXEC, 9, "Completed", 19, Graph::ExecInID },								// Inner Loop (Completed) -> Branch 5
 			{ EXEC, 13, "False", 9, "Break" },											// Branch 3 (False) -> (Break) Inner Loop
 			{ EXEC, 13, "True", 16, Graph::ExecInID },									// Branch 3 (True) -> Branch 4
 			{ EXEC, 16, "True", 17, Graph::ExecInID },									// Branch 4 (True) -> Set "Is Prime" to False
-			{ EXEC, 16, "False", 9, Graph::ExecInID },									// Branch 4 (False) -> Inner Loop (Continue loop...)
+		//{ EXEC, 16, "False", 9, Graph::ExecInID },									// Branch 4 (False) -> Inner Loop (Continue loop...)
 			{ EXEC, 17, Graph::ExecOutID, 9, "Break" },									// Set "Is Prime" to False -> (Break) Inner Loop
-			{ EXEC, 19, "False", 1, Graph::ExecInID },									// Branch 5 (False) -> Outer Loop
+		//{ EXEC, 19, "False", 1, Graph::ExecInID },									// Branch 5 (False) -> Outer Loop (Continue loop...)
 			{ EXEC, 19, "True", 20, Graph::ExecInID },									// Branch 5 (True) -> Print Prime Number
-			{ EXEC, 20, Graph::ExecOutID, 1, Graph::ExecInID },							// Print Prime Number -> Outer Loop
+		//{ EXEC, 20, Graph::ExecOutID, 1, Graph::ExecInID },							// Print Prime Number -> Outer Loop (Continue loop...)
 
 			// Data links
 			{ DATA, 1, "Index", 2, "A" },												// Outer Loop (Index) -> (A) Add Outer Index
@@ -1134,7 +1160,8 @@ namespace TestProgram::Impl {
 				{ Graph::ExecInID },
 				{ Graph::ExecOutID },
 				{
-					Graph::Node::ComboInPin{ Graph::SetterInputComboPin, AsTL::TID_ANY, "NonExistentVar" }  // This variable doesn't exist
+					Graph::Node::ComboInPin{ Graph::SetterInputComboPin, AsTL::TID_ANY, "NonExistentVar" },  // This variable doesn't exist
+					Graph::Node::DataInPin{ Graph::SetterInputDataPin, AsTL::TID_F64 }
 				},
 				{}
 			}

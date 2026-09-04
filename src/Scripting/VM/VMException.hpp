@@ -4,12 +4,6 @@
 #include <string>
 #include <exception>
 
-#define VM_ASSERT_CONFIG(cond, excMsg, ...) \
-	if (!(cond)) throw VMConfigException(excMsg, ##__VA_ARGS__);
-
-#define VM_ASSERT_RUNTIME(cond, excMsg, ...) \
-	if (!(cond)) throw VMRuntimeException(excMsg, ##__VA_ARGS__);
-
 
 /* Virtual Machine Configuration Exception */
 class VMConfigException : public std::exception {
@@ -50,16 +44,22 @@ private:
 /* Virtual Machine Breakpoint Trap */
 class VMBreakpointTrap : public std::exception {
 public:
-	VMBreakpointTrap(size_t progCounter) : m_pc(progCounter) {}
+	VMBreakpointTrap(size_t progCounter) :
+		m_pc(progCounter),
+		m_msg(
+			std::format("Breakpoint triggered at instruction address 0x{:0>{}X}",
+				m_pc - 1, 4
+			)
+		)
+	{}
 	~VMBreakpointTrap() = default;
 
 	inline const char* what() const noexcept override {
-		return std::format("Breakpoint triggered at instruction address 0x{:0>{}X}",
-			m_pc - 1, 4
-		).c_str();
+		return m_msg.c_str();
 	}
-
+	
 private:
+	std::string m_msg;
 	size_t m_pc;
 };
 

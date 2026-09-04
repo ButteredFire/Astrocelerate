@@ -12,9 +12,9 @@
 #include <Scripting/AsTLTypes.hpp>
 #include <Scripting/AsTLMacros.hpp>
 #include <Scripting/Utils/Bytes.hpp>
+#include <Scripting/Utils/Concepts.hpp>
+#include <Scripting/Utils/StaticBlock.hpp>
 #include <Scripting/Utils/VariantHelpers.hpp>
-#include <Scripting/Utils/LogicalConcept.hpp>
-#include <Scripting/Utils/ArithmeticConcept.hpp>
 #include <Scripting/Compiler/Instruction.hpp>
 #include <Scripting/Compiler/ConstantPool.hpp>
 #include <Scripting/Compiler/GraphNodeRegistry.hpp>
@@ -22,8 +22,8 @@
 #include "VMException.hpp"
 
 
-#define PACK_OPS(OP1, OP2)	(static_cast<Compiler::RawOperandT>(static_cast<AsTL::BYTE>(OP1) & 0xFF) << 8) | \
-							(static_cast<Compiler::RawOperandT>(static_cast<AsTL::BYTE>(OP2) & 0xFF) << 0)
+#define PACK_OPS(OP1, OP2)	((static_cast<Compiler::RawOperandT>(static_cast<AsTL::BYTE>(OP1) & 0xFF) << 8) | \
+							(static_cast<Compiler::RawOperandT>(static_cast<AsTL::BYTE>(OP2) & 0xFF) << 0))
 
 
 /*
@@ -72,9 +72,10 @@
         default:																															\
 		{																																	\
 			saveVMState(Compiler::VMExitCode::BAD_CAST);																					\
-			throw VMRuntimeException("At instruction address 0x{:0>{}X}: Unrecognized operand type 0x{:0>{}X}",								\
-				m_pc - 1, 4,																												\
-				OP, 2																														\
+			throw VMRuntimeException("At instruction address 0x{:0>{}X}: Unrecognized operand type 0x{:0>{}X}{}",							\
+				m_pc - 1, ADDR_HEX_SZ,																										\
+				OP, BYTE_HEX_SZ,																											\
+				(static_cast<size_t>(OP) < Compiler::OperandTypeCount) ? std::format(" ({})", Compiler::ByteToString(OP)) : ""				\
 			);																																\
 		}																																	\
     }
@@ -96,10 +97,12 @@
         default:																															\
 		{																																	\
 			saveVMState(Compiler::VMExitCode::BAD_CAST);																					\
-			throw VMRuntimeException("At instruction address 0x{:0>{}X}: Unrecognized operand types 0x{:0>{}X} and 0x{:0>{}X}",				\
-				m_pc - 1, 4,																												\
-				L_OP, 2,																													\
-				R_OP, 2																														\
+			throw VMRuntimeException("At instruction address 0x{:0>{}X}: Unrecognized operand types 0x{:0>{}X}{} and 0x{:0>{}X}{}",			\
+				m_pc - 1, ADDR_HEX_SZ,																										\
+				L_OP, BYTE_HEX_SZ,																											\
+				(static_cast<size_t>(L_OP) < Compiler::OperandTypeCount) ? std::format(" ({})", Compiler::ByteToString(L_OP)) : "",			\
+				R_OP, BYTE_HEX_SZ,																											\
+				(static_cast<size_t>(R_OP) < Compiler::OperandTypeCount) ? std::format(" ({})", Compiler::ByteToString(R_OP)) : ""			\
 			);																																\
 		}																																	\
     }
@@ -133,6 +136,9 @@ public:
 	Compiler::VMExitCode resume();
 
 private:
+	static constexpr size_t BYTE_HEX_SZ = 2;		// Hexadecimal character size of a byte (1 byte => 2 hex chars)
+	static constexpr size_t ADDR_HEX_SZ = 4;		// Hexadecimal character size of an instruction address (2 bytes => 4 hex chars)
+
 	const Compiler::ConstantPool &m_constPool;
 	const Compiler::IGraphNodeRegistry &m_nodeRegistry;
 	AsTL::OpaqueExecCtx *m_execCtx;
@@ -141,7 +147,7 @@ private:
 
 	std::vector<uint64_t> m_vmStack;
 	std::vector<AsTL::StackValue> m_globReg;
-	std::array<uint64_t, Compiler::SPR_COUNT> m_SPRs;
+	std::array<uint64_t, Compiler::SPRCount> m_SPRs;
 	std::vector<AsTL::STR> m_strHeap;			// Dedicated string heap (non-standard)
 
 	std::vector<AsTL::StackValue> m_funcArgs;	// Native function argument list
@@ -160,7 +166,7 @@ private:
 	struct VMSRegister {
 		Compiler::VMExitCode exitCode;
 		AsTL::IDX progCounter;
-		AsTL::I16 stackSz;
+		AsTL::I16 stackSzKB;
 		Compiler::RawBitmaskT insMask;
 		Compiler::RawBitmaskT dbgMask;
 
@@ -169,7 +175,7 @@ private:
 			return VMSRegister{
 				.exitCode		= static_cast<decltype(VMSRegister::exitCode)>((sprVal >> 0) & 0xFFFF),
 				.progCounter	= static_cast<decltype(VMSRegister::progCounter)>((sprVal >> 16) & 0xFFFF),
-				.stackSz		= static_cast<decltype(VMSRegister::stackSz)>((sprVal >> 32) & 0xFFFF),
+				.stackSzKB		= static_cast<decltype(VMSRegister::stackSzKB)>((sprVal >> 32) & 0xFFFF),
 				.insMask		= static_cast<decltype(VMSRegister::insMask)>((sprVal >> 48) & 0xFF),
 				.dbgMask		= static_cast<decltype(VMSRegister::dbgMask)>((sprVal >> 56) & 0xFF)
 			};
@@ -179,7 +185,7 @@ private:
 		FORCE_INLINE uint64_t encode() const {
 			return	((static_cast<uint64_t>(exitCode) & 0xFFFF) << 0) |
 					((static_cast<uint64_t>(progCounter) & 0xFFFF) << 16) |
-					((static_cast<uint64_t>(stackSz) & 0xFFFF) << 32) |
+					((static_cast<uint64_t>(stackSzKB) & 0xFFFF) << 32) |
 					((static_cast<uint64_t>(insMask) & 0xFF) << 48) |
 					((static_cast<uint64_t>(dbgMask) & 0xFF) << 56);
 		}
@@ -226,17 +232,25 @@ private:
 		@param opType: The type to reinterpret the stack slot as
 		@param consumed (Default: nullptr): An output integral value representing how many stack slots were read during the cast.
 	*/
-	template<typename T> FORCE_INLINE T castFromStack(Compiler::OperandType opType, size_t *consumed = nullptr);
+	template<typename T> FORCE_INLINE T castFromStack(Compiler::OperandType opType, AsTL::IDX *consumed = nullptr);
 
 	/* Reinterprets the bit representation of a VM stack slot as a concrete type.
 		@param sp: The pointer/index to the stack slot
 		@param opType: The type to reinterpret the stack slot as
 		@param consumed (Default: nullptr): An output integral value representing how many stack slots were read during the cast.
 	*/
-	template<typename T> FORCE_INLINE T castFromStack(AsTL::IDX sp, Compiler::OperandType opType, size_t *consumed = nullptr);
+	template<typename T> FORCE_INLINE T castFromStack(AsTL::IDX sp, Compiler::OperandType opType, AsTL::IDX *consumed = nullptr);
 
 	/* castFromStack implementation */
-	FORCE_INLINE AsTL::StackValue castFromStack_Impl(AsTL::IDX sp, Compiler::OperandType opType, size_t *consumed = nullptr);
+	FORCE_INLINE AsTL::StackValue castFromStack_Impl(AsTL::IDX sp, Compiler::OperandType opType, AsTL::IDX *consumed = nullptr);
+
+	/* Performs a boundary check for a given index-based container at a given index. */
+	template<typename Container, typename Idx>
+	requires CompilerUtils::HasSizeMethod<Container>&& std::is_integral_v<Idx>
+	FORCE_INLINE void checkBoundsFor(const Container& container, Idx index);
+
+	/* Sets the program counter (at runtime). */
+	FORCE_INLINE void setProgramCounterRT(AsTL::IDX newAddr);
 
 	/* Decodes a string from an encoded VM stack value. */
 	FORCE_INLINE AsTL::STR decodeString(uint64_t val);
@@ -302,32 +316,32 @@ inline FORCE_INLINE T VirtualMachine::popFromVMStackAs(Compiler::OperandType opT
 
 
 template<typename T>
-inline FORCE_INLINE T VirtualMachine::castFromStack(Compiler::OperandType opType, size_t *consumed) {
+inline FORCE_INLINE T VirtualMachine::castFromStack(Compiler::OperandType opType, AsTL::IDX *consumed) {
 	const auto &v = castFromStack_Impl(m_vsp, opType, consumed);
-	if constexpr (AlternativeOf<T, AsTL::StackValue>)
+	if constexpr (CompilerUtils::AlternativeOf<T, AsTL::StackValue>)
 		return std::get<T>(v);
 	if constexpr (std::is_same_v<T, AsTL::StackValue>)
 		return v;
 
 	saveVMState(Compiler::VMExitCode::BAD_CAST);
 	throw VMRuntimeException("At instruction address 0x{:0>{}X}: Attempted to cast VM stack value to unrecognized type ({})",
-		m_pc - 1, 4,
+		m_pc - 1, ADDR_HEX_SZ,
 		typeid(T).name()
 	);
 }
 
 
 template<typename T>
-inline FORCE_INLINE T VirtualMachine::castFromStack(AsTL::IDX sp, Compiler::OperandType opType, size_t *consumed) {
+inline FORCE_INLINE T VirtualMachine::castFromStack(AsTL::IDX sp, Compiler::OperandType opType, AsTL::IDX *consumed) {
 	const auto &v = castFromStack_Impl(sp, opType, consumed);
-	if constexpr (AlternativeOf<T, AsTL::StackValue>)
+	if constexpr (CompilerUtils::AlternativeOf<T, AsTL::StackValue>)
 		return std::get<T>(v);
 	if constexpr (std::is_same_v<T, AsTL::StackValue>)
 		return v;
 
 	saveVMState(Compiler::VMExitCode::BAD_CAST);
 	throw VMRuntimeException("At instruction address 0x{:0>{}X}: Attempted to cast VM stack value to unrecognized type ({})",
-		m_pc - 1, 4,
+		m_pc - 1, ADDR_HEX_SZ,
 		typeid(T).name()
 	);
 }

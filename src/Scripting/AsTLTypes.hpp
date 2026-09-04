@@ -2,10 +2,13 @@
 
 #include <cmath>
 #include <string>
+#include <limits>
 #include <cstdint>
 #include <climits>
 #include <variant>
 #include <typeindex>
+#include <exception>
+#include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -61,21 +64,13 @@ namespace AsTL {
 
 
 		bool operator==(const VEC3 &other) const {
-			return	std::abs(x - other.x) < eps &&
-					std::abs(y - other.y) < eps &&
-					std::abs(z - other.z) < eps;
+			return x == other.x && y == other.y && z == other.z;
 		}
 
-		bool operator>(const VEC3 &other) const {
-			return	x - other.x > eps ||
-					y - other.y > eps ||
-					z - other.z > eps;
-		}
-
-		bool operator<(const VEC3 &other) const {
-			return	other.x - x > eps ||
-					other.y - y > eps ||
-					other.z - z > eps;
+		bool approxEquals(const VEC3& other, F64 tolerance = eps) const {
+			return	std::abs(x - other.x) < tolerance &&
+					std::abs(y - other.y) < tolerance &&
+					std::abs(z - other.z) < tolerance;
 		}
 
 		// Component-wise multiplication (VEC3 * VEC3)
@@ -166,6 +161,9 @@ namespace AsTL {
 		// Vector normalization
 		VEC3 norm() const {
 			F64 magnitude = mag();
+			if (magnitude == 0.0)
+				return VEC3();
+			
 			return { x / magnitude, y / magnitude, z / magnitude };
 		}
 	};
@@ -356,7 +354,12 @@ namespace AsTL {
 
 		else if (type == TID_STR)		return "";
 
-		return NAN;
+		else if (type == TID_INTEGRAL)	return I16();
+		else if (type == TID_NUMERIC)	return F64();
+		else if (type == TID_FPOINT)	return F64();
+
+		std::string excMsg = "No default value exists for type index " + std::string(type.name());
+		throw std::exception(excMsg.c_str());
 	}
 
 
