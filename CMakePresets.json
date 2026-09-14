@@ -1,81 +1,98 @@
 {
-"version": 6,
-  "configurePresets": [
+    "version": 6,
+    "configurePresets": [
     {
-      "name": "BaseCfg",
-      "hidden": true,
-      "generator": "Ninja",
-      "cacheVariables": {
-        //"WARNINGS_AS_ERRORS": "ON",
-        "CMAKE_TOOLCHAIN_FILE": "D:/vcpkg/scripts/buildsystems/vcpkg.cmake"
-      },
-      "environment": {
-        "SPICE_ROOT_DIR": "D:/CSPICE"
-      }
+        "name": "BaseCfg",
+        "hidden": true,
+        "generator": "Ninja",
+        "cacheVariables": {
+            "CMAKE_TOOLCHAIN_FILE": "D:/vcpkg/scripts/buildsystems/vcpkg.cmake"
+        },
+        "environment": {
+            "SPICE_ROOT_DIR": "D:/CSPICE"
+        }
     },
 
 
     {
-      "name": "Debug-Win32",
-      "displayName": "Debug (Windows)",
-      "description": "Configures for Debug builds with Ninja and vcpkg on Windows.",
-      "inherits": "BaseCfg",
-      "binaryDir": "${sourceDir}/out/build/${presetName}",
-      "installDir": "${sourceDir}/out/install/${presetName}",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug"
-      }
+        "name": "Debug-Win32",
+        "displayName": "Debug (Windows)",
+        "description": "Configures for Debug builds with Ninja and vcpkg on Windows.",
+        "inherits": "BaseCfg",
+        "binaryDir": "${sourceDir}/out/build/${presetName}",
+        "installDir": "${sourceDir}/out/install/${presetName}",
+        "cacheVariables": {
+            "CMAKE_BUILD_TYPE": "Debug"
+        }
     },
 
     {
-      "name": "RelWithDebInfo-Win32",
-      "displayName": "Release w/ Debug Info (Windows)",
-      "description": "Configures for Release builds (with Debug info) with Ninja and vcpkg on Windows.",
-      "inherits": "BaseCfg",
-      "binaryDir": "${sourceDir}/out/build/${presetName}",
-      "installDir": "${sourceDir}/out/install/${presetName}",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
-      }
+        "name": "RelWithDebInfo-Win32",
+        "displayName": "Release w/ Debug Info (Windows)",
+        "description": "Configures for Release builds (with Debug info) with Ninja and vcpkg on Windows.",
+        "inherits": "BaseCfg",
+        "binaryDir": "${sourceDir}/out/build/${presetName}",
+        "installDir": "${sourceDir}/out/install/${presetName}",
+        "cacheVariables": {
+            "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+        }
     },
 
     {
-      "name": "MinSizeRel-Win32",
-      "displayName": "Min-Size Release (Windows)",
-      "description": "Configures for Min-Size Release builds with Ninja and vcpkg on Windows.",
-      "inherits": "BaseCfg",
-      "binaryDir": "${sourceDir}/out/build/${presetName}",
-      "installDir": "${sourceDir}/out/install/${presetName}",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "MinSizeRel"
-      }
+        "name": "Release-Win32",
+        "displayName": "Release (Windows)",
+        "description": "Configures for Release builds with Ninja and vcpkg on Windows.",
+        "inherits": "BaseCfg",
+        "binaryDir": "${sourceDir}/out/build/${presetName}",
+        "installDir": "${sourceDir}/out/install/${presetName}",
+        "cacheVariables": {
+            "CMAKE_BUILD_TYPE": "Release"
+        }
+    },
+
+    {
+        "name": "MinSizeRel-Win32",
+        "displayName": "Min-Size Release (Windows)",
+        "description": "Configures for Min-Size Release builds with Ninja and vcpkg on Windows.",
+        "inherits": "BaseCfg",
+        "binaryDir": "${sourceDir}/out/build/${presetName}",
+        "installDir": "${sourceDir}/out/install/${presetName}",
+        "cacheVariables": {
+            "CMAKE_BUILD_TYPE": "MinSizeRel"
+        }
     }
-  ],
+    ],
 
 
 
-  "buildPresets": [
+    "buildPresets": [
     {
-      "name": "Debug-Win32",
-      "displayName": "Debug-Win32",
-      "configurePreset": "Debug-Win32",
-      "verbose": true
+        "name": "Debug-Win32",
+        "displayName": "Debug-Win32",
+        "configurePreset": "Debug-Win32",
+        "verbose": true
     },
     {
-      "name": "RelWithDebInfo-Win32",
-      "displayName": "RelWithDebInfo-Win32",
-      "configurePreset": "RelWithDebInfo-Win32",
-      "verbose": true
+        "name": "RelWithDebInfo-Win32",
+        "displayName": "RelWithDebInfo-Win32",
+        "configurePreset": "RelWithDebInfo-Win32",
+        "verbose": true
     },
     {
-      "name": "MinSizeRel-Win32",
-      "displayName": "MinSizeRel-Win32",
-      "configurePreset": "MinSizeRel-Win32",
-      "verbose": true
+        "name": "Release-Win32",
+        "displayName": "Release-Win32",
+        "configurePreset": "Release-Win32",
+        "verbose": true
+    },
+    {
+        "name": "MinSizeRel-Win32",
+        "displayName": "MinSizeRel-Win32",
+        "configurePreset": "MinSizeRel-Win32",
+        "verbose": true
     }
-  ],
+    ],
 
 
 
-  "testPresets": []
+    "testPresets": []
 }
