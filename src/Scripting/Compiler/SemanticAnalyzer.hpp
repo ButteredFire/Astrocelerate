@@ -64,6 +64,9 @@ namespace Compiler {
 			>
 		>;
 		
+		std::vector<
+			std::reference_wrapper<const Graph::Link>
+		> m_nodeLinks;
 		LinkCache m_nodeInLinks;
 		LinkCache m_nodeOutLinks;
 
@@ -86,7 +89,10 @@ namespace Compiler {
 		void resolveWildcardsForNode(Graph::NodeID nodeID);
 
 		/* Verifies that all nodes have corresponding descriptors in the node registry. */
-		void checkExistence();
+		void checkExistenceInRegistry();
+
+		/* Verifies that all links are connected to valid graph nodes. */
+		void checkExistenceInGraph();
 
 		/* Verifies that no descriptors in the node registry are malformed. */
 		void checkRegistry();

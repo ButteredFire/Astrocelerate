@@ -8,6 +8,7 @@
 #include <variant>
 #include <typeindex>
 #include <exception>
+#include <stdexcept>
 #include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
@@ -73,6 +74,16 @@ namespace AsTL {
 					std::abs(z - other.z) < tolerance;
 		}
 
+		// Component-wise addition
+		VEC3 operator+(const VEC3& other) const {
+			return { x + other.x, y + other.y, z + other.z };
+		}
+
+		// Component-wise subtraction
+		VEC3 operator-(const VEC3& other) const {
+			return { x - other.x, y - other.y, z - other.z };
+		}
+
 		// Component-wise multiplication (VEC3 * VEC3)
 		VEC3 operator*(const VEC3 &other) const {
 			return { x * other.x, y * other.y, z * other.z };
@@ -125,16 +136,6 @@ namespace AsTL {
 		// Scalar division with Right-side F64 (VEC3 / F64)
 		VEC3 operator/(F64 scalar) const {
 			return { x / scalar, y / scalar, z / scalar };
-		}
-
-		// Vector addition
-		VEC3 operator+(const VEC3 &other) const {
-			return { x + other.x, y + other.y, z + other.z };
-		}
-
-		// Vector subtraction
-		VEC3 operator-(const VEC3 &other) const {
-			return { x - other.x, y - other.y, z - other.z };
 		}
 
 		// Vector dot product
@@ -359,7 +360,7 @@ namespace AsTL {
 		else if (type == TID_FPOINT)	return F64();
 
 		std::string excMsg = "No default value exists for type index " + std::string(type.name());
-		throw std::exception(excMsg.c_str());
+		throw std::runtime_error(excMsg.c_str());
 	}
 
 

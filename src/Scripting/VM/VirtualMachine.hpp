@@ -152,7 +152,7 @@ private:
 
 	std::vector<AsTL::StackValue> m_funcArgs;	// Native function argument list
 	std::vector<AsTL::StackValue> m_funcRets;	// Native function return list
-	size_t m_allocFuncListSz;				// Current max allocated size for the native function argument and return lists, in element count
+	size_t m_funcArgsListSz, m_funcRetsListSz;	// Current max allocated sizes for the native function argument and return lists, in element count
 
 	const size_t m_allocVMStackSzKB;		// Allocated VM stack size (in kilobytes)
 	const size_t m_allocCallStackSzKB;		// Allocated call stack size (in kilobytes)
@@ -301,6 +301,9 @@ private:
 
 	/* Converts a value to its string representation. */
 	std::string variantToString(const AsTL::StackValue &val) const;
+
+	/* Clears specific VM memory containers in preparation for program execution. */
+	void resetMemPreExec();
 };
 
 

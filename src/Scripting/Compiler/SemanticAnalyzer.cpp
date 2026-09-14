@@ -28,11 +28,13 @@ namespace Compiler {
 		}
 
 		for (const auto& link : nodeLinks) {
+			m_nodeLinks.emplace_back(link);
 			m_nodeOutLinks[link.outNodeID].emplace_back(link);
 			m_nodeInLinks[link.inNodeID].emplace_back(link);
 		}
 
-		checkExistence();
+		checkExistenceInRegistry();
+		checkExistenceInGraph();
 		checkRegistry();
 		checkCircularDeps();
 
@@ -157,7 +159,8 @@ namespace Compiler {
 		}
 	}
 
-	void SemanticAnalyzer::checkExistence() {
+
+	void SemanticAnalyzer::checkExistenceInRegistry() {
 		for (const auto& [nodeID, nodeRef] : m_nodes) {
 			const Graph::Node& node = nodeRef.get();
 
@@ -173,6 +176,70 @@ namespace Compiler {
 
 				markAsDirtied(node.id);
 			}
+		}
+	}
+
+
+	void SemanticAnalyzer::checkExistenceInGraph() {
+		bool hasFullyInvalidLinks = false;
+
+		const auto processLink = [&](const Graph::Link& link) -> void {
+			if (link.outNodeID == Graph::EntryNodeID || link.inNodeID == Graph::TermNodeID)
+				return;
+
+			const bool inNodeInvalid = !m_nodes.contains(link.inNodeID);
+			const bool outNodeInvalid = !m_nodes.contains(link.outNodeID);
+
+			if (inNodeInvalid && outNodeInvalid) {
+				hasFullyInvalidLinks = true;
+				return;
+			}
+
+			Graph::NodeID traceNodeID{};
+			Impl::DirtyPin dirtyPin{};
+
+			
+			if (inNodeInvalid) {
+				traceNodeID = link.outNodeID;
+
+				dirtyPin.type = Impl::DirtyPin::OUT_PIN;
+				dirtyPin.label = link.outPinID;
+			}
+			if (outNodeInvalid) {
+				traceNodeID = link.inNodeID;
+
+				dirtyPin.type = Impl::DirtyPin::IN_PIN;
+				dirtyPin.label = link.inPinID;
+			}
+
+			if (inNodeInvalid || outNodeInvalid) {
+				m_reporter.report(
+					Diagnostics::Diagnostic::Severity::Error,
+					Diagnostics::Diagnostic::DiagType::Semantic,
+					traceNodeID,
+					dirtyPin.label,
+					"Node pin is connected to an invalid or corrupted node"
+				);
+
+				markAsDirtied(traceNodeID, dirtyPin);
+			}
+		};
+
+
+		for (const Graph::Link& link : m_nodeLinks)
+			processLink(link);
+		
+
+		if (hasFullyInvalidLinks) {
+			// Since the links are not connected to any valid node in the graph, graph traversal will not go through them;
+			// therefore, the program won't crash. This is why the report will be a warning instead of an error.
+			m_reporter.report(
+				Diagnostics::Diagnostic::Severity::Warning,
+				Diagnostics::Diagnostic::DiagType::Semantic,
+				std::nullopt,
+				std::nullopt,
+				"One or more invalid or corrupted inert links have been identified; they will be ignored during program execution"
+			);
 		}
 	}
 

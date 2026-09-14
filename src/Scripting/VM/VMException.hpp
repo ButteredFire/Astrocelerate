@@ -48,7 +48,7 @@ public:
 		m_pc(progCounter),
 		m_msg(
 			std::format("Breakpoint triggered at instruction address 0x{:0>{}X}",
-				m_pc - 1, 4
+				progCounter - 1, 4
 			)
 		)
 	{}

@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <variant>
+#include <optional>
 #include <typeindex>
 #include <unordered_set>
 

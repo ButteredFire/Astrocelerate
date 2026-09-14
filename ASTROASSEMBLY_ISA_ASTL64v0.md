@@ -121,7 +121,15 @@ Convertible/mutually castable types can be cast to each other.
 
 ### Arithmetic and Logical Instructions
 * Evaluated in FIFO order (e.g., stack `[3.14, 42]` with `SUB` equals `3.14 - 42`).
-* VEC3: `MUL` and `DIV` support scalar broadcasts with a number. `NEG` acts as scalar multiplication by -1. All other arithmetic/logical operations involving `VEC3` or `BOOL` are illegal.
+
+* VEC3:
+  + `ADD`, `SUB`, `MUL`, `DIV` with another VEC3 perform corresponding Hadamard (component-wise arithmetic) operations
+  + `MUL` and `DIV` also support scalar broadcasts with a number
+  + `NEG` acts as scalar multiplication by -1
+  + All logical operations involving `VEC3` are illegal.
+
+* BOOL: All arithmetic operations involving `BOOL` are legal but discouraged.
+
 * IDX: Only `ADD` and `SUB` are valid, requiring both operands to be `IDX`.
 
 ### Exit Codes (Termination)

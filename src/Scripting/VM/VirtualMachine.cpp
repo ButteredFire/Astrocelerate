@@ -52,9 +52,10 @@ VirtualMachine::VirtualMachine(
 	m_vmStack.reserve(vmStackSzBytes / sizeof(uint64_t));
 	m_callStack.reserve(callStackSzBytes / sizeof(uint64_t));
 
-	m_allocFuncListSz = 20;
-	m_funcArgs.resize(m_allocFuncListSz);
-	m_funcRets.resize(m_allocFuncListSz);
+	m_funcArgsListSz = 10;
+	m_funcRetsListSz = 10;
+	m_funcArgs.resize(m_funcArgsListSz);
+	m_funcRets.resize(m_funcRetsListSz);
 
 	// Default fallback exit code is EXEC_HALTED.
 	// It should be updated to a concrete exit code upon VM exceptions or `TERMINATE` instructions
@@ -68,10 +69,7 @@ void VirtualMachine::setProgram(const std::vector<Compiler::RawInstructionT>& in
 
 
 Compiler::VMExitCode VirtualMachine::execute(const std::vector<Compiler::RawInstructionT>& instructions) {
-	m_pc = 0;
-	m_vsp = -1;
-
-	STATIC_BLOCK_TRACKER.resetStaticBlocks();
+	resetMemPreExec();
 	
 	m_instructions = &instructions;
 
@@ -80,10 +78,7 @@ Compiler::VMExitCode VirtualMachine::execute(const std::vector<Compiler::RawInst
 
 
 Compiler::VMExitCode VirtualMachine::execute() {
-	m_pc = 0;
-	m_vsp = -1;
-
-	STATIC_BLOCK_TRACKER.resetStaticBlocks();
+	resetMemPreExec();
 
 	return executeAt(m_pc);
 }
@@ -304,12 +299,17 @@ Compiler::VMExitCode VirtualMachine::executeAt(AsTL::IDX insAddress) {
 			{
 				const Compiler::GraphNodeDescriptor &desc = m_nodeRegistry.getInfo(std::bit_cast<AsTL::IDX>(ins.operand));
 
+				size_t argListSz = desc.inParams.size();
 				size_t retListSz = desc.outExecs.size() + desc.outParams.size();
 
-				if (retListSz > m_allocFuncListSz) {
-					m_allocFuncListSz = retListSz;
-					m_funcArgs.resize(m_allocFuncListSz);
-					m_funcRets.resize(m_allocFuncListSz);
+				if (argListSz > m_funcArgsListSz) {
+					m_funcArgsListSz = argListSz;
+					m_funcArgs.resize(m_funcArgsListSz);
+				}
+
+				if (retListSz > m_funcRetsListSz) {
+					m_funcRetsListSz = retListSz;
+					m_funcRets.resize(m_funcRetsListSz);
 				}
 
 				// Node ID
@@ -1328,4 +1328,17 @@ std::string VirtualMachine::variantToString(const AsTL::StackValue &val) const {
 	}, val);
 
 	return str;
+}
+
+
+void VirtualMachine::resetMemPreExec() {
+	m_pc = 0;
+	m_vsp = -1;
+
+	m_vmStack.clear();
+
+	// Per bytecode emission rules, if a program terminates with `FINISHED_EXEC_TICK`, the next instruction to call on resuming is the main call itself.
+	// Therefore, we should not clear variable registries (populated ONCE during the pre-allocation step and strictly read-only during execution).
+
+	STATIC_BLOCK_TRACKER.resetStaticBlocks();
 }

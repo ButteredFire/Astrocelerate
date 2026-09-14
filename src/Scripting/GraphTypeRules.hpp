@@ -131,7 +131,7 @@ namespace Graph::Impl {
 
                 ASTL_TYPE_LIST_PERMUTATIONS(
                     X, CompilerUtils::CanDoModulo,
-                    MakeQualifiedID(ClassScope::Math, CatScope::Logic, FuncScope::Modulo), %
+                    MakeQualifiedID(ClassScope::Math, CatScope::Arithmetic, FuncScope::Modulo), %
                 )
 
                 ASTL_TYPE_LIST_PERMUTATIONS(

@@ -890,8 +890,10 @@ namespace Compiler {
 			}
 
 		for (const auto& outPin : outNode.outputPins) {
-			if (outPin.label == outPinLabel)
-				potentialVarName = getPreallocOutPinName(nodeID, outPinLabel, outPin.type);
+			if (outPin.label != outPinLabel)
+				continue;
+
+			potentialVarName = getPreallocOutPinName(nodeID, outPinLabel, outPin.type);
 
 
 			// Get number of outgoing data wires from this output pin
@@ -907,6 +909,8 @@ namespace Compiler {
 					if (evalIdx + 1 < m_nodeEvalOrder.size() && m_nodeEvalOrder[evalIdx + 1] == link.inNodeID)
 						outputGoesToNextNode = true;
 				}
+
+			break;
 		}
 
 
