@@ -163,7 +163,7 @@ void Session::loadSceneFromFile(const std::string &filePath) {
 		}
 	});
 
-	sceneLoadThread->start(true);
+	sceneLoadThread->start();
 }
 
 

@@ -55,7 +55,6 @@ void OrbitalWorkspace::bindEvents() {
 
 			case POST_INITIALIZATION:
 				m_sceneSampleReady = true;
-				ThreadManager::SortThreadMap();		// Sorts the thread map for displaying on the UI
 				break;
 			}
 		}
@@ -1130,22 +1129,15 @@ void OrbitalWorkspace::renderDebugApplication() {
 
 					ImGui::TableSetColumnIndex(2);
 					{
-						if (worker->isDetached()) {
-							ImGui::BeginDisabled();
-							ImGui::Text("Detached");
-							ImGui::EndDisabled();
+						if (worker->isRunning()) {
+							ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(0, 255, 0, 255));
+							ImGui::Text("Active");
+							ImGui::PopStyleColor();
 						}
 						else {
-							if (worker->isRunning()) {
-								ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(0, 255, 0, 255));
-								ImGui::Text("Active");
-								ImGui::PopStyleColor();
-							}
-							else {
-								ImGui::BeginDisabled();
-								ImGui::Text("Inactive");
-								ImGui::EndDisabled();
-							}
+							ImGui::BeginDisabled();
+							ImGui::Text("Inactive");
+							ImGui::EndDisabled();
 						}
 					}
 				}

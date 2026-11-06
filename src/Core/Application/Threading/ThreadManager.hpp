@@ -59,10 +59,8 @@ public:
 			return "";
 
 		auto it = m_workerThreadMap.find(threadID);
-		if (it == m_workerThreadMap.end()) {
-			Log::Print(Log::T_ERROR, __FUNCTION__, "Cannot find name for thread ID " + ThreadIDToString(threadID) + ". Using default thread name.");
-			return "Worker";
-		}
+		if (it == m_workerThreadMap.end())
+			return "WORKER";
 
 		return it->second->getName();
 	}
@@ -124,47 +122,7 @@ public:
 		m_workerThreadMap[workerThread->getID()] = workerThread;
 
 
-		// Sort thread map
-		SortThreadMap();
-
-
 		return workerThread;
-	}
-
-
-	/* Sorts the thread map by thread status (active first), and by name (lexicographical). */
-	inline static void SortThreadMap() {
-		using MapEntry = std::pair<std::thread::id, std::shared_ptr<WorkerThread>>;
-		static auto CompFunc = [](const MapEntry &a, const MapEntry &b) {
-			const auto &workerA = a.second;
-			const auto &workerB = b.second;
-
-			bool nameComp = (workerA->getName() < workerB->getName());
-
-			// Sort by activity (Active threads first), and then sort by name (lexicographically) if activity is the same
-				// Detached (must be first because detached threads can't run functions like `isRunning()` below)
-			if (!workerA->isDetached() && workerB->isDetached()) return true;
-			if (workerA->isDetached() && !workerB->isDetached()) return false;
-			if (workerA->isDetached() && workerB->isDetached())  return nameComp;
-
-				// Active/Inactive
-			if (workerA->isRunning() && !workerB->isRunning()) return true;
-			if (!workerA->isRunning() && workerB->isRunning()) return false;
-			if (workerA->isRunning() == workerB->isRunning()) return nameComp;
-
-			// If all conditions fail for some reason
-			return false;
-		};
-
-		std::vector<MapEntry> sortedEntries;
-		for (auto &pair : m_workerThreadMap)
-			sortedEntries.emplace_back(pair.first, std::move(pair.second));
-
-		std::sort(sortedEntries.begin(), sortedEntries.end(), CompFunc);
-
-		m_workerThreadMap.clear();
-		for (auto &entry : sortedEntries)
-			m_workerThreadMap.emplace(std::move(entry));
 	}
 
 
